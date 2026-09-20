@@ -1,0 +1,2596 @@
+[
+  {
+    "slug": "rolling-paper",
+    "name": "Rolling Paper",
+    "products": [
+      {
+        "slug": "b-e-hemp-regular",
+        "name": "B.E Hemp Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-blue-regular",
+        "name": "Smoking Blue Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-brown-ks",
+        "name": "Smoking Brown KS",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-brown-ks-tips",
+        "name": "Smoking Brown KS + Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-brown-4m-roll",
+        "name": "Smoking Brown 4m Roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-brown-regular",
+        "name": "Smoking Brown Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-light-brown-regular",
+        "name": "Smoking Light Brown Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-silver-ks",
+        "name": "Smoking Silver KS",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-silver-regular",
+        "name": "Smoking silver Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-silver-4m-roll",
+        "name": "Smoking Silver 4m Roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-ks-tips",
+        "name": "Elements Blue KS+Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-5m-roll",
+        "name": "Elements blue 5m Roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-ks",
+        "name": "Elements Blue Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-single-wide",
+        "name": "Elements Blue Single Wide",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-5m-roll-with-holder",
+        "name": "Elements 5m Roll With Holder",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-red-ks",
+        "name": "Elements Red Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-pink-ks",
+        "name": "Elements Pink Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-green-ks",
+        "name": "Elements Green Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-rainbow-ks",
+        "name": "Elements Rainbow Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "luxe-glass-paper-ks",
+        "name": "Luxe Glass Paper Ks",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-green-ks",
+        "name": "Smoking Green Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-thinest-red-ks-tips",
+        "name": "Smoking Thinest Red Ks + Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-ks",
+        "name": "Raw Classic Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-single-wide",
+        "name": "Raw Classic Single Wide",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-5m-roll",
+        "name": "Raw Classic 5m roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-artesano",
+        "name": "Raw Classic Artesano",
+        "unitsPerBox": 15.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-connoisseur",
+        "name": "Raw Connoisseur",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-ks-pre-rolled-tips",
+        "name": "Raw Classic Ks + Pre-Rolled Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-classic-11-4",
+        "name": "Raw Hemp Classic 11/4",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ethreal-ks",
+        "name": "Raw Ethreal ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ethreal-11-4",
+        "name": "Raw Ethreal 11/4",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-artesano",
+        "name": "Raw Black Artesano",
+        "unitsPerBox": 15.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-ks-tips",
+        "name": "Raw Black Ks + Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-hemp-ks",
+        "name": "Raw Black Hemp Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-classic-ks",
+        "name": "Raw Black Classic Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-single-wide",
+        "name": "Raw Black Single Wide",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-3m-roll",
+        "name": "Raw Black 3m Roll",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-giga-supernatural-30cm-cones",
+        "name": "Raw Giga Supernatural 30cm Cones",
+        "unitsPerBox": 15.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ethreal-pre-rolled",
+        "name": "Raw Ethreal Pre-Rolled",
+        "unitsPerBox": 32.0,
+        "variants": []
+      },
+      {
+        "slug": "smk-blue-regular",
+        "name": "Smk Blue Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smk-blue-ks",
+        "name": "Smk Blue Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smk-green-regular",
+        "name": "Smk Green Regular",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-orange-double-window",
+        "name": "Smoking Orange Double Window",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "juicy-jays-mix-n-roll",
+        "name": "Juicy Jays Mix-N-Roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "juicy-jays-mello-mango",
+        "name": "Juicy Jays Mello Mango",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-pre-rolled-cones-ks",
+        "name": "Raw Black Pre-Rolled Cones Ks",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-pre-rolled-cones-ks",
+        "name": "Raw Hemp Pre-Rolled Cones Ks",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "purple-monkey-ks",
+        "name": "Purple Monkey Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "my-fucking-rolling-paper-ks",
+        "name": "My Fucking Rolling Paper Ks",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "abadie-regular-brown",
+        "name": "Abadie Regular Brown",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "purize-ks",
+        "name": "Purize Ks",
+        "unitsPerBox": 40.0,
+        "variants": []
+      },
+      {
+        "slug": "skunk-brand-ks",
+        "name": "Skunk Brand Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "smk-black-ultra-slim-ks",
+        "name": "Smk Black Ultra Slim Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "kukuxusumu-slim-ks",
+        "name": "Kukuxusumu Slim Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-hemp-ks",
+        "name": "Raw Classic Hemp Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-hemp-5m-roll",
+        "name": "Raw Classic Hemp 5m roll",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "juicy-jay-birthday-cake-ks",
+        "name": "Juicy Jay Birthday Cake Ks",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "rizla-bamboo-78mm",
+        "name": "Rizla Bamboo 78mm",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "irie-ks",
+        "name": "Irie Ks",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "lazy-kuala",
+        "name": "lazy Kuala",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "4-shades-ks-4-4",
+        "name": "4 Shades Ks (4+4)",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-supernatural-30cm-papers",
+        "name": "Raw Supernatural 30cm Papers",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "ocb-premium-ks",
+        "name": "OCB Premium Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "ocb-rice-ks",
+        "name": "OCB Rice Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "ocb-virgin-ks",
+        "name": "OCB Virgin Ks",
+        "unitsPerBox": 50.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "accessory",
+    "name": "Accessory",
+    "products": [
+      {
+        "slug": "smoke-buddy",
+        "name": "Smoke Buddy",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "quasour-hookah-head",
+        "name": "Quasour Hookah Head",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-wick-3m",
+        "name": "Raw Hemp Wick 3m",
+        "unitsPerBox": 40.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-cone-cutter",
+        "name": "Raw Cone Cutter",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-lil-prep-bowl",
+        "name": "Raw Lil Prep Bowl",
+        "unitsPerBox": 16.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-x-stand",
+        "name": "Raw X Stand",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-wake-bake-mug",
+        "name": "Raw Wake & Bake Mug",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-poker-stick",
+        "name": "Raw Poker Stick",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "weighing-scale",
+        "name": "Weighing Scale",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-rolling-machine-regular-79mm",
+        "name": "Raw Hemp Rolling Machine Regular 79mm",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-rolling-machine-ks-110mm",
+        "name": "Raw Hemp Rolling Machine Ks 110mm",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-2-way-rolling-machine-79-mm",
+        "name": "Raw Black 2 Way Rolling Machine 79 mm",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-2-way-rolling-machine-110-mm",
+        "name": "Raw Black 2 Way Rolling Machine 110 mm",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-metal-rolling-machine-70mm",
+        "name": "Smoking Metal Rolling Machine 70mm",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-ks-rolling-machine-110mm",
+        "name": "Smoking KS Rolling Machine 110mm",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-one-hitter",
+        "name": "Metal One Hitter",
+        "unitsPerBox": 8.0,
+        "variants": []
+      },
+      {
+        "slug": "hexigon-mixing-bowl",
+        "name": "Hexigon Mixing Bowl",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-poker-laces",
+        "name": "Raw Poker Laces",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "ring-joint-holder-silver",
+        "name": "Ring Joint Holder - Silver",
+        "unitsPerBox": 1.0,
+        "variants": [
+          {
+            "label": "Gold",
+            "unitsPerBox": 1.0
+          },
+          {
+            "label": "Rose Gold",
+            "unitsPerBox": 1.0
+          }
+        ]
+      },
+      {
+        "slug": "raw-loader",
+        "name": "Raw Loader",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-dnd-sign",
+        "name": "Raw DND Sign",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-bandana",
+        "name": "Raw Bandana",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ring-black",
+        "name": "Raw Ring Black",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ring-golden",
+        "name": "Raw Ring Golden",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "coconut-mixing-bowl",
+        "name": "Coconut Mixing Bowl",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-trident",
+        "name": "Raw Trident",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-double-barrel",
+        "name": "Raw Double Barrel",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-oil-candle",
+        "name": "Raw Hemp Oil Candle",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-playing-cards",
+        "name": "Raw Black Playing Cards",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-lanyard",
+        "name": "Raw Lanyard",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-catcher",
+        "name": "Raw Catcher",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-picking-tool",
+        "name": "Metal Picking Tool",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-automatic-rolling-machine-110mm",
+        "name": "Raw Automatic Rolling Machine 110mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-dab-nail",
+        "name": "Metal Dab Nail",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-dab-picker-n-fixer",
+        "name": "Metal Dab Picker N Fixer",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "glass-picking-n-tool",
+        "name": "Glass Picking N Tool",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "bongo",
+        "name": "Bongo",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-rawl-pen",
+        "name": "Raw Rawl Pen",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-cap-beige",
+        "name": "Raw Cap Beige",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-cap-black-with-red-logo",
+        "name": "Raw Cap Black with Red Logo",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-cap-black-with-black-logo",
+        "name": "Raw Cap Black with Black Logo",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-crumb-catcher",
+        "name": "Raw Crumb Catcher",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "dtrh-weed-socks-ankle-lenght",
+        "name": "DTRH Weed Socks Ankle Lenght",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "dtrh-weed-socks-crew-lenght",
+        "name": "DTRH Weed Socks Crew Lenght",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-cone-rolling-machine",
+        "name": "Babajee Cone Rolling Machine",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "picking-n-capping-tool",
+        "name": "Picking N Capping Tool",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-hands-free-smoker",
+        "name": "Raw Hands Free Smoker",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-inflatable-small-2-feet",
+        "name": "Raw Inflatable Small 2 Feet",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-inflatable-small-6-feet",
+        "name": "Raw Inflatable Small 6 Feet",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-shoulder-bag-brown",
+        "name": "Raw Shoulder Bag - Brown",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-canvas-mat",
+        "name": "Raw Canvas Mat",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-drawstring-bag-beige",
+        "name": "Raw Drawstring Bag (Beige)",
+        "unitsPerBox": null,
+        "variants": [
+          {
+            "label": "Black",
+            "unitsPerBox": null
+          }
+        ]
+      },
+      {
+        "slug": "raw-frisbee",
+        "name": "Raw Frisbee",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "pipe-stand",
+        "name": "Pipe Stand",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "clipper-flint",
+        "name": "Clipper Flint",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "mesh",
+        "name": "Mesh",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-mesh",
+        "name": "Glass Mesh",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-change-mat",
+        "name": "Raw Classic Change Mat",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "smk-22mm-filter-250pcs",
+        "name": "Smk 22mm Filter (250pcs)",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-handy-grip",
+        "name": "Raw Handy Grip",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-shredder-card",
+        "name": "Raw Shredder Card",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-flying-disc-with-cone-holder",
+        "name": "Raw Flying disc with Cone Holder",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "kaseki-chillium-6",
+        "name": "Kaseki Chillium 6\"",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "kaseki-chillium-8",
+        "name": "Kaseki Chillium 8\"",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "rolling-tray",
+    "name": "Rolling Tray",
+    "products": [
+      {
+        "slug": "raw-backflip-rolling-tray",
+        "name": "Raw Backflip Rolling Tray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-magnectic-mini-tray",
+        "name": "Raw Magnectic Mini Tray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-power-tray",
+        "name": "Raw Power Tray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-glass-tray-small",
+        "name": "Raw Glass Tray small",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-rolling-tray-mini",
+        "name": "Raw Rolling Tray Mini",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-rolling-tray-mini-small",
+        "name": "Raw Rolling Tray Mini - Small",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-rolling-tray-medium",
+        "name": "Raw Rolling Tray Medium",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "smoking-rolling-tray-small-artist-edition",
+        "name": "Smoking rolling Tray Small - Artist Edition",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-dab-tray-small",
+        "name": "Raw Dab Tray - Small",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "babajee-3d-rolling-tray",
+        "name": "Babajee 3D Rolling Tray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-wooden-tray",
+        "name": "Raw Wooden Tray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-tray-mini",
+        "name": "RAW CLASSIC TRAY - MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-steel-tray-small",
+        "name": "RAW STEEL TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "elements-metal-rolling-tray-small",
+        "name": "ELEMENTS METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-ashtray-with-magnet",
+        "name": "RAW METAL ASHTRAY WITH MAGNET",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-bambo-back-flip-rolling-tray-w-magnet-striped",
+        "name": "RAW BAMBO BACK FLIP ROLLING TRAY W/MAGNET STRIPED",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-metal-rolling-tray-small",
+        "name": "RAW BLACK METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-brazil-metal-rolling-tray-2nd-edition-small",
+        "name": "RAW BRAZIL METAL ROLLING TRAY 2ND EDITION - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-urban-camouflage-metal-rolling-tray-mini",
+        "name": "RAW URBAN CAMOUFLAGE METAL ROLLING TRAY - MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-magnetic-rolling-tray-cover-for-small",
+        "name": "RAW BLACK MAGNETIC ROLLING TRAY COVER FOR SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-magnetic-rolling-tray-cover-for-mini",
+        "name": "RAW MAGNETIC ROLLING TRAY COVER FOR MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-flying-metal-rolling-tray-small",
+        "name": "RAW FLYING METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-forest-metal-rolling-tray-mini",
+        "name": "RAW FOREST METAL ROLLING TRAY - MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-forest-metal-rolling-tray-small",
+        "name": "RAW FOREST METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray-french-fries-small",
+        "name": "RAW METAL ROLLING TRAY FRENCH FRIES - Small",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray-raw-girl-mini",
+        "name": "RAW METAL ROLLING TRAY - RAW GIRL MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-girl-metal-rolling-tray-small",
+        "name": "RAW GIRL METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray",
+        "name": "RAW METAL ROLLING TRAY",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray-mixed-products-mini",
+        "name": "RAW METAL ROLLING TRAY - MIXED PRODUCTS MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-mix-metal-rolling-tray-small",
+        "name": "RAW MIX METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-matte-metal-rolling-tray-small",
+        "name": "RAW BLACK MATTE METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-round-rolling-tray",
+        "name": "RAW METAL ROUND ROLLING TRAY",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray-small",
+        "name": "RAW METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-wooden-rolling-tray",
+        "name": "RAW WOODEN ROLLING TRAY",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-rolling-tray-zombie",
+        "name": "RAW METAL ROLLING TRAY ZOMBIE",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-dab-rolling-tray-and-cover",
+        "name": "RAW METAL DAB ROLLING TRAY AND COVER",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-metal-rolling-tray-medium",
+        "name": "RAW BLACK METAL ROLLING TRAY - MEDIUM",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-metal-square-rolling-tray-small",
+        "name": "RAW METAL SQUARE ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "elements-red-metal-rolling-tray-small",
+        "name": "ELEMENTS RED METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-brazil-metal-rolling-tray-3rd-edition-small",
+        "name": "RAW BRAZIL METAL ROLLING TRAY 3rd EDITION - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-x-rjb-summer-beach-metal-rolling-tray-mini",
+        "name": "RAW x RJB SUMMER BEACH METAL ROLLING TRAY - MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-x-rjb-summer-beach-metal-rolling-tray-small",
+        "name": "RAW X RJB SUMMER BEACH METAL ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-skate-board-bricks-classic",
+        "name": "RAW SKATE BOARD - BRICKS & CLASSIC",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-skate-board-camo-black",
+        "name": "RAW SKATE BOARD - CAMO & BLACK",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-skate-board-japan-classic",
+        "name": "RAW SKATE BOARD - JAPAN & CLASSIC",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-collectable-traysor",
+        "name": "Raw Collectable - Traysor",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-inflable-tray-holder",
+        "name": "Raw Inflable Tray Holder",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-murdered-red-tray-small",
+        "name": "Raw Murdered Red Tray Small",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-metal-square-rolling-tray-small",
+        "name": "RAW BLACK METAL SQUARE ROLLING TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-tray-medium",
+        "name": "RAW CLASSIC TRAY - MEDIUM",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-camouflage-metal-rolling-tray-medium",
+        "name": "RAW CAMOUFLAGE METAL ROLLING TRAY - MEDIUM",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-donut-metal-rolling-tray-medium",
+        "name": "RAW DONUT METAL ROLLING TRAY - MEDIUM",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "china-tray-mini",
+        "name": "CHINA TRAY MINI",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "china-tray-small",
+        "name": "CHINA TRAY SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "smoking-red-tray-small",
+        "name": "SMOKING RED TRAY - SMALL",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-20th-edition-round-ashtray",
+        "name": "RAW 20TH EDITION ROUND ASHTRAY",
+        "unitsPerBox": null,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "storage",
+    "name": "Storage",
+    "products": [
+      {
+        "slug": "raw-6-cone-holder",
+        "name": "Raw 6 Cone Holder",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "rubik-s-cube-safe",
+        "name": "Rubik's Cube Safe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-glass-jar-with-cover",
+        "name": "Raw Glass Jar With cover",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-three-tree-case",
+        "name": "Raw Three Tree - Case",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-roll-caddy",
+        "name": "Raw Roll Caddy",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "dart-carry-pouch",
+        "name": "Dart carry Pouch",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-paper-case",
+        "name": "Raw Paper Case",
+        "unitsPerBox": 30.0,
+        "variants": []
+      },
+      {
+        "slug": "gizeh-flip-case",
+        "name": "Gizeh Flip Case",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-wooden-box-small",
+        "name": "Raw Wooden Box Small",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-cache-box-small",
+        "name": "Raw Cache Box - Small",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "7up-storage-can-orange",
+        "name": "7up - Storage Can - Orange",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "7up-storage-can-green",
+        "name": "7up - Storage Can - Green",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "canada-dry-can",
+        "name": "Canada Dry Can",
+        "unitsPerBox": 12.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-doob-tube-purple",
+        "name": "Babajee Doob Tube - Purple",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-doob-tube-black",
+        "name": "Babajee Doob Tube - Black",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-doob-tube-orange",
+        "name": "Babajee Doob Tube - Orange",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-doob-tube-yellow",
+        "name": "Babajee Doob Tube - Yellow",
+        "unitsPerBox": 1.0,
+        "variants": [
+          {
+            "label": "Green",
+            "unitsPerBox": 1.0
+          }
+        ]
+      },
+      {
+        "slug": "cigar-dehumidifier",
+        "name": "Cigar Dehumidifier",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "vac-stash-vaccum-jar",
+        "name": "Vac Stash Vaccum Jar",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-x-ryot-smell-proof-pouch",
+        "name": "Raw x Ryot Smell Proof Pouch",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-smoker-wallet",
+        "name": "Raw Smoker Wallet",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "silicon-hexigon-dab-case",
+        "name": "Silicon Hexigon Dab Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "silicon-skull-dab-case",
+        "name": "Silicon Skull Dab Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "juicy-jays-glass-jars",
+        "name": "Juicy Jays Glass Jars",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-alumium-doob-tube",
+        "name": "Raw Alumium Doob Tube",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "one-hitter-canister",
+        "name": "One Hitter Canister",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-tin-case",
+        "name": "Raw Classic Tin case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-tin-case",
+        "name": "Elements Blue Tin Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-slider-tin-case",
+        "name": "Raw Classic Slider Tin case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-classic-tin-case",
+        "name": "Raw Black Classic Tin case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-silver-paper-case",
+        "name": "Raw Silver Paper Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-ciggrette-case",
+        "name": "Smoking Ciggrette Case",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "german-metal-ciggrette-case",
+        "name": "German Metal Ciggrette Case",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "metal-ciggrette-case-slim",
+        "name": "Metal Ciggrette Case - Slim",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-pop-tin-case",
+        "name": "Raw Pop Tin Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-camo-cone-wallet",
+        "name": "Raw Camo Cone Wallet",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-beige-cone-wallet",
+        "name": "Raw Beige Cone Wallet",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-munchies-box",
+        "name": "Raw Munchies Box",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-wooden-ciggarette-case-brown",
+        "name": "Babajee Wooden Ciggarette Case- Brown",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "german-metal-case-rose-gold",
+        "name": "German Metal Case Rose Gold",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "german-metal-flat-case",
+        "name": "German Metal Flat Case",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-glass-jar",
+        "name": "Raw Glass Jar",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "pipe-bag",
+        "name": "Pipe Bag",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-doob-tube-pink",
+        "name": "Babajee Doob Tube - Pink",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "bong",
+    "name": "Bong",
+    "products": [
+      {
+        "slug": "10-acrylic-bong",
+        "name": "10'' Acrylic Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "12-acrylic-bong",
+        "name": "12\" Acrylic Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "16-acrylic-bong",
+        "name": "16\" Acrylic Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "bubbler-6",
+        "name": "Bubbler 6\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-bong-6",
+        "name": "Glass Bong 6\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "mushroom-glass-bong-6",
+        "name": "Mushroom Glass Bong 6\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "thick-glass-bong-6",
+        "name": "Thick Glass Bong 6\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-bong-7",
+        "name": "Glass Bong 7\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-bong-8",
+        "name": "Glass Bong 8\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "honeycomb-glass-bong-8",
+        "name": "Honeycomb Glass Bong 8\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "ufo-glass-bong-8",
+        "name": "UFO Glass Bong 8\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "recycler-glass-bong-9",
+        "name": "Recycler Glass Bong 9\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "halowen-glass-bong-10",
+        "name": "Halowen Glass Bong 10\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "big-mushroom-bong-10",
+        "name": "Big Mushroom Bong 10\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "singletree-glass-bong-12",
+        "name": "SingleTree Glass Bong 12\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "lanten-bong-10",
+        "name": "Lanten Bong 10\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "whale-bong",
+        "name": "Whale Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "spoke-perc-glass-bong-12",
+        "name": "Spoke Perc Glass Bong 12\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "showerhead-perc-glass-bong-12",
+        "name": "Showerhead Perc Glass Bong 12\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "piggy-glass-bong-12",
+        "name": "Piggy Glass Bong 12\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "single-tree-perc-glass-bong-14",
+        "name": "Single Tree Perc Glass Bong 14\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-beaker-bong-14",
+        "name": "Glass Beaker Bong 14\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-thin-beaker-bong-14",
+        "name": "Glass Thin Beaker Bong 14\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "showerhead-perc-glass-beaker-bong-14",
+        "name": "Showerhead Perc Glass Beaker Bong 14\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "double-tree-perc-glass-bong-16",
+        "name": "Double Tree perc Glass Bong 16\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "single-tree-honeycomb-perc-glass-bong-16",
+        "name": "Single Tree + Honeycomb Perc Glass Bong 16\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "heavy-glass-beaker-bong-12",
+        "name": "Heavy glass Beaker Bong 12\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "heavy-glass-beaker-bong-14",
+        "name": "Heavy glass Beaker Bong 14\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "heavy-glass-beaker-bong-16",
+        "name": "Heavy glass Beaker Bong 16\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "heavy-glass-beaker-bong-20",
+        "name": "Heavy Glass Beaker Bong 20\"",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "12-silicon-bong",
+        "name": "12\" Silicon Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "gravity-bong",
+        "name": "Gravity Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "gravity-bong-2",
+        "name": "Gravity Bong",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "micro-bong",
+        "name": "Micro Bong",
+        "unitsPerBox": null,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "bong-accessory",
+    "name": "Bong Accessory",
+    "products": [
+      {
+        "slug": "dab-slurper",
+        "name": "Dab Slurper",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-ashcatcher-14mm-small",
+        "name": "Glass AshCatcher 14mm - Small",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "glass-ashcatcher-14mm-standard",
+        "name": "Glass AshCatcher 14mm - Standard",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "tree-perc-glass-ashcatcher-14mm",
+        "name": "Tree Perc Glass AshCatcher 14mm",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "tree-honeycomb-perc-ashcatcher-14mm",
+        "name": "Tree + Honeycomb Perc Ashcatcher 14mm",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "showerhead-perc-ashcatcher-14mm",
+        "name": "Showerhead Perc AshCatcher 14mm",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "metal-shooter",
+        "name": "Metal Shooter",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "14mm-glass-bowl-male",
+        "name": "14mm Glass Bowl Male",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "14mm-round-bowl-female",
+        "name": "14mm Round Bowl Female",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "18mm-glass-bowl",
+        "name": "18mm Glass Bowl",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "14mm-cone-glass-bowl",
+        "name": "14mm Cone Glass Bowl",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "14mm-cone-thick-glass-bowl",
+        "name": "14mm Cone Thick Glass Bowl",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "14mm-glass-shooter",
+        "name": "14mm Glass Shooter",
+        "unitsPerBox": 2.0,
+        "variants": []
+      },
+      {
+        "slug": "18mm-glass-shooter",
+        "name": "18mm Glass Shooter",
+        "unitsPerBox": 2.0,
+        "variants": []
+      },
+      {
+        "slug": "downstem",
+        "name": "Downstem",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "forever-bowl",
+        "name": "Forever Bowl",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "18mm-round-female-glass-bowl",
+        "name": "18mm Round Female Glass Bowl",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "quatrz-dab-nail-14mm",
+        "name": "Quatrz Dab Nail 14mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "quartz-dab-nail-18mm",
+        "name": "Quartz Dab Nail 18mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "converter-14mm-to-18mm",
+        "name": "Converter 14mm to 18mm",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "fancy-bowls",
+        "name": "Fancy Bowls",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "beads-for-dab-quatrz",
+        "name": "Beads for Dab Quatrz",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "18mm-glass-round-bowl",
+        "name": "18mm Glass Round Bowl",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "convertor-18mm-to-14mm",
+        "name": "Convertor 18mm to 14mm",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "skull-bowl-14mm-male",
+        "name": "Skull Bowl 14mm Male",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "flower-bowl-14mm-male",
+        "name": "Flower Bowl 14mm Male",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "turtle-bowl-14mm-male",
+        "name": "Turtle Bowl 14mm Male",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "piggy-bowl-14mm",
+        "name": "Piggy Bowl 14mm",
+        "unitsPerBox": null,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "ashtray",
+    "name": "Ashtray",
+    "products": [
+      {
+        "slug": "raw-snuffer",
+        "name": "Raw Snuffer",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-pocket-ashtray",
+        "name": "Raw Pocket Ashtray",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "reggee-ashtray",
+        "name": "Reggee Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-metal-ashtray",
+        "name": "Smoking metal Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "easter-island-ashtray",
+        "name": "Easter Island Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "ubuntu-glow-in-the-dark-ashtray",
+        "name": "Ubuntu Glow in the dark Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "standard-glass-ashtray",
+        "name": "Standard Glass Ashtray",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-rainbow-glass-ashtray",
+        "name": "Raw Rainbow Glass Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-darkside-ashtray",
+        "name": "Raw Darkside Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "glow-in-the-dark-mountian-ashtray",
+        "name": "Glow In The Dark Mountian Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-glass-ashtray",
+        "name": "Raw Classic Glass Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-regal-ashtray-golden",
+        "name": "Raw Regal Ashtray Golden",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-regal-ashtray-black",
+        "name": "Raw Regal Ashtray Black",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-classic-round-ashtray",
+        "name": "Raw Classic Round Ashtray",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "elements-blue-round-ashtray",
+        "name": "Elements Blue Round Ashtray",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "self-extinguisher-ashtray",
+        "name": "Self Extinguisher Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "alien-ashtray",
+        "name": "Alien Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "skull-polystone-ashtray",
+        "name": "Skull Polystone Ashtray",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "silicone-ashtray-with-cover",
+        "name": "Silicone Ashtray with cover",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-ruby-red-ashtray",
+        "name": "Raw Ruby Red Ashtray",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "pipe",
+    "name": "Pipe",
+    "products": [
+      {
+        "slug": "ceramic-pipe-mug-simple",
+        "name": "Ceramic Pipe Mug Simple",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "ceramic-pipe-mug-design",
+        "name": "Ceramic Pipe Mug ( Design)",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-wooden-pipe",
+        "name": "Raw Wooden Pipe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "angelo-meerchaum-pipe",
+        "name": "Angelo Meerchaum Pipe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "chillim-wooden-poker-stick",
+        "name": "Chillim Wooden Poker Stick",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "pickle-rick-glass-pipe",
+        "name": "Pickle Rick Glass Pipe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "4-soapstone-chillum",
+        "name": "4\" Soapstone Chillum",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "6-soapstone-chillum",
+        "name": "6\" Soapstone Chillum",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "sherlock-glass-pipe-10-inch",
+        "name": "Sherlock Glass Pipe 10 inch",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "nector-collector-glass-pipe",
+        "name": "Nector Collector Glass Pipe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "glass-one-hitter",
+        "name": "Glass One Hitter",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-pipe",
+        "name": "Glass Pipe",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "pipe-tobacco",
+        "name": "Pipe Tobacco",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-simple-one-hitter",
+        "name": "Glass Simple One Hitter",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "design-one-hitter",
+        "name": "Design One hitter",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "glass-meth-shooter-14mm",
+        "name": "Glass Meth Shooter 14mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "rose-wood-pipe",
+        "name": "Rose wood Pipe",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "grinder",
+    "name": "Grinder",
+    "products": [
+      {
+        "slug": "raw-boarding-pass",
+        "name": "Raw Boarding Pass",
+        "unitsPerBox": 15.0,
+        "variants": []
+      },
+      {
+        "slug": "clipper-head-case",
+        "name": "Clipper Head Case",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "plastic-hemp-shredder",
+        "name": "Plastic Hemp Shredder",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-metal-grinder-s-40mm",
+        "name": "Babajee Metal Grinder's 40mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-metal-grinder-50mm",
+        "name": "Babajee Metal Grinder 50mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-grinder-63mm",
+        "name": "Metal Grinder 63mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-grinder-two-part-40mm",
+        "name": "Metal Grinder Two - Part 40mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-plastic-grinder",
+        "name": "Babajee Plastic Grinder",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-plastic-grinder",
+        "name": "Smoking Plastic Grinder",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "toothless-grinder",
+        "name": "Toothless Grinder",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "non-stick-grinder-shiny-black",
+        "name": "Non-Stick Grinder Shiny Black",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "mini-grinder-keychain",
+        "name": "Mini Grinder Keychain",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "stromtooper-metal-grinder",
+        "name": "StromTooper Metal Grinder",
+        "unitsPerBox": 6.0,
+        "variants": []
+      },
+      {
+        "slug": "skull-metal-grinder",
+        "name": "Skull Metal Grinder",
+        "unitsPerBox": 6.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "filter",
+    "name": "Filter",
+    "products": [
+      {
+        "slug": "smoking-15mm-filter",
+        "name": "Smoking 15mm Filter",
+        "unitsPerBox": 30.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-22mm-filter",
+        "name": "Smoking 22mm Filter",
+        "unitsPerBox": 30.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-brown-filter-15mm",
+        "name": "Smoking Brown Filter 15mm",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-menthol-filter-15mm",
+        "name": "Smoking Menthol Filter 15mm",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "gizeh-charcoal-active-filter-15mm",
+        "name": "Gizeh Charcoal Active Filter 15mm",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-tips",
+        "name": "Raw Black Tips",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "gizeh-charcoal-active-filter-10-pc",
+        "name": "Gizeh Charcoal Active Filter 10 pc",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "gizeh-charcoal-active-filter-34-pc",
+        "name": "Gizeh Charcoal Active filter 34 pc",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-pre-rolled-tips",
+        "name": "Raw Pre-Rolled Tips",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "smoking-charcoal-filters",
+        "name": "Smoking Charcoal Filters",
+        "unitsPerBox": 10.0,
+        "variants": []
+      },
+      {
+        "slug": "actitube-6mm",
+        "name": "Actitube 6mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "actitube-konik-6mm",
+        "name": "Actitube Konik 6mm",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "bongo-filter",
+        "name": "Bongo Filter",
+        "unitsPerBox": 10.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "rolling-tobacco",
+    "name": "Rolling Tobacco",
+    "products": [
+      {
+        "slug": "american-spirit-blue",
+        "name": "American Spirit Blue",
+        "unitsPerBox": 8.0,
+        "variants": []
+      },
+      {
+        "slug": "american-spirit-yellow",
+        "name": "American Spirit Yellow",
+        "unitsPerBox": 8.0,
+        "variants": []
+      },
+      {
+        "slug": "golden-virginia-yellow",
+        "name": "Golden Virginia Yellow",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "golden-virginia-green",
+        "name": "Golden Virginia Green",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "pueblo-blue-50g",
+        "name": "Pueblo Blue 50g",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "pueblo-yellow-50g",
+        "name": "Pueblo Yellow 50g",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "drum-light-blue",
+        "name": "Drum Light Blue",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "drum-dark-blue",
+        "name": "Drum Dark Blue",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "amber-leaf",
+        "name": "Amber Leaf",
+        "unitsPerBox": 5.0,
+        "variants": []
+      },
+      {
+        "slug": "dutchland",
+        "name": "Dutchland",
+        "unitsPerBox": null,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "roach",
+    "name": "Roach",
+    "products": [
+      {
+        "slug": "raw-pro-tips",
+        "name": "Raw Pro Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-rasta",
+        "name": "Babajee Rasta",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-t-p-roach",
+        "name": "Babajee T&P Roach",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "babajee-white-roach",
+        "name": "Babajee White Roach",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-wide-tips",
+        "name": "Raw Wide Tips",
+        "unitsPerBox": 50.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-perfecto-cone-tips",
+        "name": "Raw Perfecto Cone Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-black-extra-wide-tips",
+        "name": "Raw Black Extra Wide Tips",
+        "unitsPerBox": 36.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-tips-book",
+        "name": "Raw Tips Book",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "raw-cone-maestro-shaped-tips",
+        "name": "Raw Cone Maestro Shaped Tips",
+        "unitsPerBox": 24.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "cigars",
+    "name": "Cigars",
+    "products": [
+      {
+        "slug": "piper-cigar-sweet-vanila",
+        "name": "Piper Cigar - Sweet Vanila",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "piper-cigar-sweet-cherry",
+        "name": "Piper Cigar - Sweet Cherry",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "piper-cigar-classic",
+        "name": "Piper Cigar - Classic",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "capa-flora-cigar-tube",
+        "name": "Capa Flora Cigar Tube",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "aromas-de-san-andhreas-cigar",
+        "name": "Aromas - de San Andhreas Cigar",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "backwoods-aromatic-cigar",
+        "name": "BackWoods Aromatic Cigar",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "backwoods-honey-cigar",
+        "name": "BackWoods Honey  Cigar",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "guantanamera-cristales-cigar",
+        "name": "Guantanamera Cristales Cigar",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "lighter",
+    "name": "Lighter",
+    "products": [
+      {
+        "slug": "stash-pro-lighters",
+        "name": "Stash Pro Lighters",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "clipper-lighters",
+        "name": "Clipper Lighters",
+        "unitsPerBox": 150.0,
+        "variants": []
+      },
+      {
+        "slug": "clipper-lighter-small",
+        "name": "Clipper Lighter Small",
+        "unitsPerBox": 20.0,
+        "variants": []
+      },
+      {
+        "slug": "zippo-grey-with-thread",
+        "name": "Zippo Grey With Thread",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "zippo-8-ball",
+        "name": "Zippo 8 Ball",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "metal-lighter-kit",
+        "name": "Metal Lighter Kit",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "micro-torch",
+        "name": "Micro Torch",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "small-high-flame",
+        "name": "Small High Flame",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "blunt-wraps",
+    "name": "Blunt Wraps",
+    "products": [
+      {
+        "slug": "kingpin-blunt-wraps-manic",
+        "name": "Kingpin Blunt Wraps - Manic",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "kingpin-blunt-wraps-original",
+        "name": "Kingpin Blunt Wraps - Original",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "kingpin-blunt-wraps-fly",
+        "name": "Kingpin Blunt Wraps - Fly",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "kingpin-blunt-wraps-blue",
+        "name": "Kingpin Blunt Wraps - Blue",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "double-platinum-blunt-wraps",
+        "name": "Double Platinum Blunt Wraps",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "hemper-cones-blue-berry",
+        "name": "Hemper Cones - Blue Berry",
+        "unitsPerBox": null,
+        "variants": [
+          {
+            "label": "Sweet",
+            "unitsPerBox": null
+          },
+          {
+            "label": "Grapes",
+            "unitsPerBox": null
+          },
+          {
+            "label": "Mango",
+            "unitsPerBox": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "cleaning-accessory",
+    "name": "Cleaning Accessory",
+    "products": [
+      {
+        "slug": "magnetic-cleaning-brush",
+        "name": "Magnetic Cleaning Brush",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "cleaning-brush",
+        "name": "Cleaning Brush",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-hemp-pipe-cleaner",
+        "name": "Raw Hemp Pipe Cleaner",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "angelo-3-spike-chrome-tool",
+        "name": "Angelo 3 Spike Chrome Tool",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "isopropyl",
+        "name": "Isopropyl",
+        "unitsPerBox": null,
+        "variants": []
+      },
+      {
+        "slug": "cleaning-brush-large",
+        "name": "Cleaning Brush Large",
+        "unitsPerBox": null,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "blunt-pre-rolled-cone",
+    "name": "Blunt Pre-Rolled Cone",
+    "products": [
+      {
+        "slug": "cyclone-hemp-cones-original",
+        "name": "Cyclone Hemp Cones - Original",
+        "unitsPerBox": 24.0,
+        "variants": []
+      },
+      {
+        "slug": "cyclone-hemp-cones-blue",
+        "name": "Cyclone Hemp Cones - Blue",
+        "unitsPerBox": 24.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "keychain",
+    "name": "Keychain",
+    "products": [
+      {
+        "slug": "raw-keychain-silver",
+        "name": "Raw Keychain Silver",
+        "unitsPerBox": 1.0,
+        "variants": []
+      },
+      {
+        "slug": "raw-mini-tray-keychain",
+        "name": "Raw Mini Tray Keychain",
+        "unitsPerBox": 1.0,
+        "variants": []
+      }
+    ]
+  },
+  {
+    "slug": "lighter-refills",
+    "name": "Lighter Refills",
+    "products": [
+      {
+        "slug": "clipper-fuel-100ml",
+        "name": "Clipper Fuel 100ml",
+        "unitsPerBox": 25.0,
+        "variants": []
+      },
+      {
+        "slug": "clipper-fuel-550-ml",
+        "name": "Clipper Fuel 550 ml",
+        "unitsPerBox": 6.0,
+        "variants": []
+      }
+    ]
+  }
+]
