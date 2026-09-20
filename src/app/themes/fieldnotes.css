@@ -1,0 +1,312 @@
+/* Field notes: warm off-white, black line drawings, an olive-black button, a
+   quiet grid of soft grey tiles. Colours sampled from the reference. */
+
+html[data-theme="fieldnotes"] #site[data-scope="shop"] {
+  --color-char: #faf9f5;
+  --color-iron: #ffffff;
+  --color-ash: #f1efe9;
+  --color-line: #dcd8d0;
+  --color-paper: #1b1a18;
+  --color-muted: #6a675f;
+  --color-plate: #e0ddd8;
+  --color-ink: #faf9f5;
+  --color-rasta-gold: #232222;
+  --plate-ink: #cbc7bf;
+  --th-display: var(--f-londrina), Impact, sans-serif;
+  --th-olive: #41452d;
+
+  background: var(--color-char);
+  color: var(--color-paper);
+  font-family: var(--f-karla), system-ui, sans-serif;
+
+  & .logo-dark {
+    display: none;
+  }
+  & .logo-light {
+    display: inline-block;
+  }
+  & :is(h1, h2) {
+    font-family: var(--th-display);
+    font-weight: 900;
+  }
+  & .btn-primary {
+    background: #232222;
+    color: #faf9f5;
+    border-radius: 999px;
+  }
+  & .btn-primary:hover {
+    background: #3a3937;
+  }
+  & .field {
+    border: 1px solid var(--color-line);
+    background: #fff;
+  }
+  & .tile {
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: #ece9e3;
+  }
+  & .tile::after {
+    background: var(--th-olive);
+  }
+
+  /* header */
+  & .hdr {
+    background: color-mix(in srgb, var(--color-char) 94%, transparent);
+  }
+  & .hdr-stripe {
+    display: none;
+  }
+  & .hdr-nav a {
+    color: var(--color-paper);
+    font-weight: 600;
+  }
+  & .hdr-nav a[aria-current="page"] {
+    text-decoration-color: var(--th-olive);
+  }
+  & .hdr-tool {
+    color: var(--color-paper);
+  }
+  & .hdr-count {
+    background: #232222;
+    color: #faf9f5;
+  }
+  @media (min-width: 768px) {
+    & .hdr-inner {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      max-width: 88rem;
+      padding: 14px 40px;
+    }
+    & .hdr-logo-img {
+      width: 10rem;
+    }
+    & .hdr-nav {
+      gap: 40px;
+    }
+    & .hdr-tools {
+      justify-self: end;
+    }
+  }
+
+  /* page: full-width line-art banner, tabs, grid */
+  & .cp {
+    max-width: none;
+    padding: 0;
+  }
+  & .cp-hero {
+    display: flex;
+    align-items: center;
+    min-height: 240px;
+    padding: 30px 40px 30px 360px;
+    background:
+      url("../../assets/themes/fieldnotes-left.png") no-repeat left bottom / auto 100%,
+      url("../../assets/themes/fieldnotes-mid.png") no-repeat 64% 16% / 96px auto,
+      url("../../assets/themes/fieldnotes-sun.png") no-repeat right 5% top 14% / 170px auto,
+      #f0ebe5;
+  }
+  & .cp-title {
+    font-size: clamp(2.6rem, 5.4vw, 4.4rem);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+  & .cp-tag {
+    display: block;
+    margin-top: 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  & .cp-cta {
+    display: inline-flex;
+    margin-top: 18px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: #232222;
+    color: #faf9f5;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: background-color 0.15s;
+  }
+  & .cp-cta:hover {
+    background: #3a3937;
+  }
+  & .cp-body {
+    max-width: 88rem;
+    margin: 0 auto;
+    padding: 8px 40px 20px;
+  }
+  & .cp-side {
+    min-width: 0;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  & .cp-cats h2 {
+    display: none;
+  }
+  & .cp-cats ul {
+    display: flex;
+    gap: 34px;
+    overflow-x: auto;
+  }
+  & .cp-cats li {
+    flex: none;
+  }
+  & .cp-cats a {
+    flex-direction: column;
+    gap: 8px;
+    min-width: 64px;
+    padding: 14px 2px 12px;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+  }
+  & .cp-cats a:hover {
+    color: var(--color-paper);
+  }
+  & .cp-cats a[aria-current="page"] {
+    color: var(--color-paper);
+    border-bottom-color: var(--th-olive);
+  }
+  & .cp-cats .cp-ico svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 1.3;
+  }
+  & .cp-search input {
+    padding: 11px 16px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: #fff;
+  }
+  & .cp-search--wide input {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  & .cp-strip-btn {
+    border-color: #232222;
+  }
+  & .cp-sort select {
+    padding: 8px 34px 8px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background-color: #fff;
+  }
+
+  /* cards: soft tiles, name and price left, outlined cart button right */
+  & .cp-grid {
+    gap: 36px 24px;
+  }
+  & .pc-img,
+  & .pc-img .pa {
+    border-radius: 6px;
+  }
+  & .pc-img .pa {
+    aspect-ratio: 1.34;
+  }
+  & .pc-img .pa-tone {
+    display: none;
+  }
+  & .pc-name {
+    margin-top: 12px;
+    margin-bottom: 4px;
+    padding-right: 54px;
+    font-family: var(--f-karla), sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+  & .pc-price,
+  & .pc-opts {
+    display: block;
+    padding-right: 54px;
+    font-size: 0.85rem;
+    line-height: 22px;
+  }
+  & .pc-opts {
+    color: var(--color-muted);
+    font-size: 0.75rem;
+  }
+  & .pc-add {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 44px;
+    height: 44px;
+    border: 1.5px solid #232222;
+    border-radius: 6px;
+    color: #232222;
+  }
+  & .pc-add:hover {
+    background: #232222;
+    color: #faf9f5;
+  }
+  & .pc-add-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  /* values row */
+  & .cp-values {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 24px;
+    margin-top: 72px;
+    padding: 30px 0 8px;
+    border-top: 1px solid var(--color-line);
+  }
+  & .cp-values li {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  & .cp-values svg {
+    width: 34px;
+    height: 34px;
+    stroke-width: 1.3;
+  }
+
+  & .ftr {
+    margin-top: 40px;
+    border-top: 1px solid var(--color-line);
+  }
+  & .ftr-inner {
+    max-width: 88rem;
+    padding-inline: 40px;
+  }
+
+  @media (max-width: 900px) {
+    & .cp-hero {
+      padding: 26px 20px;
+      background:
+        url("../../assets/themes/fieldnotes-sun.png") no-repeat right 4% top 10% / 110px auto,
+        #f0ebe5;
+    }
+    & .cp-body {
+      padding: 20px;
+    }
+    & .cp-values {
+      justify-content: flex-start;
+    }
+  }
+}

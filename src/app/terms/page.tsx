@@ -1,12 +1,19 @@
-import PageShell from "@/components/PageShell";
+import LegalDoc from "@/components/LegalDoc";
+import Page from "@/components/Page";
 
 export default function TermsPage() {
   return (
-    <PageShell title="Terms & Conditions" sow="Extras — SOW #7">
-      <p className="max-w-xl text-neutral-400">
-        Placeholder terms text. Final legal copy pending client/legal review
-        (COTPA compliance relevant here).
-      </p>
-    </PageShell>
+    <Page narrow title="Terms and conditions">
+      <LegalDoc
+        sections={[
+          "Who can buy",
+          "Orders and payment",
+          "Delivery",
+          "Returns and refunds",
+          "Your account",
+          "Changes to these terms",
+        ]}
+      />
+    </Page>
   );
 }

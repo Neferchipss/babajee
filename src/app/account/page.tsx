@@ -1,20 +1,27 @@
 import Link from "next/link";
-import PageShell from "@/components/PageShell";
+import Page from "@/components/Page";
 
 export default function AccountPage() {
   return (
-    <PageShell title="Account" sow="Accounts — SOW #2">
-      <div className="flex flex-col gap-2">
-        <p className="text-neutral-500">Name: Placeholder User</p>
-        <p className="text-neutral-500">Email: placeholder@example.com</p>
-        <Link href="/orders" className="mt-4 text-sm underline hover:text-neutral-300">
-          View my orders
+    <Page
+      narrow
+      title="Your account"
+      lede="Log in to place orders and follow them from payment to delivery."
+    >
+      <div className="flex flex-wrap gap-4">
+        <Link href="/account/login" className="btn btn-primary">
+          Log in
         </Link>
-        <div className="mt-6 flex gap-4 text-sm">
-          <Link href="/account/login" className="underline hover:text-neutral-300">Log in</Link>
-          <Link href="/account/signup" className="underline hover:text-neutral-300">Sign up</Link>
-        </div>
+        <Link href="/account/signup" className="btn btn-ghost">
+          Create an account
+        </Link>
       </div>
-    </PageShell>
+      <p className="mt-10 text-muted">
+        Already ordered?{" "}
+        <Link href="/orders" className="font-medium text-paper underline underline-offset-4">
+          See your orders
+        </Link>
+      </p>
+    </Page>
   );
 }

@@ -1,0 +1,293 @@
+/* Trailhead: cream page under a night-forest banner, a category sidebar,
+   bordered cards and black buttons. Colours sampled from the reference. */
+
+html[data-theme="trailhead"] #site[data-scope="shop"] {
+  --color-char: #fbf7ec;
+  --color-iron: #f9f6ef;
+  --color-ash: #f1ecdd;
+  --color-line: #e3dccb;
+  --color-paper: #131418;
+  --color-muted: #5f5a4f;
+  --color-plate: #efe9dc;
+  --color-ink: #fbf7ec;
+  --color-rasta-gold: #101116;
+  --plate-ink: #d6cfbe;
+  --th-display: var(--f-sedgwick), "Arial Black", sans-serif;
+
+  background: var(--color-char);
+  color: var(--color-paper);
+  font-family: var(--f-nunito), system-ui, sans-serif;
+
+  & .logo-dark {
+    display: none;
+  }
+  & .logo-light {
+    display: inline-block;
+  }
+  & :is(h1, h2) {
+    font-family: var(--th-display);
+    font-weight: 400;
+  }
+  & .btn-primary {
+    background: #101116;
+    color: #fbf7ec;
+    border-radius: 6px;
+  }
+  & .btn-primary:hover {
+    background: #2a2c34;
+  }
+  & .field {
+    border: 1px solid #c9c1ad;
+    background: #fff;
+  }
+  & .tile {
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: #f9f6ef;
+  }
+  & .tile::after {
+    background: #101116;
+  }
+
+  /* header: logo, nav, a wide search pill, account and cart */
+  & .hdr {
+    background: color-mix(in srgb, var(--color-char) 94%, transparent);
+  }
+  & .hdr-stripe {
+    display: none;
+  }
+  & .hdr-nav a {
+    color: var(--color-paper);
+    font-weight: 600;
+  }
+  & .hdr-nav a[aria-current="page"] {
+    text-decoration-color: #101116;
+  }
+  & .hdr-tool {
+    color: var(--color-paper);
+  }
+  & .hdr-count {
+    background: #d9382c;
+    color: #fff;
+  }
+  @media (min-width: 768px) {
+    & .hdr-inner {
+      max-width: 88rem;
+      justify-content: flex-start;
+      gap: 34px;
+      padding: 14px 40px;
+    }
+    & .hdr-logo-img {
+      width: 10.5rem;
+    }
+    & .hdr-nav {
+      gap: 26px;
+    }
+    & .hdr-tools {
+      flex: 1;
+      justify-content: flex-end;
+      gap: 20px;
+    }
+    & .hdr-search {
+      flex: 1 1 auto;
+      max-width: 340px;
+      margin-right: 6px;
+      padding: 9px 18px;
+      border: 2px solid #131418;
+      border-radius: 999px;
+      justify-content: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+    }
+    & .hdr-search .hdr-label {
+      position: static;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip: auto;
+      color: var(--color-muted);
+      font-weight: 500;
+    }
+  }
+
+  /* page: night banner with the category title over it */
+  & .cp {
+    max-width: none;
+    padding: 0;
+  }
+  & .cp-hero {
+    display: grid;
+    place-items: center;
+    min-height: clamp(180px, 19vw, 250px);
+    padding: 24px 20px;
+    background: #0f0d0f url("../../assets/themes/trailhead-banner.jpg") center / cover no-repeat;
+    text-align: center;
+    color: #fff;
+  }
+  & .cp-hero-copy {
+    display: grid;
+    justify-items: center;
+  }
+  & .cp-title {
+    color: #fff;
+    font-size: clamp(2.6rem, 6.4vw, 5.2rem);
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
+  }
+  & .cp-tag {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--f-marker), cursive;
+    font-size: clamp(0.95rem, 1.6vw, 1.3rem);
+    transform: rotate(-2deg);
+  }
+  & .cp-body {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr);
+    gap: 44px;
+    max-width: 88rem;
+    margin: 0 auto;
+    padding: 40px 40px 24px;
+  }
+  & .cp-side {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    max-height: calc(100dvh - 112px);
+    padding-right: 6px;
+    overflow-y: auto;
+  }
+  & .cp-cats h2 {
+    margin-bottom: 10px;
+    font-family: var(--f-nunito), sans-serif;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  & .cp-cats ul {
+    display: grid;
+    gap: 2px;
+  }
+  & .cp-cats a {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    transition: background-color 0.15s;
+  }
+  & .cp-cats a:hover {
+    background: #efe9dc;
+  }
+  & .cp-cats a[aria-current="page"] {
+    background: #131418;
+    color: #fbf7ec;
+    font-weight: 700;
+  }
+  & .cp-search input {
+    padding: 11px 16px;
+    border: 1px solid #c9c1ad;
+    border-radius: 8px;
+    background: #fff;
+  }
+  & .cp-search--wide input {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  & .cp-strip-btn {
+    border-color: #131418;
+  }
+  & .cp-sort select {
+    padding: 9px 36px 9px 14px;
+    border: 1px solid #c9c1ad;
+    border-radius: 6px;
+    background-color: #fff;
+  }
+
+  /* cards: bordered, name and price, a full-width black button */
+  & .cp-grid {
+    gap: 20px;
+  }
+  & .pc {
+    padding: 12px 12px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    background: var(--color-iron);
+  }
+  & .pc-img .pa {
+    border-radius: 4px;
+    aspect-ratio: 1.22;
+  }
+  & .pc-img .pa-tone {
+    display: none;
+  }
+  & .pc-name {
+    margin-top: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  & .pc-price {
+    display: block;
+    margin-top: 4px;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+  & .pc-opts {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.78rem;
+  }
+  & .pc-add {
+    width: 100%;
+    margin-top: 14px;
+    padding: 11px 12px;
+    border-radius: 6px;
+    background: #131418;
+    color: #fbf7ec;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  & .pc-add:hover {
+    background: #2d3038;
+  }
+
+  & .ftr {
+    margin-top: 40px;
+  }
+  & .ftr-inner {
+    max-width: 88rem;
+    padding-inline: 40px;
+  }
+
+  @media (max-width: 900px) {
+    & .cp-body {
+      display: block;
+      padding: 20px;
+    }
+    & .cp-side {
+      position: static;
+      margin-bottom: 18px;
+    }
+    & .cp-cats ul {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    & .cp-cats a {
+      gap: 8px;
+      padding: 8px 16px 8px 12px;
+      white-space: nowrap;
+      border: 1px solid var(--color-line);
+    }
+    & .cp-cats li {
+      flex: none;
+    }
+    & .cp-cats h2 {
+      display: none;
+    }
+  }
+}

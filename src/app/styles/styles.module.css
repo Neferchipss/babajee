@@ -1,0 +1,496 @@
+/* Temporary style comparison. Not part of the shipped site.
+   Values that affect contrast (--fill, --muted, --orb-*) are set from
+   page.tsx so the measured ratios match what is painted here. */
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  background: #0a0a0a;
+  padding: clamp(18px, 3.5vw, 36px);
+}
+
+.hero {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  margin-bottom: 32px;
+}
+.heroLine {
+  max-width: 22ch;
+  font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.75rem 1.4rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.primary {
+  background: var(--color-rasta-gold);
+  color: #121212;
+}
+.primary:hover {
+  background: #fff45a;
+}
+.ghost {
+  border-color: #3a3a3a;
+  color: var(--color-paper);
+  background: transparent;
+}
+.ghost:hover {
+  border-color: var(--color-paper);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.tile {
+  position: relative;
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  cursor: pointer;
+}
+.count {
+  font-size: 0.85rem;
+  color: var(--muted, #8f8d87);
+}
+.name {
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+.card {
+  position: relative;
+  padding: 9px;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.cardName {
+  margin-top: 10px;
+  padding: 0 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.price {
+  margin-top: 2px;
+  padding: 0 4px 4px;
+  font-size: 0.85rem;
+  color: var(--muted, #8f8d87);
+}
+
+/* Form controls and status badges: every style is judged on these too. */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  margin-top: 24px;
+}
+.input {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: rgb(18 18 18 / 0.7);
+  padding: 0.65rem 0.9rem;
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.input::placeholder {
+  color: var(--muted, #8f8d87);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-rasta-gold);
+  box-shadow: 0 0 0 3px rgb(253 238 3 / 0.16);
+}
+.chips {
+  display: flex;
+  gap: 8px;
+}
+.chip {
+  min-height: 44px;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.18s;
+}
+.chip:hover {
+  border-color: var(--color-paper);
+}
+.chipOn {
+  border-color: var(--color-paper);
+  background: var(--color-paper);
+  color: #121212;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+}
+.stepper button {
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: 0;
+  color: var(--muted, #8f8d87);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.stepper button:hover {
+  color: var(--color-paper);
+}
+.stepper span {
+  min-width: 1.6rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--tone);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  color: var(--tone-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.badge::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+@media (max-width: 760px) {
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+  .products {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Light behind glass. Shared by the two glass options. */
+.orbs {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.orbs i {
+  position: absolute;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.orbs i:nth-child(1) {
+  width: 46%;
+  left: -8%;
+  top: -16%;
+  background: var(--orb-red);
+}
+.orbs i:nth-child(2) {
+  width: 40%;
+  left: 36%;
+  top: -22%;
+  background: var(--orb-gold);
+}
+.orbs i:nth-child(3) {
+  width: 48%;
+  right: -10%;
+  bottom: -18%;
+  background: var(--orb-green);
+}
+
+/* On a phone the panel is narrow and tall, so the light needs to be larger
+   and spread down the column or the glass has nothing to show. */
+@media (max-width: 760px) {
+  .orbs i:nth-child(1) {
+    width: 90%;
+    left: -25%;
+    top: -4%;
+  }
+  .orbs i:nth-child(2) {
+    width: 80%;
+    left: auto;
+    right: -30%;
+    top: 34%;
+  }
+  .orbs i:nth-child(3) {
+    width: 90%;
+    right: auto;
+    left: -20%;
+    bottom: -3%;
+  }
+}
+
+/* 1. Aurora glass: dark-tinted glass over slowly drifting light.
+   Glass spec: blur 10-20px, 1px light edge, text contrast 4.5:1. The fill is
+   black, not white, so panels never lighten under a bright glow. */
+.aurora .orbs i {
+  filter: blur(48px);
+  animation: drift 12s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.aurora .orbs i:nth-child(2) {
+  animation-duration: 14s;
+  animation-delay: -5s;
+}
+.aurora .orbs i:nth-child(3) {
+  animation-duration: 13s;
+  animation-delay: -8s;
+}
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(7%, 9%, 0) scale(1.14);
+  }
+}
+.aurora .tile,
+.aurora .card,
+.aurora .ghost {
+  background: var(--fill);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 22px 40px -26px rgb(0 0 0 / 0.8);
+}
+.aurora .tile {
+  border-radius: 18px;
+  transition: border-color 0.2s;
+}
+.aurora .tile:hover,
+.aurora .card:hover {
+  border-color: rgb(255 255 255 / 0.36);
+}
+
+/* 2. Gradient hairlines: solid dark panels, the flag gradient as a thin edge. */
+.hairline .tile,
+.hairline .card {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(#111, #111) padding-box,
+    linear-gradient(125deg, var(--color-rasta-red), var(--color-rasta-gold), var(--color-rasta-green))
+      border-box;
+  transition: box-shadow 0.25s;
+}
+.hairline .tile:hover,
+.hairline .card:hover {
+  box-shadow: 0 0 38px -8px rgb(253 238 3 / 0.35);
+}
+.hairline .ghost {
+  border-color: transparent;
+  background:
+    linear-gradient(#0a0a0a, #0a0a0a) padding-box,
+    linear-gradient(125deg, var(--color-rasta-red), var(--color-rasta-gold), var(--color-rasta-green))
+      border-box;
+}
+
+/* 3. Colour blocks: bento layout, one big tile and two small, black type.
+   Secondary text stays full black: at 65% it fell to 3.6:1 on red. */
+.blocks .tiles {
+  grid-template-columns: 1.5fr 1fr;
+  grid-template-rows: repeat(2, minmax(120px, auto));
+}
+.blocks .tile:nth-child(1) {
+  grid-row: span 2;
+}
+.blocks .tile {
+  background: var(--tone);
+  border-radius: 6px;
+  color: #0a0a0a;
+  transition: transform 0.18s;
+}
+.blocks .tile:hover {
+  transform: scale(1.015);
+}
+.blocks .name {
+  font-size: 1.9rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.blocks .tile:nth-child(1) .name {
+  font-size: 2.6rem;
+}
+.blocks .count {
+  color: #0a0a0a;
+  font-weight: 500;
+}
+.blocks .card {
+  border-radius: 6px;
+  border-top: 4px solid var(--tone);
+  background: #131313;
+}
+.blocks .btn {
+  border-radius: 4px;
+}
+.blocks .ghost {
+  border-color: var(--color-paper);
+}
+.blocks .chip,
+.blocks .stepper,
+.blocks .input {
+  border-radius: 4px;
+}
+.blocks .chipOn {
+  border-color: var(--color-rasta-gold);
+  background: var(--color-rasta-gold);
+}
+.blocks .badge {
+  border-radius: 4px;
+  border-color: transparent;
+  background: var(--tone);
+  color: #0a0a0a;
+}
+.blocks .badge::before {
+  background: #0a0a0a;
+}
+@media (max-width: 760px) {
+  .blocks .tiles {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .blocks .tile:nth-child(1) {
+    grid-row: auto;
+  }
+}
+
+/* 4. Neon on black: minimal glow, used sparingly (names and outlines only). */
+.neon .tile,
+.neon .card {
+  background: transparent;
+  border: 1.5px solid var(--tone);
+  border-radius: 14px;
+  box-shadow:
+    0 0 6px var(--tone),
+    0 0 22px color-mix(in srgb, var(--tone) 42%, transparent),
+    inset 0 0 16px color-mix(in srgb, var(--tone) 14%, transparent);
+}
+.neon .name {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--tone) 55%, transparent);
+}
+.neon .primary {
+  background: transparent;
+  color: var(--color-rasta-gold);
+  border: 1.5px solid var(--color-rasta-gold);
+  box-shadow:
+    0 0 6px var(--color-rasta-gold),
+    0 0 20px rgb(253 238 3 / 0.36),
+    inset 0 0 12px rgb(253 238 3 / 0.12);
+}
+.neon .primary:hover {
+  background: rgb(253 238 3 / 0.1);
+}
+.neon .badge {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tone) 40%, transparent);
+}
+
+/* 5. Lit glass (recommended): glass panels, a gradient hairline edge cut out
+   with a mask, and a faint static light behind. */
+.lit .orbs i {
+  filter: blur(54px);
+}
+.lit .tile,
+.lit .card,
+.lit .ghost {
+  border: 1px solid transparent;
+  background: var(--fill);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+}
+.lit .tile,
+.lit .card {
+  border-radius: 16px;
+  box-shadow: 0 26px 50px -30px var(--tone, rgb(253 238 3 / 0.5));
+  transition: box-shadow 0.25s;
+}
+.lit .tile:hover,
+.lit .card:hover {
+  box-shadow: 0 26px 60px -24px var(--tone, rgb(253 238 3 / 0.7));
+}
+.lit .tile::before,
+.lit .card::before,
+.lit .ghost::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--color-rasta-red),
+    var(--color-rasta-gold),
+    var(--color-rasta-green)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+.lit .ghost {
+  position: relative;
+}

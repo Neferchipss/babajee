@@ -1,26 +1,164 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-char: #0a0a0a;
+  --color-iron: #121212;
+  --color-ash: #1b1b1b;
+  --color-line: #2a2a2a;
+  --color-paper: #f4f2ed;
+  --color-muted: #8f8d87;
+  --color-plate: #e6e2d8;
+  --color-ink: #121212;
+  --color-rasta-red: #fd1618;
+  --color-rasta-gold: #fdee03;
+  --color-rasta-green: #04cb62;
+  --color-red-soft: #ff7468;
+  --color-green-soft: #52d98a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body-face), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+  }
+  html {
+    background: var(--color-char);
+  }
+  body {
+    background: var(--color-char);
+    color: var(--color-paper);
+    font-family: var(--font-body-face), system-ui, sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  ::selection {
+    background: var(--color-rasta-gold);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-rasta-gold);
+    outline-offset: 3px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.85rem 1.6rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      opacity 0.15s;
+  }
+  .btn-primary {
+    background: var(--color-rasta-gold);
+    color: var(--color-ink);
+  }
+  .btn-primary:hover {
+    background: #fff45a;
+  }
+  .btn-primary:active {
+    opacity: 0.88;
+  }
+  .btn-primary:focus-visible {
+    outline-color: var(--color-paper);
+  }
+  .btn-ghost {
+    border-color: #3a3a3a;
+    color: var(--color-paper);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-paper);
+  }
+
+  .field {
+    width: 100%;
+    background: var(--color-iron);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    color: var(--color-paper);
+    transition: border-color 0.15s;
+  }
+  .field::placeholder {
+    color: var(--color-muted);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-rasta-gold);
+    box-shadow: 0 0 0 3px rgb(253 238 3 / 0.14);
+  }
+
+  /* Category tile. The accent bar is the tri-colour stripe from the header,
+     one colour per tile, and grows across on hover. */
+  .tile {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        120% 100% at 0% 100%,
+        color-mix(in srgb, var(--tone) 15%, transparent),
+        transparent 62%
+      ),
+      var(--color-iron);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    transition: border-color 0.2s;
+  }
+  .tile::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 2.5rem;
+    background: var(--tone);
+    transition: width 0.3s ease;
+  }
+  .tile:hover {
+    border-color: #444;
+  }
+  .tile:hover::after {
+    width: 100%;
+  }
+}
+
+/* Age gate. Unlayered on purpose so these beat the Tailwind utilities. */
+html:not([data-age-ok="1"]) #site {
+  visibility: hidden;
+}
+html:not([data-age-ok="1"]) body {
+  overflow: hidden;
+}
+html[data-age-ok="1"] #age-gate {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

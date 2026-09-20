@@ -1,25 +1,41 @@
 import Link from "next/link";
-import PageShell from "@/components/PageShell";
+import Page from "@/components/Page";
+import { MIN_AGE } from "@/lib/config";
 
 export default function SignupPage() {
   return (
-    <PageShell title="Sign up" sow="Accounts — SOW #2 + Age Verification — SOW #3">
-      <form className="flex max-w-sm flex-col gap-4">
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Full name" />
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Email" />
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Password" type="password" />
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Date of birth" />
-        <label className="flex items-center gap-2 text-sm text-neutral-500">
-          <input type="checkbox" />
-          I confirm I am 21 years or older
+    <Page narrow title="Create an account">
+      <form className="grid max-w-sm gap-4">
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Full name</span>
+          <input className="field" autoComplete="name" />
         </label>
-        <Link href="/account" className="rounded-full bg-white px-6 py-3 text-center text-sm font-medium text-black">
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Email</span>
+          <input className="field" type="email" autoComplete="email" />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Phone</span>
+          <input className="field" type="tel" autoComplete="tel" />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Password</span>
+          <input className="field" type="password" autoComplete="new-password" />
+        </label>
+        <label className="flex items-start gap-3 text-sm">
+          <input type="checkbox" className="mt-1 size-4 accent-[var(--color-rasta-gold)]" />
+          <span>I confirm I am {MIN_AGE} or older.</span>
+        </label>
+        <Link href="/account" className="btn btn-primary mt-2">
           Create account
         </Link>
-        <p className="text-sm text-neutral-500">
-          Already have an account? <Link href="/account/login" className="underline hover:text-neutral-300">Log in</Link>
+        <p className="text-sm text-muted">
+          Already have an account?{" "}
+          <Link href="/account/login" className="font-medium text-paper underline underline-offset-4">
+            Log in
+          </Link>
         </p>
       </form>
-    </PageShell>
+    </Page>
   );
 }

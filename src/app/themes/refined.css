@@ -1,0 +1,380 @@
+/* Refined: neutral black, wide-tracked light caps, hairlines, gold outline
+   buttons, and the sun-and-tree emblem behind the header. Colours sampled
+   from the reference. */
+
+html[data-theme="refined"] #site[data-scope="shop"] {
+  --color-char: #080806;
+  --color-iron: #0c0c0a;
+  --color-ash: #14150f;
+  --color-line: #242922;
+  --color-paper: #e9e6da;
+  --color-muted: #8b9a7e;
+  --color-plate: #12130f;
+  --color-ink: #080806;
+  --color-rasta-gold: #d7b04a;
+  --plate-ink: #262a20;
+  --th-line-strong: #3a4034;
+
+  background: var(--color-char);
+  color: var(--color-paper);
+  font-family: var(--f-josefin), system-ui, sans-serif;
+
+  & :is(h1, h2) {
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  & .btn-primary {
+    border-radius: 0;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+  }
+  & .field {
+    border: 1px solid var(--color-line);
+    border-radius: 0;
+  }
+  & .tile {
+    border-radius: 0;
+  }
+
+  /* header: sun and tree behind it, gold icons */
+  & .hdr {
+    position: relative;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  & .hdr-stripe {
+    display: none;
+  }
+  & .hdr-nav a {
+    color: var(--color-paper);
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  & .hdr-nav a[aria-current="page"] {
+    color: var(--color-rasta-gold);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 8px;
+  }
+  & .hdr-tool {
+    color: var(--color-rasta-gold);
+  }
+  @media (min-width: 768px) {
+    & .hdr-inner {
+      position: relative;
+      justify-content: flex-start;
+      gap: 40px;
+      max-width: 78rem;
+      padding: 26px 40px 10px;
+    }
+    & .hdr-inner::before {
+      content: "";
+      position: absolute;
+      top: 8px;
+      left: 55%;
+      z-index: 0;
+      width: 370px;
+      height: 179px;
+      background: url("../../assets/themes/refined-sun.png") no-repeat center / contain;
+      pointer-events: none;
+    }
+    & .hdr-logo,
+    & .hdr-nav,
+    & .hdr-tools {
+      position: relative;
+      z-index: 2;
+    }
+    & .hdr-logo-img {
+      width: 11.5rem;
+    }
+    & .hdr-nav {
+      gap: 30px;
+      margin-left: 8px;
+    }
+    & .hdr-tools {
+      margin-left: auto;
+      gap: 26px;
+    }
+  }
+
+  /* page: title block, sidebar, hairline tiles */
+  & .cp {
+    max-width: 78rem;
+    padding: 0 40px 40px;
+  }
+  & .cp-hero {
+    position: relative;
+    z-index: 2;
+    padding-top: 22px;
+  }
+  & .cp-crumb {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+  }
+  & .cp-title {
+    margin-top: 22px;
+    color: var(--color-rasta-gold);
+    max-width: 600px;
+    font-size: clamp(1.9rem, 3.8vw, 3rem);
+    letter-spacing: 0.24em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+  & .cp-tag {
+    display: block;
+    margin-top: 14px;
+    font-size: 1.1rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+  }
+  & .cp-body {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 34px;
+    margin-top: 36px;
+  }
+  & .cp-side {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  & .cp-cats h2 {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-line);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+  & .cp-cats a {
+    gap: 12px;
+    padding: 7px 0;
+    color: #d8d4c6;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+  }
+  & .cp-cats a:hover,
+  & .cp-cats a[aria-current="page"] {
+    color: var(--color-rasta-gold);
+  }
+  & .cp-cats .cp-ico {
+    color: var(--color-rasta-gold);
+    opacity: 0.75;
+  }
+  & .cp-cats a:hover .cp-ico,
+  & .cp-cats a[aria-current="page"] .cp-ico {
+    opacity: 1;
+  }
+  & .cp-cats .cp-ico svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.4;
+  }
+  & .cp-search input {
+    padding: 11px 14px;
+    border: 1px solid var(--color-line);
+    background: transparent;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+  }
+  & .cp-search--wide input {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  & .cp-strip-btn {
+    border-color: var(--th-line-strong);
+    color: var(--color-rasta-gold);
+  }
+  & .cp-side::after {
+    content: "Slower days. Brighter ways.";
+    padding-top: 22px;
+    border-top: 4px solid transparent;
+    border-image: linear-gradient(90deg, #3f8f4f 33.3%, #d9a83c 33.3% 66.6%, #b53a32 66.6%) 1;
+    border-image-width: 4px 0 0 0;
+    color: var(--color-muted);
+    font-size: 0.66rem;
+    letter-spacing: 0.38em;
+    line-height: 2;
+    text-transform: uppercase;
+    max-width: 16ch;
+  }
+  & .cp-toolbar {
+    gap: 16px 34px;
+  }
+  & .cp-count {
+    order: 2;
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+  & .cp-sort {
+    color: var(--color-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  & .cp-sort select {
+    padding: 10px 38px 10px 14px;
+    border: 1px solid var(--color-line);
+    background-color: transparent;
+    color: var(--color-paper);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+  }
+  & .cp-sort select option {
+    background: #111;
+  }
+
+  /* cards: hairline tiles, tracked names, gold outline button */
+  & .cp-grid {
+    gap: 16px;
+  }
+  & .pc {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-line);
+    background: var(--color-iron);
+  }
+  & .pc-link {
+    flex: 1;
+  }
+  & .pc-img .pa {
+    border-radius: 0;
+    aspect-ratio: 1.22;
+  }
+  & .pc-img .pa-tone {
+    display: none;
+  }
+  & .pc-name,
+  & .pc-price,
+  & .pc-opts {
+    margin-inline: 16px;
+  }
+  & .pc-name {
+    margin-top: 16px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  & .pc-price {
+    display: block;
+    margin-top: 6px;
+    color: #cfcabb;
+    font-size: 0.88rem;
+    letter-spacing: 0.04em;
+  }
+  & .pc-opts {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+  }
+  & .pc-add {
+    align-self: flex-start;
+    margin: 14px 16px 18px;
+    padding: 10px 20px;
+    border: 1px solid var(--color-rasta-gold);
+    color: var(--color-rasta-gold);
+    font-size: 0.66rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  & .pc-add svg {
+    display: none;
+  }
+  & .pc-add:hover {
+    background: var(--color-rasta-gold);
+    color: #0c0c0a;
+  }
+
+  /* footer: a centred sign-off */
+  & .ftr {
+    margin-top: 40px;
+    border-top: 0;
+    text-align: center;
+  }
+  & .ftr-inner {
+    flex-direction: column;
+    align-items: center;
+    max-width: 78rem;
+    padding-block: 34px 60px;
+  }
+  & .ftr-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  & .ftr-nav {
+    justify-content: center;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+  }
+
+  @media (max-width: 900px) {
+    & .cp {
+      padding: 0 20px 40px;
+    }
+    & .cp-body {
+      display: block;
+    }
+    & .cp-side {
+      margin-bottom: 20px;
+    }
+    & .cp-side::after {
+      display: none;
+    }
+    & .cp-cats ul {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    & .cp-cats h2 {
+      display: none;
+    }
+    & .pc-add {
+      align-self: stretch;
+      margin-inline: 12px;
+      padding: 11px 8px;
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      white-space: nowrap;
+    }
+    & .pc-name,
+    & .pc-price,
+    & .pc-opts {
+      margin-inline: 12px;
+    }
+    & .cp-toolbar {
+      gap: 12px 16px;
+    }
+    & .cp-count {
+      letter-spacing: 0.2em;
+    }
+    & .cp-sort {
+      gap: 10px;
+      letter-spacing: 0.18em;
+    }
+    & .cp-cats a {
+      gap: 8px;
+      padding: 7px 16px 7px 12px;
+      border: 1px solid var(--color-line);
+      white-space: nowrap;
+    }
+    & .cp-cats li {
+      flex: none;
+    }
+  }
+}

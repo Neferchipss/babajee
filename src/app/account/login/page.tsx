@@ -1,19 +1,28 @@
 import Link from "next/link";
-import PageShell from "@/components/PageShell";
+import Page from "@/components/Page";
 
 export default function LoginPage() {
   return (
-    <PageShell title="Log in" sow="Accounts — SOW #2">
-      <form className="flex max-w-sm flex-col gap-4">
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Email" />
-        <input className="rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm" placeholder="Password" type="password" />
-        <Link href="/account" className="rounded-full bg-white px-6 py-3 text-center text-sm font-medium text-black">
+    <Page narrow title="Log in">
+      <form className="grid max-w-sm gap-4">
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Email</span>
+          <input className="field" type="email" autoComplete="email" />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-sm font-medium">Password</span>
+          <input className="field" type="password" autoComplete="current-password" />
+        </label>
+        <Link href="/account" className="btn btn-primary mt-2">
           Log in
         </Link>
-        <p className="text-sm text-neutral-500">
-          No account? <Link href="/account/signup" className="underline hover:text-neutral-300">Sign up</Link>
+        <p className="text-sm text-muted">
+          New here?{" "}
+          <Link href="/account/signup" className="font-medium text-paper underline underline-offset-4">
+            Create an account
+          </Link>
         </p>
       </form>
-    </PageShell>
+    </Page>
   );
 }

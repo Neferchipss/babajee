@@ -1,12 +1,11 @@
-import PageShell from "@/components/PageShell";
+import Page, { Placeholder } from "@/components/Page";
 
 export default function AdminPage() {
   return (
-    <PageShell title="Admin" sow="Admin Panel — SOW #6">
-      <p className="text-neutral-500">
-        Intentionally unbuilt — waiting on your requirements spec before
-        designing this.
-      </p>
-    </PageShell>
+    <Page narrow title="Admin">
+      <Placeholder>
+        The admin panel isn&apos;t built yet. It starts once the requirements are written.
+      </Placeholder>
+    </Page>
   );
 }
