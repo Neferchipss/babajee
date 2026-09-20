@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageShell from "@/components/PageShell";
-import { getCategory, getProduct } from "@/lib/catalog-data";
+import { CATEGORIES, getCategory, getProduct } from "@/lib/catalog-data";
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return CATEGORIES.flatMap((c) =>
+    c.products.map((p) => ({ category: c.slug, product: p.slug }))
+  );
+}
 
 export default async function ProductPage(
   props: PageProps<"/shop/[category]/[product]">

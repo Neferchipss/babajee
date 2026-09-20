@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageShell from "@/components/PageShell";
-import { getCategory } from "@/lib/catalog-data";
+import { CATEGORIES, getCategory } from "@/lib/catalog-data";
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return CATEGORIES.map((c) => ({ category: c.slug }));
+}
 
 export default async function CategoryPage(props: PageProps<"/shop/[category]">) {
   const { category: categorySlug } = await props.params;

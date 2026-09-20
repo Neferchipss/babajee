@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import { PLACEHOLDER_ORDERS } from "@/lib/catalog-data";
 
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return PLACEHOLDER_ORDERS.map((o) => ({ id: o.id }));
+}
+
 export default async function OrderDetailPage(props: PageProps<"/orders/[id]">) {
   const { id } = await props.params;
   const order = PLACEHOLDER_ORDERS.find((o) => o.id === id) ?? {
