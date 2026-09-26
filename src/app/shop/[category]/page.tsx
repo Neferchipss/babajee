@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import CategoryView from "@/components/CategoryView";
-import { getCategories, getCategoriesWithCounts, getCategoryDetail } from "@/lib/catalog-db";
+import { getCategoriesWithCounts, getCategoryDetail, getStaticCategoryParams } from "@/lib/catalog-db";
 import { toneAt } from "@/lib/tone";
 
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  const categories = await getCategories();
-  return categories.map((c) => ({ category: c.slug }));
+  return getStaticCategoryParams();
 }
 
 export default async function CategoryPage(props: PageProps<"/shop/[category]">) {

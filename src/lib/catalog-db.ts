@@ -59,6 +59,17 @@ export async function getCategories(): Promise<DbCategory[]> {
   return data ?? [];
 }
 
+// Same reasoning as getStaticProductParams: `output: export` refuses to
+// build a dynamic page whose generateStaticParams() returns an empty array,
+// which happens for real whenever the build runs with no Supabase client
+// (no env vars) or a client that legitimately has zero categories yet. A
+// placeholder slug that 404s correctly satisfies the export requirement
+// without pretending a real category exists.
+export async function getStaticCategoryParams(): Promise<{ category: string }[]> {
+  const categories = await getCategories();
+  return categories.length ? categories.map((c) => ({ category: c.slug })) : [{ category: "_none" }];
+}
+
 export async function getCategoriesWithCounts(): Promise<(DbCategory & { count: number })[]> {
   const sb = client();
   if (!sb) return [];
