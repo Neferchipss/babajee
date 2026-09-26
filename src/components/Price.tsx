@@ -1,5 +1,7 @@
-// Prices don't exist yet (the stock sheet has none). Swap this for a real
-// value once the client sends them.
-export default function Price({ className = "" }: { className?: string }) {
-  return <span className={`tabular-nums ${className}`}>Rs.xx.xx</span>;
+import { formatPrice } from "@/lib/currency";
+
+// With a value, shows the real price. Without one, shows the placeholder —
+// still used where a real price doesn't exist yet (the demo cart/checkout).
+export default function Price({ value, className = "" }: { value?: number; className?: string }) {
+  return <span className={`tabular-nums ${className}`}>{value === undefined ? "Rs.xx.xx" : formatPrice(value)}</span>;
 }

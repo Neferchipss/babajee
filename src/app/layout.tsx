@@ -4,6 +4,7 @@ import AgeGate from "@/components/AgeGate";
 import SiteFooter from "@/components/SiteFooter";
 import SiteFrame from "@/components/SiteFrame";
 import SiteHeader from "@/components/SiteHeader";
+import { AuthProvider } from "@/lib/auth";
 import { AGE_STORAGE_KEY } from "@/lib/config";
 import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import "./globals.css";
@@ -46,12 +47,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
       </head>
       <body>
-        <AgeGate />
-        <SiteFrame>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </SiteFrame>
+        <AuthProvider>
+          <AgeGate />
+          <SiteFrame>
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
+          </SiteFrame>
+        </AuthProvider>
       </body>
     </html>
   );

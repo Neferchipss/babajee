@@ -7,6 +7,7 @@ export type CardProduct = {
   href: string;
   name: string;
   options: number;
+  price: number;
   tone: string;
 };
 
@@ -21,7 +22,7 @@ export default function ProductCard({ product }: { product: CardProduct }) {
         </div>
         <h3 className="pc-name">{product.name}</h3>
         {product.options > 0 && <span className="pc-opts">{product.options + 1} options</span>}
-        <Price className="pc-price" />
+        <Price className="pc-price" value={product.price} />
       </Link>
       <Link href="/cart" className="pc-add" aria-label={`Add ${product.name} to cart`}>
         <CartIcon size={20} />

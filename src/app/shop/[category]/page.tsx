@@ -1,30 +1,31 @@
 import { notFound } from "next/navigation";
 import CategoryView from "@/components/CategoryView";
-import { CATEGORIES, getCategory } from "@/lib/catalog-data";
-import { categoryTone } from "@/lib/tone";
-import { displayName } from "@/lib/variants";
+import { getCategories, getCategoriesWithCounts, getCategoryDetail } from "@/lib/catalog-db";
+import { toneAt } from "@/lib/tone";
 
 export const dynamicParams = false;
 
-export function generateStaticParams() {
-  return CATEGORIES.map((c) => ({ category: c.slug }));
+export async function generateStaticParams() {
+  const categories = await getCategories();
+  return categories.map((c) => ({ category: c.slug }));
 }
 
 export default async function CategoryPage(props: PageProps<"/shop/[category]">) {
   const { category: categorySlug } = await props.params;
-  const category = getCategory(categorySlug);
-  if (!category) notFound();
+  const [detail, categories] = await Promise.all([getCategoryDetail(categorySlug), getCategoriesWithCounts()]);
+  if (!detail) notFound();
 
-  const tone = categoryTone(category.slug);
+  const tone = toneAt(Math.max(0, categories.findIndex((c) => c.slug === categorySlug)));
 
   return (
     <CategoryView
-      category={{ slug: category.slug, name: category.name }}
-      categories={CATEGORIES.map((c) => ({ slug: c.slug, name: c.name, count: c.products.length }))}
-      products={category.products.map((p) => ({
-        href: `/shop/${category.slug}/${p.slug}`,
-        name: displayName(p),
-        options: p.variants.length,
+      category={detail.category}
+      categories={categories}
+      products={detail.products.map((p) => ({
+        href: `/shop/${categorySlug}/${p.slug}`,
+        name: p.name,
+        options: p.variantCount > 1 ? p.variantCount - 1 : 0,
+        price: p.minPrice,
         tone,
       }))}
     />

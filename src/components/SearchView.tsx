@@ -2,30 +2,28 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { CATEGORIES } from "@/lib/catalog-data";
 import { toneAt } from "@/lib/tone";
-import { displayName } from "@/lib/variants";
 import ProductCard from "./ProductCard";
 
 const LIMIT = 60;
 
-const ALL = CATEGORIES.flatMap((c, i) =>
-  c.products.map((p) => ({
-    href: `/shop/${c.slug}/${p.slug}`,
-    name: displayName(p),
-    options: p.variants.length,
-    tone: toneAt(i),
-    haystack: `${displayName(p)} ${c.name}`.toLowerCase(),
-  })),
-);
+export type SearchEntry = {
+  href: string;
+  name: string;
+  options: number;
+  price: number;
+  categoryIndex: number;
+  haystack: string;
+};
 
 // Search across the whole catalogue. Uses the same cards as the category
-// pages, so it takes on whichever theme is active.
-export default function SearchView() {
+// pages, so it takes on whichever theme is active. The list itself is
+// fetched once on the server (src/app/shop/search/page.tsx) and passed in.
+export default function SearchView({ entries }: { entries: SearchEntry[] }) {
   const params = useSearchParams();
   const [query, setQuery] = useState(params.get("q") ?? "");
   const q = query.trim().toLowerCase();
-  const matches = q ? ALL.filter((p) => p.haystack.includes(q)) : [];
+  const matches = q ? entries.filter((p) => p.haystack.includes(q)) : [];
 
   return (
     <div className="cp cp--search">
@@ -65,7 +63,10 @@ export default function SearchView() {
           ) : (
             <ul className="cp-grid">
               {matches.slice(0, LIMIT).map((p) => (
-                <ProductCard key={p.href} product={p} />
+                <ProductCard
+                  key={p.href}
+                  product={{ href: p.href, name: p.name, options: p.options, price: p.price, tone: toneAt(p.categoryIndex) }}
+                />
               ))}
             </ul>
           )}

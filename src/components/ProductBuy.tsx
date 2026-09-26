@@ -2,27 +2,27 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Price from "./Price";
 import QtyStepper from "./QtyStepper";
 
-export default function ProductBuy({
-  firstOption,
-  variants,
-}: {
-  firstOption: string;
-  variants: string[];
-}) {
-  const options = [firstOption, ...variants];
+export type BuyVariant = { label: string; price: number; stockQty: number };
+
+export default function ProductBuy({ variants }: { variants: BuyVariant[] }) {
   const [selected, setSelected] = useState(0);
+  const variant = variants[selected];
+  const inStock = variant.stockQty > 0;
 
   return (
     <div>
-      {variants.length > 0 && (
+      <Price className="mb-6 block text-2xl font-medium" value={variant.price} />
+
+      {variants.length > 1 && (
         <fieldset className="mb-8">
           <legend className="mb-3 text-sm text-muted">Option</legend>
           <div role="radiogroup" className="flex flex-wrap gap-2">
-            {options.map((label, i) => (
+            {variants.map((v, i) => (
               <button
-                key={label}
+                key={v.label}
                 type="button"
                 role="radio"
                 aria-checked={selected === i}
@@ -33,7 +33,7 @@ export default function ProductBuy({
                     : "border-[#3a3a3a] text-paper hover:border-paper"
                 }`}
               >
-                {label}
+                {v.label}
               </button>
             ))}
           </div>
@@ -41,10 +41,16 @@ export default function ProductBuy({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <QtyStepper />
-        <Link href="/cart" className="btn btn-primary">
-          Add to cart
-        </Link>
+        {inStock ? (
+          <>
+            <QtyStepper />
+            <Link href="/cart" className="btn btn-primary">
+              Add to cart
+            </Link>
+          </>
+        ) : (
+          <p className="text-muted">Out of stock.</p>
+        )}
       </div>
     </div>
   );

@@ -3,26 +3,22 @@ import { notFound } from "next/navigation";
 import Price from "@/components/Price";
 import ProductArt from "@/components/ProductArt";
 import ProductBuy from "@/components/ProductBuy";
-import { CATEGORIES, getCategory, getProduct } from "@/lib/catalog-data";
-import { categoryTone } from "@/lib/tone";
-import { displayName, splitVariantName } from "@/lib/variants";
+import { getCategories, getProductDetail, getStaticProductParams } from "@/lib/catalog-db";
+import { toneAt } from "@/lib/tone";
 
 export const dynamicParams = false;
 
-export function generateStaticParams() {
-  return CATEGORIES.flatMap((c) =>
-    c.products.map((p) => ({ category: c.slug, product: p.slug }))
-  );
+export async function generateStaticParams() {
+  return getStaticProductParams();
 }
 
 export default async function ProductPage(props: PageProps<"/shop/[category]/[product]">) {
   const { category: categorySlug, product: productSlug } = await props.params;
-  const category = getCategory(categorySlug);
-  const product = category && getProduct(categorySlug, productSlug);
-  if (!category || !product) notFound();
+  const [detail, categories] = await Promise.all([getProductDetail(categorySlug, productSlug), getCategories()]);
+  if (!detail) notFound();
 
-  const tone = categoryTone(category.slug);
-  const more = category.products.filter((p) => p.slug !== product.slug).slice(0, 4);
+  const { category, product, more } = detail;
+  const tone = toneAt(Math.max(0, categories.findIndex((c) => c.slug === category.slug)));
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
@@ -40,17 +36,11 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
         <ProductArt name={product.name} tone={tone} className="w-full max-w-lg" />
 
         <div>
-          <h1 className="text-3xl sm:text-4xl">{displayName(product)}</h1>
-          <Price className="mt-5 block text-2xl font-medium" />
-          {product.unitsPerBox && (
-            <p className="mt-2 text-muted">{product.unitsPerBox} per box</p>
-          )}
+          <h1 className="text-3xl sm:text-4xl">{product.name}</h1>
+          {product.description && <p className="mt-2 text-muted">{product.description}</p>}
 
           <div className="mt-8">
-            <ProductBuy
-              firstOption={splitVariantName(product.name).label}
-              variants={product.variants.map((v) => v.label)}
-            />
+            <ProductBuy variants={product.variants} />
           </div>
         </div>
       </div>
@@ -69,10 +59,8 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
                     tone={tone}
                     className="ring-1 ring-transparent transition group-hover:ring-paper/50"
                   />
-                  <h3 className="mt-3 text-[0.95rem] font-medium leading-snug tracking-normal">
-                    {displayName(p)}
-                  </h3>
-                  <Price className="mt-1 block text-sm text-muted" />
+                  <h3 className="mt-3 text-[0.95rem] font-medium leading-snug tracking-normal">{p.name}</h3>
+                  <Price className="mt-1 block text-sm text-muted" value={p.minPrice} />
                 </Link>
               </li>
             ))}
