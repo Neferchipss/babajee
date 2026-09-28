@@ -24,6 +24,15 @@
   :root {
     color-scheme: dark;
   }
+  /* no dragging photos out or long-press saving them (see MediaGuard) */
+  img,
+  video,
+  picture,
+  canvas {
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
   html {
     background: var(--color-char);
   }

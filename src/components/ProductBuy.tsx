@@ -7,19 +7,21 @@ import QtyStepper from "./QtyStepper";
 
 export type BuyVariant = { label: string; price: number; stockQty: number };
 
+// Price, option picker and the add-to-cart row. The theme CSS styles it
+// through the pd-* classes.
 export default function ProductBuy({ variants }: { variants: BuyVariant[] }) {
   const [selected, setSelected] = useState(0);
   const variant = variants[selected];
   const inStock = variant.stockQty > 0;
 
   return (
-    <div>
-      <Price className="mb-6 block text-2xl font-medium" value={variant.price} />
+    <div className="pd-buy">
+      <Price className="pd-price" value={variant.price} />
 
       {variants.length > 1 && (
-        <fieldset className="mb-8">
-          <legend className="mb-3 text-sm text-muted">Option</legend>
-          <div role="radiogroup" className="flex flex-wrap gap-2">
+        <fieldset className="pd-opts">
+          <legend className="pd-legend">Option</legend>
+          <div role="radiogroup" className="pd-opt-list">
             {variants.map((v, i) => (
               <button
                 key={v.label}
@@ -27,11 +29,7 @@ export default function ProductBuy({ variants }: { variants: BuyVariant[] }) {
                 role="radio"
                 aria-checked={selected === i}
                 onClick={() => setSelected(i)}
-                className={`cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  selected === i
-                    ? "border-paper bg-paper text-ink"
-                    : "border-[#3a3a3a] text-paper hover:border-paper"
-                }`}
+                className="pd-opt"
               >
                 {v.label}
               </button>
@@ -40,16 +38,16 @@ export default function ProductBuy({ variants }: { variants: BuyVariant[] }) {
         </fieldset>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="pd-actions">
         {inStock ? (
           <>
             <QtyStepper />
-            <Link href="/cart" className="btn btn-primary">
+            <Link href="/cart" className="btn btn-primary pd-add">
               Add to cart
             </Link>
           </>
         ) : (
-          <p className="text-muted">Out of stock.</p>
+          <p className="pd-oos">Out of stock</p>
         )}
       </div>
     </div>

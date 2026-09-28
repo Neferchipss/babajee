@@ -1,0 +1,174 @@
+/* The Baba character's eyes, shared by every Baba theme: the band across
+   the top of category pages and the third eye beside the title
+   (src/components/baba/). Each theme sets the colours they use: --bb-ink,
+   --bb-maroon, --bb-maroon-dk and --bb-green. */
+
+html[data-theme^="baba"] #site[data-scope="shop"] {
+  /* ---------------------------------------- the eyes across the top */
+  /* The band is a thin, sticky crop of the artwork: just the slice holding
+     the eyes (23.5%-69.5% of its height, plus a little air), and the art
+     stops growing past 1100px so the band stays thin on wide screens. */
+  --bb-w: clamp(480px, 100vw, 1100px);
+  --bb-band-h: calc(var(--bb-w) * 200 / 854 * 0.52 + 3px);
+
+  & .bb-band {
+    position: sticky;
+    top: 0;
+    z-index: 41;
+    height: var(--bb-band-h);
+    overflow: hidden;
+    border-bottom: 3px solid var(--bb-ink);
+    background: var(--bb-maroon-dk);
+  }
+  & .bb-band + .hdr {
+    top: var(--bb-band-h);
+  }
+  & .bb-stage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--bb-w);
+    aspect-ratio: 854 / 200;
+    /* centre the eyes (46.5% down the art) in the band */
+    translate: -50% -46.5%;
+  }
+  /* past the cap the art fades into the band colour at its sides */
+  @media (min-width: 1100px) {
+    & .bb-stage {
+      -webkit-mask: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+      mask: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    }
+  }
+  & .bb-art,
+  & .bb-blink {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  & .bb-blink {
+    opacity: 0;
+    pointer-events: none;
+  }
+  & .bb-stage[data-blinking="true"] .bb-blink {
+    opacity: 1;
+  }
+  & .bb-eye {
+    position: absolute;
+    z-index: 2;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-mask: var(--mask) center / 100% 100% no-repeat;
+    mask: var(--mask) center / 100% 100% no-repeat;
+  }
+  /* the lids of the blink clip, measured per frame, hide the iris */
+  & .bb-eye .bb-iris {
+    clip-path: inset(var(--lid-top, 0%) -50% var(--lid-bottom, 0%) -50%);
+  }
+  /* the irises are drawn artwork (one per eye), moved and scaled in code */
+  & .bb-iris {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 36%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    translate: calc(-50% + var(--ix, 0px)) calc(-50% + var(--iy, 0px));
+    scale: var(--dil, 1);
+    background: var(--iris) center / contain no-repeat;
+    transition: scale 0.3s;
+  }
+
+  /* the third eye, beside the title */
+  & .bb-third {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  & .bb-third-btn {
+    position: relative;
+    flex: none;
+    width: 118px;
+    aspect-ratio: 260 / 340;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid var(--bb-ink);
+    border-radius: 60px 60px 16px 16px;
+    background: var(--bb-maroon-dk);
+    box-shadow: 4px 4px 0 var(--bb-ink);
+    cursor: pointer;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
+  }
+  & .bb-third-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--bb-ink);
+  }
+  & .bb-third-btn img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  & .bb-third-white {
+    position: absolute;
+    top: 11.471%;
+    left: 27.692%;
+    width: 45.769%;
+    height: 76.176%;
+    -webkit-mask: var(--mask) center / 100% 100% no-repeat;
+    mask: var(--mask) center / 100% 100% no-repeat;
+  }
+  & .bb-third-white .bb-iris {
+    width: 78%;
+  }
+  & .bb-third[data-seeing="true"] .bb-iris {
+    animation: bb-roll 1.1s ease-in-out;
+  }
+  & .bb-third-copy {
+    width: 200px;
+  }
+  & .bb-third-kicker {
+    color: var(--bb-maroon);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  & .bb-third-hint,
+  & .bb-third-pick {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+  & .bb-third-pick {
+    text-decoration: underline;
+    text-decoration-color: var(--bb-green);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 5px;
+  }
+
+  @media (max-width: 900px) {
+    & .bb-third-btn {
+      width: 88px;
+    }
+  }
+}
+
+@keyframes bb-roll {
+  25% {
+    translate: calc(-50% + 30%) -50%;
+  }
+  50% {
+    translate: -50% calc(-50% - 30%);
+  }
+  75% {
+    translate: calc(-50% - 30%) -50%;
+  }
+}

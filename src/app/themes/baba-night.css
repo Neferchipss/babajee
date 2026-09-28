@@ -1,0 +1,212 @@
+/* Baba Night: the character's world after dark. baba.css lays the page out
+   for both Baba themes; this swaps its colours for ones taken from the header
+   art: oxblood from the hair, dusty rose from the skin, black ink from the
+   linework, eye-white cream for text, iris green for the moments something
+   is picked. Titles are rose with a black ink offset, the way the art is
+   drawn. From Refined it borrows a faint grain and an italic serif for the
+   quiet lines. Night: Poster (baba-poster.css) builds on this and swaps in
+   its own midnight palette. */
+
+html[data-theme^="baba-"] #site[data-scope="shop"] {
+  --color-char: #170a0c;
+  --color-iron: #211013;
+  --color-ash: #2b1418;
+  --color-line: #4a2429;
+  --color-paper: #f6e6e1;
+  --color-muted: #b8908b;
+  --color-plate: #2a1317;
+  --color-ink: #170a0c;
+  --color-rasta-gold: #eba59d;
+  --plate-ink: #eba59d;
+  --bb-ink: #f2d3cd;
+  --bb-maroon: #eba59d;
+  --bb-maroon-dk: #f6c3bc;
+  --bb-rose: #eba59d;
+  --bb-blush: #2e151a;
+  --bb-green: #45c470;
+  --bb-on-accent: #1a0a0c;
+  --bb-hdr-bg: rgb(23 10 12 / 0.9);
+  --bb-swirl: url("../../assets/baba/swirl-night.webp");
+  --bbn-edge: #5a2a31;
+  /* the accent as an RGB triple, for glows and hairlines */
+  --bbn-glow: 235 165 157;
+  --bbn-halo: rgb(160 60 64 / 0.16);
+  --bbn-deep: #2a1115;
+  --bbn-foot: #0f0607;
+  --bbn-scrim: 10 4 5;
+  --bbn-shadow: #000;
+  --bbn-serif: var(--f-cormorant), "Cormorant Garamond", Georgia, serif;
+  --bbn-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .85  0 0 0 0 .82  0 0 0 .045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+
+  background:
+    radial-gradient(60% 30rem at 50% 0, var(--bbn-halo), transparent 70%),
+    var(--bbn-grain),
+    var(--bb-swirl) 0 0 / 360px 360px,
+    var(--color-char);
+  color: var(--color-paper);
+
+  & ::selection {
+    color: var(--bb-on-accent);
+  }
+  & .logo-dark {
+    display: inline-block;
+  }
+  & .logo-light {
+    display: none;
+  }
+  & .field {
+    border-color: var(--bbn-edge);
+  }
+
+  /* ---------------------------------------- the eyes across the top */
+  /* the art is inked in black; so is its edge */
+  & .bb-band {
+    border-bottom-color: var(--bbn-shadow);
+    background: var(--bbn-deep);
+    box-shadow: 0 1px 0 rgb(var(--bbn-glow) / 0.35);
+  }
+
+  /* ---------------------------------------------------- header bar */
+  & .hdr {
+    border-bottom: 1px solid var(--bbn-edge);
+  }
+  & .hdr-nav a[aria-current="page"] {
+    color: var(--bb-maroon);
+  }
+  & .hdr-mobile {
+    border-bottom-color: var(--bbn-edge);
+  }
+
+  /* ---------------------------------------------------- category page */
+  & .cp-hero {
+    border-bottom-color: var(--bbn-edge);
+  }
+  & .cp-title {
+    text-shadow:
+      3px 3px 0 var(--bbn-shadow),
+      0 0 34px rgb(var(--bbn-glow) / 0.18);
+  }
+  & :is(.cp-tag, .si-tag) {
+    color: var(--color-paper);
+    font-family: var(--bbn-serif);
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* the third eye sits in a dark alcove, inked like the band */
+  & .bb-third-btn {
+    border-color: var(--bbn-shadow);
+    background: var(--bbn-deep);
+    box-shadow:
+      4px 4px 0 var(--bbn-shadow),
+      0 0 0 1px rgb(var(--bbn-glow) / 0.3);
+  }
+  & .bb-third-btn:hover {
+    box-shadow:
+      6px 6px 0 var(--bbn-shadow),
+      0 0 0 1px rgb(var(--bbn-glow) / 0.6),
+      0 0 30px rgb(var(--bbn-glow) / 0.25);
+  }
+  & .bb-third-hint,
+  & .bb-third-pick {
+    font-family: var(--bbn-serif);
+    font-size: 1.45rem;
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  & :is(.cp-cats a, .cp-strip-btn, .cp-search input, .cp-sort select) {
+    border-color: var(--bbn-edge);
+  }
+  & .cp-cats a:hover {
+    border-color: var(--bb-maroon);
+  }
+  & .cp-search input:focus {
+    border-color: var(--bb-maroon);
+    outline: none;
+  }
+  & .cp-empty {
+    border-color: var(--bbn-edge);
+  }
+
+  & .pc {
+    border-color: var(--bbn-edge);
+  }
+  & .pc:hover {
+    border-color: var(--bb-maroon);
+    box-shadow: 5px 5px 0 var(--bbn-shadow);
+  }
+  & .pc[data-seen="true"] {
+    border-color: var(--bb-green);
+    box-shadow:
+      0 0 0 4px var(--bb-green),
+      6px 6px 0 var(--bbn-shadow);
+    animation-name: bbn-seen;
+  }
+  & .cp-values {
+    border-top-color: var(--bbn-edge);
+  }
+
+  /* ------------------------------------ shop index and product page */
+  & :is(.si-hero, .pd-buy, .pd-more-head) {
+    border-color: var(--bbn-edge);
+  }
+  & :is(.si-title, .pd-title) {
+    text-shadow:
+      3px 3px 0 var(--bbn-shadow),
+      0 0 34px rgb(var(--bbn-glow) / 0.18);
+  }
+  & .pd-more-title {
+    text-shadow: 2px 2px 0 var(--bbn-shadow);
+  }
+  & :is(.si-card, .pd-opt, .qty, .pd-oos) {
+    border-color: var(--bbn-edge);
+  }
+  & .si-card:hover {
+    border-color: var(--bb-maroon);
+    box-shadow: 5px 5px 0 var(--bbn-shadow);
+  }
+  & .si-ico {
+    border-color: var(--bbn-shadow);
+  }
+  & .pd-opt[aria-checked="true"] {
+    border-color: var(--bb-maroon);
+  }
+  & .pd-media .pa {
+    border-color: var(--bbn-shadow);
+    box-shadow:
+      6px 6px 0 var(--bbn-shadow),
+      0 0 0 1px rgb(var(--bbn-glow) / 0.3);
+  }
+  & .pd-desc {
+    font-family: var(--bbn-serif);
+    font-size: 1.35rem;
+    font-style: italic;
+    line-height: 1.35;
+  }
+
+  /* ---------------------------------------------------- footer */
+  & .ftr {
+    border-top-color: var(--bbn-shadow);
+    background: var(--bbn-foot);
+    box-shadow: inset 0 1px 0 rgb(var(--bbn-glow) / 0.25);
+  }
+  & .ftr-note,
+  & .ftr-nav a {
+    color: var(--color-muted);
+  }
+  & .ftr-nav a:hover {
+    color: var(--color-paper);
+  }
+}
+
+@keyframes bbn-seen {
+  50% {
+    box-shadow:
+      0 0 0 10px rgb(69 196 112 / 0.3),
+      6px 6px 0 #000;
+  }
+}

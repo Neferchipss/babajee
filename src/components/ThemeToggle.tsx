@@ -1,28 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import {
-  DEFAULT_THEME,
-  THEMES,
-  THEME_EVENT,
-  THEME_STORAGE_KEY,
-  isTheme,
-  type ThemeId,
-} from "@/lib/themes";
-
-// The theme lives on <html data-theme>, set before paint by the inline script
-// in the root layout, so the page never flashes the wrong look.
-function read(): ThemeId {
-  const t = document.documentElement.dataset.theme;
-  return isTheme(t) ? t : DEFAULT_THEME;
-}
-function subscribe(cb: () => void) {
-  window.addEventListener(THEME_EVENT, cb);
-  return () => window.removeEventListener(THEME_EVENT, cb);
-}
+import { THEMES, THEME_EVENT, THEME_STORAGE_KEY, type ThemeId } from "@/lib/themes";
+import { useShopTheme } from "@/lib/useShopTheme";
 
 export default function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, read, () => DEFAULT_THEME);
+  const theme = useShopTheme();
 
   function choose(id: ThemeId) {
     document.documentElement.dataset.theme = id;

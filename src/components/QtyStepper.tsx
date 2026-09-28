@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function QtyStepper({ initial = 1 }: { initial?: number }) {
   const [qty, setQty] = useState(initial);
   return (
-    <div className="inline-flex items-center rounded-lg border border-[#3a3a3a]">
+    <div className="qty inline-flex items-center rounded-lg border border-[#3a3a3a]">
       <button
         type="button"
         aria-label="Decrease quantity"

@@ -1,41 +1,20 @@
-import {
-  Bagel_Fat_One,
-  Caprasimo,
-  DM_Sans,
-  Figtree,
-  Josefin_Sans,
-  Karla,
-  Londrina_Solid,
-  Nunito_Sans,
-  Permanent_Marker,
-  Sedgwick_Ave_Display,
-} from "next/font/google";
+import { Archivo, Cormorant_Garamond, Josefin_Sans, Rubik_Wet_Paint } from "next/font/google";
 
-// One display face and one text face per theme. preload is off so a visitor
-// only downloads the fonts of the theme they actually pick. (next/font needs
-// its options written out literally, so there's no shared options object.)
-const bagel = Bagel_Fat_One({ subsets: ["latin"], weight: "400", variable: "--f-bagel", preload: false, display: "swap" });
-const figtree = Figtree({ subsets: ["latin"], variable: "--f-figtree", preload: false, display: "swap" });
-const londrina = Londrina_Solid({ subsets: ["latin"], weight: ["400", "900"], variable: "--f-londrina", preload: false, display: "swap" });
-const karla = Karla({ subsets: ["latin"], variable: "--f-karla", preload: false, display: "swap" });
-const sedgwick = Sedgwick_Ave_Display({ subsets: ["latin"], weight: "400", variable: "--f-sedgwick", preload: false, display: "swap" });
-const marker = Permanent_Marker({ subsets: ["latin"], weight: "400", variable: "--f-marker", preload: false, display: "swap" });
-const nunito = Nunito_Sans({ subsets: ["latin"], variable: "--f-nunito", preload: false, display: "swap" });
+// Refined: wide-tracked geometric caps, with an italic serif for the quiet lines.
+// preload is off so a visitor only downloads the fonts of the theme they see.
+// (next/font needs its options written out literally, so there's no shared
+// options object.)
 const josefin = Josefin_Sans({ subsets: ["latin"], variable: "--f-josefin", preload: false, display: "swap" });
-const caprasimo = Caprasimo({ subsets: ["latin"], weight: "400", variable: "--f-caprasimo", preload: false, display: "swap" });
-const dmsans = DM_Sans({ subsets: ["latin"], variable: "--f-dmsans", preload: false, display: "swap" });
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  style: "italic",
+  variable: "--f-cormorant",
+  preload: false,
+  display: "swap",
+});
 
-export const themeFontVars = [
-  bagel,
-  figtree,
-  londrina,
-  karla,
-  sedgwick,
-  marker,
-  nunito,
-  josefin,
-  caprasimo,
-  dmsans,
-]
-  .map((f) => f.variable)
-  .join(" ");
+// Baba: dripping ink for titles, a sturdy grotesk for the uppercase labels.
+const wetPaint = Rubik_Wet_Paint({ subsets: ["latin"], weight: "400", variable: "--f-wetpaint", preload: false, display: "swap" });
+const archivo = Archivo({ subsets: ["latin"], variable: "--f-archivo", preload: false, display: "swap" });
+
+export const themeFontVars = [josefin, cormorant, wetPaint, archivo].map((f) => f.variable).join(" ");

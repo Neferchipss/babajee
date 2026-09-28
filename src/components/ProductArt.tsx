@@ -14,6 +14,7 @@ export default function ProductArt({
   return (
     <div
       aria-hidden="true"
+      style={{ "--tone": tone } as React.CSSProperties}
       className={`pa relative flex aspect-square items-center justify-center overflow-hidden rounded-[10px] bg-plate [container-type:inline-size] ${className}`}
     >
       <span className="pa-initial text-[44cqw] font-extralight leading-none text-[color:var(--plate-ink,#cdc7b7)]">

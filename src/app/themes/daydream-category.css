@@ -1,0 +1,479 @@
+/* Daydream category page: a living screenprint poster. The banner is a
+   generated clip of the valley illustration; the shelf is a stack of printed
+   cards with off-register ink; a flower beside the shelf blooms as you
+   scroll. Scoped to .cp so the listing and product pages keep daydream.css. */
+
+/* The field-guide crumb is Daydream's; every other theme reads "Shop". */
+.dd-crumb {
+  display: none;
+}
+html[data-theme="daydream"] #site[data-scope="shop"] .dd-crumb {
+  display: inline;
+}
+html[data-theme="daydream"] #site[data-scope="shop"] .dd-crumb-plain {
+  display: none;
+}
+
+html[data-theme="daydream"] #site[data-scope="shop"] .cp {
+  --dd-ink: #181916;
+  --dd-paper: #faf6ec;
+  --dd-card: #fffdf7;
+  --dd-dots: radial-gradient(rgb(24 25 22 / 0.2) 0.8px, transparent 1.2px) 0 0 / 6px 6px;
+  --dd-shadow: 5px 6px 0 var(--dd-ink);
+
+  display: block;
+  max-width: 1560px;
+  padding: 10px 48px 90px;
+
+  /* ------------------------------------------------ the poster banner */
+  & .cp-hero {
+    position: relative;
+    top: auto;
+    height: clamp(430px, 43vw, 680px);
+    min-height: 0;
+    margin: 0 -48px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    isolation: isolate;
+  }
+  & .cp-hero::before,
+  & .cp-hero::after {
+    display: none;
+  }
+  /* anchored right so the valley stays out from under the title */
+  & .dd-poster {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: -1;
+    width: 82%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 100% 100%;
+    /* the clip is graded so its paper is the page's ivory; soft edges hide the seam */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 96%, transparent);
+  }
+  & .cp-hero-copy {
+    position: absolute;
+    top: 50%;
+    left: 48px;
+    z-index: 2;
+    width: min(46%, 700px);
+    padding: 0;
+    transform: translateY(-58%);
+  }
+  & .cp-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    margin: 0 0 22px;
+    padding: 7px 14px;
+    border: 1.5px solid var(--dd-ink);
+    border-radius: 999px;
+    background: var(--dd-card);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 var(--dd-ink);
+  }
+  & .cp-crumb::before {
+    content: "✦";
+    color: var(--dd-pink);
+  }
+  & .cp-title {
+    max-width: 11ch;
+    font-size: clamp(56px, 7vw, 122px);
+    line-height: 0.88;
+    letter-spacing: -0.04em;
+    overflow-wrap: normal;
+    text-wrap: balance;
+    /* printed twice, slightly off register */
+    text-shadow:
+      -3px 2px 0 rgb(246 91 175 / 0.75),
+      3px -2px 0 rgb(22 184 223 / 0.7);
+  }
+  & .cp-tag {
+    max-width: none;
+    margin-top: 22px;
+    font-size: clamp(17px, 1.5vw, 22px);
+    font-weight: 700;
+  }
+  & .cp-lede {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--dd-yellow);
+    color: var(--dd-ink);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+  & .cp-cta {
+    display: inline-block;
+    margin: 14px 0 0 14px;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-decoration-color: var(--dd-pink);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 6px;
+  }
+
+  /* ---------------------------------------- shelf + bloom rail */
+  & .cp-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    grid-template-areas:
+      "side side"
+      "main rail";
+    column-gap: 40px;
+    margin-top: 6px;
+  }
+  & .cp-side {
+    grid-area: side;
+    min-width: 0;
+    padding: 0 0 22px;
+    border-bottom: 1.5px solid var(--dd-ink);
+    margin-bottom: 26px;
+  }
+  & .cp-main {
+    grid-area: main;
+    min-width: 0;
+  }
+  & .cp-cats a {
+    padding: 9px 16px;
+    border: 1.5px solid var(--dd-ink);
+    background: var(--dd-card);
+    font-weight: 750;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s,
+      background-color 0.2s;
+  }
+  & .cp-cats li:nth-child(4n + 1) a:hover {
+    background: #d7f1f8;
+  }
+  & .cp-cats li:nth-child(4n + 2) a:hover {
+    background: #fcd9ea;
+  }
+  & .cp-cats li:nth-child(4n + 3) a:hover {
+    background: #fff0b8;
+  }
+  & .cp-cats li:nth-child(4n) a:hover {
+    background: #d3ecdf;
+  }
+  & .cp-cats a:hover {
+    transform: translateY(-2px) rotate(-1.5deg);
+    box-shadow: 2px 3px 0 var(--dd-ink);
+  }
+  & .cp-cats a[aria-current="page"] {
+    background: var(--dd-yellow);
+    box-shadow: 3px 3px 0 var(--dd-ink);
+  }
+
+  /* the bloom: sticky beside the shelf, scrubbed by scroll */
+  & .dd-bloom {
+    grid-area: rail;
+    position: relative;
+  }
+  & .dd-bloom-inner {
+    position: sticky;
+    top: 120px;
+    text-align: center;
+  }
+  & .dd-bloom video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    /* feather all four edges so the clip's paper never shows a box */
+    -webkit-mask-image:
+      linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+      linear-gradient(transparent, #000 8%, #000 94%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+      linear-gradient(transparent, #000 8%, #000 94%, transparent);
+    mask-composite: intersect;
+  }
+  & .dd-bloom-note {
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  /* ------------------------------------------- printed product cards */
+  & .cp-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 30px 22px;
+    counter-reset: dd-card;
+  }
+  & .pc {
+    counter-increment: dd-card;
+    padding: 10px 10px 16px;
+    border: 1.5px solid var(--dd-ink);
+    border-radius: 6px 28px 6px 6px;
+    background: var(--dd-card);
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
+  }
+  & .pc::before {
+    content: "No." counter(dd-card, decimal-leading-zero);
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 2;
+    padding: 2px 8px;
+    border: 1.5px solid var(--dd-ink);
+    border-radius: 999px;
+    background: var(--dd-card);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+  }
+  & .pc:hover {
+    transform: translate(-2px, -4px) rotate(-0.8deg);
+    box-shadow: var(--dd-shadow);
+  }
+  & .cp-grid > li:nth-child(even) .pc:hover,
+  & .cp-grid > li.pc:nth-child(even):hover {
+    transform: translate(-2px, -4px) rotate(0.8deg);
+  }
+  & .pc-img {
+    overflow: hidden;
+    border: 1.5px solid var(--dd-ink);
+    border-radius: 4px 20px 4px 4px;
+    outline: 0;
+  }
+  & .pa {
+    border-radius: 0;
+    background: var(--dd-dots), #d7f1f8;
+  }
+  & .pa > * {
+    visibility: visible;
+  }
+  & .pa-tone {
+    display: none;
+  }
+  & .cp-grid > li:nth-child(4n + 2) .pa {
+    background: var(--dd-dots), #fcd9ea;
+  }
+  & .cp-grid > li:nth-child(4n + 3) .pa {
+    background: var(--dd-dots), #fff0b8;
+  }
+  & .cp-grid > li:nth-child(4n) .pa {
+    background: var(--dd-dots), #d3ecdf;
+  }
+  & .pc-img .pa {
+    aspect-ratio: 0.95;
+  }
+  & .pa::after {
+    content: "✦";
+    position: absolute;
+    right: 12px;
+    bottom: 6px;
+    color: var(--dd-yellow);
+    font-size: 30px;
+    -webkit-text-stroke: 1.5px var(--dd-ink);
+    transition: transform 0.4s;
+  }
+  & .pc:hover .pa::after {
+    transform: rotate(90deg) scale(1.2);
+  }
+  & .pa-initial {
+    color: var(--dd-ink);
+    font-family: var(--dd-display);
+    font-size: 46cqw;
+    font-weight: 400;
+    text-shadow:
+      -5px 3px 0 rgb(246 91 175 / 0.85),
+      5px -3px 0 rgb(22 184 223 / 0.8);
+  }
+  & .pc:hover .pa-initial {
+    animation: dd-misregister 0.45s steps(3) infinite;
+  }
+  & .pc-name {
+    margin-top: 14px;
+    padding: 0 44px 0 2px;
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.3;
+  }
+  & .pc-price,
+  & .pc-opts {
+    padding-left: 2px;
+  }
+  & .pc-price {
+    font-size: 13px;
+    font-weight: 650;
+  }
+  & .pc-opts {
+    width: fit-content;
+    margin: 6px 0 2px 2px;
+    padding: 1px 8px;
+    border: 1px solid var(--dd-ink);
+    border-radius: 999px;
+    background: #fcd9ea;
+    color: var(--dd-ink);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  & .pc-add {
+    right: 10px;
+    bottom: 14px;
+    width: 40px;
+    height: 40px;
+    border: 1.5px solid var(--dd-ink);
+    background: var(--dd-yellow);
+    box-shadow: 2px 2px 0 var(--dd-ink);
+  }
+  & .pc-add:hover {
+    background: var(--dd-pink);
+    transform: rotate(-14deg) scale(1.08);
+  }
+  & .cp-empty {
+    padding: 48px 20px;
+    border: 1.5px dashed var(--dd-ink);
+    border-radius: 6px 28px 6px 6px;
+    background: var(--dd-dots), var(--dd-card);
+    color: var(--dd-ink);
+    font-weight: 700;
+  }
+
+  @media (min-width: 1500px) {
+    & .cp-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 1150px) {
+    & {
+      padding-inline: 28px;
+    }
+    & .cp-hero {
+      margin-inline: -28px;
+    }
+    & .cp-hero-copy {
+      left: 28px;
+    }
+    & .cp-body {
+      grid-template-columns: minmax(0, 1fr) 170px;
+      column-gap: 24px;
+    }
+    & .cp-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 760px) {
+    & {
+      padding: 0 16px 60px;
+    }
+    /* phones: the poster on top, the words under it */
+    & .cp-hero {
+      height: auto;
+      min-height: 0;
+      margin: 0 -16px;
+      padding: 64% 0 0;
+    }
+    & .dd-poster {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10;
+      object-position: 85% 100%;
+      -webkit-mask-image: linear-gradient(transparent 0, #000 8%);
+      mask-image: linear-gradient(transparent 0, #000 8%);
+    }
+    & .cp-hero-copy {
+      position: static;
+      width: auto;
+      padding: 8px 16px 20px;
+      transform: none;
+    }
+    & .cp-crumb {
+      margin-bottom: 14px;
+      font-size: 9px;
+    }
+    & .cp-title {
+      font-size: clamp(44px, 13vw, 64px);
+    }
+    & .cp-tag {
+      margin-top: 14px;
+      font-size: 15px;
+    }
+    & .cp-body {
+      display: block;
+    }
+    /* the flower keeps you company from the corner */
+    & .dd-bloom {
+      position: fixed;
+      left: 6px;
+      bottom: 64px;
+      z-index: 40;
+      width: 92px;
+      pointer-events: none;
+    }
+    & .dd-bloom-inner {
+      position: static;
+    }
+    /* floating over cards: printed in multiply, so its paper disappears.
+       On the fixed box itself; it's a stacking context, so a blend on the
+       video inside would never reach the cards. */
+    & .dd-bloom {
+      mix-blend-mode: multiply;
+    }
+    & .dd-bloom-note {
+      display: none;
+    }
+    & .cp-grid {
+      gap: 20px 12px;
+    }
+    & .pc {
+      padding: 7px 7px 12px;
+    }
+    & .pc::before {
+      top: 13px;
+      left: 13px;
+      font-size: 9px;
+    }
+    & .pc-name {
+      padding-right: 0;
+      font-size: 13px;
+    }
+    & .pc-price {
+      padding-right: 40px;
+    }
+    & .pc-add {
+      right: 7px;
+      bottom: 10px;
+      width: 34px;
+      height: 34px;
+    }
+  }
+}
+
+@keyframes dd-misregister {
+  0% {
+    text-shadow:
+      -5px 3px 0 rgb(246 91 175 / 0.85),
+      5px -3px 0 rgb(22 184 223 / 0.8);
+  }
+  33% {
+    text-shadow:
+      4px 4px 0 rgb(246 91 175 / 0.85),
+      -4px -2px 0 rgb(22 184 223 / 0.8);
+  }
+  66% {
+    text-shadow:
+      -2px -4px 0 rgb(246 91 175 / 0.85),
+      3px 4px 0 rgb(22 184 223 / 0.8);
+  }
+}

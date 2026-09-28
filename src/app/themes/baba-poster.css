@@ -1,0 +1,246 @@
+/* Night: Poster. The category's name hangs in a tall masthead on the left,
+   framed by the character's hair falling from the band above, with the third
+   eye at its foot. The shelf is a wall of poster tiles: tall plates with the
+   name printed over them. The hair is generated art (assets/baba/night/). */
+
+html[data-theme="baba-poster"] #site[data-scope="shop"] {
+  /* Midnight: indigo ink, violet hair, hot-pink type, like a gig poster
+     under blacklight. Mint marks the third eye's pick. */
+  --color-char: #0c0a1c;
+  --color-iron: #151232;
+  --color-ash: #1c1840;
+  --color-line: #2d2860;
+  --color-paper: #f4efff;
+  --color-muted: #a39cd0;
+  --color-plate: #171437;
+  --color-ink: #0c0a1c;
+  --color-rasta-gold: #ff8fb3;
+  --plate-ink: #ff8fb3;
+  --bb-ink: #e6defc;
+  --bb-maroon: #ff8fb3;
+  --bb-maroon-dk: #ffb8cf;
+  --bb-rose: #ff8fb3;
+  --bb-blush: #1d1946;
+  --bb-green: #7ef0c4;
+  --bb-on-accent: #16061a;
+  --bb-hdr-bg: rgb(12 10 28 / 0.9);
+  --bb-swirl: url("../../assets/baba/night/swirl-midnight.webp");
+  --bbn-edge: #3a3478;
+  --bbn-glow: 255 143 179;
+  --bbn-halo: rgb(120 80 220 / 0.22);
+  --bbn-deep: #1a1640;
+  --bbn-foot: #06051a;
+  --bbn-scrim: 8 6 22;
+
+  /* below the band and the sticky header */
+  --bbp-top: calc(var(--bb-band-h) + 92px);
+
+  /* ---------------------------------------------------- category page */
+  & .cp {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas:
+      "mast side"
+      "mast main";
+    column-gap: 32px;
+    padding-top: 18px;
+  }
+  & .cp-body {
+    display: contents;
+  }
+  & .cp-side {
+    grid-area: side;
+    min-width: 0;
+    margin: 0 0 6px;
+  }
+  & .cp-main {
+    grid-area: main;
+    min-width: 0;
+  }
+
+  /* the masthead */
+  & .cp-hero {
+    grid-area: mast;
+    position: sticky;
+    top: var(--bbp-top);
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 16px;
+    align-self: start;
+    height: calc(100dvh - var(--bbp-top) - 16px);
+    min-height: 440px;
+    max-height: 640px;
+    padding: 0 0 16px;
+    overflow: hidden;
+    border: 2px solid var(--bbn-shadow);
+    border-radius: 150px 150px 18px 18px;
+    background:
+      url("../../assets/baba/night/hair-midnight.webp") center top / 100% auto no-repeat,
+      var(--color-char);
+    box-shadow:
+      6px 6px 0 var(--bbn-shadow),
+      0 0 0 1px rgb(var(--bbn-glow) / 0.3);
+    text-align: center;
+  }
+  & .cp-hero-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 34% 26px 0;
+  }
+  & .cp-crumb {
+    letter-spacing: 0.34em;
+  }
+  & .cp-title {
+    margin-top: 8px;
+    font-size: clamp(2.2rem, 3.4vw, 3rem);
+    line-height: 1;
+    overflow-wrap: anywhere;
+    text-shadow:
+      3px 3px 0 var(--bbn-shadow),
+      0 0 18px #000,
+      0 0 40px #000;
+  }
+  & .cp-tag {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    text-shadow: 0 0 12px #000;
+  }
+  & .cp-lede {
+    margin-top: 2px;
+  }
+  & .cp-cta {
+    display: none;
+  }
+  & .bb-third {
+    flex-direction: column;
+    gap: 8px;
+  }
+  & .bb-third-btn {
+    width: 70px;
+  }
+  & .bb-third-copy {
+    width: auto;
+    padding: 0 16px;
+  }
+  & :is(.bb-third-hint, .bb-third-pick) {
+    font-size: 1.1rem;
+  }
+
+  /* the rail and toolbar sit tight above the wall */
+  & .cp-toolbar {
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  & .cp-search input {
+    padding: 8px 16px;
+  }
+  & .cp-sort select {
+    padding: 7px 32px 7px 12px;
+  }
+
+  /* poster tiles: a tall plate, the name printed on its foot */
+  & .cp-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  & .pc {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+  & .pc-link {
+    display: grid;
+  }
+  & .pc-link > * {
+    grid-area: 1 / 1;
+  }
+  & .pc-img {
+    position: relative;
+  }
+  & .pc-img .pa {
+    aspect-ratio: 4 / 5;
+    border-radius: 0;
+  }
+  & .pc-img::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    /* a caption band at the foot; product shots sit centred above it */
+    background: linear-gradient(to top, rgb(var(--bbn-scrim) / 0.96), rgb(var(--bbn-scrim) / 0.92) 24%, transparent 40%);
+    pointer-events: none;
+  }
+  & :is(.pc-name, .pc-price, .pc-opts) {
+    position: relative;
+    z-index: 1;
+  }
+  & .pc-name {
+    align-self: end;
+    margin: 0 14px 36px;
+    padding-right: 40px;
+    color: var(--color-paper);
+    font-size: 0.8rem;
+  }
+  & .pc-price {
+    align-self: end;
+    margin: 0 14px 14px;
+    padding-right: 40px;
+    color: var(--bb-maroon);
+    font-weight: 800;
+  }
+  & .pc-opts {
+    align-self: start;
+    justify-self: end;
+    margin: 10px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--bb-green);
+    color: var(--bb-on-accent);
+    font-size: 0.7rem;
+  }
+  & .pc-add {
+    z-index: 2;
+    right: 12px;
+    bottom: 14px;
+    width: 36px;
+    height: 36px;
+  }
+
+  @media (max-width: 1100px) {
+    & .cp-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 900px) {
+    & .cp {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "mast"
+        "side"
+        "main";
+    }
+    & .cp-hero {
+      position: static;
+      flex-direction: row;
+      align-items: center;
+      height: auto;
+      min-height: 0;
+      padding: 16px;
+      border-radius: 18px;
+      background-size: cover;
+      background-position: center 30%;
+      text-align: left;
+    }
+    & .cp-hero-copy {
+      align-items: flex-start;
+      padding: 0;
+    }
+    & .cp-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+  }
+}

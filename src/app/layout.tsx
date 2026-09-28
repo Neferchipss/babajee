@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import AgeGate from "@/components/AgeGate";
+import MediaGuard from "@/components/MediaGuard";
 import SiteFooter from "@/components/SiteFooter";
 import SiteFrame from "@/components/SiteFrame";
 import SiteHeader from "@/components/SiteHeader";
@@ -9,11 +10,13 @@ import { AGE_STORAGE_KEY } from "@/lib/config";
 import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import "./globals.css";
 import "./themes/base.css";
-import "./themes/sunshine.css";
-import "./themes/fieldnotes.css";
-import "./themes/trailhead.css";
 import "./themes/refined.css";
-import "./themes/groove.css";
+import "./themes/daydream.css";
+import "./themes/daydream-category.css";
+import "./themes/baba-eyes.css";
+import "./themes/baba.css";
+import "./themes/baba-night.css";
+import "./themes/baba-poster.css";
 import { themeFontVars } from "./themes/fonts";
 
 // One geometric family for everything outside the shop themes.
@@ -49,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <AuthProvider>
           <AgeGate />
+          <MediaGuard />
           <SiteFrame>
             <SiteHeader />
             <main className="flex-1">{children}</main>

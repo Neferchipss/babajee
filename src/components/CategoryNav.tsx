@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
 
 type Props = {
-  categories: { slug: string; name: string }[];
+  categories: { slug: string; name: string; count?: number }[];
   currentSlug: string;
 };
 
@@ -84,6 +84,7 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
                   <CategoryIcon slug={c.slug} />
                 </span>
                 <span className="cp-lbl">{c.name}</span>
+                {c.count !== undefined && <span className="cp-num">{c.count}</span>}
               </Link>
             </li>
           ))}

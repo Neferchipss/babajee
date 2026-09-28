@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
+import ThirdEye from "./baba/ThirdEye";
+import DaydreamBloom from "./daydream/DaydreamBloom";
+import DaydreamHero from "./daydream/DaydreamHero";
 import ProductCard, { type CardProduct } from "./ProductCard";
 
 type Props = {
@@ -38,7 +41,10 @@ export default function CategoryView({ category, products, categories }: Props) 
     <div className="cp">
       <section className="cp-hero" aria-labelledby="cp-title">
         <div className="cp-hero-copy">
-          <p className="cp-crumb">Shop</p>
+          <p className="cp-crumb">
+            <span className="dd-crumb-plain">Shop</span>
+            <span className="dd-crumb">The Babajee field guide</span>
+          </p>
           <h1 id="cp-title" className="cp-title">
             {category.name}
           </h1>
@@ -48,6 +54,8 @@ export default function CategoryView({ category, products, categories }: Props) 
             All categories
           </Link>
         </div>
+        <DaydreamHero />
+        <ThirdEye products={products} />
       </section>
 
       <div className="cp-body">
@@ -100,6 +108,8 @@ export default function CategoryView({ category, products, categories }: Props) 
             ))}
           </ul>
         </div>
+
+        <DaydreamBloom />
       </div>
     </div>
   );

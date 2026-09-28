@@ -1,0 +1,485 @@
+{
+  "rolling-paper/raw-classic-ks": {
+    "image": "/images/raw/raw-classic-ks.jpg",
+    "title": "Cigarette rolling papers (1).JPG",
+    "author": "Chmee2",
+    "licence": "CC BY 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cigarette_rolling_papers_(1).JPG"
+  },
+  "rolling-paper/raw-classic-single-wide": {
+    "image": "/images/raw/raw-classic-single-wide.jpg",
+    "title": "Cahier RizLacroix.JPG",
+    "author": "Svartkell",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Cahier_RizLacroix.JPG"
+  },
+  "rolling-paper/raw-classic-5m-roll": {
+    "image": "/images/raw/raw-classic-5m-roll.jpg",
+    "title": "Eenentwintig donkerblauwe pakjes VAN NELLE’S sigarettenpapier, 50 vel, met label, objectnr 85286-B-V.JPG",
+    "author": "fabrikant: erven de wed. J. van Nelle",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Eenentwintig_donkerblauwe_pakjes_VAN_NELLE%E2%80%99S_sigarettenpapier,_50_vel,_met_label,_objectnr_85286-B-V.JPG"
+  },
+  "rolling-paper/raw-classic-artesano": {
+    "image": "/images/raw/raw-classic-artesano.jpg",
+    "title": "Blauw pakje sigarettenpapier VAN NELLE’S SIGNAL, 50 vel, objectnr 85264.JPG",
+    "author": "fabrikant: erven de wed. J. van Nelle",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Blauw_pakje_sigarettenpapier_VAN_NELLE%E2%80%99S_SIGNAL,_50_vel,_objectnr_85264.JPG"
+  },
+  "rolling-paper/raw-connoisseur": {
+    "image": "/images/raw/raw-connoisseur.jpg",
+    "title": "Filterhülsenbox CIMG3158.jpg",
+    "author": "Jesse Shadow",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Filterh%C3%BClsenbox_CIMG3158.jpg"
+  },
+  "rolling-paper/raw-classic-ks-pre-rolled-tips": {
+    "image": "/images/raw/raw-classic-ks-pre-rolled-tips.jpg",
+    "title": "Cigaretové papírky Vážka.jpg",
+    "author": "VážkaFun",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cigaretov%C3%A9_pap%C3%ADrky_V%C3%A1%C5%BEka.jpg"
+  },
+  "rolling-paper/raw-hemp-classic-11-4": {
+    "image": "/images/raw/raw-hemp-classic-11-4.jpg",
+    "title": "Donkerblauwe doos voor pakjes sigarettenpapier VAN NELLE, tevens display, objectnr 85286-A.JPG",
+    "author": "fabrikant: erven de wed. J. van Nelle",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Donkerblauwe_doos_voor_pakjes_sigarettenpapier_VAN_NELLE,_tevens_display,_objectnr_85286-A.JPG"
+  },
+  "rolling-paper/raw-ethreal-ks": {
+    "image": "/images/raw/raw-ethreal-ks.jpg",
+    "title": "Marfil vloeitjes cigarettenpapier (Cigarette rolling papers) (back).JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Marfil_vloeitjes_cigarettenpapier_(Cigarette_rolling_papers)_(back).JPG"
+  },
+  "rolling-paper/raw-ethreal-11-4": {
+    "image": "/images/raw/raw-ethreal-11-4.jpg",
+    "title": "Rizla sigarettenroller pic1.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Rizla_sigarettenroller_pic1.JPG"
+  },
+  "rolling-paper/raw-black-artesano": {
+    "image": "/images/raw/raw-black-artesano.jpg",
+    "title": "Aquafuge.JPG",
+    "author": "E. Victor C.",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Aquafuge.JPG"
+  },
+  "rolling-paper/raw-black-ks-tips": {
+    "image": "/images/raw/raw-black-ks-tips.jpg",
+    "title": "Cigarette rolling papers (7).JPG",
+    "author": "Chmee2",
+    "licence": "CC BY 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cigarette_rolling_papers_(7).JPG"
+  },
+  "rolling-paper/raw-black-hemp-ks": {
+    "image": "/images/raw/raw-black-hemp-ks.jpg",
+    "title": "Blanca vloeitjes cigarettenpapier (Cigarette rolling papers) (front).JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Blanca_vloeitjes_cigarettenpapier_(Cigarette_rolling_papers)_(front).JPG"
+  },
+  "rolling-paper/raw-black-classic-ks": {
+    "image": "/images/raw/raw-black-classic-ks.jpg",
+    "title": "Rizla sigarettenroller pic2.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Rizla_sigarettenroller_pic2.JPG"
+  },
+  "rolling-paper/raw-black-single-wide": {
+    "image": "/images/raw/raw-black-single-wide.jpg",
+    "title": "RizlaBlue.JPG",
+    "author": "Maxx1972",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:RizlaBlue.JPG"
+  },
+  "rolling-paper/raw-black-3m-roll": {
+    "image": "/images/raw/raw-black-3m-roll.jpg",
+    "title": "Blanca vloeitjes cigarettenpapier (Cigarette rolling papers) (back).JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Blanca_vloeitjes_cigarettenpapier_(Cigarette_rolling_papers)_(back).JPG"
+  },
+  "rolling-paper/raw-giga-supernatural-30cm-cones": {
+    "image": "/images/raw/raw-giga-supernatural-30cm-cones.jpg",
+    "title": "Rizla+ Silver (Simple).jpg",
+    "author": "Sik666",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Rizla%2B_Silver_(Simple).jpg"
+  },
+  "rolling-paper/raw-ethreal-pre-rolled": {
+    "image": "/images/raw/raw-ethreal-pre-rolled.jpg",
+    "title": "Marfil vloeitjes cigarettenpapier (Cigarette rolling papers) (front).JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Marfil_vloeitjes_cigarettenpapier_(Cigarette_rolling_papers)_(front).JPG"
+  },
+  "rolling-paper/raw-black-pre-rolled-cones-ks": {
+    "image": "/images/raw/raw-black-pre-rolled-cones-ks.jpg",
+    "title": "Cigarette rolling papers (5).JPG",
+    "author": "Chmee2",
+    "licence": "CC BY 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cigarette_rolling_papers_(5).JPG"
+  },
+  "rolling-paper/raw-hemp-pre-rolled-cones-ks": {
+    "image": "/images/raw/raw-hemp-pre-rolled-cones-ks.jpg",
+    "title": "Twee oranje pakjes sigarettenpapier RIZLA+, 40 vel, met reclame voor Van Nelle shag, objectnr 85268-A-B.JPG",
+    "author": "fabrikant: Rizla+",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Twee_oranje_pakjes_sigarettenpapier_RIZLA%2B,_40_vel,_met_reclame_voor_Van_Nelle_shag,_objectnr_85268-A-B.JPG"
+  },
+  "rolling-paper/raw-classic-hemp-ks": {
+    "image": "/images/raw/raw-classic-hemp-ks.jpg",
+    "title": "JaspenPapersBicPen.jpg",
+    "author": "Jaspen Papers",
+    "licence": "CC BY-SA 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:JaspenPapersBicPen.jpg"
+  },
+  "rolling-paper/raw-classic-hemp-5m-roll": {
+    "image": "/images/raw/raw-classic-hemp-5m-roll.jpg",
+    "title": "Cigarette rolling papers (9).JPG",
+    "author": "Chmee2",
+    "licence": "CC BY 3.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cigarette_rolling_papers_(9).JPG"
+  },
+  "rolling-paper/raw-supernatural-30cm-papers": {
+    "image": "/images/raw/raw-supernatural-30cm-papers.jpg",
+    "title": "Rizla+ Super Thin Silver (Double).jpg",
+    "author": "Sik666",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Rizla%2B_Super_Thin_Silver_(Double).jpg"
+  },
+  "accessory/raw-wake-bake-mug": {
+    "image": "/images/raw/raw-wake-bake-mug.jpg",
+    "title": "3coinsのマグカップ - 1.jpg",
+    "author": "Kyu3a",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:3coins%E3%81%AE%E3%83%9E%E3%82%B0%E3%82%AB%E3%83%83%E3%83%97_-_1.jpg"
+  },
+  "accessory/raw-bandana": {
+    "image": "/images/raw/raw-bandana.jpg",
+    "title": "バンダナ弁当 (3098439646).jpg",
+    "author": "giovanniscanavino",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:%E3%83%90%E3%83%B3%E3%83%80%E3%83%8A%E5%BC%81%E5%BD%93_(3098439646).jpg"
+  },
+  "accessory/raw-ring-black": {
+    "image": "/images/raw/raw-ring-black.jpg",
+    "title": "A gold coiled ring 1300 BC.jpg",
+    "author": "SteveTaylor44",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:A_gold_coiled_ring_1300_BC.jpg"
+  },
+  "accessory/raw-ring-golden": {
+    "image": "/images/raw/raw-ring-golden.jpg",
+    "title": "20070409T0124 NTH-ringen.jpg",
+    "author": "no:nsaa",
+    "licence": "CC BY-SA 2.5",
+    "page": "https://commons.wikimedia.org/wiki/File:20070409T0124_NTH-ringen.jpg"
+  },
+  "accessory/raw-hemp-oil-candle": {
+    "image": "/images/raw/raw-hemp-oil-candle.jpg",
+    "title": "Candle fire 2025.jpg",
+    "author": "WikiGrower1",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Candle_fire_2025.jpg"
+  },
+  "accessory/raw-black-playing-cards": {
+    "image": "/images/raw/raw-black-playing-cards.jpg",
+    "title": "Cards (3590880897).jpg",
+    "author": "Nick Nguyen from Chicago, USA",
+    "licence": "CC BY-SA 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cards_(3590880897).jpg"
+  },
+  "accessory/raw-lanyard": {
+    "image": "/images/raw/raw-lanyard.jpg",
+    "title": "Lanyard (AM 2001.25.1252-3).jpg",
+    "author": "Unknown author Unknown author",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Lanyard_(AM_2001.25.1252-3).jpg"
+  },
+  "accessory/raw-cap-beige": {
+    "image": "/images/raw/raw-cap-beige.jpg",
+    "title": "5tashabbus kepka.jpg",
+    "author": "Abdurraxmon Abdumajidov",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:5tashabbus_kepka.jpg"
+  },
+  "accessory/raw-cap-black-with-red-logo": {
+    "image": "/images/raw/raw-cap-black-with-red-logo.jpg",
+    "title": "Baseball cap.jpg",
+    "author": "TexasRebel",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Baseball_cap.jpg"
+  },
+  "accessory/raw-cap-black-with-black-logo": {
+    "image": "/images/raw/raw-cap-black-with-black-logo.jpg",
+    "title": "Baseball cap.png",
+    "author": "Original photograph by TexasRebel Derivative version by ReneeWrites",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Baseball_cap.png"
+  },
+  "accessory/raw-shoulder-bag-brown": {
+    "image": "/images/raw/raw-shoulder-bag-brown.jpg",
+    "title": "ExpoDisc 2.0 82mm white balance filter carry pouch.jpg",
+    "author": "Mr. Satterly",
+    "licence": "WTFPL",
+    "page": "https://commons.wikimedia.org/wiki/File:ExpoDisc_2.0_82mm_white_balance_filter_carry_pouch.jpg"
+  },
+  "accessory/raw-drawstring-bag-beige": {
+    "image": "/images/raw/raw-drawstring-bag-beige.jpg",
+    "title": "A waxed cotton pouch.jpg",
+    "author": "https://www.flickr.com/photos/snoopert/",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:A_waxed_cotton_pouch.jpg"
+  },
+  "storage/raw-glass-jar-with-cover": {
+    "image": "/images/raw/raw-glass-jar-with-cover.jpg",
+    "title": "Detalle de envase Twist Off.jpg",
+    "author": "Legonsa",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Detalle_de_envase_Twist_Off.jpg"
+  },
+  "storage/raw-three-tree-case": {
+    "image": "/images/raw/raw-three-tree-case.jpg",
+    "title": "6153 bamboo medium Ansicht 6.jpg",
+    "author": "Maximilian Stowasser",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:6153_bamboo_medium_Ansicht_6.jpg"
+  },
+  "storage/raw-paper-case": {
+    "image": "/images/raw/raw-paper-case.jpg",
+    "title": "Bridge game tin, photo 3.JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Bridge_game_tin,_photo_3.JPG"
+  },
+  "storage/raw-wooden-box-small": {
+    "image": "/images/raw/raw-wooden-box-small.jpg",
+    "title": "Clarnico London tin, Musée Somme 1916, pic-078.JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Clarnico_London_tin,_Mus%C3%A9e_Somme_1916,_pic-078.JPG"
+  },
+  "storage/raw-cache-box-small": {
+    "image": "/images/raw/raw-cache-box-small.jpg",
+    "title": "Anker Blechdose, Ankerwerke AG Bielefeld, pic1.JPG",
+    "author": "Alf van Beem",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Anker_Blechdose,_Ankerwerke_AG_Bielefeld,_pic1.JPG"
+  },
+  "storage/raw-x-ryot-smell-proof-pouch": {
+    "image": "/images/raw/raw-x-ryot-smell-proof-pouch.jpg",
+    "title": "Jewellery pouch containing receipt for gold jewellery bought from Hua Lian Goldsmiths, Margaret Drive.jpg",
+    "author": "",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Jewellery_pouch_containing_receipt_for_gold_jewellery_bought_from_Hua_Lian_Goldsmiths,_Margaret_Drive.jpg"
+  },
+  "storage/raw-smoker-wallet": {
+    "image": "/images/raw/raw-smoker-wallet.jpg",
+    "title": "Linen House Bag WIP - Flickr - ^Vintage Fairytale.jpg",
+    "author": "*Vintage Fairytale* from Asheville, USA",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Linen_House_Bag_WIP_-_Flickr_-_%5EVintage_Fairytale.jpg"
+  },
+  "storage/raw-classic-tin-case": {
+    "image": "/images/raw/raw-classic-tin-case.jpg",
+    "title": "Armor blikje.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Armor_blikje.JPG"
+  },
+  "storage/raw-classic-slider-tin-case": {
+    "image": "/images/raw/raw-classic-slider-tin-case.jpg",
+    "title": "Colmans Mustard tin pic1.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Colmans_Mustard_tin_pic1.JPG"
+  },
+  "storage/raw-black-classic-tin-case": {
+    "image": "/images/raw/raw-black-classic-tin-case.jpg",
+    "title": "Casa Macario Café tin, photo 2.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Casa_Macario_Caf%C3%A9_tin,_photo_2.JPG"
+  },
+  "storage/raw-silver-paper-case": {
+    "image": "/images/raw/raw-silver-paper-case.jpg",
+    "title": "2011-148-31, Box, Wooden, Commemorative, Brig Syren (5866875777).jpg",
+    "author": "Naval History &amp; Heritage Command from Washington, DC, USA",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:2011-148-31,_Box,_Wooden,_Commemorative,_Brig_Syren_(5866875777).jpg"
+  },
+  "storage/raw-pop-tin-case": {
+    "image": "/images/raw/raw-pop-tin-case.jpg",
+    "title": "Caribonum Purple box blikje.JPG",
+    "author": "Alf van Beem",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Caribonum_Purple_box_blikje.JPG"
+  },
+  "storage/raw-camo-cone-wallet": {
+    "image": "/images/raw/raw-camo-cone-wallet.jpg",
+    "title": "Mikrofaser-Handtuch für Unterwegs.JPG",
+    "author": "User:Mattes",
+    "licence": "CC BY 2.0 de",
+    "page": "https://commons.wikimedia.org/wiki/File:Mikrofaser-Handtuch_f%C3%BCr_Unterwegs.JPG"
+  },
+  "storage/raw-beige-cone-wallet": {
+    "image": "/images/raw/raw-beige-cone-wallet.jpg",
+    "title": "ELECOM---BMA-GP14GY 001.jpg",
+    "author": "RuinDig/Yuki Uchida",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:ELECOM---BMA-GP14GY_001.jpg"
+  },
+  "storage/raw-munchies-box": {
+    "image": "/images/raw/raw-munchies-box.jpg",
+    "title": "Cutter, pastry (set) (AM 2015.4.1-13).jpg",
+    "author": "not researched",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Cutter,_pastry_(set)_(AM_2015.4.1-13).jpg"
+  },
+  "storage/raw-glass-jar": {
+    "image": "/images/raw/raw-glass-jar.jpg",
+    "title": "54722220775 - Flickr - Swaalfke.jpg",
+    "author": "Anneke from Groningen",
+    "licence": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:54722220775_-_Flickr_-_Swaalfke.jpg"
+  },
+  "ashtray/raw-snuffer": {
+    "image": "/images/raw/raw-snuffer.jpg",
+    "title": "Asbak Victory Pils van De Winter - SJ-F0026.jpg",
+    "author": "Erfgoedcel Denderland",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Asbak_Victory_Pils_van_De_Winter_-_SJ-F0026.jpg"
+  },
+  "ashtray/raw-pocket-ashtray": {
+    "image": "/images/raw/raw-pocket-ashtray.jpg",
+    "title": "Asbak Bieren Slaghmuylder - NINOVE-118.jpg",
+    "author": "Erfgoedcel Denderland",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Asbak_Bieren_Slaghmuylder_-_NINOVE-118.jpg"
+  },
+  "ashtray/raw-rainbow-glass-ashtray": {
+    "image": "/images/raw/raw-rainbow-glass-ashtray.jpg",
+    "title": "Asbakken Spa - LEDE-086.jpg",
+    "author": "Erfgoedcel Denderland",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Asbakken_Spa_-_LEDE-086.jpg"
+  },
+  "ashtray/raw-darkside-ashtray": {
+    "image": "/images/raw/raw-darkside-ashtray.jpg",
+    "title": "CENDRIER.jpg",
+    "author": "Imperiali Genève",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:CENDRIER.jpg"
+  },
+  "ashtray/raw-classic-glass-ashtray": {
+    "image": "/images/raw/raw-classic-glass-ashtray.jpg",
+    "title": "Asbakken Victory Pils van De Winter - SJ-F0305.jpg",
+    "author": "Erfgoedcel Denderland",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Asbakken_Victory_Pils_van_De_Winter_-_SJ-F0305.jpg"
+  },
+  "ashtray/raw-regal-ashtray-golden": {
+    "image": "/images/raw/raw-regal-ashtray-golden.jpg",
+    "title": "An ashtray holding used cigarette butts sits.jpg",
+    "author": "Shixart1985",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:An_ashtray_holding_used_cigarette_butts_sits.jpg"
+  },
+  "ashtray/raw-regal-ashtray-black": {
+    "image": "/images/raw/raw-regal-ashtray-black.jpg",
+    "title": "Farbig schillernder Aschenbecher.jpg",
+    "author": "Anselm Schüler",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Farbig_schillernder_Aschenbecher.jpg"
+  },
+  "ashtray/raw-classic-round-ashtray": {
+    "image": "/images/raw/raw-classic-round-ashtray.jpg",
+    "title": "Asbak Helles - Extra Spécial van Brouwerij Slaghmuylder - NINOVE-117.jpg",
+    "author": "Erfgoedcel Denderland",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Asbak_Helles_-_Extra_Sp%C3%A9cial_van_Brouwerij_Slaghmuylder_-_NINOVE-117.jpg"
+  },
+  "ashtray/raw-ruby-red-ashtray": {
+    "image": "/images/raw/raw-ruby-red-ashtray.jpg",
+    "title": "Bottle with a little bit of water used as an ashtray (51141825236).jpg",
+    "author": "Ivan Radic",
+    "licence": "CC BY 2.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Bottle_with_a_little_bit_of_water_used_as_an_ashtray_(51141825236).jpg"
+  },
+  "grinder/raw-boarding-pass": {
+    "image": "/images/raw/raw-boarding-pass.jpg",
+    "title": "Grinder AMSTERDAM-1642-B.jpg",
+    "author": "Mykyta333",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Grinder_AMSTERDAM-1642-B.jpg"
+  },
+  "filter/raw-black-tips": {
+    "image": "/images/raw/raw-black-tips.jpg",
+    "title": "Bundeltje sigaretten, merk Basso, met daarbij De Rossker en Turkish, Bestanddeelnr 252-0442.jpg",
+    "author": "Willem van de Poll",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Bundeltje_sigaretten,_merk_Basso,_met_daarbij_De_Rossker_en_Turkish,_Bestanddeelnr_252-0442.jpg"
+  },
+  "filter/raw-pre-rolled-tips": {
+    "image": "/images/raw/raw-pre-rolled-tips.jpg",
+    "title": "A Classic Connect Cigarette lying on the pack.jpg",
+    "author": "Brandysolomon73",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:A_Classic_Connect_Cigarette_lying_on_the_pack.jpg"
+  },
+  "roach/raw-pro-tips": {
+    "image": "/images/raw/raw-pro-tips.jpg",
+    "title": "Belomorkanal cigarettes.jpg",
+    "author": "Cordylus",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Belomorkanal_cigarettes.jpg"
+  },
+  "roach/raw-wide-tips": {
+    "image": "/images/raw/raw-wide-tips.jpg",
+    "title": "Belomorkanal cigarette.jpg",
+    "author": "Cordylus",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Belomorkanal_cigarette.jpg"
+  },
+  "roach/raw-perfecto-cone-tips": {
+    "image": "/images/raw/raw-perfecto-cone-tips.jpg",
+    "title": "Ashtray and lighter in hotel room.jpg",
+    "author": "Amin",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Ashtray_and_lighter_in_hotel_room.jpg"
+  },
+  "roach/raw-black-extra-wide-tips": {
+    "image": "/images/raw/raw-black-extra-wide-tips.jpg",
+    "title": "Ashtray.jpg",
+    "author": "Amin",
+    "licence": "CC BY-SA 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:Ashtray.jpg"
+  },
+  "roach/raw-tips-book": {
+    "image": "/images/raw/raw-tips-book.jpg",
+    "title": "Belomorkanal cigarette example.jpg",
+    "author": "Cordylus",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Belomorkanal_cigarette_example.jpg"
+  },
+  "roach/raw-cone-maestro-shaped-tips": {
+    "image": "/images/raw/raw-cone-maestro-shaped-tips.jpg",
+    "title": "A stack of 5 cigarettes (2).jpg",
+    "author": "European Commission",
+    "licence": "CC BY 4.0",
+    "page": "https://commons.wikimedia.org/wiki/File:A_stack_of_5_cigarettes_(2).jpg"
+  },
+  "cleaning-accessory/raw-hemp-pipe-cleaner": {
+    "image": "/images/raw/raw-hemp-pipe-cleaner.jpg",
+    "title": "Atomizador con clorhexidina.jpg",
+    "author": "ELTORO.VET",
+    "licence": "CC0",
+    "page": "https://commons.wikimedia.org/wiki/File:Atomizador_con_clorhexidina.jpg"
+  }
+}

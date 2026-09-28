@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import BabaBand from "./baba/BabaBand";
 import ThemeToggle from "./ThemeToggle";
 
 // Wraps header, page and footer. The shop pages get a theme (chosen with the
@@ -11,6 +12,7 @@ export default function SiteFrame({ children }: { children: ReactNode }) {
   const scope = path === "/shop" || path.startsWith("/shop/") ? "shop" : "base";
   return (
     <div id="site" data-scope={scope} className="flex min-h-dvh flex-col">
+      {scope === "shop" && <BabaBand />}
       {children}
       {scope === "shop" && <ThemeToggle />}
     </div>
