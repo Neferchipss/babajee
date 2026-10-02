@@ -568,3 +568,174 @@
     position: static;
   }
 }
+
+/* ------------------------------------------ shop index: the 360° pano */
+/* The pano fills the screen under the header; the categories box floats
+   over its left side. On phones the pano is shorter and the box sits under
+   it as a plain list, so there is always somewhere to scroll from. */
+
+#site[data-scope="shop"] .pano {
+  position: relative;
+}
+#site[data-scope="shop"] .pano-stage {
+  position: relative;
+  height: max(460px, calc(100svh - 76px));
+  overflow: hidden;
+  background: #1a120c;
+}
+/* without WebGL, the panorama is just shown as a picture */
+#site[data-scope="shop"] .pano-stage[data-flat="true"] {
+  background: var(--pano) center / cover no-repeat, #1a120c;
+}
+#site[data-scope="shop"] .pano-view {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+#site[data-scope="shop"] .pano-stage[data-ready="true"] .pano-view {
+  opacity: 1;
+}
+#site[data-scope="shop"] .pano-view:active {
+  cursor: grabbing;
+}
+#site[data-scope="shop"] .pano-view:focus-visible {
+  outline: 3px solid var(--color-rasta-gold);
+  outline-offset: -3px;
+}
+#site[data-scope="shop"] .pano-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 0.4s;
+}
+#site[data-scope="shop"] .pano-hint[data-hidden="true"] {
+  opacity: 0;
+}
+
+/* phones: look around by moving the phone */
+#site[data-scope="shop"] .pano-gyro {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px 0 11px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+#site[data-scope="shop"] .pano-gyro[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--color-rasta-gold);
+  color: var(--color-char);
+}
+
+#site[data-scope="shop"] .pano-box {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100% - 48px);
+  padding: 20px 20px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-iron) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+  color: var(--color-paper);
+}
+#site[data-scope="shop"] .pano-crumb {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+#site[data-scope="shop"] .pano-title {
+  margin-top: 4px;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+#site[data-scope="shop"] .pano-lede {
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+#site[data-scope="shop"] .pano-list {
+  min-height: 0;
+  margin: 14px -8px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#site[data-scope="shop"] .pano-cat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 8px;
+  border-top: 1px solid var(--color-line);
+  font-weight: 600;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+#site[data-scope="shop"] .pano-list li:first-child .pano-cat {
+  border-top: 0;
+}
+#site[data-scope="shop"] .pano-cat:hover,
+#site[data-scope="shop"] .pano-cat:focus-visible {
+  border-radius: 8px;
+  background: var(--color-ash);
+  color: var(--color-rasta-gold);
+}
+#site[data-scope="shop"] .pano-cat-count {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  #site[data-scope="shop"] .pano-stage {
+    height: 62svh;
+    min-height: 340px;
+  }
+  #site[data-scope="shop"] .pano-gyro {
+    bottom: 40px;
+  }
+  #site[data-scope="shop"] .pano-box {
+    position: relative;
+    z-index: 1;
+    top: auto;
+    left: auto;
+    width: auto;
+    max-height: none;
+    margin: -28px 12px 96px;
+    border-radius: 18px;
+  }
+  #site[data-scope="shop"] .pano-list {
+    overflow: visible;
+  }
+}
