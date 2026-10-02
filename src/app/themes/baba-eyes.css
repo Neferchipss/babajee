@@ -68,7 +68,8 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .bb-eye .bb-iris {
     clip-path: inset(var(--lid-top, 0%) -50% var(--lid-bottom, 0%) -50%);
   }
-  /* the irises are drawn artwork (one per eye), moved and scaled in code */
+  /* the irises are drawn artwork (one per eye), moved and scaled in code:
+     --dil swells them, --fx/--fy narrow them as they turn away */
   & .bb-iris {
     position: absolute;
     top: 50%;
@@ -77,9 +78,8 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     aspect-ratio: 1;
     border-radius: 50%;
     translate: calc(-50% + var(--ix, 0px)) calc(-50% + var(--iy, 0px));
-    scale: var(--dil, 1);
+    scale: calc(var(--dil, 1) * var(--fx, 1)) calc(var(--dil, 1) * var(--fy, 1));
     background: var(--iris) center / contain no-repeat;
-    transition: scale 0.3s;
   }
 
   /* the third eye, beside the title */
@@ -154,10 +154,65 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     text-underline-offset: 5px;
   }
 
+  /* On phones the third eye floats in the corner, above the theme switcher,
+     so it is always to hand while you scroll the shelf. Its words become a
+     speech bubble beside it, shown only while it looks and briefly after it
+     picks, so it doesn't sit over the cards. Scoped to .cp-hero so it wins
+     over the themes' own placement of it. */
   @media (max-width: 900px) {
-    & .bb-third-btn {
-      width: 88px;
+    & .cp-hero .bb-third {
+      position: fixed;
+      right: 12px;
+      bottom: calc(70px + env(safe-area-inset-bottom));
+      z-index: 45;
+      flex-direction: row-reverse;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      pointer-events: none;
     }
+    & .cp-hero .bb-third-btn {
+      width: 64px;
+      border-radius: 34px 34px 12px 12px;
+      box-shadow: 3px 3px 0 var(--bb-ink);
+      pointer-events: auto;
+    }
+    & .cp-hero .bb-third-btn:hover {
+      transform: none;
+    }
+    & .cp-hero .bb-third-copy {
+      display: none;
+      width: auto;
+      max-width: min(240px, calc(100vw - 110px));
+      padding: 8px 14px;
+      border: 2px solid var(--bb-ink);
+      border-radius: 16px 16px 4px 16px;
+      background: var(--color-iron);
+      color: var(--color-paper);
+      box-shadow: 3px 3px 0 var(--bb-ink);
+      text-align: left;
+      pointer-events: auto;
+    }
+    & .cp-hero :is(.bb-third[data-seeing="true"], .bb-third[data-picked="true"]) .bb-third-copy {
+      display: block;
+    }
+    & .cp-hero .bb-third[data-picked="true"] .bb-third-copy {
+      animation: bb-bubble 6s forwards;
+    }
+    & .cp-hero :is(.bb-third-hint, .bb-third-pick) {
+      font-size: 0.95rem;
+    }
+  }
+}
+
+/* the pick's bubble lingers, then fades and stops catching taps */
+@keyframes bb-bubble {
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
   }
 }
 

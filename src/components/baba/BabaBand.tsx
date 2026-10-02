@@ -10,6 +10,8 @@ import rightMask from "@/assets/baba/eye-right-mask.png";
 import { hasBabaEyes } from "@/lib/themes";
 import { publicAsset, useShopTheme } from "@/lib/useShopTheme";
 import { BLINK } from "./blink";
+import { aim, Gaze, SEE_EVENT, type Vec } from "./gaze";
+import { askTilt, readTilt, startTilt } from "./tilt";
 
 // Where the empty eye whites sit in the band, in % of it. Measured from the
 // blink clip's open frame, which the still is an upscale of, so the still and
@@ -22,7 +24,11 @@ const EYES = [
 // The Baba header on category pages: the character's eyes across the top of
 // the page. The artwork has empty eye whites; the irises (generated in the
 // character's inked style, one per eye) are a separate layer
-// that looks at the pointer (or the last touch). Every few seconds the face
+// that looks the way the pointer (or a finger, or the phone's tilt) is,
+// moving as real eyes do (see gaze.ts). Left alone, they glance around the
+// shelf; they follow a scroll, start at a flick of the pointer, do a double
+// take when you come back to the tab, and join in when the third eye
+// chooses something. Every few seconds the face
 // blinks: a generated clip of the lids plays over the still, and the irises
 // are clipped frame by frame to the lids measured from that same clip.
 export default function BabaBand() {
@@ -41,21 +47,109 @@ export default function BabaBand() {
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let px = window.innerWidth / 2;
     let py = window.innerHeight;
-    let lastInput = 0;
+    let mouseAt = 0; // last mouse or pen movement
+    let touching = false;
+    let touchAt = 0; // last touch, or when the finger lifted
+    let scrollAt = 0;
+    let scrollDir = 0;
+    let lastScroll = window.scrollY;
+    let away = false;
     let frame = 0;
     let blinking = false;
+    let again = false;
+    let lastBlink = 0;
+    let hiddenAt = 0;
     let timer = 0;
-    const cur = eyes.map(() => ({ x: 0, y: 0 }));
+    let dil = 1;
+    let hot = false;
+    let hotSince = 0;
+    let swollen = false;
+    let speed = 0;
+    let lastMove = { x: px, y: py, t: 0 };
+    let startleUntil = 0;
+    let lastStartle = 0;
+    let rollFrom = -Infinity;
+    let fixOn: HTMLElement | null = null;
+    let fixUntil = 0;
+    let glance = { x: px, y: py };
+    let glanceAt = 0;
+    let lastNow = 0;
 
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return; // touches are followed below
+      const now = performance.now();
       px = e.clientX;
       py = e.clientY;
-      lastInput = performance.now();
+      mouseAt = now;
+      away = false;
+      // a sudden flick of the pointer startles the face
+      const dt = now - lastMove.t;
+      if (dt > 0 && dt < 100) {
+        const inst = Math.hypot(px - lastMove.x, py - lastMove.y) / dt;
+        speed += (inst - speed) * 0.35;
+        if (!still && speed > 4.5 && now - lastStartle > 3000) {
+          lastStartle = now;
+          startleUntil = now + 380;
+          if (Math.random() < 0.5) window.setTimeout(blink, 140);
+        }
+      } else {
+        speed = 0;
+      }
+      lastMove = { x: px, y: py, t: now };
+    };
+    // on a touch screen the eyes follow the finger while it is down
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      px = t.clientX;
+      py = t.clientY;
+      touching = true;
+      touchAt = performance.now();
+      away = false;
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length) return;
+      touching = false;
+      touchAt = performance.now();
+    };
+    // scrolling: the eyes look the way the shelf is moving
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y !== lastScroll) scrollDir = Math.sign(y - lastScroll);
+      lastScroll = y;
+      scrollAt = performance.now();
+    };
+    // the pointer left the window: look around instead of staring at the edge
+    const onOut = (e: PointerEvent) => {
+      if (!e.relatedTarget && e.pointerType !== "touch") away = true;
     };
     // the irises swell a little while you look at something on the shelf
     const onOver = (e: PointerEvent) => {
-      const hot = !!(e.target as HTMLElement).closest(".pc, .bb-third");
-      root.style.setProperty("--dil", hot ? "1.1" : "1");
+      if (e.pointerType === "touch") return;
+      const over = !!(e.target as HTMLElement).closest(".pc, .bb-third");
+      if (over !== hot) {
+        hot = over;
+        hotSince = performance.now();
+      }
+    };
+    // back on the tab after a while: a double take
+    const onVisible = () => {
+      if (document.hidden) hiddenAt = performance.now();
+      else if (!still && hiddenAt && performance.now() - hiddenAt > 2000) {
+        again = true;
+        window.setTimeout(blink, 250);
+      }
+    };
+    // the third eye is choosing: the face rolls its eyes with it, then all
+    // three look at what it picked
+    const onSee = (e: Event) => {
+      const d = (e as CustomEvent<{ phase: string; href?: string }>).detail;
+      const now = performance.now();
+      if (d.phase === "roll" && !still) rollFrom = now;
+      if (d.phase === "pick" && d.href) {
+        fixOn = document.querySelector<HTMLElement>(`.pc:has(a[href="${d.href}"])`);
+        fixUntil = now + 2600;
+      }
     };
 
     const setLids = (i: number) => {
@@ -74,10 +168,15 @@ export default function BabaBand() {
       blinking = false;
       delete root.dataset.blinking;
       setLids(0);
+      if (again) {
+        again = false;
+        window.setTimeout(blink, 120);
+      }
     };
     const blink = () => {
       if (blinking || !BLINK.frames.length) return;
       blinking = true;
+      lastBlink = performance.now();
       root.dataset.blinking = "true";
       v.currentTime = 0;
       v.play().catch(endBlink);
@@ -91,39 +190,106 @@ export default function BabaBand() {
     };
     v.onended = endBlink;
 
-    const tick = (now: number) => {
-      // idle: a slow wander so the face never goes dead
-      let tx = px;
-      let ty = py;
-      if (now - lastInput > 4000) {
-        tx = window.innerWidth * (0.5 + Math.sin(now / 2600) * 0.4);
-        ty = window.innerHeight * (0.6 + Math.cos(now / 3400) * 0.3);
+    // big glances sometimes come with a blink, as they do in people
+    const gaze = new Gaze({
+      micro: !still,
+      onSaccade: (amp) => {
+        if (!still && amp > 0.7 && Math.random() < 0.3 && performance.now() - lastBlink > 1800) blink();
+      },
+    });
+
+    // idle: glance between things on the shelf, holding each look a while
+    const pickGlance = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const cards = Array.from(document.querySelectorAll<HTMLElement>(".pc"))
+        .map((c) => c.getBoundingClientRect())
+        .filter((r) => r.bottom > 0 && r.top < h);
+      if (cards.length && Math.random() < 0.65) {
+        const r = cards[Math.floor(Math.random() * cards.length)];
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }
-      eyes.forEach((eye, k) => {
-        const r = eye.getBoundingClientRect();
-        const dx = tx - (r.left + r.width / 2);
-        const dy = ty - (r.top + r.height / 2);
-        const len = Math.hypot(dx, dy) || 1;
-        const reach = Math.min(1, len / 360);
-        const gx = (dx / len) * reach * 0.3 * r.width;
-        const gy = (dy / len) * reach * 0.24 * r.height;
-        cur[k].x += (gx - cur[k].x) * 0.18;
-        cur[k].y += (gy - cur[k].y) * 0.18;
-        eye.style.setProperty("--ix", `${cur[k].x.toFixed(1)}px`);
-        eye.style.setProperty("--iy", `${cur[k].y.toFixed(1)}px`);
+      return { x: w * (0.1 + Math.random() * 0.8), y: h * (0.3 + Math.random() * 0.6) };
+    };
+
+    // Where to look, most pressing first: a point on screen, or a direction
+    // when it comes from the third eye's roll or the phone's tilt.
+    const target = (now: number, cx: number, cy: number): { at: Vec } | { dir: Vec } => {
+      if (now - rollFrom < 1100) {
+        const a = ((now - rollFrom) / 1100) * Math.PI * 2;
+        return { dir: { x: Math.cos(a) * 0.9, y: -Math.sin(a) * 0.9 } };
+      }
+      if (fixOn && now < fixUntil) {
+        const r = fixOn.getBoundingClientRect();
+        return { at: { x: r.left + r.width / 2, y: r.top + r.height / 2 } };
+      }
+      const mouse = !away && now - mouseAt < 3500;
+      const scrolling = !still && now - scrollAt < 600;
+      if (touching || now - touchAt < 1500 || (mouse && !scrolling)) return { at: { x: px, y: py } };
+      if (scrolling) {
+        return { at: { x: cx + (px - cx) * 0.3, y: scrollDir > 0 ? cy + window.innerHeight : -window.innerHeight } };
+      }
+      const tilt = readTilt();
+      if (tilt) return { dir: tilt };
+      if (still) return { at: { x: window.innerWidth / 2, y: window.innerHeight } };
+      if (now >= glanceAt) {
+        glance = pickGlance();
+        glanceAt = now + 700 + Math.random() * 2200;
+      }
+      return { at: glance };
+    };
+
+    const tick = (now: number) => {
+      const dt = lastNow ? Math.min(0.05, (now - lastNow) / 1000) : 0;
+      lastNow = now;
+      // the eyes look the way the target is, from the middle of the face,
+      // both turned together; they do not converge on it
+      const rects = eyes.map((eye) => eye.getBoundingClientRect());
+      const cx = rects.reduce((a, r) => a + r.left + r.width / 2, 0) / rects.length;
+      const cy = rects.reduce((a, r) => a + r.top + r.height / 2, 0) / rects.length;
+      const t = target(now, cx, cy);
+      const g = gaze.step(now, "dir" in t ? t.dir : aim(cx, cy, t.at.x, t.at.y, 40));
+      // swell only once the pointer has settled on (or off) the shelf, and
+      // ease slowly, so sweeping across the cards does not make them pulse;
+      // a startle shrinks them quickly, and they relax back
+      if (now - hotSince > (hot ? 180 : 450)) swollen = hot;
+      const startled = now < startleUntil;
+      const want = startled ? 0.84 : swollen ? 1.1 : 1;
+      dil += (want - dil) * (1 - Math.exp(-dt / (startled ? 0.07 : 0.45)));
+      eyes.forEach((eye, i) => {
+        const r = rects[i];
+        eye.style.setProperty("--ix", `${(g.x * 0.3 * r.width).toFixed(1)}px`);
+        eye.style.setProperty("--iy", `${(g.y * 0.24 * r.height).toFixed(1)}px`);
+        // a turned iris is seen at an angle, so it narrows that way
+        eye.style.setProperty("--fx", (1 - 0.06 * g.x * g.x).toFixed(3));
+        eye.style.setProperty("--fy", (1 - 0.05 * g.y * g.y).toFixed(3));
+        eye.style.setProperty("--dil", dil.toFixed(3));
       });
       if (blinking) setLids(Math.round(v.currentTime * BLINK.fps));
       frame = requestAnimationFrame(tick);
     };
 
+    // poking an eye blinks it, and on an iPhone asks to follow its tilt
     const poke = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest(".bb-eye")) blink();
+      if (!(e.target as HTMLElement).closest(".bb-eye")) return;
+      blink();
+      askTilt();
     };
 
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerdown", onMove, { passive: true });
-    window.addEventListener("pointerover", onOver, { passive: true });
+    const opts = { passive: true } as const;
+    window.addEventListener("pointermove", onMove, opts);
+    window.addEventListener("pointerdown", onMove, opts);
+    window.addEventListener("pointerover", onOver, opts);
+    window.addEventListener("touchstart", onTouch, opts);
+    window.addEventListener("touchmove", onTouch, opts);
+    window.addEventListener("touchend", onTouchEnd, opts);
+    window.addEventListener("touchcancel", onTouchEnd, opts);
+    window.addEventListener("scroll", onScroll, opts);
+    window.addEventListener(SEE_EVENT, onSee);
+    document.addEventListener("pointerout", onOut, opts);
+    document.addEventListener("visibilitychange", onVisible);
     root.addEventListener("click", poke);
+    startTilt();
     frame = requestAnimationFrame(tick);
     if (!still) schedule();
     return () => {
@@ -133,6 +299,14 @@ export default function BabaBand() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onMove);
       window.removeEventListener("pointerover", onOver);
+      window.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener(SEE_EVENT, onSee);
+      document.removeEventListener("pointerout", onOut);
+      document.removeEventListener("visibilitychange", onVisible);
       root.removeEventListener("click", poke);
     };
   }, [on]);
