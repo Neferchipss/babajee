@@ -1,0 +1,488 @@
+/* The landing + shop index scene (ShopScene.tsx). The track is tall so there
+   is room to scroll; the stage stays pinned while the camera walks. */
+
+.scene {
+  position: relative;
+  color: var(--color-paper);
+}
+.scene[data-intro="true"] {
+  height: 360svh; /* a short walk: about 260% of a screen of scrolling */
+}
+/* the walk is the whole page: nothing scrolls on past the last frame */
+body:has(.scene[data-intro="true"]) .ftr {
+  display: none;
+}
+.scene-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: #0d0a07;
+}
+.scene[data-intro="false"] .scene-stage {
+  height: max(460px, calc(100svh - 76px));
+}
+.scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y; /* a finger's sideways drag looks around; up and down scrolls */
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.scene-canvas:active {
+  cursor: grabbing;
+}
+.scene[data-status="ready"] .scene-canvas {
+  opacity: 1;
+}
+.scene-canvas:focus-visible {
+  outline: 3px solid var(--color-rasta-gold);
+  outline-offset: -3px;
+}
+
+/* ------------------------------------------------ the landing page
+   One logo (the page's own), a short column
+   of words on the left with one clear action, and the street on the right,
+   held in a thin frame with a soft vignette. The street supplies the life:
+   a slow sway towards the pointer, steam from the drains, a flickering sign. */
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 88% 82% at 56% 52%, transparent 52%, rgb(2 4 12 / 0.55) 100%);
+}
+.scene-landing {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgb(3 5 14 / 0.72) 0%, rgb(3 5 14 / 0.38) 34%, transparent 62%);
+}
+.scene-frame {
+  --c: var(--color-rasta-gold);
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 6px;
+  opacity: 0.75;
+  background:
+    linear-gradient(var(--c), var(--c)) 0 0 / 26px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) 0 0 / 2px 26px no-repeat,
+    linear-gradient(var(--c), var(--c)) 100% 0 / 26px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) 100% 0 / 2px 26px no-repeat,
+    linear-gradient(var(--c), var(--c)) 0 100% / 26px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) 0 100% / 2px 26px no-repeat,
+    linear-gradient(var(--c), var(--c)) 100% 100% / 26px 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) 100% 100% / 2px 26px no-repeat;
+}
+
+/* the words: the logo first, then one line, then one action */
+.scene-copy {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: clamp(32px, 7vw, 110px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: min(34rem, 86vw);
+  padding-top: 4vh;
+}
+.scene-logo {
+  width: min(74vw, 27rem);
+}
+.scene-tag {
+  max-width: 30ch;
+  margin-top: 26px;
+  color: rgb(255 255 255 / 0.78);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.45;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.6);
+}
+.scene-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  margin-top: 30px;
+  pointer-events: auto;
+}
+.scene-skip {
+  color: rgb(255 255 255 / 0.72);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: color 0.15s;
+}
+.scene-skip span {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+.scene-skip:hover,
+.scene-skip:focus-visible {
+  color: #fff;
+}
+.scene-skip:hover span,
+.scene-skip:focus-visible span {
+  transform: translateX(4px);
+}
+.scene-copy > * {
+  animation: scene-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.scene-copy > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+.scene-copy > :nth-child(3) {
+  animation-delay: 0.26s;
+}
+@keyframes scene-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.scene-cue {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgb(255 255 255 / 0.75);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.7);
+  transform: translateX(-50%);
+}
+.scene-cue i {
+  position: relative;
+  width: 1px;
+  height: 42px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.22);
+}
+.scene-cue i::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: 0;
+  width: 1px;
+  height: 40%;
+  background: var(--color-rasta-gold);
+  animation: scene-drip 1.8s ease-in-out infinite;
+}
+@keyframes scene-drip {
+  to {
+    top: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-copy > *,
+  .scene-cue i::after {
+    animation: none;
+  }
+}
+/* the ribbon (site header) stays out of the whole walk and comes down once you are inside */
+body:has(.scene[data-intro="true"]) .hdr {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.6s;
+}
+html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
+  transform: translateY(-100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* the one way back out to the street (scrolling up does not rewind the walk) */
+.scene-back {
+  position: absolute;
+  left: clamp(14px, 3vw, 32px);
+  bottom: clamp(14px, 3vh, 28px);
+  z-index: 3;
+  padding: 8px 16px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+}
+.scene-back:hover,
+.scene-back:focus-visible {
+  background: var(--color-rasta-gold);
+  color: var(--color-char);
+}
+
+.scene-spot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 6px 14px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.scene-spot:hover,
+.scene-spot:focus-visible {
+  background: var(--color-rasta-gold);
+  color: var(--color-char);
+}
+
+/* what a portrait is saying; the first line points at its category */
+.scene-bubble {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: min(280px, 70vw);
+  padding: 10px 14px 11px;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: 14px 14px 14px 3px;
+  background: rgb(20 8 40 / 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  will-change: transform;
+}
+.scene-bubble[data-on="true"] {
+  opacity: 1;
+}
+.scene-bubble[data-on="true"][data-link="true"] {
+  pointer-events: auto;
+}
+.scene-bubble-name {
+  color: var(--color-rasta-gold);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.scene-bubble-text {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+.scene-bubble[data-link="true"]:hover,
+.scene-bubble[data-link="true"]:focus-visible {
+  border-color: var(--color-rasta-gold);
+}
+
+.scene-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.4s;
+}
+.scene-hint[data-hidden="false"] {
+  opacity: 1;
+}
+
+.scene-box {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-height: calc(100% - 48px);
+  padding: 20px 20px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-iron) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+  color: var(--color-paper);
+  visibility: hidden;
+}
+.scene[data-intro="false"] .scene-box {
+  visibility: visible;
+}
+.scene-crumb {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.scene-title {
+  margin-top: 4px;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.scene-lede {
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.scene-list {
+  min-height: 0;
+  margin: 14px -8px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.scene-cat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 8px;
+  border-top: 1px solid var(--color-line);
+  font-weight: 600;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.scene-list li:first-child .scene-cat {
+  border-top: 0;
+}
+.scene-cat:hover,
+.scene-cat:focus-visible {
+  border-radius: 8px;
+  background: var(--color-ash);
+  color: var(--color-rasta-gold);
+}
+.scene-cat-count {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* no WebGL, or the model would not load: just the words and the list */
+.scene[data-status="flat"] {
+  height: auto;
+}
+.scene[data-status="flat"] .scene-stage {
+  position: static;
+  height: auto;
+  min-height: 70svh;
+}
+.scene[data-status="flat"] .scene-canvas,
+.scene[data-status="flat"] .scene-cue,
+.scene[data-status="flat"] .scene-vignette,
+.scene[data-status="flat"] .scene-frame,
+.scene[data-status="flat"] .scene-spot {
+  display: none;
+}
+.scene[data-status="flat"] .scene-landing {
+  position: relative;
+  padding-block: 64px 24px;
+  background: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.scene[data-status="flat"] .scene-copy {
+  position: static;
+  padding: 0 clamp(20px, 6vw, 80px);
+}
+.scene[data-status="flat"] .scene-box {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: auto;
+  max-width: 420px;
+  margin: 0 clamp(20px, 6vw, 80px) 48px;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+@media (max-width: 760px) {
+  .scene[data-intro="false"] .scene-stage {
+    height: 78svh;
+  }
+  .scene-landing {
+    background: linear-gradient(0deg, rgb(3 5 14 / 0.82) 0%, rgb(3 5 14 / 0.5) 42%, transparent 72%);
+  }
+  .scene-copy {
+    right: 0;
+    left: 0;
+    justify-content: flex-end;
+    padding: 0 26px 104px;
+  }
+  .scene-logo {
+    width: min(70vw, 18rem);
+  }
+  .scene-tag {
+    margin-top: 18px;
+  }
+  .scene-actions {
+    margin-top: 22px;
+  }
+  .scene-frame {
+    inset: 10px;
+  }
+  .scene-box {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 42%;
+  }
+  .scene-hint {
+    top: 12px;
+  }
+}
+
+/* A blur over the live canvas can paint black tiles in Chromium (the box that kept flashing
+   in on /shop): everything that sits over the canvas gets a solid fill instead. */
+.scene-spot,
+.scene-back,
+.scene-bubble,
+.scene-box,
+body:has(.scene) .hdr,
+body:has(.scene) .theme-toggle {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.scene-spot,
+.scene-back {
+  background: rgb(0 0 0 / 0.75);
+}
+.scene-bubble {
+  background: rgb(20 8 40 / 0.92);
+}
+.scene-box {
+  background: color-mix(in srgb, var(--color-iron) 94%, transparent);
+}

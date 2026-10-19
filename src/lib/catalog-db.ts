@@ -6,6 +6,7 @@
 // sees what row-level security lets an anonymous visitor see: is_visible
 // rows. A hidden or unpriced product simply does not appear here.
 import { createClient } from "@supabase/supabase-js";
+import { CATEGORIES } from "./catalog-data";
 import { toNumber } from "./currency";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -85,6 +86,16 @@ export async function getCategoriesWithCounts(): Promise<(DbCategory & { count: 
     counts.set(p.category_id, (counts.get(p.category_id) ?? 0) + 1);
   }
   return (cats ?? []).map((c) => ({ slug: c.slug, name: c.name, count: counts.get(c.id) ?? 0 }));
+}
+
+// The category list for the landing and the shop index. In development, when
+// the database gives back nothing (paused project, no network), the local
+// stock sheet stands in so the pages are still worth looking at. Never in a
+// build: a deploy must show the real catalogue or nothing.
+export async function getIndexCategories() {
+  const live = await getCategoriesWithCounts();
+  if (live.length || process.env.NODE_ENV !== "development") return live;
+  return CATEGORIES.map((c) => ({ slug: c.slug, name: c.name, count: c.products.length }));
 }
 
 export async function getCategoryDetail(slug: string) {
