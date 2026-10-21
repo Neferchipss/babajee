@@ -91,9 +91,15 @@ export default function ProductSheet({
     at.current = { i: view.i, n: products.length };
   });
 
-  // Drag the product: sideways swaps it for its neighbour, turning the wheel
-  // the same way (swipe left for the next one, as the wheel turns); down
-  // puts the card away. Which it is gets decided by the first few pixels.
+  // Drag the card: sideways, the whole card follows the finger and the wheel
+  // leans with it; let go far enough (or flick) and it slides out while the
+  // next product slides in from the other side, the wheel turning the same
+  // way (swipe left for the next one, as the wheel turns). Down, from the
+  // top half, puts it away. The first few pixels decide which.
+  //
+  // Touches go through touch events rather than pointer events: the details
+  // can scroll, so the browser must keep vertical drags there, and only a
+  // touch listener can claim a sideways drag once it is clearly sideways.
   useEffect(() => {
     const el = card.current;
     if (!el) return;
@@ -103,69 +109,135 @@ export default function ProductSheet({
     let dx = 0;
     let dy = 0;
     let axis: "x" | "y" | null = null;
-    let art: HTMLElement | null = null;
-    let id: number | null = null;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as HTMLElement;
-      if (!t.closest(".ps-pull") || t.closest("button, a")) return;
-      id = e.pointerId;
-      x0 = e.clientX;
-      y0 = e.clientY;
-      t0 = e.timeStamp;
+    let live = false;
+    let fromTop = false;
+    let mouse: number | null = null;
+    const timers: number[] = [];
+
+    const start = (x: number, y: number, t: number, target: EventTarget | null) => {
+      const hit = target as HTMLElement;
+      // controls keep their taps; the option chips scroll sideways themselves
+      if (hit.closest("button, a, .ps-opts") || el.dataset.swipe) return false;
+      x0 = x;
+      y0 = y;
+      t0 = t;
       dx = dy = 0;
       axis = null;
-      el.setPointerCapture(e.pointerId);
+      live = true;
+      fromTop = !!hit.closest(".ps-pull");
+      return true;
     };
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerId !== id) return;
-      dx = e.clientX - x0;
-      dy = e.clientY - y0;
+    // returns true once the drag is ours (so a touch should stop scrolling)
+    const move = (x: number, y: number) => {
+      if (!live) return false;
+      dx = x - x0;
+      dy = y - y0;
       if (!axis) {
-        if (Math.hypot(dx, dy) < 8) return;
+        if (Math.hypot(dx, dy) < 8) return false;
         axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-        if (axis === "y") el.style.transition = "none";
-        art = el.querySelector<HTMLElement>(".ps-stage .ps-art");
-        if (art) art.style.transition = "none";
+        if (axis === "y" && !fromTop) {
+          live = false; // a scroll of the details, not ours
+          return false;
+        }
+        el.style.transition = "none";
       }
       if (axis === "y") {
         el.style.transform = `translateY(${Math.max(0, dy)}px)`;
-      } else if (art) {
+      } else {
         // nothing further that way: it gives a little and springs back
         const { i, n } = at.current;
         const end = (dx < 0 && i >= n - 1) || (dx > 0 && i <= 0);
         const d = end ? dx * 0.3 : dx;
-        art.style.transform = `translateX(${d.toFixed(1)}px) rotate(${(d * 0.04).toFixed(2)}deg)`;
-        // the wheel leans along with the card (left drag = towards the next)
+        el.style.transform = `translateX(${d.toFixed(1)}px) rotate(${(d * 0.03).toFixed(2)}deg)`;
         steerRef.current?.lean(-d / el.clientWidth);
       }
+      return true;
     };
-    const onUp = (e: PointerEvent) => {
-      if (e.pointerId !== id) return;
-      id = null;
+    const springBack = () => {
+      el.style.transition = "transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2)";
+      el.style.transform = "";
+    };
+    const end = (t: number) => {
+      if (!live) return;
+      live = false;
       if (axis === "y") {
-        el.style.transition = "";
-        el.style.transform = "";
+        springBack();
         if (dy > 110) onClose();
       } else if (axis === "x") {
-        const speed = Math.abs(dx) / Math.max(1, e.timeStamp - t0); // px per ms
+        const speed = Math.abs(dx) / Math.max(1, t - t0); // px per ms
         const go = Math.abs(dx) > 70 || (Math.abs(dx) > 25 && speed > 0.5);
         const { i, n } = at.current;
         const to = i + (dx < 0 ? 1 : -1);
-        if (art) {
-          art.style.transition = "transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2)";
-          art.style.transform = "";
+        if (!go || to < 0 || to >= n) {
+          springBack();
+          steerRef.current?.to(i);
+        } else {
+          // out one side; the wheel turns (the content swaps as it passes
+          // the eye), then the card comes back in from the other side
+          const out = dx < 0 ? -1 : 1;
+          el.dataset.swipe = "true";
+          el.style.transition = "transform 0.16s ease-in";
+          el.style.transform = `translateX(${out * 115}%) rotate(${out * 7}deg)`;
+          steerRef.current?.to(to);
+          timers.push(
+            window.setTimeout(() => {
+              el.style.transition = "none";
+              el.style.transform = `translateX(${-out * 70}%) rotate(${-out * 5}deg)`;
+              void el.offsetWidth; // apply the jump before easing back in
+              el.style.transition = "transform 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.15)";
+              el.style.transform = "";
+              timers.push(
+                window.setTimeout(() => {
+                  delete el.dataset.swipe;
+                  el.style.transition = "";
+                }, 360),
+              );
+            }, 170),
+          );
         }
-        // turn on to the neighbour (the wheel ticks as it goes), or settle back
-        steerRef.current?.to(go && to >= 0 && to < n ? to : i);
       }
       axis = null;
-      art = null;
     };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const f = e.touches[0];
+      if (e.touches.length === 1 && f) start(f.clientX, f.clientY, e.timeStamp, e.target);
+      else live = false;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const f = e.touches[0];
+      if (f && move(f.clientX, f.clientY) && e.cancelable) e.preventDefault();
+    };
+    const onTouchEnd = (e: TouchEvent) => end(e.timeStamp);
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === "touch" || e.button !== 0) return;
+      if (!start(e.clientX, e.clientY, e.timeStamp, e.target)) return;
+      mouse = e.pointerId;
+      el.setPointerCapture(e.pointerId);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId === mouse) move(e.clientX, e.clientY);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== mouse) return;
+      mouse = null;
+      end(e.timeStamp);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
     return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
