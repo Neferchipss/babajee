@@ -37,7 +37,15 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
           <p className="pd-cat">{category.name}</p>
           <h1 className="pd-title">{product.name}</h1>
           {product.description && <p className="pd-desc">{product.description}</p>}
-          <ProductBuy variants={product.variants} />
+          <ProductBuy
+            variants={product.variants}
+            item={{
+              slug: product.slug,
+              href: `/shop/${category.slug}/${product.slug}`,
+              name: product.name,
+              tone,
+            }}
+          />
         </div>
       </div>
 

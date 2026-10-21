@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import BabaBand from "./baba/BabaBand";
+import CartJar from "./CartJar";
 import ThemeToggle from "./ThemeToggle";
 
 // Wraps header, page and footer. The shop pages get a theme (chosen with the
@@ -15,6 +16,7 @@ export default function SiteFrame({ children }: { children: ReactNode }) {
       {scope === "shop" && <BabaBand />}
       {children}
       {scope === "shop" && <ThemeToggle />}
+      <CartJar variant="float" />
     </div>
   );
 }

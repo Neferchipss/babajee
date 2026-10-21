@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { addToCart, tossIntoJar } from "@/lib/cart";
+import CartJar from "./CartJar";
 import type { BuyVariant } from "./ProductBuy";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
@@ -247,6 +249,8 @@ export default function ProductSheet({
 
   function add() {
     buzz([10, 40, 10]);
+    addToCart({ slug: p.slug, href: p.href, name: p.name, tone: p.tone, variant: variant.label, price: variant.price });
+    tossIntoJar(card.current?.querySelector(".ps-art") ?? null);
     setAdded(p.slug);
   }
 
@@ -263,9 +267,12 @@ export default function ProductSheet({
                 <path d="m6 9 6 6 6-6" />
               </svg>
             </button>
-            <Link href={p.href} className="ps-full">
-              Full page
-            </Link>
+            <div className="ps-top-end">
+              <Link href={p.href} className="ps-full">
+                Full page
+              </Link>
+              <CartJar variant="sheet" />
+            </div>
           </div>
           <div key={p.slug} className="ps-stage" data-dir={view.dir}>
             <ProductArt name={p.name} tone={p.tone} className="ps-art" />

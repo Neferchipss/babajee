@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { MouseEvent } from "react";
-import { CartIcon } from "./icons";
+import { JarIcon } from "./icons";
 import Price from "./Price";
 import type { BuyVariant } from "./ProductBuy";
 import ProductArt from "./ProductArt";
@@ -38,8 +38,8 @@ export default function ProductCard({ product, onOpen }: { product: CardProduct;
         {product.options > 0 && <span className="pc-opts">{product.options + 1} options</span>}
         <Price className="pc-price" value={product.price} />
       </Link>
-      <Link href={onOpen ? product.href : "/cart"} className="pc-add" aria-label={`Add ${product.name} to cart`} onClick={open}>
-        <CartIcon size={20} />
+      <Link href={product.href} className="pc-add" aria-label={`Add ${product.name} to cart`} onClick={open}>
+        <JarIcon size={20} />
         <span className="pc-add-text">Add to cart</span>
       </Link>
     </li>

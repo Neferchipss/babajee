@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Page from "@/components/Page";
-import Price from "@/components/Price";
-import { PLACEHOLDER_CART } from "@/lib/catalog-data";
+import { CheckoutItems } from "@/components/CartView";
 
 const STEPS = [
   "Place your order.",
@@ -82,23 +81,7 @@ export default function CheckoutPage() {
           </Link>
         </form>
 
-        <aside className="rounded-xl border border-line bg-iron p-6">
-          <h2 className="text-2xl">Your items</h2>
-          <ul className="mt-4 space-y-3">
-            {PLACEHOLDER_CART.map((item) => (
-              <li key={item.slug} className="flex justify-between gap-4 text-sm">
-                <span>
-                  {item.name} <span className="text-muted">x {item.qty}</span>
-                </span>
-                <Price />
-              </li>
-            ))}
-          </ul>
-          <div className="mt-5 flex justify-between border-t border-line pt-4 text-lg font-semibold">
-            <span>Total</span>
-            <Price />
-          </div>
-        </aside>
+        <CheckoutItems />
       </div>
     </Page>
   );

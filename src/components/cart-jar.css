@@ -1,0 +1,128 @@
+/* Baba's jar (CartJar). The glass is dark so it reads over the white
+   product plates; the lid takes the theme's accent. */
+.jar {
+  --jar-ink: var(--bb-ink, #120c26);
+  --jar-lid: var(--bb-maroon, var(--color-rasta-gold, #ff8fb3));
+  position: relative;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.jar-body {
+  display: block;
+  transform-origin: 50% 100%;
+}
+.jar-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.jar-glass {
+  fill: rgb(20 14 40 / 0.78);
+}
+.jar-glass-edge {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 2.5;
+}
+.jar-shine {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.35);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.jar-lid {
+  fill: var(--jar-lid);
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 2.5;
+}
+.jar-lid-line {
+  fill: none;
+  stroke: rgb(0 0 0 / 0.25);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.jar-pebble {
+  stroke: rgb(0 0 0 / 0.3);
+  stroke-width: 1;
+}
+.jar-count {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid var(--color-char, #0c0a1c);
+  border-radius: 11px;
+  background: var(--bb-green, var(--color-rasta-green, #7ef0c4));
+  color: #0c0a1c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  animation: jar-count 0.35s ease-out;
+}
+.jar-body[data-plop="true"] {
+  animation: jar-wobble 0.55s ease-out;
+}
+.jar:focus-visible {
+  outline: 2px solid var(--jar-lid);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* floating, bottom corner, phones only (the header carries the cart above
+   that). Out of the way while the product sheet is open: it has its own. */
+.jar-float {
+  display: none;
+}
+@media (max-width: 900px) {
+  .jar-float {
+    position: fixed;
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 45;
+    display: block;
+    width: 54px;
+    filter: drop-shadow(0 6px 12px rgb(0 0 0 / 0.45));
+  }
+  html[data-sheet] .jar-float {
+    visibility: hidden;
+  }
+}
+
+/* in the product sheet's top bar */
+.jar-sheet {
+  width: 34px;
+}
+.jar-sheet .jar-count {
+  top: -6px;
+  right: -9px;
+  min-width: 19px;
+  height: 19px;
+  font-size: 0.65rem;
+}
+
+@keyframes jar-wobble {
+  0% { transform: scale(1, 1); }
+  20% { transform: scale(1.12, 0.86); }
+  40% { transform: scale(0.92, 1.1) rotate(-6deg); }
+  60% { transform: scale(1.04, 0.97) rotate(4deg); }
+  80% { transform: rotate(-2deg); }
+  100% { transform: none; }
+}
+@keyframes jar-count {
+  0% { transform: scale(0.4); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jar-body[data-plop="true"],
+  .jar-count {
+    animation: none;
+  }
+}

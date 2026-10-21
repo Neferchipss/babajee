@@ -16,7 +16,8 @@ type Pick = { href: string; name: string };
 // finger, or the phone's tilt) like the two in the header; tap it and it
 // rolls, then "sees" something on the shelf, which is lit up and scrolled
 // into view. It tells the header as it goes (SEE_EVENT), so all three eyes
-// roll together and then look at the pick.
+// roll together and then look at the pick. On phones it floats as a small
+// eye symbol in the thumb's corner, above the cart jar.
 export default function ThirdEye({ products }: { products: Pick[] }) {
   const theme = useShopTheme();
   const eye = useRef<HTMLButtonElement>(null);
@@ -137,6 +138,21 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
         <span className="bb-third-white">
           <span className="bb-iris" />
         </span>
+        {/* on phones the eye shrinks to this symbol, docked above the jar */}
+        <svg className="bb-third-sym" viewBox="0 0 48 48" aria-hidden="true">
+          <path className="bb-sym-rays" d="M24 5v5M13 8.5l2.5 4M35 8.5l-2.5 4" />
+          <clipPath id="bb-sym-clip">
+            <path d="M5 27Q24 9 43 27Q24 45 5 27Z" />
+          </clipPath>
+          <path className="bb-sym-white" d="M5 27Q24 9 43 27Q24 45 5 27Z" />
+          <g clipPath="url(#bb-sym-clip)">
+            <g className="bb-sym-iris">
+              <circle cx="24" cy="27" r="7.5" />
+              <circle className="bb-sym-pupil" cx="24" cy="27" r="3.2" />
+            </g>
+          </g>
+          <path className="bb-sym-edge" d="M5 27Q24 9 43 27Q24 45 5 27Z" />
+        </svg>
       </button>
       <div className="bb-third-copy" aria-live="polite">
         {pick ? (

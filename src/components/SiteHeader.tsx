@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { CartIcon, SearchIcon, UserIcon } from "./icons";
+import { cartCount, useCart } from "@/lib/cart";
+import { JarIcon, SearchIcon, UserIcon } from "./icons";
 import Logo from "./Logo";
 
 const NAV = [
@@ -18,6 +19,7 @@ const NAV = [
 export default function SiteHeader() {
   const pathname = usePathname().replace(/\/$/, "") || "/";
   const [open, setOpen] = useState(false);
+  const count = cartCount(useCart());
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const navLink = (href: string, label: string) => (
@@ -51,11 +53,11 @@ export default function SiteHeader() {
             <UserIcon />
             <span className="hdr-label">Account</span>
           </Link>
-          <Link href="/cart" className="hdr-tool hdr-cart" onClick={() => setOpen(false)}>
-            <CartIcon />
+          <Link href="/cart" className="hdr-tool hdr-cart" data-jar="header" onClick={() => setOpen(false)}>
+            <JarIcon />
             <span className="hdr-label">Cart</span>
             <b className="hdr-count" aria-hidden="true">
-              0
+              {count > 99 ? "99+" : count}
             </b>
           </Link>
         </div>
@@ -84,7 +86,7 @@ export default function SiteHeader() {
             Search
           </Link>
           <Link href="/cart" onClick={() => setOpen(false)}>
-            Cart
+            Cart{count > 0 && ` (${count})`}
           </Link>
           <Link href="/account" onClick={() => setOpen(false)}>
             Account

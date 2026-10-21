@@ -35,6 +35,15 @@ export const CartIcon = ({ size = 22, className }: P) => (
   </svg>
 );
 
+// the cart, as Baba's jar
+export const JarIcon = ({ size = 22, className }: P) => (
+  <svg {...svg(size, className)}>
+    <rect x="7" y="3" width="10" height="3.5" rx="1" />
+    <path d="M8 6.5c-2 1-3 2.6-3 4.5v7a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-7c0-1.9-1-3.5-3-4.5" />
+    <path d="M5 13h14" />
+  </svg>
+);
+
 export const LeafIcon = ({ size = 28, className }: P) => (
   <svg {...svg(size, className)}>
     <path d="M5 19C5 10 10 5 19 5c0 9-5 14-14 14Z" />
