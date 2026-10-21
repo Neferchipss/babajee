@@ -102,3 +102,9 @@ export class Gaze {
 // Sent by the third eye as it chooses ({ phase: "roll" }) and once it has
 // ({ phase: "pick", href }), so the face can look along with it.
 export const SEE_EVENT = "bb:see";
+
+// Sent by the shelf reader when the card it is reading changes
+// ({ el: the card, or null }), and when Baba says something about one
+// ({ el }), so the face can look at it and react.
+export const FOCUS_EVENT = "bb:focus";
+export const REACT_EVENT = "bb:react";

@@ -10,7 +10,7 @@ import rightMask from "@/assets/baba/eye-right-mask.png";
 import { hasBabaEyes } from "@/lib/themes";
 import { publicAsset, useShopTheme } from "@/lib/useShopTheme";
 import { BLINK } from "./blink";
-import { aim, Gaze, SEE_EVENT, type Vec } from "./gaze";
+import { aim, FOCUS_EVENT, Gaze, REACT_EVENT, SEE_EVENT, type Vec } from "./gaze";
 import { askTilt, readTilt, startTilt } from "./tilt";
 
 // Where the empty eye whites sit in the band, in % of it. Measured from the
@@ -74,6 +74,9 @@ export default function BabaBand() {
     let glance = { x: px, y: py };
     let glanceAt = 0;
     let lastNow = 0;
+    let focusOn: HTMLElement | null = null; // the card the shelf reader is on
+    let focusAt = 0;
+    let reactUntil = 0;
 
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return; // touches are followed below
@@ -152,6 +155,19 @@ export default function BabaBand() {
       }
     };
 
+    // the shelf reader moved to another card; Baba reads along
+    const onFocus = (e: Event) => {
+      focusOn = (e as CustomEvent<{ el: HTMLElement | null }>).detail.el;
+      focusAt = performance.now();
+    };
+    // Baba says something about a card: the pupils open wide, sometimes a blink
+    const onReact = () => {
+      const now = performance.now();
+      if (still) return;
+      reactUntil = now + 1500;
+      if (Math.random() < 0.5 && now - lastBlink > 1200) window.setTimeout(blink, 900);
+    };
+
     const setLids = (i: number) => {
       const f = BLINK.frames[Math.min(i, BLINK.frames.length - 1)];
       eyes.forEach((eye, k) => {
@@ -225,10 +241,17 @@ export default function BabaBand() {
       }
       const mouse = !away && now - mouseAt < 3500;
       const scrolling = !still && now - scrollAt < 600;
+      // reading the shelf: while it scrolls, the eyes ride along with the
+      // card under the reading line instead of the finger pushing it
+      const reading = focusOn?.isConnected ? focusOn.getBoundingClientRect() : null;
+      const onCard = reading && { at: { x: reading.left + reading.width / 2, y: reading.top + reading.height / 2 } };
+      if (onCard && now - scrollAt < 600) return onCard;
       if (touching || now - touchAt < 1500 || (mouse && !scrolling)) return { at: { x: px, y: py } };
       if (scrolling) {
         return { at: { x: cx + (px - cx) * 0.3, y: scrollDir > 0 ? cy + window.innerHeight : -window.innerHeight } };
       }
+      // settled on a card: keep looking at it for a while before wandering
+      if (onCard && now - focusAt < 4500) return onCard;
       const tilt = readTilt();
       if (tilt) return { dir: tilt };
       if (still) return { at: { x: window.innerWidth / 2, y: window.innerHeight } };
@@ -254,7 +277,7 @@ export default function BabaBand() {
       // a startle shrinks them quickly, and they relax back
       if (now - hotSince > (hot ? 180 : 450)) swollen = hot;
       const startled = now < startleUntil;
-      const want = startled ? 0.84 : swollen ? 1.1 : 1;
+      const want = startled ? 0.84 : now < reactUntil ? 1.2 : swollen ? 1.1 : 1;
       dil += (want - dil) * (1 - Math.exp(-dt / (startled ? 0.07 : 0.45)));
       eyes.forEach((eye, i) => {
         const r = rects[i];
@@ -286,6 +309,8 @@ export default function BabaBand() {
     window.addEventListener("touchcancel", onTouchEnd, opts);
     window.addEventListener("scroll", onScroll, opts);
     window.addEventListener(SEE_EVENT, onSee);
+    window.addEventListener(FOCUS_EVENT, onFocus);
+    window.addEventListener(REACT_EVENT, onReact);
     document.addEventListener("pointerout", onOut, opts);
     document.addEventListener("visibilitychange", onVisible);
     root.addEventListener("click", poke);
@@ -305,6 +330,8 @@ export default function BabaBand() {
       window.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener(SEE_EVENT, onSee);
+      window.removeEventListener(FOCUS_EVENT, onFocus);
+      window.removeEventListener(REACT_EVENT, onReact);
       document.removeEventListener("pointerout", onOut);
       document.removeEventListener("visibilitychange", onVisible);
       root.removeEventListener("click", poke);

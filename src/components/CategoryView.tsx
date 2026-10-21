@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
+import ShelfReader from "./baba/ShelfReader";
 import ThirdEye from "./baba/ThirdEye";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
@@ -152,6 +153,8 @@ export default function CategoryView({ category, products, categories }: Props) 
 
         <DaydreamBloom />
       </div>
+
+      <ShelfReader category={category.name} />
 
       {openAt >= 0 && (
         <ProductSheet
