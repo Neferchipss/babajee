@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SEE_EVENT } from "./baba/gaze";
 import ProductArt from "./ProductArt";
 
 export type WheelItem = { key: string; name: string; tone: string };
+// How the card drives the wheel: lean follows a drag (a fraction of a
+// product either way), to turns to a product and settles there.
+export type WheelSteer = { lean: (f: number) => void; to: (i: number) => void };
 
 // The dial under the product sheet: every product in the category sits on an
 // arc, and turning it with a thumb swaps the product in the sheet. It snaps
@@ -63,11 +66,14 @@ export default function ProductWheel({
   start,
   onChange,
   onPick,
+  steerRef,
 }: {
   items: WheelItem[];
   start: number;
   onChange: (i: number) => void;
   onPick?: (i: number) => void;
+  // filled in by the wheel, for a swipe on the card to turn it
+  steerRef?: RefObject<WheelSteer | null>;
 }) {
   const wheel = useRef<HTMLDivElement>(null);
   const [centre, setCentre] = useState(start);
@@ -243,6 +249,26 @@ export default function ProductWheel({
       }
     };
 
+    if (steerRef) {
+      steerRef.current = {
+        lean: (f) => {
+          if (s.spin || s.dragging) return;
+          s.vel = 0;
+          s.target = null;
+          s.pos = s.centre + clamp(f, -0.45, 0.45);
+          layout(el, s.pos, s.spacing);
+        },
+        to: (i) => {
+          if (s.spin) return;
+          s.dragging = false;
+          s.vel = 0;
+          s.target = clamp(i, 0, n - 1);
+          setTurned(true);
+          kick();
+        },
+      };
+    }
+
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     el.addEventListener("pointerdown", onDown);
@@ -251,6 +277,7 @@ export default function ProductWheel({
     el.addEventListener("pointercancel", onUp);
     el.addEventListener("keydown", onKey);
     return () => {
+      if (steerRef) steerRef.current = null;
       ro.disconnect();
       window.clearTimeout(s.hold);
       cancelAnimationFrame(s.frame);
@@ -261,7 +288,7 @@ export default function ProductWheel({
       el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("keydown", onKey);
     };
-  }, [n]);
+  }, [n, steerRef]);
 
   const from = Math.max(0, centre - SPAN - 1);
   const to = Math.min(n - 1, centre + SPAN + 1);
@@ -292,7 +319,7 @@ export default function ProductWheel({
         </svg>
       </div>
       <p className="pw-hint" data-hidden={turned}>
-        Turn the wheel · hold the eye for Baba&rsquo;s pick
+        Swipe or turn · hold the eye for Baba&rsquo;s pick
       </p>
     </div>
   );

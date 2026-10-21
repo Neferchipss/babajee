@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import type { BuyVariant } from "./ProductBuy";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
-import ProductWheel from "./ProductWheel";
+import ProductWheel, { type WheelSteer } from "./ProductWheel";
 import "./product-sheet.css";
 
 export type SheetProduct = {
@@ -45,6 +45,8 @@ export default function ProductSheet({
   const [choice, setChoice] = useState({ slug: "", v: 0 });
   const [added, setAdded] = useState("");
   const card = useRef<HTMLElement>(null);
+  const steerRef = useRef<WheelSteer | null>(null);
+  const at = useRef({ i: start, n: products.length });
   const closeBtn = useRef<HTMLButtonElement>(null);
   const host = typeof document === "undefined" ? null : document.getElementById("site");
 
@@ -85,33 +87,79 @@ export default function ProductSheet({
     return () => window.clearTimeout(t);
   }, [added]);
 
-  // pull the card down to put it away
+  useEffect(() => {
+    at.current = { i: view.i, n: products.length };
+  });
+
+  // Drag the product: sideways swaps it for its neighbour, turning the wheel
+  // the same way (swipe left for the next one, as the wheel turns); down
+  // puts the card away. Which it is gets decided by the first few pixels.
   useEffect(() => {
     const el = card.current;
     if (!el) return;
+    let x0 = 0;
     let y0 = 0;
+    let t0 = 0;
+    let dx = 0;
     let dy = 0;
+    let axis: "x" | "y" | null = null;
+    let art: HTMLElement | null = null;
     let id: number | null = null;
     const onDown = (e: PointerEvent) => {
       const t = e.target as HTMLElement;
       if (!t.closest(".ps-pull") || t.closest("button, a")) return;
       id = e.pointerId;
+      x0 = e.clientX;
       y0 = e.clientY;
-      dy = 0;
+      t0 = e.timeStamp;
+      dx = dy = 0;
+      axis = null;
       el.setPointerCapture(e.pointerId);
-      el.style.transition = "none";
     };
     const onMove = (e: PointerEvent) => {
       if (e.pointerId !== id) return;
-      dy = Math.max(0, e.clientY - y0);
-      el.style.transform = `translateY(${dy}px)`;
+      dx = e.clientX - x0;
+      dy = e.clientY - y0;
+      if (!axis) {
+        if (Math.hypot(dx, dy) < 8) return;
+        axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        if (axis === "y") el.style.transition = "none";
+        art = el.querySelector<HTMLElement>(".ps-stage .ps-art");
+        if (art) art.style.transition = "none";
+      }
+      if (axis === "y") {
+        el.style.transform = `translateY(${Math.max(0, dy)}px)`;
+      } else if (art) {
+        // nothing further that way: it gives a little and springs back
+        const { i, n } = at.current;
+        const end = (dx < 0 && i >= n - 1) || (dx > 0 && i <= 0);
+        const d = end ? dx * 0.3 : dx;
+        art.style.transform = `translateX(${d.toFixed(1)}px) rotate(${(d * 0.04).toFixed(2)}deg)`;
+        // the wheel leans along with the card (left drag = towards the next)
+        steerRef.current?.lean(-d / el.clientWidth);
+      }
     };
     const onUp = (e: PointerEvent) => {
       if (e.pointerId !== id) return;
       id = null;
-      el.style.transition = "";
-      el.style.transform = "";
-      if (dy > 110) onClose();
+      if (axis === "y") {
+        el.style.transition = "";
+        el.style.transform = "";
+        if (dy > 110) onClose();
+      } else if (axis === "x") {
+        const speed = Math.abs(dx) / Math.max(1, e.timeStamp - t0); // px per ms
+        const go = Math.abs(dx) > 70 || (Math.abs(dx) > 25 && speed > 0.5);
+        const { i, n } = at.current;
+        const to = i + (dx < 0 ? 1 : -1);
+        if (art) {
+          art.style.transition = "transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2)";
+          art.style.transform = "";
+        }
+        // turn on to the neighbour (the wheel ticks as it goes), or settle back
+        steerRef.current?.to(go && to >= 0 && to < n ? to : i);
+      }
+      axis = null;
+      art = null;
     };
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
@@ -197,6 +245,7 @@ export default function ProductSheet({
         start={start}
         onChange={(i) => setView((w) => ({ i, dir: i > w.i ? 1 : -1, picked: false }))}
         onPick={(i) => setView((w) => ({ ...w, i, picked: true }))}
+        steerRef={steerRef}
       />
     </div>,
     host,
