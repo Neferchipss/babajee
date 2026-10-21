@@ -26,6 +26,8 @@ export default async function CategoryPage(props: PageProps<"/shop/[category]">)
         options: p.variantCount > 1 ? p.variantCount - 1 : 0,
         price: p.minPrice,
         tone,
+        slug: p.slug,
+        variants: p.variants.map(({ label, price, stockQty }) => ({ label, price, stockQty })),
       }))}
     />
   );

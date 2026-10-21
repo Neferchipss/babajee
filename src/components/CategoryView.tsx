@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
 import ThirdEye from "./baba/ThirdEye";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
 import ProductCard, { type CardProduct } from "./ProductCard";
+import ProductSheet from "./ProductSheet";
 
 type Props = {
   category: { slug: string; name: string };
@@ -16,6 +17,42 @@ type Props = {
 };
 
 type Sort = "featured" | "az" | "za";
+
+// The open product lives in the address (?p=slug), so the back button puts
+// the sheet away and a link can open it. Next keeps pushState in step with
+// its router; it fires no event for it, so the sheet tells this store itself.
+const SHEET_EVENT = "bb:sheet";
+const sheetSlug = () => new URLSearchParams(window.location.search).get("p");
+const onSheet = (fn: () => void) => {
+  window.addEventListener("popstate", fn);
+  window.addEventListener(SHEET_EVENT, fn);
+  return () => {
+    window.removeEventListener("popstate", fn);
+    window.removeEventListener(SHEET_EVENT, fn);
+  };
+};
+const setSheet = (slug: string | null, push: boolean) => {
+  const url = slug ? `?p=${encodeURIComponent(slug)}` : window.location.pathname;
+  if (push) window.history.pushState(null, "", url);
+  else window.history.replaceState(null, "", url);
+  window.dispatchEvent(new Event(SHEET_EVENT));
+};
+// opened from the shelf: back undoes the push. Opened from a link: there is
+// nothing of ours to go back to, so just drop ?p from the address.
+let pushedSheet = false;
+const openSheet = (slug: string) => {
+  pushedSheet = true;
+  setSheet(slug, true);
+};
+const closeSheet = () => {
+  if (pushedSheet) {
+    pushedSheet = false;
+    window.history.back();
+  } else setSheet(null, false);
+};
+const followSheet = (slug: string) => {
+  if (slug !== sheetSlug()) setSheet(slug, false);
+};
 
 const VALUES = [
   { Icon: LeafIcon, label: "Thoughtful design" },
@@ -36,6 +73,10 @@ export default function CategoryView({ category, products, categories }: Props) 
     sort === "featured"
       ? filtered
       : [...filtered].sort((a, b) => a.name.localeCompare(b.name) * (sort === "az" ? 1 : -1));
+
+  const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
+  const sheetItems = shown.filter((p) => p.slug && p.variants);
+  const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
 
   return (
     <div className="cp">
@@ -94,7 +135,7 @@ export default function CategoryView({ category, products, categories }: Props) 
           ) : (
             <ul className="cp-grid">
               {shown.map((p) => (
-                <ProductCard key={p.href} product={p} />
+                <ProductCard key={p.href} product={p} onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined} />
               ))}
             </ul>
           )}
@@ -111,6 +152,16 @@ export default function CategoryView({ category, products, categories }: Props) 
 
         <DaydreamBloom />
       </div>
+
+      {openAt >= 0 && (
+        <ProductSheet
+          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants! }))}
+          start={openAt}
+          category={category.name}
+          onIndex={followSheet}
+          onClose={closeSheet}
+        />
+      )}
     </div>
   );
 }
