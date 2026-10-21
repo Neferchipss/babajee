@@ -14,6 +14,9 @@ const nextConfig: NextConfig = isPages
       // plain URLs to files in public/ (theme videos) need the prefix too
       env: { NEXT_PUBLIC_BASE_PATH: "/babajee" },
     }
-  : {};
+  : {
+      // let phones on the home Wi-Fi load the dev server (IP may change)
+      allowedDevOrigins: ["192.168.*.*"],
+    };
 
 export default nextConfig;

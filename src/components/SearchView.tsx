@@ -11,7 +11,7 @@ export type SearchEntry = {
   href: string;
   name: string;
   options: number;
-  price: number;
+  price?: number;
   categoryIndex: number;
   haystack: string;
 };

@@ -5,7 +5,7 @@ import { useState } from "react";
 import Price from "./Price";
 import QtyStepper from "./QtyStepper";
 
-export type BuyVariant = { label: string; price: number; stockQty: number };
+export type BuyVariant = { label: string; price?: number; stockQty: number };
 
 // Price, option picker and the add-to-cart row. The theme CSS styles it
 // through the pd-* classes.

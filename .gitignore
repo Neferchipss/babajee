@@ -45,3 +45,6 @@ next-env.d.ts
 # blender
 __pycache__/
 *.blend1
+
+# local https certs for phone testing
+certificates/

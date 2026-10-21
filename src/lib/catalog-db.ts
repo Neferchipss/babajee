@@ -6,7 +6,7 @@
 // sees what row-level security lets an anonymous visitor see: is_visible
 // rows. A hidden or unpriced product simply does not appear here.
 import { createClient } from "@supabase/supabase-js";
-import { CATEGORIES } from "./catalog-data";
+import { CATEGORIES, type CatalogProduct } from "./catalog-data";
 import { toNumber } from "./currency";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,15 +17,50 @@ function client() {
   return createClient(URL, KEY, { auth: { persistSession: false } });
 }
 
-export type DbVariant = { id: string; label: string; price: number; stockQty: number };
+// Price is unset only for local stand-in products (see useLocal below); it
+// then renders as the "Rs.xx.xx" placeholder.
+export type DbVariant = { id: string; label: string; price?: number; stockQty: number };
 export type DbCardProduct = {
   slug: string;
   name: string;
   variantCount: number;
-  minPrice: number;
+  minPrice?: number;
   variants: DbVariant[];
 };
 export type DbCategory = { slug: string; name: string };
+
+// In development, when the database gives back nothing (paused project, no
+// network), the local stock sheet stands in so the shop is still worth
+// looking at. Never in a build: a deploy must show the real catalogue or
+// nothing. The sheet has no prices, so local products carry none.
+const useLocal = process.env.NODE_ENV === "development";
+
+function localVariants(p: CatalogProduct): DbVariant[] {
+  const labels = p.variants.length ? p.variants.map((v) => v.label) : ["Standard"];
+  return labels.map((label, i) => ({ id: `${p.slug}-${i}`, label, stockQty: 1 }));
+}
+
+function localCard(p: CatalogProduct): DbCardProduct {
+  const variants = localVariants(p);
+  return { slug: p.slug, name: p.name, variantCount: variants.length, variants };
+}
+
+function localCategoryDetail(slug: string) {
+  const c = CATEGORIES.find((x) => x.slug === slug);
+  if (!c) return null;
+  return { category: { slug: c.slug, name: c.name }, products: c.products.map(localCard) };
+}
+
+function localProductDetail(categorySlug: string, productSlug: string) {
+  const c = CATEGORIES.find((x) => x.slug === categorySlug);
+  const p = c?.products.find((x) => x.slug === productSlug);
+  if (!c || !p) return null;
+  return {
+    category: { slug: c.slug, name: c.name },
+    product: { slug: p.slug, name: p.name, description: null as string | null, variants: localVariants(p) },
+    more: c.products.filter((x) => x.slug !== productSlug).slice(0, 4).map(localCard),
+  };
+}
 
 function normalizeVariants(
   rows: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number }[] | null,
@@ -46,7 +81,7 @@ function toCard(row: {
     slug: row.slug,
     name: row.name,
     variantCount: variants.length,
-    minPrice: variants.length ? Math.min(...variants.map((v) => v.price)) : 0,
+    minPrice: variants.length ? Math.min(...variants.map((v) => v.price ?? 0)) : 0,
     variants,
   };
 }
@@ -55,9 +90,9 @@ function toCard(row: {
 // visible, so this is the full 19 unless one is deliberately hidden.
 export async function getCategories(): Promise<DbCategory[]> {
   const sb = client();
-  if (!sb) return [];
-  const { data } = await sb.from("categories").select("slug, name").order("sort_order");
-  return data ?? [];
+  const data = sb ? (await sb.from("categories").select("slug, name").order("sort_order")).data : null;
+  if (data?.length || !useLocal) return data ?? [];
+  return CATEGORIES.map(({ slug, name }) => ({ slug, name }));
 }
 
 // Same reasoning as getStaticProductParams: `output: export` refuses to
@@ -72,6 +107,12 @@ export async function getStaticCategoryParams(): Promise<{ category: string }[]>
 }
 
 export async function getCategoriesWithCounts(): Promise<(DbCategory & { count: number })[]> {
+  const live = await liveCategoriesWithCounts();
+  if (live.length || !useLocal) return live;
+  return CATEGORIES.map((c) => ({ slug: c.slug, name: c.name, count: c.products.length }));
+}
+
+async function liveCategoriesWithCounts(): Promise<(DbCategory & { count: number })[]> {
   const sb = client();
   if (!sb) return [];
   const [{ data: cats }, { data: prods }] = await Promise.all([
@@ -88,17 +129,19 @@ export async function getCategoriesWithCounts(): Promise<(DbCategory & { count: 
   return (cats ?? []).map((c) => ({ slug: c.slug, name: c.name, count: counts.get(c.id) ?? 0 }));
 }
 
-// The category list for the landing and the shop index. In development, when
-// the database gives back nothing (paused project, no network), the local
-// stock sheet stands in so the pages are still worth looking at. Never in a
-// build: a deploy must show the real catalogue or nothing.
+// The category list for the landing and the shop index.
 export async function getIndexCategories() {
-  const live = await getCategoriesWithCounts();
-  if (live.length || process.env.NODE_ENV !== "development") return live;
-  return CATEGORIES.map((c) => ({ slug: c.slug, name: c.name, count: c.products.length }));
+  return getCategoriesWithCounts();
 }
 
+// A null from the live read means the category isn't there (or the database
+// isn't); an existing category with no products stays empty, no stand-in.
 export async function getCategoryDetail(slug: string) {
+  const live = await liveCategoryDetail(slug);
+  return live || !useLocal ? live : localCategoryDetail(slug);
+}
+
+async function liveCategoryDetail(slug: string) {
   const sb = client();
   if (!sb) return null;
   const { data: category } = await sb.from("categories").select("id, slug, name").eq("slug", slug).maybeSingle();
@@ -118,6 +161,11 @@ export async function getCategoryDetail(slug: string) {
 }
 
 export async function getProductDetail(categorySlug: string, productSlug: string) {
+  const live = await liveProductDetail(categorySlug, productSlug);
+  return live || !useLocal ? live : localProductDetail(categorySlug, productSlug);
+}
+
+async function liveProductDetail(categorySlug: string, productSlug: string) {
   const sb = client();
   if (!sb) return null;
   const { data: category } = await sb.from("categories").select("id, slug, name").eq("slug", categorySlug).maybeSingle();
@@ -159,18 +207,27 @@ export async function getProductDetail(categorySlug: string, productSlug: string
 // correctly 404s (see the page component).
 export async function getStaticProductParams(): Promise<{ category: string; product: string }[]> {
   const sb = client();
-  if (!sb) return [{ category: "_none", product: "_none" }];
-  const { data } = await sb.from("products").select("slug, categories!inner(slug)");
+  const data = sb ? (await sb.from("products").select("slug, categories!inner(slug)")).data : null;
   const rows = (data ?? []).map((p) => ({
     category: (p.categories as unknown as { slug: string }).slug,
     product: p.slug,
   }));
-  return rows.length ? rows : [{ category: "_none", product: "_none" }];
+  if (rows.length) return rows;
+  if (useLocal) return CATEGORIES.flatMap((c) => c.products.map((p) => ({ category: c.slug, product: p.slug })));
+  return [{ category: "_none", product: "_none" }];
 }
 
 export type DbSearchProduct = DbCardProduct & { categorySlug: string; categoryName: string };
 
 export async function getSearchCatalog(): Promise<DbSearchProduct[]> {
+  const live = await liveSearchCatalog();
+  if (live.length || !useLocal) return live;
+  return CATEGORIES.flatMap((c) =>
+    c.products.map((p) => ({ ...localCard(p), categorySlug: c.slug, categoryName: c.name })),
+  );
+}
+
+async function liveSearchCatalog(): Promise<DbSearchProduct[]> {
   const sb = client();
   if (!sb) return [];
   const { data } = await sb

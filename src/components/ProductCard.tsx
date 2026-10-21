@@ -7,7 +7,7 @@ export type CardProduct = {
   href: string;
   name: string;
   options: number;
-  price: number;
+  price?: number;
   tone: string;
 };
 
