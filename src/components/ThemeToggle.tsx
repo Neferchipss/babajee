@@ -1,10 +1,11 @@
 "use client";
 
-import { THEMES, THEME_EVENT, THEME_STORAGE_KEY, type ThemeId } from "@/lib/themes";
+import { SHOWN_THEMES, THEME_EVENT, THEME_STORAGE_KEY, type ThemeId } from "@/lib/themes";
 import { useShopTheme } from "@/lib/useShopTheme";
 
 export default function ThemeToggle() {
   const theme = useShopTheme();
+  if (SHOWN_THEMES.length < 2) return null;
 
   function choose(id: ThemeId) {
     document.documentElement.dataset.theme = id;
@@ -21,7 +22,7 @@ export default function ThemeToggle() {
       <span className="theme-toggle-label" aria-hidden="true">
         Theme
       </span>
-      {THEMES.map((t) => (
+      {SHOWN_THEMES.map((t) => (
         <button
           key={t.id}
           type="button"

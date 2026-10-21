@@ -7,7 +7,7 @@ import SiteFrame from "@/components/SiteFrame";
 import SiteHeader from "@/components/SiteHeader";
 import { AuthProvider } from "@/lib/auth";
 import { AGE_STORAGE_KEY } from "@/lib/config";
-import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
+import { DEFAULT_THEME, SHOWN_THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import "./globals.css";
 import "./themes/base.css";
 import "./themes/refined.css";
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 const bootScript = `try{
 if(localStorage.getItem(${JSON.stringify(AGE_STORAGE_KEY)})==="1")document.documentElement.dataset.ageOk="1";
 var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
-if(${JSON.stringify(THEMES.map((x) => x.id))}.indexOf(t)>-1)document.documentElement.dataset.theme=t;
+if(${JSON.stringify(SHOWN_THEMES.map((x) => x.id))}.indexOf(t)>-1)document.documentElement.dataset.theme=t;
 }catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
