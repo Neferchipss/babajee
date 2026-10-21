@@ -29,11 +29,12 @@ export type DbCardProduct = {
 };
 export type DbCategory = { slug: string; name: string };
 
-// In development, when the database gives back nothing (paused project, no
-// network), the local stock sheet stands in so the shop is still worth
-// looking at. Never in a build: a deploy must show the real catalogue or
-// nothing. The sheet has no prices, so local products carry none.
-const useLocal = process.env.NODE_ENV === "development";
+// In development and on the GitHub Pages preview, when the database gives
+// back nothing (paused project, no network), the local stock sheet stands in
+// so the shop is still worth looking at. Never in a real production build:
+// that must show the real catalogue or nothing. The sheet has no prices, so
+// local products carry none.
+const useLocal = process.env.NODE_ENV === "development" || process.env.GITHUB_PAGES === "true";
 
 function localVariants(p: CatalogProduct): DbVariant[] {
   const labels = p.variants.length ? p.variants.map((v) => v.label) : ["Standard"];
