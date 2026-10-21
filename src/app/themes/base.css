@@ -8,6 +8,9 @@
   position: sticky;
   top: 0;
   z-index: 40;
+  /* clear of the notch / Dynamic Island when the page runs edge to edge
+     (home-screen app, landscape); 0 in a normal browser tab */
+  padding-top: env(safe-area-inset-top);
   background: color-mix(in srgb, var(--color-char) 95%, transparent);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);

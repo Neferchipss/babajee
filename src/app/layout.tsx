@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import AgeGate from "@/components/AgeGate";
 import MediaGuard from "@/components/MediaGuard";
@@ -28,6 +28,17 @@ const body = Outfit({
 export const metadata: Metadata = {
   title: "Babajee",
   description: "Smoking accessories: rolling papers, trays, glass, grinders and more.",
+};
+
+// Edge to edge on phones with a notch or Dynamic Island: the page draws
+// under them and every fixed or edge-hugging piece keeps clear with the
+// safe-area insets (env(safe-area-inset-*)). The theme colour tints the
+// browser's own bars to match the night shop, so they read as one surface.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0c0a1c",
 };
 
 // Runs before first paint: restores the age answer and the chosen shop theme,

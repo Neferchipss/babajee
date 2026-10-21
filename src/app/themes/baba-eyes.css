@@ -9,7 +9,9 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
      the eyes (23.5%-69.5% of its height, plus a little air), and the art
      stops growing past 1100px so the band stays thin on wide screens. */
   --bb-w: clamp(480px, 100vw, 1100px);
-  --bb-band-h: calc(var(--bb-w) * 200 / 854 * 0.52 + 3px);
+  /* the band grows by the top safe area (0 in a normal browser tab), so
+     Baba's eyes are never under a notch or the Dynamic Island */
+  --bb-band-h: calc(var(--bb-w) * 200 / 854 * 0.52 + 3px + env(safe-area-inset-top));
 
   & .bb-band {
     position: sticky;
@@ -22,10 +24,11 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   & .bb-band + .hdr {
     top: var(--bb-band-h);
+    padding-top: 0;
   }
   & .bb-stage {
     position: absolute;
-    top: 50%;
+    top: calc(50% + env(safe-area-inset-top) / 2);
     left: 50%;
     width: var(--bb-w);
     aspect-ratio: 854 / 200;
@@ -162,8 +165,8 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   @media (max-width: 900px) {
     & .cp-hero .bb-third {
       position: fixed;
-      right: 12px;
-      bottom: calc(70px + env(safe-area-inset-bottom));
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      right: calc(12px + env(safe-area-inset-right));
       z-index: 45;
       flex-direction: row-reverse;
       align-items: center;
