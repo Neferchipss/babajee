@@ -73,7 +73,7 @@ function remark(card: HTMLElement, seen: Set<string>, category: string) {
 export default function ShelfReader({ category }: { category: string }) {
   const theme = useShopTheme();
   const on = hasBabaEyes(theme);
-  const [say, setSay] = useState<{ text: string; id: number } | null>(null);
+  const [say, setSay] = useState<{ text: string; id: number; top?: number } | null>(null);
 
   useEffect(() => {
     if (!on) return;
@@ -100,7 +100,12 @@ export default function ShelfReader({ category }: { category: string }) {
       saveSeen(seen);
       saidOn = focus;
       lastSaid = now;
-      setSay({ text, id: ++id });
+      // on touch screens Baba's band is off the page, so the bubble sits
+      // just under the header instead of under the band
+      const top = window.matchMedia("(hover: none) and (pointer: coarse)").matches
+        ? Math.max(0, document.querySelector(".hdr")?.getBoundingClientRect().bottom ?? 0) + 12
+        : undefined;
+      setSay({ text, id: ++id, top });
       window.dispatchEvent(new CustomEvent(REACT_EVENT, { detail: { el: focus } }));
       window.clearTimeout(quiet);
       quiet = window.setTimeout(() => setSay(null), SAY_MS);
@@ -179,7 +184,14 @@ export default function ShelfReader({ category }: { category: string }) {
 
   if (!on) return null;
   return (
-    <p className="bb-say" role="status" aria-live="polite" data-on={say !== null}>
+    <p
+      className="bb-say"
+      role="status"
+      aria-live="polite"
+      data-on={say !== null}
+      data-under={say?.top !== undefined ? "hdr" : undefined}
+      style={say?.top !== undefined ? { top: say.top } : undefined}
+    >
       <span key={say?.id}>{say?.text}</span>
     </p>
   );

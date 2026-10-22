@@ -13,6 +13,10 @@ import { BLINK } from "./blink";
 import { aim, FOCUS_EVENT, Gaze, REACT_EVENT, SEE_EVENT, type Vec } from "./gaze";
 import { askTilt, readTilt, startTilt } from "./tilt";
 
+// touch screens, where the band hides until you pull down at the top
+const PEEK_MEDIA = "(hover: none) and (pointer: coarse)";
+const BLINK_EVENT = "bb:blink";
+
 // Where the empty eye whites sit in the band, in % of it. Measured from the
 // blink clip's open frame, which the still is an upscale of, so the still and
 // the clip line up exactly.
@@ -34,6 +38,7 @@ const EYES = [
 export default function BabaBand() {
   const theme = useShopTheme();
   const path = usePathname().replace(/\/$/, "");
+  const bandRef = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const isCategory = /^\/shop\/[^/]+$/.test(path) && path !== "/shop/search";
@@ -161,11 +166,13 @@ export default function BabaBand() {
       focusAt = performance.now();
     };
     // Baba says something about a card: the pupils open wide, sometimes a blink
-    const onReact = () => {
+    const onReact = (e: Event) => {
       const now = performance.now();
       if (still) return;
       reactUntil = now + 1500;
-      if (Math.random() < 0.5 && now - lastBlink > 1200) window.setTimeout(blink, 900);
+      // only a remark about a card can end in a blink (the pull's wide eyes stay open)
+      const about = (e as CustomEvent<{ el: HTMLElement | null }>).detail?.el;
+      if (about && Math.random() < 0.5 && now - lastBlink > 1200) window.setTimeout(blink, 900);
     };
 
     const setLids = (i: number) => {
@@ -314,6 +321,7 @@ export default function BabaBand() {
     document.addEventListener("pointerout", onOut, opts);
     document.addEventListener("visibilitychange", onVisible);
     root.addEventListener("click", poke);
+    window.addEventListener(BLINK_EVENT, blink);
     startTilt();
     frame = requestAnimationFrame(tick);
     if (!still) schedule();
@@ -335,12 +343,103 @@ export default function BabaBand() {
       document.removeEventListener("pointerout", onOut);
       document.removeEventListener("visibilitychange", onVisible);
       root.removeEventListener("click", poke);
+      window.removeEventListener(BLINK_EVENT, blink);
+    };
+  }, [on]);
+
+  // On touch screens the band is not on the page. Pull down past the top
+  // (where a phone would refresh) and the eyes slide down over the header,
+  // having been watching all along; let go far enough and they blink and
+  // the page reloads, or short of that they slip back up.
+  useEffect(() => {
+    const el = bandRef.current;
+    if (!on || !el || !window.matchMedia(PEEK_MEDIA).matches) return;
+    const root = document.documentElement;
+    let y0 = 0;
+    let pull = 0;
+    let armed = false; // the touch started at the top of the page
+    let going = false;
+    let hide = 0;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // fully out: the eyes and the brow above them (the art below the eyes
+    // stays hidden), under the notch if there is one
+    const height = () => {
+      const art = el.querySelector<HTMLElement>(".bb-stage")?.offsetHeight ?? 110;
+      return art * 0.72 + (parseFloat(getComputedStyle(el).paddingTop) || 0);
+    };
+    // past fully out, the face leans in closer instead of the band growing
+    const show = (px: number, ease: boolean) => {
+      const h = height();
+      el.style.transition = ease ? "height 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1)" : "none";
+      el.style.height = `${Math.max(0, Math.min(px, h)).toFixed(1)}px`;
+      el.style.setProperty("--lean", (1 + Math.max(0, px - h) / h).toFixed(3));
+    };
+    const onStart = (e: TouchEvent) => {
+      armed = !going && e.touches.length === 1 && window.scrollY <= 0 && !root.dataset.sheet;
+      y0 = e.touches[0]?.clientY ?? 0;
+      pull = 0;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!armed) return;
+      const dy = (e.touches[0]?.clientY ?? 0) - y0;
+      if (dy <= 0 || window.scrollY > 0) {
+        if (pull > 0) show(0, false);
+        pull = 0;
+        return;
+      }
+      if (e.cancelable) e.preventDefault(); // ours, not the browser's refresh
+      // grows with the finger, then resists past the eyes being fully out
+      const h = height();
+      pull = dy < h ? dy : h + (dy - h) * 0.12;
+      show(pull, false);
+      const ready = pull >= h * 0.9;
+      if (ready !== (el.dataset.ready === "true")) {
+        el.dataset.ready = String(ready);
+        if (ready) {
+          // far enough: the pupils open wide
+          window.dispatchEvent(new CustomEvent(REACT_EVENT, { detail: { el: null } }));
+          try {
+            navigator.vibrate?.(8);
+          } catch {}
+        }
+      }
+      window.clearTimeout(hide);
+      el.dataset.peek = "true";
+    };
+    const onEnd = () => {
+      if (!armed) return;
+      armed = false;
+      if (el.dataset.ready === "true") {
+        going = true;
+        show(height(), true);
+        window.dispatchEvent(new Event(BLINK_EVENT));
+        window.setTimeout(() => window.location.reload(), still ? 0 : 520);
+        return;
+      }
+      show(0, true);
+      delete el.dataset.ready;
+      window.clearTimeout(hide);
+      hide = window.setTimeout(() => delete el.dataset.peek, 360);
+    };
+    show(0, false);
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
+      window.clearTimeout(hide);
+      el.style.height = "";
+      el.style.transition = "";
     };
   }, [on]);
 
   if (!on) return null;
   return (
-    <div className="bb-band">
+    <div ref={bandRef} className="bb-band">
       <div ref={stage} className="bb-stage">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={band.src} alt="" className="bb-art" aria-hidden="true" />

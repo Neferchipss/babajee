@@ -11,13 +11,16 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   --bb-w: clamp(480px, 100vw, 1100px);
   /* the band grows by the top safe area (0 in a normal browser tab), so
      Baba's eyes are never under a notch or the Dynamic Island */
-  --bb-band-h: calc(var(--bb-w) * 200 / 854 * 0.52 + 3px + env(safe-area-inset-top));
+  --bb-art-h: calc(var(--bb-w) * 200 / 854 * 0.52 + 3px + env(safe-area-inset-top));
+  /* how much of the top of the page the band takes (none on touch screens,
+     where it only comes out on a pull: see below) */
+  --bb-band-h: var(--bb-art-h);
 
   & .bb-band {
     position: sticky;
     top: 0;
     z-index: 41;
-    height: var(--bb-band-h);
+    height: var(--bb-art-h);
     overflow: hidden;
     border-bottom: 3px solid var(--bb-ink);
     background: var(--bb-maroon-dk);
@@ -284,5 +287,48 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   75% {
     translate: calc(-50% - 30%) -50%;
+  }
+}
+
+/* Touch screens: the band is off the page, above the top edge. Pulling down
+   at the top slides it down over the header (BabaBand moves it), and letting
+   go far enough reloads, so the browser's own pull-to-refresh is turned off. */
+@media (hover: none) and (pointer: coarse) {
+  html[data-theme^="baba"] #site[data-scope="shop"] {
+    --bb-band-h: env(safe-area-inset-top, 0px);
+
+    /* it grows down from the top edge as you pull: the eyes come first,
+       anchored to its foot, then the brow; the art below the eyes stays out */
+    & .bb-band {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 46;
+      box-sizing: border-box;
+      height: 0;
+      padding-top: env(safe-area-inset-top);
+      border-bottom-width: 0;
+      box-shadow: 0 12px 30px rgb(0 0 0 / 0.55);
+    }
+    & .bb-band[data-peek] {
+      border-bottom-width: 3px;
+    }
+    & .bb-band:not([data-peek]) {
+      visibility: hidden;
+    }
+    & .bb-stage {
+      top: auto;
+      bottom: 0;
+      translate: -50% 28%;
+      scale: var(--lean, 1);
+      transform-origin: 50% 40%;
+      transition: scale 0.3s ease-out;
+    }
+    & .bb-band + .hdr {
+      top: 0;
+      padding-top: env(safe-area-inset-top);
+    }
+  }
+  html[data-theme^="baba"]:has(.bb-band) {
+    overscroll-behavior-y: none;
   }
 }
