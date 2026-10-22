@@ -332,6 +332,12 @@
 .pw[data-active] .pw-dial {
   scale: 1;
 }
+/* a taller touch target than the small resting dial shows */
+.pw-dial::before {
+  content: "";
+  position: absolute;
+  inset: -28px 0 -12px;
+}
 .pw-dial:active {
   cursor: grabbing;
 }
@@ -365,6 +371,25 @@
 .pw-art {
   width: 100%;
   border-radius: 50% !important;
+  transition: scale 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* pressed: it dips in; arriving in the middle: it pops and its ring lights */
+.pw-item[data-press] .pw-art {
+  scale: 0.88;
+}
+.pw-item[data-c="true"] {
+  border-color: var(--ps-pink);
+  box-shadow:
+    0 8px 20px rgb(0 0 0 / 0.45),
+    0 0 16px rgb(var(--ps-glow) / 0.55);
+}
+.pw-item[data-c="true"] .pw-art {
+  animation: pw-arrive 0.28s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes pw-arrive {
+  from {
+    scale: 0.82;
+  }
 }
 .pw-eye {
   position: absolute;
@@ -546,7 +571,8 @@ html[data-sheet] #site .cp-hero .bb-third {
   .ps-picked,
   .ps-add,
   .pw,
-  .pw-eye {
+  .pw-eye,
+  .pw-item .pw-art {
     animation: none !important;
   }
 }

@@ -54,7 +54,9 @@ function layout(el: HTMLElement, pos: number, spacing: number) {
     const a = clamp(d, -SPAN, SPAN) * STEP;
     const x = r * Math.sin(a);
     const y = r * (1 - Math.cos(a));
-    const s = 1 - Math.min(ad, 1) * 0.3 - clamp(ad - 1, 0, 4) * 0.06;
+    // the one in the middle is magnified, as under a lens, and its
+    // neighbours shrink away from it smoothly as they turn past
+    const s = 1.14 - Math.min(ad, 1) * 0.44 - clamp(ad - 1, 0, 4) * 0.06;
     it.style.transform = `translate(-50%, -50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
     it.style.opacity = clamp(1.2 - ad * 0.22, 0, 1).toFixed(3);
     it.style.zIndex = String(100 - Math.round(ad * 10));
@@ -203,6 +205,39 @@ export default function ProductWheel({
       kick();
     };
 
+    // the product under a finger dips in until the finger moves or lifts
+    let pressed: HTMLElement | null = null;
+    const pressOn = (it: HTMLElement | null) => {
+      if (pressed) delete pressed.dataset.press;
+      pressed = it;
+      if (it) it.dataset.press = "true";
+    };
+
+    // a mouse wheel or trackpad turns it too, a product per notch-ish, and it
+    // settles on the nearest once the scrolling stops
+    let wheelEnd = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (s.spin) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (!d) return;
+      e.preventDefault();
+      wake();
+      s.dragging = true;
+      s.vel = 0;
+      s.target = null;
+      s.pos = clamp(s.pos + d / (s.spacing * 1.6), -0.35, n - 0.65);
+      layout(el, s.pos, s.spacing);
+      settleCentre();
+      setTurned(true);
+      window.clearTimeout(wheelEnd);
+      wheelEnd = window.setTimeout(() => {
+        s.dragging = false;
+        s.target = clamp(Math.round(s.pos), 0, n - 1);
+        rest(250);
+        kick();
+      }, 110);
+    };
+
     const indexAt = (t: EventTarget | null) => {
       const it = (t as HTMLElement | null)?.closest<HTMLElement>("[data-i]");
       return it ? Number(it.dataset.i) : null;
@@ -219,6 +254,7 @@ export default function ProductWheel({
       s.spun = false;
       s.samples = [{ t: e.timeStamp, x: e.clientX }];
       s.downOn = indexAt(e.target);
+      pressOn((e.target as HTMLElement | null)?.closest<HTMLElement>("[data-i]") ?? null);
       window.clearTimeout(s.hold);
       if (s.downOn === s.centre) s.hold = window.setTimeout(spin, HOLD_MS);
       wake();
@@ -227,8 +263,9 @@ export default function ProductWheel({
     const onMove = (e: PointerEvent) => {
       if (!s.dragging) return;
       const dx = e.clientX - s.x0;
-      if (!s.moved && Math.abs(dx) > 6) {
+      if (!s.moved && Math.abs(dx) > 3) {
         s.moved = true;
+        pressOn(null);
         window.clearTimeout(s.hold);
         setTurned(true);
       }
@@ -242,6 +279,7 @@ export default function ProductWheel({
     };
     const onUp = () => {
       window.clearTimeout(s.hold);
+      pressOn(null);
       if (!s.dragging) return;
       s.dragging = false;
       if (s.spun) return;
@@ -298,7 +336,10 @@ export default function ProductWheel({
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
     el.addEventListener("keydown", onKey);
+    el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
+      window.clearTimeout(wheelEnd);
+      el.removeEventListener("wheel", onWheel);
       if (steerRef) steerRef.current = null;
       ro.disconnect();
       window.clearTimeout(s.hold);
@@ -333,7 +374,7 @@ export default function ProductWheel({
       >
         <div className="pw-ring" aria-hidden="true" />
         {drawn.map((i) => (
-          <div key={items[i].key} data-i={i} className="pw-item" aria-hidden="true">
+          <div key={items[i].key} data-i={i} data-c={i === centre} className="pw-item" aria-hidden="true">
             <ProductArt name={items[i].name} tone={items[i].tone} className="pw-art" />
           </div>
         ))}
