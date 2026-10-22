@@ -369,12 +369,22 @@ export default function BabaBand() {
       const art = el.querySelector<HTMLElement>(".bb-stage")?.offsetHeight ?? 110;
       return art * 0.72 + (parseFloat(getComputedStyle(el).paddingTop) || 0);
     };
-    // past fully out, the face leans in closer instead of the band growing
+    // The page slides down with the finger and Baba comes down glued to its
+    // top edge: the band is always as tall as the pull. Past fully out the
+    // face leans in closer. The page moves by padding on #site rather than a
+    // transform, so the fixed jar, third eye and bubble stay where they are.
+    const site = el.parentElement;
+    const SPRING = "0.38s cubic-bezier(0.2, 0.9, 0.3, 1.05)";
     const show = (px: number, ease: boolean) => {
       const h = height();
-      el.style.transition = ease ? "height 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1)" : "none";
-      el.style.height = `${Math.max(0, Math.min(px, h)).toFixed(1)}px`;
-      el.style.setProperty("--lean", (1 + Math.max(0, px - h) / h).toFixed(3));
+      const y = Math.max(0, px);
+      el.style.transition = ease ? `height ${SPRING}` : "none";
+      el.style.height = `${y.toFixed(1)}px`;
+      el.style.setProperty("--lean", (1 + Math.max(0, y - h) / h).toFixed(3));
+      if (site) {
+        site.style.transition = ease ? `padding-top ${SPRING}` : "none";
+        site.style.paddingTop = y > 0 ? `${y.toFixed(1)}px` : "";
+      }
     };
     const onStart = (e: TouchEvent) => {
       armed = !going && e.touches.length === 1 && window.scrollY <= 0 && !root.dataset.sheet;
@@ -411,17 +421,18 @@ export default function BabaBand() {
     const onEnd = () => {
       if (!armed) return;
       armed = false;
-      if (el.dataset.ready === "true") {
+      // let go: the page springs back up and Baba goes with it, out of view.
+      // Far enough, and the page reloads once he is gone.
+      const reload = el.dataset.ready === "true";
+      if (reload) {
         going = true;
-        show(height(), true);
         window.dispatchEvent(new Event(BLINK_EVENT));
-        window.setTimeout(() => window.location.reload(), still ? 0 : 520);
-        return;
+        window.setTimeout(() => window.location.reload(), still ? 0 : 420);
       }
       show(0, true);
       delete el.dataset.ready;
       window.clearTimeout(hide);
-      hide = window.setTimeout(() => delete el.dataset.peek, 360);
+      hide = window.setTimeout(() => delete el.dataset.peek, 420);
     };
     show(0, false);
     // scrolling up at the top: out a little per notch, back after a pause
@@ -433,7 +444,7 @@ export default function BabaBand() {
           wheeled = 0;
           show(0, true);
           window.clearTimeout(hide);
-          hide = window.setTimeout(() => delete el.dataset.peek, 360);
+          hide = window.setTimeout(() => delete el.dataset.peek, 420);
         }
         return;
       }
@@ -448,7 +459,7 @@ export default function BabaBand() {
       hide = window.setTimeout(() => {
         wheeled = 0;
         show(0, true);
-        hide = window.setTimeout(() => delete el.dataset.peek, 360);
+        hide = window.setTimeout(() => delete el.dataset.peek, 420);
       }, 2200);
     };
     if (touchScreen) {
@@ -467,6 +478,10 @@ export default function BabaBand() {
       window.clearTimeout(hide);
       el.style.height = "";
       el.style.transition = "";
+      if (el.parentElement) {
+        el.parentElement.style.paddingTop = "";
+        el.parentElement.style.transition = "";
+      }
     };
   }, [on]);
 
