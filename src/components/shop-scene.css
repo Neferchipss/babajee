@@ -501,9 +501,12 @@ body:has(.scene) .theme-toggle {
   inset: 0;
   z-index: 20;
   display: grid;
-  place-content: center;
+  /* in the open scene above the categories box, which stays on top */
+  align-content: start;
+  justify-content: center;
   justify-items: center;
   gap: 14px;
+  padding-top: 24dvh;
   background: rgb(6 5 26 / 0.55);
   color: #fff;
   font-weight: 700;
