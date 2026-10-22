@@ -262,6 +262,10 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     let touch = false;
     let visible = true;
     let raf = 0;
+    // a category was chosen: stop drawing so the page change gets the whole
+    // main thread (a frame of the scene can cost a slow phone tens of ms,
+    // and the next page has to load between frames)
+    let leaving = false;
     let last = performance.now();
     const v = new THREE.Vector3();
     const q = new THREE.Quaternion();
@@ -461,10 +465,10 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         box.current.style.opacity = String(o);
         box.current.style.visibility = o > 0.01 ? "visible" : "hidden";
       }
-      if (visible && !document.hidden) raf = requestAnimationFrame(tick);
+      if (visible && !document.hidden && !leaving) raf = requestAnimationFrame(tick);
     };
     const kick = () => {
-      if (!raf) {
+      if (!raf && !leaving) {
         last = performance.now();
         raf = requestAnimationFrame(tick);
       }
@@ -515,6 +519,24 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     };
     window.addEventListener("pointermove", onPointer, { passive: true });
     const onVisibility = () => kick();
+    const onLeave = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      const a = t?.closest<HTMLAnchorElement>("a[href]");
+      const toCategory = a ? /\/shop\/[^/]+\/?$/.test(a.pathname) : !!t?.closest(".scene-bubble[data-slug]");
+      if (!toCategory || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      leaving = true;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      // say where we're going while it opens
+      const name = a
+        ? (a.querySelector("span")?.textContent ?? a.textContent ?? "")
+        : (t?.closest(".scene-bubble")?.querySelector(".scene-bubble-name")?.textContent ?? "");
+      const label = stageEl.querySelector(".scene-leaving b");
+      if (label) label.textContent = name.trim() || "the shelf";
+      stageEl.dataset.leaving = "true";
+    };
+    // the capture phase, so it runs before the link starts the navigation
+    stageEl.addEventListener("click", onLeave, true);
 
     const ro = new ResizeObserver(() => {
       size();
@@ -537,6 +559,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      stageEl.removeEventListener("click", onLeave, true);
       ro.disconnect();
       io.disconnect();
       el.removeEventListener("pointerdown", onDown);
@@ -636,6 +659,16 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         <p className="scene-hint" data-hidden={touched || status !== "ready" || !unlocked} aria-hidden="true">
           Drag to look around
         </p>
+
+        <div className="scene-leaving" role="status" aria-live="polite">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M5 24Q24 6 43 24Q24 42 5 24Z" />
+            <circle cx="24" cy="24" r="7" />
+          </svg>
+          <p>
+            Opening <b />
+          </p>
+        </div>
 
         <nav className="scene-box" ref={box} aria-labelledby="scene-title">
           <p className="scene-crumb">Babajee &middot; The smoke shop</p>
