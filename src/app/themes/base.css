@@ -874,13 +874,22 @@
 /* Saved for later, under the cart: the same picture-first tiles as the shelf */
 #site .saved-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 20px 12px;
-  margin: 0;
-  padding: 0;
+  grid-auto-flow: column;
+  grid-auto-columns: 136px;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 0 16px 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
   list-style: none;
 }
+#site .saved-list::-webkit-scrollbar {
+  display: none;
+}
 #site .saved-item {
+  scroll-snap-align: start;
   display: grid;
   gap: 8px;
   align-content: start;

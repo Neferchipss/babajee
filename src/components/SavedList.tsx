@@ -12,7 +12,7 @@ export default function SavedList() {
   const saved = useSaved();
   if (saved.length === 0) return null;
   return (
-    <section className="saved mt-14" aria-labelledby="saved-title">
+    <section className="saved mt-10" aria-labelledby="saved-title">
       <h2 id="saved-title" className="text-2xl">
         Saved for later <span className="text-base text-muted">({saved.length})</span>
       </h2>
@@ -39,7 +39,7 @@ export default function SavedList() {
                     unsave(it.slug);
                   }}
                 >
-                  Move to jar
+                  Add
                 </button>
               )}
               <button type="button" className="saved-remove" onClick={() => unsave(it.slug)}>

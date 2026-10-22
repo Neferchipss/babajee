@@ -20,6 +20,7 @@ export type SheetProduct = {
   name: string;
   tone: string;
   variants: BuyVariant[];
+  unit?: string;
 };
 
 const buzz = (p: number | number[]) => {
@@ -267,7 +268,7 @@ export default function ProductSheet({
 
   function add() {
     buzz([10, 40, 10]);
-    addToCart({ slug: p.slug, href: p.href, name: p.name, tone: p.tone, variant: variant.label, price: variant.price });
+    addToCart({ slug: p.slug, href: p.href, name: p.name, tone: p.tone, variant: variant.label, price: variant.price, unit: p.unit });
     tossIntoJar(card.current?.querySelector(".ps-art") ?? null);
     setAdded(p.slug);
   }

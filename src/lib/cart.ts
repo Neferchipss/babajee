@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { unitPrice } from "./deal";
 
 // The cart (Baba's jar). It lives in this browser's localStorage until there
 // is an account to keep it on; every jar, count and cart page on the site
@@ -14,6 +15,8 @@ export type CartLine = {
   tone: string;
   variant: string;
   price?: number;
+  // how it is packed, e.g. "Box of 50"
+  unit?: string;
   qty: number;
 };
 export type CartItem = Omit<CartLine, "key" | "qty">;
@@ -69,9 +72,23 @@ export function useCart() {
 }
 
 export const cartCount = (cart: CartLine[]) => cart.reduce((n, l) => n + l.qty, 0);
-// undefined while any line has no price yet
-export const cartTotal = (cart: CartLine[]) =>
-  cart.some((l) => l.price === undefined) ? undefined : cart.reduce((s, l) => s + (l.price ?? 0) * l.qty, 0);
+
+// one line's unit price for display (stand-ins until real prices arrive)
+export const lineUnit = (l: CartLine) => unitPrice(l.slug, l.price);
+
+// what the jar adds up to: the total to pay, what it would have cost at the
+// struck-through prices, and the difference
+export function cartSums(cart: CartLine[]) {
+  let total = 0;
+  let full = 0;
+  for (const l of cart) {
+    const u = lineUnit(l);
+    total += u.price * l.qty;
+    full += (u.mrp ?? u.price) * l.qty;
+  }
+  return { count: cartCount(cart), total, full, saved: full - total };
+}
+export const cartTotal = (cart: CartLine[]) => cartSums(cart).total;
 
 export function addToCart(item: CartItem, qty = 1) {
   const key = `${item.slug}::${item.variant}`;
@@ -86,7 +103,22 @@ export function setQty(key: string, qty: number) {
   write(qty <= 0 ? cart.filter((l) => l.key !== key) : cart.map((l) => (l.key === key ? { ...l, qty } : l)));
 }
 
-export const removeLine = (key: string) => setQty(key, 0);
+// removes a line and hands it back with where it was, for an undo
+export function removeLine(key: string): { line: CartLine; at: number } | null {
+  const cart = read();
+  const at = cart.findIndex((l) => l.key === key);
+  if (at < 0) return null;
+  write(cart.filter((l) => l.key !== key));
+  return { line: cart[at], at };
+}
+
+// puts a removed line back where it was (merging if it was added again since)
+export function restoreLine(line: CartLine, at: number) {
+  const cart = read();
+  const there = cart.findIndex((l) => l.key === line.key);
+  if (there >= 0) write(cart.map((l, i) => (i === there ? { ...l, qty: l.qty + line.qty } : l)));
+  else write([...cart.slice(0, at), line, ...cart.slice(at)]);
+}
 export const clearCart = () => write([]);
 
 // Throws a copy of `from` (usually the product picture) into whichever jar

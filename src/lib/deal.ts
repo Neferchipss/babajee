@@ -17,3 +17,15 @@ export function dealFor(slug: string | undefined, price?: number, mrp?: number):
   if (price !== undefined) return mrp !== undefined && price < mrp ? { price, mrp } : null;
   return placeholderDeal(slug);
 }
+
+// The stand-in price for a product that has none yet (shown as ₹420.00).
+export const STAND_IN = 420;
+
+// What one unit costs for display and sums: the real price, or until prices
+// arrive, the stand-in deal or the stand-in price. mrp is set when it is on
+// offer.
+export function unitPrice(slug: string, price?: number, mrp?: number): { price: number; mrp?: number } {
+  const deal = dealFor(slug, price, mrp);
+  if (deal) return deal;
+  return { price: price ?? STAND_IN };
+}

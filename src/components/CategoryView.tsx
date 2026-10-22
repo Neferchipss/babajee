@@ -199,7 +199,7 @@ export default function CategoryView({ category, products, categories }: Props) 
                     p.slug && p.variants?.length === 1 && p.variants[0].stockQty > 0
                       ? (from) => {
                           const v = p.variants![0];
-                          addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price });
+                          addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
                           tossIntoJar(from);
                           try {
                             navigator.vibrate?.([10, 40, 10]);
@@ -230,7 +230,7 @@ export default function CategoryView({ category, products, categories }: Props) 
       {openAt >= 0 && (
         <ProductSheet
           key={category.slug}
-          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants! }))}
+          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants!, unit: p.unit }))}
           start={openAt}
           category={category.name}
           categories={categories}

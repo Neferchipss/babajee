@@ -596,7 +596,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
    packed are printed under it on the page, not in a box. The reader's glow,
    hover and "seen" rings move onto the picture, since the tile itself no
    longer has a frame. */
-html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
+html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   & .cp-grid {
     gap: 20px 12px;
   }
@@ -741,7 +741,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
 
 /* On offer: the price on a green tag with a printed offset shadow, the old
    price struck through beside it, and how much is off on a dashed line */
-html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
+html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   & .pc-price--deal {
     gap: 6px;
     padding-right: 40px;
@@ -776,6 +776,13 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+  /* a narrow tile has no room for the old price beside the tag and the
+     "+"; the line under it still says how much is off */
+  @container (max-width: 170px) {
+    & .pc-mrp {
+      display: none;
+    }
   }
   & .pc-off::after {
     content: "";
