@@ -547,3 +547,78 @@ body:has(.scene) .theme-toggle {
     animation: none;
   }
 }
+
+/* gyro: look around by moving the phone (touch screens only) */
+.scene-gyro {
+  position: absolute;
+  right: clamp(14px, 3vw, 32px);
+  bottom: clamp(14px, 3vh, 28px);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.4s, background-color 0.2s, color 0.2s;
+}
+.scene-gyro[data-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.scene-gyro[aria-pressed="true"] {
+  border-color: var(--color-rasta-gold);
+  background: var(--color-rasta-gold);
+  color: var(--color-char);
+}
+.scene-gyro-note {
+  position: absolute;
+  right: clamp(14px, 3vw, 32px);
+  bottom: calc(clamp(14px, 3vh, 28px) + 48px);
+  z-index: 3;
+  max-width: calc(100% - 28px);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.75);
+  color: #fff;
+  font-size: 0.8rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.scene-gyro-note[data-on="true"] {
+  opacity: 1;
+}
+
+/* Phones: the shop box fills the bottom of the view, so the two buttons move to
+   the top corners, out of its way; the hint and gyro note drop in below them. */
+@media (max-width: 760px) {
+  .scene-back,
+  .scene-gyro {
+    top: calc(12px + env(safe-area-inset-top));
+    bottom: auto;
+    padding: 7px 13px;
+  }
+  .scene-back {
+    left: calc(12px + env(safe-area-inset-left));
+  }
+  .scene-gyro {
+    right: calc(12px + env(safe-area-inset-right));
+  }
+  .scene-hint {
+    top: calc(58px + env(safe-area-inset-top));
+  }
+  .scene-gyro-note {
+    top: calc(58px + env(safe-area-inset-top));
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: auto;
+  }
+}

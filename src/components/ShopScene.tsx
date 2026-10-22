@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
@@ -39,9 +39,53 @@ const DRACO = `${BASE}/draco/gltf/`; // decoder for the compressed model
 const STOPS = [0, 0.2, 0.38, 0.55, 0.76, 1];
 const LOOK_FROM = 0.93; // the box and the labels come in over the last stretch
 const SETTLE = 0.7; // seconds at the very end before the view may be turned
+const GYRO_EASE = 1.2; // seconds for the view to hand over from the default camera to the phone
 const LABEL_H = 34; // px a label needs to itself, so crowded ones can be pushed apart
 
 const clamp = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
+
+// The gyro button is only offered on touch screens that have a motion sensor.
+const noSub = () => () => {};
+const canGyro = () => typeof DeviceOrientationEvent !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+// on: driving the view. auto: switch on by itself once inside (until they turn it off).
+// allowed: iOS has granted motion access (always true elsewhere). seen: a reading came in since on.
+type Gyro = { on: boolean; seen: boolean; auto: boolean; allowed: boolean; manual: boolean };
+
+// From the old pano viewer: which way the back of the phone points, from its
+// orientation angles (alpha, beta, gamma: the W3C Z-X'-Y'' rotation, world Z
+// up), and how far the screen is turned about that line (roll). Heading is
+// radians clockwise from the sensor's own "north" (arbitrary on most phones,
+// hence lining it up with the view on the first reading). The screen's
+// rotation (portrait or landscape) decides which edge of the phone is "up".
+function facing(e: DeviceOrientationEvent, screenAngle: number) {
+  const RAD = Math.PI / 180;
+  const a = (e.alpha ?? 0) * RAD;
+  const b = (e.beta ?? 0) * RAD;
+  const c = (e.gamma ?? 0) * RAD;
+  const [ca, sa, cb, sb, cg, sg] = [Math.cos(a), Math.sin(a), Math.cos(b), Math.sin(b), Math.cos(c), Math.sin(c)];
+  // a vector in the phone's frame, turned into the world's
+  const world = (x: number, y: number, z: number) => {
+    const x1 = x * cg + z * sg; // about Y by gamma
+    const z1 = -x * sg + z * cg;
+    const y2 = y * cb - z1 * sb; // about X by beta
+    const z2 = y * sb + z1 * cb;
+    return [x1 * ca - y2 * sa, x1 * sa + y2 * ca, z2]; // about Z by alpha
+  };
+  const [fx, fy, fz] = world(0, 0, -1); // the camera looks out of the back
+  const t = screenAngle * RAD;
+  const [ux, uy, uz] = world(Math.sin(t), Math.cos(t), 0); // the screen's up
+  // roll: the screen's up against the level "up" for that heading
+  const h = Math.hypot(fx, fy);
+  let roll = 0;
+  if (h > 0.05) {
+    const l = [(-fz * fx) / h, (-fz * fy) / h, h]; // level up
+    const r = [fy / h, -fx / h, 0]; // level right (forward x world up)
+    roll = Math.atan2(ux * r[0] + uy * r[1] + uz * r[2], ux * l[0] + uy * l[1] + uz * l[2]);
+  }
+  return { heading: Math.atan2(fx, fy), elevation: Math.asin(clamp(fz, -1, 1)), roll };
+}
+type MotionPermission = { requestPermission?: () => Promise<string> };
+const needsAsk = () => typeof DeviceOrientationEvent !== "undefined" && !!(DeviceOrientationEvent as unknown as MotionPermission).requestPermission;
 const smooth = (a: number, b: number, n: number) => {
   const t = clamp((n - a) / (b - a));
   return t * t * (3 - 2 * t);
@@ -62,6 +106,44 @@ export default function ShopScene({ categories, intro }: { categories: Category[
   const [spots, setSpots] = useState<Spot[]>([]);
   const [touched, setTouched] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+  // shared with the render loop, which switches it on and off
+  const gyro = useRef<Gyro>({ on: false, seen: false, auto: true, allowed: false, manual: false });
+  const [gyroOn, setGyroOn] = useState(false);
+  const [gyroNote, setGyroNote] = useState("");
+  const gyroAble = useSyncExternalStore(noSub, canGyro, () => false);
+  // iOS forgets motion access on every page load and only asks from inside a
+  // tap, so the first tap anywhere asks; the gyro then comes on by itself
+  useEffect(() => {
+    if (!gyroAble || !needsAsk()) return;
+    const g = gyro.current;
+    const once = () => {
+      window.removeEventListener("touchend", once);
+      window.removeEventListener("click", once);
+      if (g.allowed) return;
+      const ask = (DeviceOrientationEvent as unknown as MotionPermission).requestPermission;
+      ask
+        ?.call(DeviceOrientationEvent)
+        .then((answer) => {
+          g.allowed = answer === "granted";
+          console.info("[gyro] permission (first tap)", answer);
+        })
+        .catch((err) => console.info("[gyro] permission failed", String(err)));
+    };
+    window.addEventListener("touchend", once);
+    window.addEventListener("click", once);
+    return () => {
+      window.removeEventListener("touchend", once);
+      window.removeEventListener("click", once);
+    };
+  }, [gyroAble]);
+  useEffect(() => {
+    console.info("[gyro] device", gyroAble ? "has gyro button" : "no gyro button", "needsAsk", needsAsk(), "secure", window.isSecureContext);
+  }, [gyroAble]);
+  useEffect(() => {
+    if (!gyroNote) return;
+    const t = window.setTimeout(() => setGyroNote(""), 3200);
+    return () => window.clearTimeout(t);
+  }, [gyroNote]);
   const total = categories.reduce((sum, c) => sum + c.count, 0);
 
   // scroll the page to `to` for them, easing in and out; any input of theirs stops it
@@ -87,7 +169,37 @@ export default function ShopScene({ categories, intro }: { categories: Category[
 
   // "Step inside": walk the whole way in
   function walkIn() {
+    // iOS only grants motion access on a tap, and this is the tap before the gyro is needed
+    if (gyroAble && needsAsk()) void askMotion();
     glide(document.documentElement.scrollHeight - window.innerHeight, 7500);
+  }
+
+  // look around by moving the phone; iOS asks permission first, on the tap itself
+  async function askMotion() {
+    const g = gyro.current;
+    if (g.allowed) return true;
+    const ask = (DeviceOrientationEvent as unknown as MotionPermission).requestPermission;
+    if (!ask) return true;
+    g.allowed = (await ask.call(DeviceOrientationEvent).catch(() => "denied")) === "granted";
+    console.info("[gyro] permission", g.allowed ? "granted" : "denied");
+    return g.allowed;
+  }
+  async function toggleGyro() {
+    const g = gyro.current;
+    setTouched(true);
+    if (g.on) {
+      g.on = false;
+      g.auto = false; // they turned it off: leave it off
+      setGyroOn(false);
+      return;
+    }
+    if (!(await askMotion())) {
+      setGyroNote("Motion access was turned down");
+      return;
+    }
+    // the render loop turns it on (and back off, with a note, if no readings come)
+    g.auto = true;
+    g.manual = true;
   }
 
   // the only way back out: unlatch, then play the walk in reverse
@@ -287,6 +399,43 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     const up = new THREE.Vector3(0, 1, 0);
     const xAxis = new THREE.Vector3(1, 0, 0);
 
+    // gyro: the view follows the phone. Tilt and roll are measured against
+    // gravity, so a phone held upright looks level however it was held when
+    // the gyro came on. Heading has no reliable global zero (the sensor's
+    // "north" is arbitrary), so it is anchored to the shop: while the view
+    // eases over from the default camera (GYRO_EASE), the shop is kept
+    // straight ahead; when the hand-over ends, the anchor is fixed and turning
+    // the phone turns the view. A drag while it is on shifts the anchor.
+    const g = gyro.current;
+    const gyroDevice = canGyro();
+    if (!needsAsk()) g.allowed = true;
+    let gyroAt = 0;
+    let gyroWas = false;
+    let gHave = false; // a reading has come in since it was switched on
+    let gHead = 0; // latest reading
+    let gElev = 0;
+    let gRollRaw = 0;
+    let gAnchor = 0; // heading offset: the view's yaw is gHead + gAnchor
+    let gBlend = 0; // 0 = default camera, 1 = all phone
+    let fromYaw = 0; // the view when the gyro came on
+    let fromPitch = 0;
+    let gRoll = 0; // what the camera uses
+    let gLogged = false; // temporary debug
+    const qGRoll = new THREE.Quaternion();
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return;
+      g.seen = true;
+      if (!g.on) return;
+      // older iPhones only have the deprecated window.orientation
+      const legacy = (window as { orientation?: number }).orientation;
+      const view = facing(e, screen.orientation?.angle ?? legacy ?? 0);
+      gHead = view.heading;
+      gElev = view.elevation;
+      gRollRaw = view.roll;
+      gHave = true;
+    };
+    window.addEventListener("deviceorientation", onOrient);
+
     const size = () => {
       const w = stageEl.clientWidth;
       const h = stageEl.clientHeight;
@@ -336,7 +485,58 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         vyaw *= decay;
         vpitch *= decay;
       }
-      pitchOff = clamp(pitchOff, -0.7, 0.7);
+      // phones look around by moving, once inside, unless they switched it off
+      if (gyroDevice && canLook && g.auto && g.allowed && !g.on) {
+        g.on = true;
+        g.seen = false;
+        gyroAt = now;
+        setGyroOn(true);
+      } else if (g.on && !canLook) {
+        g.on = false;
+        setGyroOn(false);
+      }
+      // no readings coming: no sensor, or the page isn't https
+      if (g.on && !g.seen && now - gyroAt > 1200) {
+        g.on = false;
+        g.auto = false;
+        setGyroOn(false);
+        if (g.manual) setGyroNote("Motion sensor isn't available here");
+        console.info("[gyro] no readings, switched off");
+      }
+      if (g.seen || !g.on) g.manual = false;
+      if (g.on !== gyroWas) {
+        console.info("[gyro]", g.on ? "on" : "off", "seen", g.seen, "auto", g.auto, "allowed", g.allowed);
+        // switched on: start the hand-over from wherever the view is now
+        gHave = false;
+        gLogged = false;
+        gBlend = 0;
+        fromYaw = yawOff;
+        fromPitch = pitchOff;
+        vyaw = vpitch = 0;
+        gyroWas = g.on;
+      }
+      if (g.on && gHave) {
+        if (gBlend < 1) {
+          gBlend = Math.min(1, gBlend + dt / GYRO_EASE);
+          gAnchor = -gHead; // the shop stays straight ahead until the hand-over ends
+        }
+        if (gBlend === 1 && !gLogged) {
+          gLogged = true;
+          console.info("[gyro] handed over", { head: gHead.toFixed(2), elev: gElev.toFixed(2), roll: gRollRaw.toFixed(2), yaw: yawOff.toFixed(2), pitch: pitchOff.toFixed(2) });
+        }
+        const k = smooth(0, 1, gBlend);
+        yawOff = fromYaw + (gHead + gAnchor - fromYaw) * k;
+        pitchOff = fromPitch + (gElev - fromPitch) * k;
+        gRoll = gRollRaw * k;
+      } else if (!g.on && gRoll) {
+        gRoll *= Math.exp(-dt * 6); // level again, gently
+        if (Math.abs(gRoll) < 1e-4) gRoll = 0;
+      }
+      // the phone may look further up and down than a drag; once it is off
+      // the view eases back inside the drag's range
+      if (g.on) pitchOff = clamp(pitchOff, -1.25, 1.25);
+      else if (dragging) pitchOff = clamp(pitchOff, -0.7, 0.7);
+      else pitchOff += (clamp(pitchOff, -0.7, 0.7) - pitchOff) * (1 - Math.exp(-dt * 6));
       if (!canLook && !dragging) yawOff = pitchOff = vyaw = vpitch = 0;
 
       if (ready && pos && aim) {
@@ -351,6 +551,8 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         qYaw.setFromAxisAngle(up, -yawOff * free);
         qPitch.setFromAxisAngle(xAxis, pitchOff * free);
         camera.quaternion.copy(qYaw).multiply(q).multiply(qPitch);
+        // the phone's roll turns the camera with it, so the shop stays level
+        if (gRoll) camera.quaternion.multiply(qGRoll.setFromAxisAngle(zAxis, -gRoll * free));
         // landing: turn the view a little left so the shop sits right of centre, under Baba's eyes
         const wide = stageEl.clientWidth / stageEl.clientHeight > 1.1;
         if (intro && wide) {
@@ -495,6 +697,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
       lastY = e.clientY;
       yawOff += dx;
       pitchOff += dy;
+      if (g.on) gAnchor += dx;
       const dtm = Math.max(1, now - lastMove);
       vyaw = vyaw * 0.6 + (dx / dtm) * 0.4;
       vpitch = vpitch * 0.6 + (dy / dtm) * 0.4;
@@ -502,13 +705,15 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     };
     const onUp = () => {
       dragging = false;
-      if (performance.now() - lastMove > 80) vyaw = vpitch = 0;
+      // a pause before letting go means no coasting; nor with the gyro on
+      if (g.on || performance.now() - lastMove > 80) vyaw = vpitch = 0;
     };
     const onKey = (e: KeyboardEvent) => {
       if (!canLook) return;
-      if (e.key === "ArrowLeft") yawOff -= 0.15;
-      else if (e.key === "ArrowRight") yawOff += 0.15;
-      else return;
+      const step = e.key === "ArrowLeft" ? -0.15 : e.key === "ArrowRight" ? 0.15 : 0;
+      if (!step) return;
+      yawOff += step;
+      if (g.on) gAnchor += step;
       e.preventDefault();
       setTouched(true);
     };
@@ -567,6 +772,8 @@ export default function ShopScene({ categories, intro }: { categories: Category[
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onUp);
       el.removeEventListener("keydown", onKey);
+      window.removeEventListener("deviceorientation", onOrient);
+      g.on = false;
       document.removeEventListener("visibilitychange", onVisibility);
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
@@ -656,6 +863,22 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           </button>
         )}
 
+        {gyroAble && (
+          <button
+            type="button"
+            className="scene-gyro"
+            aria-pressed={gyroOn}
+            data-hidden={status !== "ready" || !unlocked}
+            tabIndex={status === "ready" && unlocked ? 0 : -1}
+            onClick={toggleGyro}
+          >
+            <GyroIcon /> {gyroOn ? "Gyro on" : "Gyro"}
+          </button>
+        )}
+        <p className="scene-gyro-note" role="status" data-on={gyroNote !== ""}>
+          {gyroNote}
+        </p>
+
         <p className="scene-hint" data-hidden={touched || status !== "ready" || !unlocked} aria-hidden="true">
           Drag to look around
         </p>
@@ -691,5 +914,14 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         </nav>
       </div>
     </div>
+  );
+}
+
+function GyroIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+      <path d="M3 9a10 10 0 0 0 0 6M21 9a10 10 0 0 1 0 6" strokeLinecap="round" />
+    </svg>
   );
 }
