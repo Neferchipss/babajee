@@ -34,12 +34,18 @@ export default function ProductSheet({
   products,
   start,
   category,
+  categories,
+  categorySlug,
+  onCategory,
   onIndex,
   onClose,
 }: {
   products: SheetProduct[];
   start: number;
   category: string;
+  categories: { slug: string; name: string }[];
+  categorySlug: string;
+  onCategory: (slug: string) => void;
   onIndex: (slug: string) => void;
   onClose: () => void;
 }) {
@@ -50,6 +56,7 @@ export default function ProductSheet({
   const steerRef = useRef<WheelSteer | null>(null);
   const at = useRef({ i: start, n: products.length });
   const closeBtn = useRef<HTMLButtonElement>(null);
+  const cats = useRef<HTMLDivElement>(null);
   const host = typeof document === "undefined" ? null : document.getElementById("site");
 
   const p = products[view.i];
@@ -92,6 +99,13 @@ export default function ProductSheet({
   useEffect(() => {
     at.current = { i: view.i, n: products.length };
   });
+
+  // the category chips start with this category in the middle
+  useEffect(() => {
+    const row = cats.current;
+    const cur = row?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (row && cur) row.scrollLeft = cur.offsetLeft - (row.clientWidth - cur.offsetWidth) / 2;
+  }, []);
 
   // Drag the card: sideways, the whole card follows the finger and the wheel
   // leans with it; let go far enough (or flick) and it slides out while the
@@ -318,6 +332,23 @@ export default function ProductSheet({
           </button>
         </footer>
       </section>
+
+      <div ref={cats} className="ps-cats" role="group" aria-label="Categories">
+        {categories.map((c) => (
+          <button
+            key={c.slug}
+            type="button"
+            className="ps-cat-chip"
+            aria-current={c.slug === categorySlug}
+            onClick={() => {
+              buzz(6);
+              onCategory(c.slug);
+            }}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
 
       <ProductWheel
         items={products.map((x) => ({ key: x.slug, name: x.name, tone: x.tone }))}

@@ -173,9 +173,10 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   @media (max-width: 900px) {
     & .cp-hero .bb-third {
       position: fixed;
-      /* the jar is 54px wide (64px tall) at 14px from the corner */
-      bottom: calc(90px + env(safe-area-inset-bottom));
-      right: calc(14px + env(safe-area-inset-right));
+      /* beside the jar (54px wide, 64px tall, 14px from the corner), level
+         with its middle */
+      bottom: calc(19px + env(safe-area-inset-bottom));
+      right: calc(78px + env(safe-area-inset-right));
       z-index: 45;
       flex-direction: row-reverse;
       align-items: center;

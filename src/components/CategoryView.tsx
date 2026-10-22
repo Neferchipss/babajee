@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
@@ -51,6 +52,13 @@ const closeSheet = () => {
     window.history.back();
   } else setSheet(null, false);
 };
+// ?p=_first opens the category's first product (a category chip in the
+// sheet lands here without knowing the slugs of the next category)
+const FIRST = "_first";
+// switching category from the sheet replaces the entry: nothing to go back to
+const forgetPush = () => {
+  pushedSheet = false;
+};
 const followSheet = (slug: string) => {
   if (slug !== sheetSlug()) setSheet(slug, false);
 };
@@ -65,6 +73,7 @@ const VALUES = [
 // The same page in every theme. The theme CSS moves the pieces around:
 // a sidebar or a row of tabs, a banner or a title block, tiles or cards.
 export default function CategoryView({ category, products, categories }: Props) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
 
@@ -77,7 +86,15 @@ export default function CategoryView({ category, products, categories }: Props) 
 
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
   const sheetItems = shown.filter((p) => p.slug && p.variants);
-  const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
+  const openAt = openSlug === FIRST ? 0 : openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
+  // a category chip in the sheet: the same sheet, on that category's wheel.
+  // It replaces this entry, so putting the sheet away leaves you on that
+  // category's shelf.
+  const switchCategory = (slug: string) => {
+    if (slug === category.slug) return;
+    forgetPush();
+    router.replace(`/shop/${slug}?p=${FIRST}`, { scroll: true });
+  };
 
   return (
     <div className="cp">
@@ -158,9 +175,13 @@ export default function CategoryView({ category, products, categories }: Props) 
 
       {openAt >= 0 && (
         <ProductSheet
+          key={category.slug}
           products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants! }))}
           start={openAt}
           category={category.name}
+          categories={categories}
+          categorySlug={category.slug}
+          onCategory={switchCategory}
           onIndex={followSheet}
           onClose={closeSheet}
         />
