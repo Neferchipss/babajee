@@ -6,8 +6,11 @@ import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import CartJar from "./CartJar";
 import type { BuyVariant } from "./ProductBuy";
+import { formatPrice } from "@/lib/currency";
+import { dealFor } from "@/lib/deal";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
+import WishButton from "./WishButton";
 import ProductWheel, { type WheelSteer } from "./ProductWheel";
 import "./product-sheet.css";
 
@@ -64,6 +67,7 @@ export default function ProductSheet({
   const variant = p.variants[v] ?? { label: "Standard", stockQty: 1 };
   const inStock = variant.stockQty > 0;
   const showOptions = p.variants.length > 1;
+  const deal = dealFor(p.slug, variant.price);
 
   // lock the page behind, hide the floating third eye, Escape closes
   useEffect(() => {
@@ -170,7 +174,7 @@ export default function ProductSheet({
       return true;
     };
     const springBack = () => {
-      el.style.transition = "transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2)";
+      el.style.transition = "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)";
       el.style.transform = "";
     };
     const end = (t: number) => {
@@ -192,23 +196,23 @@ export default function ProductSheet({
           // the eye), then the card comes back in from the other side
           const out = dx < 0 ? -1 : 1;
           el.dataset.swipe = "true";
-          el.style.transition = "transform 0.16s ease-in";
+          el.style.transition = "transform 0.12s cubic-bezier(0.4, 0, 1, 1)";
           el.style.transform = `translateX(${out * 115}%) rotate(${out * 7}deg)`;
           steerRef.current?.to(to);
           timers.push(
             window.setTimeout(() => {
               el.style.transition = "none";
-              el.style.transform = `translateX(${-out * 70}%) rotate(${-out * 5}deg)`;
+              el.style.transform = `translateX(${-out * 55}%) rotate(${-out * 4}deg)`;
               void el.offsetWidth; // apply the jump before easing back in
-              el.style.transition = "transform 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.15)";
+              el.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
               el.style.transform = "";
               timers.push(
                 window.setTimeout(() => {
                   delete el.dataset.swipe;
                   el.style.transition = "";
-                }, 360),
+                }, 300),
               );
-            }, 170),
+            }, 125),
           );
         }
       }
@@ -272,82 +276,91 @@ export default function ProductSheet({
   return createPortal(
     <div className="ps">
       <div className="ps-scrim" onClick={onClose} aria-hidden="true" />
-      <section ref={card} className="ps-card" role="dialog" aria-modal="true" aria-labelledby="ps-title">
-        <div className="ps-pull">
-          <span className="ps-grip" aria-hidden="true" />
-          <div className="ps-top">
-            <button ref={closeBtn} type="button" className="ps-round" onClick={onClose} aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
+      {/* the chips sit right on top of the card, whatever its height */}
+      <div className="ps-stack">
+        <div ref={cats} className="ps-cats" role="group" aria-label="Categories">
+          {categories.map((c) => (
+            <button
+              key={c.slug}
+              type="button"
+              className="ps-cat-chip"
+              aria-current={c.slug === categorySlug}
+              onClick={() => {
+                buzz(6);
+                onCategory(c.slug);
+              }}
+            >
+              {c.name}
             </button>
-            <div className="ps-top-end">
-              <Link href={p.href} className="ps-full">
-                Full page
-              </Link>
-              <CartJar variant="sheet" />
+          ))}
+        </div>
+        <section ref={card} className="ps-card" role="dialog" aria-modal="true" aria-labelledby="ps-title">
+          <div className="ps-pull">
+            <span className="ps-grip" aria-hidden="true" />
+            <div className="ps-top">
+              <button ref={closeBtn} type="button" className="ps-round" onClick={onClose} aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div className="ps-top-end">
+                <WishButton item={{ slug: p.slug, href: p.href, name: p.name, tone: p.tone, price: variant.price, options: Math.max(0, p.variants.length - 1) }} />
+                <Link href={p.href} className="ps-full">
+                  Full page
+                </Link>
+                <CartJar variant="sheet" />
+              </div>
+            </div>
+            <div key={p.slug} className="ps-stage" data-dir={view.dir}>
+              <ProductArt name={p.name} tone={p.tone} className="ps-art" />
+              {view.picked && <span className="ps-picked">Baba&rsquo;s pick</span>}
             </div>
           </div>
-          <div key={p.slug} className="ps-stage" data-dir={view.dir}>
-            <ProductArt name={p.name} tone={p.tone} className="ps-art" />
-            {view.picked && <span className="ps-picked">Baba&rsquo;s pick</span>}
-          </div>
-        </div>
 
-        <div key={`info-${p.slug}`} className="ps-info" data-dir={view.dir}>
-          <p className="ps-cat">{category}</p>
-          <h2 id="ps-title" className="ps-title">
-            {p.name}
-          </h2>
-          {showOptions && (
-            <div className="ps-opts" role="radiogroup" aria-label="Options">
-              {p.variants.map((o, k) => (
-                <button
-                  key={o.label}
-                  type="button"
-                  role="radio"
-                  aria-checked={k === v}
-                  className="ps-opt"
-                  onClick={() => {
-                    buzz(5);
-                    setChoice({ slug: p.slug, v: k });
-                  }}
-                >
-                  <span className="ps-opt-label">{o.label}</span>
-                  <Price className="ps-opt-price" value={o.price} />
-                  {o.stockQty <= 0 && <span className="ps-opt-out">Sold out</span>}
-                </button>
-              ))}
+          <div key={`info-${p.slug}`} className="ps-info" data-dir={view.dir}>
+            <p className="ps-cat">{category}</p>
+            <h2 id="ps-title" className="ps-title">
+              {p.name}
+            </h2>
+            {showOptions && (
+              <div className="ps-opts" role="radiogroup" aria-label="Options">
+                {p.variants.map((o, k) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={k === v}
+                    className="ps-opt"
+                    onClick={() => {
+                      buzz(5);
+                      setChoice({ slug: p.slug, v: k });
+                    }}
+                  >
+                    <span className="ps-opt-label">{o.label}</span>
+                    <Price className="ps-opt-price" value={o.price} />
+                    {o.stockQty <= 0 && <span className="ps-opt-out">Sold out</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <footer className="ps-bar">
+            <div className="ps-bar-what">
+              <span className="ps-bar-label">{variant.label}</span>
+              {deal ? (
+              <span className="ps-bar-price ps-bar-deal">
+                {formatPrice(deal.price, { paise: true })} <s>{formatPrice(deal.mrp, { paise: true })}</s>
+              </span>
+            ) : (
+              <Price className="ps-bar-price" value={variant.price} />
+            )}
             </div>
-          )}
-        </div>
-
-        <footer className="ps-bar">
-          <div className="ps-bar-what">
-            <span className="ps-bar-label">{variant.label}</span>
-            <Price className="ps-bar-price" value={variant.price} />
-          </div>
-          <button type="button" className="ps-add" data-added={added === p.slug} disabled={!inStock} onClick={add}>
-            {!inStock ? "Sold out" : added === p.slug ? "Added" : "Add"}
-          </button>
-        </footer>
-      </section>
-
-      <div ref={cats} className="ps-cats" role="group" aria-label="Categories">
-        {categories.map((c) => (
-          <button
-            key={c.slug}
-            type="button"
-            className="ps-cat-chip"
-            aria-current={c.slug === categorySlug}
-            onClick={() => {
-              buzz(6);
-              onCategory(c.slug);
-            }}
-          >
-            {c.name}
-          </button>
-        ))}
+            <button type="button" className="ps-add" data-added={added === p.slug} disabled={!inStock} onClick={add}>
+              {!inStock ? "Sold out" : added === p.slug ? "Added" : "Add"}
+            </button>
+          </footer>
+        </section>
       </div>
 
       <ProductWheel

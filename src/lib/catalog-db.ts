@@ -18,7 +18,7 @@ function client() {
 }
 
 // Price is unset only for local stand-in products (see useLocal below); it
-// then renders as the "Rs.xx.xx" placeholder.
+// then renders as the "₹420.00" placeholder.
 export type DbVariant = { id: string; label: string; price?: number; stockQty: number };
 export type DbCardProduct = {
   slug: string;
@@ -26,6 +26,8 @@ export type DbCardProduct = {
   variantCount: number;
   minPrice?: number;
   variants: DbVariant[];
+  // how it is packed, e.g. "Box of 50" (from the stock sheet, when known)
+  unit?: string;
 };
 export type DbCategory = { slug: string; name: string };
 
@@ -43,7 +45,8 @@ function localVariants(p: CatalogProduct): DbVariant[] {
 
 function localCard(p: CatalogProduct): DbCardProduct {
   const variants = localVariants(p);
-  return { slug: p.slug, name: p.name, variantCount: variants.length, variants };
+  const unit = p.unitsPerBox && p.unitsPerBox > 1 ? `Box of ${p.unitsPerBox}` : undefined;
+  return { slug: p.slug, name: p.name, variantCount: variants.length, variants, unit };
 }
 
 function localCategoryDetail(slug: string) {

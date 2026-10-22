@@ -60,8 +60,10 @@ const FIRST = "_first";
 const forgetPush = () => {
   pushedSheet = false;
 };
+// the address follows the wheel quietly: the sheet stays open either way,
+// so there is no need to re-render the whole shelf behind it
 const followSheet = (slug: string) => {
-  if (slug !== sheetSlug()) setSheet(slug, false);
+  if (slug !== sheetSlug()) window.history.replaceState(null, "", `?p=${encodeURIComponent(slug)}`);
 };
 
 const VALUES = [

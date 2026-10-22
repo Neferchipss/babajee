@@ -748,6 +748,188 @@
 #site .cp-back,
 #site .cp-bar-tools,
 #site .pc-add-short,
-#site .pc-add-sub {
+#site .pc-add-sub,
+#site .pc-add-plus,
+#site .pc-meta {
   display: none;
+}
+
+/* A card's photos: a strip that swipes one photo at a time with the
+   browser's own momentum and snap, and dots that say which is in view (the
+   current one stretches into a pill). One photo, no dots. */
+#site .pc-img {
+  position: relative;
+}
+#site .pc-slides {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-radius: inherit;
+}
+#site .pc-slides::-webkit-scrollbar {
+  display: none;
+}
+#site .pc-slide {
+  position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+#site .pc-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: var(--color-plate, #fff);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#site .pc-dots {
+  position: absolute;
+  left: 10px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.72);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+  pointer-events: none;
+}
+#site .pc-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(20 16 40 / 0.28);
+  transition:
+    width 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 0.25s;
+}
+#site .pc-dots i[data-on="true"] {
+  width: 14px;
+  background: var(--bb-hot, rgb(20 16 40 / 0.8));
+}
+/* the heart, on a card's photo and in the product sheet */
+#site .wish,
+.ps .wish {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(20 16 40 / 0.55);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s;
+}
+.ps .wish {
+  color: var(--color-muted, #a39cd0);
+}
+#site .wish:active,
+.ps .wish:active {
+  transform: scale(0.88);
+}
+#site .wish:focus-visible,
+.ps .wish:focus-visible {
+  outline: 2px solid var(--bb-maroon, #ff8fb3);
+  outline-offset: 2px;
+}
+.wish-heart {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition: fill 0.2s, stroke 0.2s;
+}
+.wish[aria-pressed="true"] .wish-heart {
+  fill: var(--bb-hot, var(--bb-maroon, #ff4d8d));
+  stroke: var(--bb-hot, var(--bb-maroon, #ff4d8d));
+}
+.wish-heart[data-pop="true"] {
+  animation: wish-pop 0.42s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+#site .pc-wish {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+}
+@keyframes wish-pop {
+  0% { transform: scale(0.6); }
+  55% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wish-heart[data-pop="true"] { animation: none; }
+  #site .pc-dots i { transition: none; }
+}
+
+/* Saved for later, under the cart: the same picture-first tiles as the shelf */
+#site .saved-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#site .saved-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+#site .saved-link {
+  display: grid;
+  gap: 2px;
+  color: inherit;
+}
+#site .saved-art {
+  margin-bottom: 8px;
+  border: 1px solid var(--bbn-edge, var(--color-line));
+  border-radius: 16px !important;
+}
+#site .saved-price {
+  font-weight: 800;
+}
+#site .saved-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.85rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+#site .saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+#site .saved-add {
+  padding: 8px 12px;
+  border: 1.5px solid var(--bb-maroon, var(--color-rasta-gold));
+  border-radius: 10px;
+  background: transparent;
+  color: var(--bb-maroon, var(--color-rasta-gold));
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+#site .saved-remove {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }

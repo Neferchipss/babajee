@@ -186,7 +186,7 @@ function Demo({ id }: { id: string }) {
           <div key={p.slug} className={s.card} style={{ "--tone": toneAt(i) } as React.CSSProperties}>
             <ProductArt name={p.name} tone={toneAt(i)} />
             <div className={s.cardName}>{p.name}</div>
-            <div className={s.price}>Rs.xx.xx</div>
+            <div className={s.price}>₹420.00</div>
           </div>
         ))}
       </div>

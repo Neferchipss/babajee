@@ -122,6 +122,22 @@ export default function ProductWheel({
     };
     measure();
 
+    // The wheel rests small and grows the moment a finger is on it, and
+    // shrinks as soon as it is let go, even while it is still coasting into
+    // place. Swiping the card turns it without growing it.
+    const pw = el.parentElement;
+    let restTimer = 0;
+    const wake = () => {
+      window.clearTimeout(restTimer);
+      if (pw && !pw.dataset.active) pw.dataset.active = "true";
+    };
+    const rest = (ms: number) => {
+      window.clearTimeout(restTimer);
+      restTimer = window.setTimeout(() => {
+        if (pw && !s.dragging && !s.spin) delete pw.dataset.active;
+      }, ms);
+    };
+
     const settleCentre = () => {
       const c = clamp(Math.round(s.pos), 0, n - 1);
       if (c === s.centre) return;
@@ -142,6 +158,7 @@ export default function ProductWheel({
           s.pos = s.spin.to;
           s.spin = null;
           settleCentre();
+          rest(350);
           buzz([12, 50, 18]);
           cb.current.onPick?.(s.centre);
         }
@@ -154,7 +171,7 @@ export default function ProductWheel({
         } else {
           if (s.target === null) s.target = clamp(Math.round(s.pos + s.vel * 0.12), 0, n - 1);
           s.vel = 0;
-          s.pos += (s.target - s.pos) * (1 - Math.exp(-dt * 14));
+          s.pos += (s.target - s.pos) * (1 - Math.exp(-dt * 20));
           if (Math.abs(s.target - s.pos) < 0.002) s.pos = s.target;
         }
       }
@@ -182,6 +199,7 @@ export default function ProductWheel({
       buzz(15);
       window.dispatchEvent(new CustomEvent(SEE_EVENT, { detail: { phase: "roll" } }));
       setTurned(true);
+      wake();
       kick();
     };
 
@@ -203,6 +221,7 @@ export default function ProductWheel({
       s.downOn = indexAt(e.target);
       window.clearTimeout(s.hold);
       if (s.downOn === s.centre) s.hold = window.setTimeout(spin, HOLD_MS);
+      wake();
       kick();
     };
     const onMove = (e: PointerEvent) => {
@@ -226,6 +245,7 @@ export default function ProductWheel({
       if (!s.dragging) return;
       s.dragging = false;
       if (s.spun) return;
+      rest(90);
       if (!s.moved) {
         if (s.downOn !== null && s.downOn !== s.centre) s.target = s.downOn;
       } else {
@@ -242,6 +262,8 @@ export default function ProductWheel({
         e.preventDefault();
         s.vel = 0;
         s.target = clamp((s.target ?? Math.round(s.pos)) + step, 0, n - 1);
+        wake();
+        rest(450);
         kick();
       } else if ((e.key === "Enter" || e.key === " ") && !s.spin) {
         e.preventDefault();
@@ -280,6 +302,7 @@ export default function ProductWheel({
       if (steerRef) steerRef.current = null;
       ro.disconnect();
       window.clearTimeout(s.hold);
+      window.clearTimeout(restTimer);
       cancelAnimationFrame(s.frame);
       s.frame = 0;
       el.removeEventListener("pointerdown", onDown);

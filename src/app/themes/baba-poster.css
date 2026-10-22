@@ -22,6 +22,10 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   --bb-rose: #ff8fb3;
   --bb-blush: #1d1946;
   --bb-green: #7ef0c4;
+  /* the deal tag's printed shadow, and a stronger pink that holds up on the
+     white photo plates (a saved heart, the photo in view) */
+  --bb-green-dk: #2c9a74;
+  --bb-hot: #ff4d8d;
   --bb-on-accent: #16061a;
   --bb-hdr-bg: rgb(12 10 28 / 0.9);
   --bb-swirl: url("../../assets/baba/night/swirl-midnight.webp");
@@ -585,4 +589,206 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-hero .cp-lede {
     display: none;
   }
+}
+
+/* Tiles, every size, after Zepto, Blinkit and Instamart: the card is just
+   the picture, with a "+" in its corner. The price, the name and how it is
+   packed are printed under it on the page, not in a box. The reader's glow,
+   hover and "seen" rings move onto the picture, since the tile itself no
+   longer has a frame. */
+html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
+  & .cp-grid {
+    gap: 20px 12px;
+  }
+  & .cp-grid > .pc,
+  & .cp-grid > .pc:hover,
+  & .cp-grid > .pc[data-seen="true"],
+  & .cp-grid > .pc[data-focus="true"] {
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    transform: none;
+    animation: none;
+  }
+  & .pc {
+    container-type: inline-size;
+  }
+  & .pc-img {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--bbn-edge);
+    border-radius: 16px;
+    background: var(--color-plate, #fff);
+    transition:
+      box-shadow 0.3s ease,
+      border-color 0.3s ease,
+      transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  & .pc-img .pa {
+    aspect-ratio: 1;
+    border-radius: 0;
+  }
+  & .pc:hover .pc-img {
+    border-color: var(--bb-maroon);
+  }
+  & .pc[data-seen="true"] .pc-img {
+    border-color: var(--bb-green);
+    box-shadow: 0 0 0 3px var(--bb-green);
+  }
+  & .cp-grid > .pc[data-focus="true"] .pc-img {
+    border-color: var(--bb-maroon);
+    box-shadow:
+      0 0 0 2px var(--bb-maroon),
+      0 0 26px rgb(var(--bbn-glow, 255 143 179) / 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* price first, big; the name under it in plain case, two lines at most;
+     then how it comes, small and grey */
+  & .pc-link {
+    display: flex;
+    flex-direction: column;
+  }
+  & .pc-price {
+    order: 1;
+    align-self: stretch;
+    min-height: 34px;
+    margin: 8px 0 2px 2px;
+    padding: 0 44px 0 0;
+    display: flex;
+    align-items: center;
+    color: var(--color-paper);
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  & .pc-name {
+    order: 2;
+    display: -webkit-box;
+    min-height: 0;
+    margin: 0 2px;
+    padding: 0;
+    overflow: hidden;
+    color: var(--color-paper);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.3;
+    text-transform: none;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  & .pc-opts {
+    display: none;
+  }
+  & .pc-meta {
+    order: 3;
+    display: block;
+    margin: 3px 2px 0;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* "+" under the picture, beside the price; a tick once it is in the jar */
+  & .pc-add {
+    position: absolute;
+    top: calc(100cqw + 8px);
+    right: 0;
+    bottom: auto;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    min-width: 0;
+    height: 34px;
+    padding: 0;
+    border: 1.5px solid var(--bb-maroon);
+    border-radius: 12px;
+    background: var(--color-iron);
+    color: var(--bb-maroon);
+    box-shadow: none;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      transform 0.12s;
+  }
+  & .pc-add:hover {
+    background: var(--bb-maroon);
+    color: var(--bb-on-accent);
+  }
+  & .pc-add:active {
+    transform: scale(0.92);
+  }
+  & .pc-add > svg:not(.pc-add-plus),
+  & .pc-add-text,
+  & .pc-add-short,
+  & .pc-add-sub {
+    display: none;
+  }
+  & .pc-add-plus {
+    display: block;
+  }
+  & .pc-add[data-added="true"] {
+    border-color: var(--bb-green);
+    background: var(--bb-green);
+    color: var(--bb-on-accent);
+  }
+}
+
+/* On offer: the price on a green tag with a printed offset shadow, the old
+   price struck through beside it, and how much is off on a dashed line */
+html[data-theme="baba-poster"] #site[data-scope="shop"] .cp {
+  & .pc-price--deal {
+    gap: 6px;
+    padding-right: 40px;
+  }
+  & .pc-deal {
+    padding: 2px 7px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--bb-green);
+    color: #062a1e;
+    box-shadow: 2px 2px 0 var(--bb-green-dk);
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  & .pc-mrp {
+    color: var(--color-muted);
+    text-decoration-color: rgb(163 156 208 / 0.8);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  & .pc-off {
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 2px 4px;
+    color: var(--bb-green);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  & .pc-off::after {
+    content: "";
+    flex: 1;
+    border-top: 1.5px dashed rgb(126 240 196 / 0.28);
+  }
+}
+.ps-bar-deal {
+  color: var(--bb-green, #7ef0c4) !important;
+}
+.ps-bar-deal s {
+  margin-left: 4px;
+  color: var(--color-muted, #a39cd0);
+  font-size: 0.8rem;
+  font-weight: 600;
 }

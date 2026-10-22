@@ -55,5 +55,5 @@ export const SIDE_CATEGORIES = CATEGORIES.slice(0, 8).map((c) => ({
   count: c.products.length,
 }));
 
-export const PRICE_RANGES = ["Under Rs.500", "Rs.500 - 1,000", "Rs.1,000 - 2,500", "Rs.2,500+"];
-export const PRICE = "Rs.xx.xx";
+export const PRICE_RANGES = ["Under ₹500", "₹500 - 1,000", "₹1,000 - 2,500", "₹2,500+"];
+export const PRICE = "₹420.00";
