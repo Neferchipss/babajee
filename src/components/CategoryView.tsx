@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useState, useSyncExternalStore } from "react";
-import { GlobeIcon, HeartIcon, LeafIcon, SunIcon } from "./icons";
+import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
 import ShelfReader from "./baba/ShelfReader";
 import ThirdEye from "./baba/ThirdEye";
@@ -76,6 +77,8 @@ export default function CategoryView({ category, products, categories }: Props) 
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
+  // phones and tablets: the search field opens from the title bar
+  const [finding, setFinding] = useState(false);
 
   const q = query.trim().toLowerCase();
   const filtered = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
@@ -99,6 +102,12 @@ export default function CategoryView({ category, products, categories }: Props) 
   return (
     <div className="cp">
       <section className="cp-hero" aria-labelledby="cp-title">
+        {/* phones and tablets: the masthead is a compact title bar */}
+        <Link href="/shop" className="cp-bar-btn cp-back" aria-label="All categories">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </Link>
         <div className="cp-hero-copy">
           <p className="cp-crumb">
             <span className="dd-crumb-plain">Shop</span>
@@ -113,6 +122,33 @@ export default function CategoryView({ category, products, categories }: Props) 
             All categories
           </Link>
         </div>
+        <div className="cp-bar-tools">
+          <label className="cp-bar-btn cp-bar-sort">
+            <span className="sr-only">Sort</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5" />
+            </svg>
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+              <option value="featured">Featured</option>
+              <option value="az">Name, A to Z</option>
+              <option value="za">Name, Z to A</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="cp-bar-btn"
+            aria-label={finding ? "Close search" : `Search ${category.name}`}
+            aria-expanded={finding}
+            onClick={() => {
+              const open = !finding;
+              setFinding(open);
+              if (!open) setQuery("");
+              else window.setTimeout(() => document.querySelector<HTMLInputElement>(".cp-search input")?.focus(), 0);
+            }}
+          >
+            <SearchIcon size={20} />
+          </button>
+        </div>
         <DaydreamHero />
         <ThirdEye products={products} />
       </section>
@@ -123,7 +159,7 @@ export default function CategoryView({ category, products, categories }: Props) 
         </aside>
 
         <div className="cp-main">
-          <div className="cp-toolbar">
+          <div className="cp-toolbar" data-open={finding || q !== ""}>
             <label className="cp-search">
               <span className="sr-only">Search {category.name}</span>
               <input
@@ -153,7 +189,23 @@ export default function CategoryView({ category, products, categories }: Props) 
           ) : (
             <ul className="cp-grid">
               {shown.map((p) => (
-                <ProductCard key={p.href} product={p} onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined} />
+                <ProductCard
+                  key={p.href}
+                  product={p}
+                  onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
+                  onAdd={
+                    p.slug && p.variants?.length === 1 && p.variants[0].stockQty > 0
+                      ? (from) => {
+                          const v = p.variants![0];
+                          addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price });
+                          tossIntoJar(from);
+                          try {
+                            navigator.vibrate?.([10, 40, 10]);
+                          } catch {}
+                        }
+                      : undefined
+                  }
+                />
               ))}
             </ul>
           )}

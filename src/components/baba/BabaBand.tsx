@@ -347,13 +347,15 @@ export default function BabaBand() {
     };
   }, [on]);
 
-  // On touch screens the band is not on the page. Pull down past the top
+  // The band is not on the page. On a touch screen, pull down past the top
   // (where a phone would refresh) and the eyes slide down over the header,
   // having been watching all along; let go far enough and they blink and
-  // the page reloads, or short of that they slip back up.
+  // the page reloads, or short of that they slip back up. With a mouse or
+  // trackpad, scrolling up past the top lets them peek out for a moment.
   useEffect(() => {
     const el = bandRef.current;
-    if (!on || !el || !window.matchMedia(PEEK_MEDIA).matches) return;
+    if (!on || !el) return;
+    const touchScreen = window.matchMedia(PEEK_MEDIA).matches;
     const root = document.documentElement;
     let y0 = 0;
     let pull = 0;
@@ -422,11 +424,42 @@ export default function BabaBand() {
       hide = window.setTimeout(() => delete el.dataset.peek, 360);
     };
     show(0, false);
-    window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("touchend", onEnd, { passive: true });
-    window.addEventListener("touchcancel", onEnd, { passive: true });
+    // scrolling up at the top: out a little per notch, back after a pause
+    let wheeled = 0;
+    let wheelAt = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (going || root.dataset.sheet || window.scrollY > 0 || e.deltaY >= 0) {
+        if (e.deltaY > 0 && wheeled > 0) {
+          wheeled = 0;
+          show(0, true);
+          window.clearTimeout(hide);
+          hide = window.setTimeout(() => delete el.dataset.peek, 360);
+        }
+        return;
+      }
+      const now = performance.now();
+      if (now - wheelAt > 2500) wheeled = 0;
+      wheelAt = now;
+      wheeled = Math.min(height(), wheeled + Math.min(60, -e.deltaY * 0.5));
+      window.clearTimeout(hide);
+      el.dataset.peek = "true";
+      show(wheeled, true);
+      // a good look, then back up
+      hide = window.setTimeout(() => {
+        wheeled = 0;
+        show(0, true);
+        hide = window.setTimeout(() => delete el.dataset.peek, 360);
+      }, 2200);
+    };
+    if (touchScreen) {
+      window.addEventListener("touchstart", onStart, { passive: true });
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onEnd, { passive: true });
+      window.addEventListener("touchcancel", onEnd, { passive: true });
+    }
+    window.addEventListener("wheel", onWheel, { passive: true });
     return () => {
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onStart);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);

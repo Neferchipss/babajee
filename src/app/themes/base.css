@@ -742,3 +742,12 @@
     overflow: visible;
   }
 }
+
+/* the compact title bar's buttons and the add button's short labels only
+   show where a theme lays them out (Night: Poster on phones and tablets) */
+#site .cp-back,
+#site .cp-bar-tools,
+#site .pc-add-short,
+#site .pc-add-sub {
+  display: none;
+}

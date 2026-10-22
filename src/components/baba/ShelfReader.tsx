@@ -59,6 +59,15 @@ function saveSeen(seen: Set<string>) {
   } catch {}
 }
 
+// the bottom of whatever bar is stuck to the top of the screen: the header,
+// or on phones the shelf's own title bar
+function barBottom() {
+  const bars = [...document.querySelectorAll<HTMLElement>(".hdr, .cp-hero")]
+    .map((x) => x.getBoundingClientRect())
+    .filter((r) => r.height > 0 && r.top <= 1 && r.bottom > 0);
+  return Math.max(0, ...bars.map((r) => r.bottom));
+}
+
 function remark(card: HTMLElement, seen: Set<string>, category: string) {
   const href = card.querySelector("a")?.getAttribute("href") ?? "";
   const name = card.querySelector(".pc-name")?.textContent?.trim() ?? "";
@@ -100,11 +109,9 @@ export default function ShelfReader({ category }: { category: string }) {
       saveSeen(seen);
       saidOn = focus;
       lastSaid = now;
-      // on touch screens Baba's band is off the page, so the bubble sits
-      // just under the header instead of under the band
-      const top = window.matchMedia("(hover: none) and (pointer: coarse)").matches
-        ? Math.max(0, document.querySelector(".hdr")?.getBoundingClientRect().bottom ?? 0) + 12
-        : undefined;
+      // Baba's band is off the page, so the bubble sits just under whatever
+      // bar is at the top (the header, or the shelf's own title bar on phones)
+      const top = barBottom() + 12;
       setSay({ text, id: ++id, top });
       window.dispatchEvent(new CustomEvent(REACT_EVENT, { detail: { el: focus } }));
       window.clearTimeout(quiet);
@@ -126,7 +133,7 @@ export default function ShelfReader({ category }: { category: string }) {
     const read = () => {
       frame = 0;
       // measured in the part of the screen the sticky band and header leave
-      const top = Math.max(0, document.querySelector(".hdr")?.getBoundingClientRect().bottom ?? 0);
+      const top = barBottom();
       const line = top + (window.innerHeight - top) * 0.4;
       let best: HTMLElement | null = null;
       let bestScore = Infinity;
