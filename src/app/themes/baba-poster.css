@@ -403,3 +403,59 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
     }
   }
 }
+
+/* ---------------------------------------------------- product page */
+/* phones: a picture capped to the screen's height, so the name, price and
+   Add come up soon; tablets upright: picture and details side by side */
+@media (max-width: 599px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] {
+    & .pd-main {
+      gap: 22px;
+      margin-top: 16px;
+    }
+    & .pd-media .pa {
+      width: min(100%, 36dvh);
+      margin-inline: auto;
+    }
+    & .pd-title {
+      font-size: clamp(1.9rem, 8vw, 2.6rem);
+    }
+    & .pd-buy {
+      margin-top: 18px;
+      padding-top: 18px;
+    }
+    /* clear of the floating jar in the corner */
+    & .pd-actions {
+      margin-top: 18px;
+      flex-wrap: nowrap;
+      padding-right: 64px;
+    }
+    & .pd-add {
+      min-width: 0;
+      padding-inline: 14px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+  }
+}
+@media (min-width: 600px) and (max-width: 860px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] {
+    & .pd-main {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+      gap: 32px;
+    }
+    & .pd-media {
+      position: sticky;
+      top: calc(var(--bb-band-h) + 96px);
+    }
+    & .pd-title {
+      font-size: clamp(2rem, 5vw, 2.8rem);
+    }
+  }
+}
+/* "More in" holds four products: one row of four, not three and one */
+@media (min-width: 600px) and (max-width: 900px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .pd-more .cp-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
