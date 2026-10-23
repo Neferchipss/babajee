@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { useEffect, useRef, useState } from "react";
 import { aim, Gaze } from "./baba/gaze";
 import { askTilt, readTilt, startTilt } from "./baba/tilt";
@@ -153,9 +154,9 @@ export default function LostPage({ categories }: { categories: Cat[] }) {
       )}
 
       <div className="lost-actions">
-        <Link href="/shop" className="lost-btn lost-btn--main">
+        <SceneLink href="/shop" className="lost-btn lost-btn--main">
           Back to the shop
-        </Link>
+        </SceneLink>
         <button type="button" className="lost-btn" onClick={choose} disabled={rolling}>
           {pick ? "Pick again" : "Let the eye choose"}
         </button>

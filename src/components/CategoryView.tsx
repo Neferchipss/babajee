@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { useRouter } from "next/navigation";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useState, useSyncExternalStore } from "react";
@@ -105,11 +105,11 @@ export default function CategoryView({ category, products, categories }: Props) 
     <div className="cp">
       <section className="cp-hero" aria-labelledby="cp-title">
         {/* phones and tablets: the masthead is a compact title bar */}
-        <Link href="/shop" className="cp-bar-btn cp-back" aria-label="All categories">
+        <SceneLink href="/shop" className="cp-bar-btn cp-back" aria-label="All categories">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 5l-7 7 7 7" />
           </svg>
-        </Link>
+        </SceneLink>
         <div className="cp-hero-copy">
           <p className="cp-crumb">
             <span className="dd-crumb-plain">Shop</span>
@@ -120,9 +120,9 @@ export default function CategoryView({ category, products, categories }: Props) 
           </h1>
           <p className="cp-tag">Good tools. Brighter days.</p>
           <p className="cp-lede">{products.length} products</p>
-          <Link href="/shop" className="cp-cta">
+          <SceneLink href="/shop" className="cp-cta">
             All categories
-          </Link>
+          </SceneLink>
         </div>
         <div className="cp-bar-tools">
           <label className="cp-bar-btn cp-bar-sort">

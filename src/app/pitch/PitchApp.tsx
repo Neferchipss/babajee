@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import Editorial from "./Editorial";
 import { fontVars } from "./fonts";
@@ -54,7 +54,7 @@ export default function PitchApp() {
             {i + 1}. {x.label}
           </button>
         ))}
-        <Link href="/">Exit</Link>
+        <SceneLink href="/">Exit</SceneLink>
       </div>
     </div>
   );

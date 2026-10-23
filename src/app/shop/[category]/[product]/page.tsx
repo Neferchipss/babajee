@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { notFound } from "next/navigation";
 import ProductArt from "@/components/ProductArt";
 import ProductBuy from "@/components/ProductBuy";
@@ -23,7 +24,7 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
   return (
     <div className="pd">
       <nav aria-label="Breadcrumb" className="pd-crumb">
-        <Link href="/shop">Shop</Link>
+        <SceneLink href="/shop">Shop</SceneLink>
         <span aria-hidden="true">/</span>
         <Link href={`/shop/${category.slug}`}>{category.name}</Link>
       </nav>

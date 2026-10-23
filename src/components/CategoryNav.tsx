@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
 
@@ -70,12 +71,12 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
         </button>
         <ul ref={listRef} onScroll={measure}>
           <li>
-            <Link href="/shop">
+            <SceneLink href="/shop">
               <span className="cp-ico">
                 <CategoryIcon slug="all" />
               </span>
               <span className="cp-lbl">All categories</span>
-            </Link>
+            </SceneLink>
           </li>
           {categories.map((c) => (
             <li key={c.slug}>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import Page, { Placeholder } from "@/components/Page";
 
 export default function AboutPage() {
@@ -11,9 +11,9 @@ export default function AboutPage() {
             Rolling papers, rolling trays, bongs and bong accessories, grinders, ashtrays, storage,
             lighters and more, from a range of brands.
           </p>
-          <Link href="/shop" className="btn btn-primary mt-6">
+          <SceneLink href="/shop" className="btn btn-primary mt-6">
             Browse the shop
-          </Link>
+          </SceneLink>
         </section>
 
         <section>

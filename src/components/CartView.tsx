@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { useEffect, useRef, useState } from "react";
 import { type CartLine, cartSums, clearCart, lineUnit, removeLine, restoreLine, setQty, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
@@ -88,9 +89,9 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
           </div>
           <p className="cv-empty-title">The jar is empty.</p>
           <p className="cv-empty-sub">Anything you add drops in here.</p>
-          <Link href="/shop" className="btn btn-primary">
+          <SceneLink href="/shop" className="btn btn-primary">
             Go to the shop
-          </Link>
+          </SceneLink>
           {toast}
         </div>
         <CartRecs products={recs} />
@@ -186,7 +187,7 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
             })}
           </ul>
           <p className="cv-forgot">
-            Forgot something? <Link href="/shop">Add more items</Link>
+            Forgot something? <SceneLink href="/shop">Add more items</SceneLink>
           </p>
         </div>
 
@@ -247,9 +248,9 @@ export function CheckoutItems() {
       {cart.length === 0 ? (
         <p className="mt-4 text-sm text-muted">
           Nothing in the jar yet.{" "}
-          <Link href="/shop" className="underline underline-offset-4">
+          <SceneLink href="/shop" className="underline underline-offset-4">
             Go to the shop
-          </Link>
+          </SceneLink>
         </p>
       ) : (
         <ul className="mt-4 space-y-3">

@@ -108,3 +108,51 @@ export const SEE_EVENT = "bb:see";
 // ({ el }), so the face can look at it and react.
 export const FOCUS_EVENT = "bb:focus";
 export const REACT_EVENT = "bb:react";
+
+// Runs `tick` every frame while it is changing something, and only about
+// eight times a second while it is not, so a resting eye costs the page next
+// to nothing yet still notices a new target within an eye's own reaction
+// time. `tick` returns whether it changed anything, or "stop" to sleep until
+// `wake` is called (input calls `wake` too, so a moving pointer is followed
+// frame by frame at once).
+export function eyeLoop(tick: (now: number) => boolean | "stop") {
+  let raf = 0;
+  let timer = 0;
+  let busySince = 0;
+  let stopped = false;
+  const run = (now: number) => {
+    raf = 0;
+    const r = tick(now);
+    if (r === "stop" || stopped) return;
+    if (r) busySince = now;
+    if (now - busySince < 300) raf = requestAnimationFrame(run);
+    else
+      timer = window.setTimeout(() => {
+        timer = 0;
+        raf = requestAnimationFrame(run);
+      }, 120);
+  };
+  const wake = () => {
+    if (stopped) return;
+    busySince = performance.now();
+    if (timer) {
+      clearTimeout(timer);
+      timer = 0;
+    }
+    if (!raf) raf = requestAnimationFrame(run);
+  };
+  wake();
+  return {
+    wake,
+    stop: () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    },
+  };
+}
+
+// The shelf card that links to `href` (a path like /shop/x/y). On the Pages
+// preview the links carry the base path and a trailing slash, so match the end.
+export const cardFor = (href: string) =>
+  document.querySelector<HTMLElement>(`.pc:has(a[href$="${href}"], a[href$="${href}/"])`);

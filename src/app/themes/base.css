@@ -289,6 +289,14 @@
 #site[data-scope="shop"] .pc {
   position: relative;
 }
+/* cards off screen are not laid out or painted until they come near, so a
+   long shelf opens as fast as a short one */
+#site[data-scope="shop"] .cp-grid > .pc {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 320px;
+  /* that also clips each card to its box; leave room for the focus glow */
+  overflow-clip-margin: 44px;
+}
 #site[data-scope="shop"] .pc-link {
   display: block;
   color: inherit;
@@ -768,6 +776,12 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   border-radius: inherit;
+}
+/* a single picture is not a scroller: every scroller is a compositor layer
+   of its own, which on a full shelf made each page switch slow */
+#site .pc-slides:not([data-many]) {
+  overflow: clip;
+  scroll-snap-type: none;
 }
 #site .pc-slides::-webkit-scrollbar {
   display: none;

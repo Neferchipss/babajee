@@ -1,8 +1,16 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { getSupabase, supabaseConfigured } from "./supabase";
+import { usePathname } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+
+// The provider sits in the root layout, but the Supabase client is about
+// 60 KB that only the account and admin pages need straight away. So it is
+// loaded on its own: at once on those pages, and elsewhere once the page has
+// settled (a session left from a sign-in is still picked up, just later).
+const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const loadClient = () => import("./supabase").then((m) => m.getSupabase());
+const NEEDS_SESSION = /^\/(account|admin)(\/|$)/;
 
 export type Profile = {
   full_name: string;
@@ -35,7 +43,7 @@ const AuthContext = createContext<AuthValue>({
 export const useAuth = () => useContext(AuthContext);
 
 async function fetchProfile(id: string): Promise<Profile | null> {
-  const sb = getSupabase();
+  const sb = await loadClient();
   if (!sb) return null;
   const { data } = await sb
     .from("profiles")
@@ -46,13 +54,18 @@ async function fetchProfile(id: string): Promise<Profile | null> {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<Status>(supabaseConfigured ? "loading" : "off");
+  const [status, setStatus] = useState<Status>(configured ? "loading" : "off");
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recovery, setRecovery] = useState(false);
+  const started = useRef(false);
+  const unsubscribe = useRef(() => {});
+  const urgent = NEEDS_SESSION.test(usePathname());
 
-  useEffect(() => {
-    const sb = getSupabase();
+  const start = useCallback(async () => {
+    if (started.current) return;
+    started.current = true;
+    const sb = await loadClient();
     if (!sb) return;
     const { data } = sb.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
@@ -68,15 +81,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchProfile(next.id).then(setProfile);
       }, 0);
     });
-    return () => data.subscription.unsubscribe();
+    unsubscribe.current = () => data.subscription.unsubscribe();
   }, []);
+
+  // on the account and admin pages at once (including arriving there later)
+  useEffect(() => {
+    if (configured && urgent) start();
+  }, [urgent, start]);
+
+  // everywhere else, once the page has settled
+  useEffect(() => {
+    if (!configured) return;
+    const later = () => (window.requestIdleCallback ?? ((f: () => void) => f()))(() => void start());
+    const idle = window.setTimeout(later, 2500);
+    return () => {
+      window.clearTimeout(idle);
+      unsubscribe.current();
+    };
+  }, [start]);
 
   const refreshProfile = useCallback(async () => {
     if (user) setProfile(await fetchProfile(user.id));
   }, [user]);
 
   const signOut = useCallback(async () => {
-    await getSupabase()?.auth.signOut();
+    await (await loadClient())?.auth.signOut();
   }, []);
 
   const value = useMemo(

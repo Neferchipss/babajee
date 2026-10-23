@@ -14,7 +14,10 @@ const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function client() {
   if (!URL || !KEY) return null;
-  return createClient(URL, KEY, { auth: { persistSession: false } });
+  // Where the stock sheet can stand in (useLocal, below), an unreachable
+  // database should give up at once rather than retry for 1 + 2 + 4 seconds:
+  // with the project offline, that wait made every dev page take 7 seconds.
+  return createClient(URL, KEY, { auth: { persistSession: false }, db: { retry: !useLocal } });
 }
 
 // Price is unset only for local stand-in products (see useLocal below); it

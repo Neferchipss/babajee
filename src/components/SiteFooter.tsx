@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SceneLink from "@/components/SceneLink";
 import { MIN_AGE } from "@/lib/config";
 import Logo from "./Logo";
 
@@ -20,11 +21,14 @@ export default function SiteFooter() {
           <p className="ftr-note">For adults only. You must be {MIN_AGE} or older to use this site.</p>
         </div>
         <nav aria-label="Footer" className="ftr-nav">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href}>
-              {l.label}
-            </Link>
-          ))}
+          {LINKS.map((l) => {
+            const L = l.href === "/shop" ? SceneLink : Link; // the 3D shop
+            return (
+              <L key={l.href} href={l.href}>
+                {l.label}
+              </L>
+            );
+          })}
         </nav>
       </div>
     </footer>

@@ -92,7 +92,7 @@ export default function ProductCard({
     <li className="pc">
       <Link href={product.href} className="pc-link" onClick={open}>
         <div className="pc-img">
-          <div className="pc-slides" onScroll={count > 1 ? onSlide : undefined}>
+          <div className="pc-slides" data-many={count > 1 || undefined} onScroll={count > 1 ? onSlide : undefined}>
             {Array.from({ length: count }, (_, k) => (
               <div key={k} className="pc-slide">
                 {photos[k] ? (

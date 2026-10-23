@@ -10,7 +10,7 @@ import rightMask from "@/assets/baba/eye-right-mask.png";
 import { hasBabaEyes } from "@/lib/themes";
 import { publicAsset, useShopTheme } from "@/lib/useShopTheme";
 import { BLINK } from "./blink";
-import { aim, FOCUS_EVENT, Gaze, REACT_EVENT, SEE_EVENT, type Vec } from "./gaze";
+import { aim, cardFor, eyeLoop, FOCUS_EVENT, Gaze, REACT_EVENT, SEE_EVENT, type Vec } from "./gaze";
 import { askTilt, readTilt, startTilt } from "./tilt";
 
 // touch screens, where the band hides until you pull down at the top
@@ -59,7 +59,7 @@ export default function BabaBand() {
     let scrollDir = 0;
     let lastScroll = window.scrollY;
     let away = false;
-    let frame = 0;
+    let wake = () => {}; // set once the loop is running
     let blinking = false;
     let again = false;
     let lastBlink = 0;
@@ -82,6 +82,24 @@ export default function BabaBand() {
     let focusOn: HTMLElement | null = null; // the card the shelf reader is on
     let focusAt = 0;
     let reactUntil = 0;
+    // On a touch screen the band is tucked away until it is pulled down, so
+    // the eyes only run while it is out. Their boxes are measured now and
+    // then rather than every frame, and a style is only written when it
+    // changes, so a settled eye costs the page nothing.
+    const band = bandRef.current;
+    const tuckable = window.matchMedia(PEEK_MEDIA).matches;
+    const tucked = () => tuckable && !band?.dataset.peek;
+    let rects: DOMRect[] = [];
+    let rectAt = -Infinity;
+    const written = new Map<string, string>();
+    let changed = false;
+    const put = (eye: HTMLElement, i: number, key: string, value: string) => {
+      const k = i + key;
+      if (written.get(k) === value) return;
+      written.set(k, value);
+      eye.style.setProperty(key, value);
+      changed = true;
+    };
 
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === "touch") return; // touches are followed below
@@ -90,6 +108,7 @@ export default function BabaBand() {
       py = e.clientY;
       mouseAt = now;
       away = false;
+      wake();
       // a sudden flick of the pointer startles the face
       const dt = now - lastMove.t;
       if (dt > 0 && dt < 100) {
@@ -109,11 +128,14 @@ export default function BabaBand() {
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
+      if (window.scrollY <= 0) warm();
+      wake();
       px = t.clientX;
       py = t.clientY;
       touching = true;
       touchAt = performance.now();
       away = false;
+      if (band?.dataset.peek) rectAt = -Infinity; // the band is growing
     };
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length) return;
@@ -122,6 +144,8 @@ export default function BabaBand() {
     };
     // scrolling: the eyes look the way the shelf is moving
     const onScroll = () => {
+      rectAt = -Infinity;
+      wake();
       const y = window.scrollY;
       if (y !== lastScroll) scrollDir = Math.sign(y - lastScroll);
       lastScroll = y;
@@ -153,9 +177,10 @@ export default function BabaBand() {
     const onSee = (e: Event) => {
       const d = (e as CustomEvent<{ phase: string; href?: string }>).detail;
       const now = performance.now();
+      wake();
       if (d.phase === "roll" && !still) rollFrom = now;
       if (d.phase === "pick" && d.href) {
-        fixOn = document.querySelector<HTMLElement>(`.pc:has(a[href="${d.href}"])`);
+        fixOn = cardFor(d.href);
         fixUntil = now + 2600;
       }
     };
@@ -164,12 +189,14 @@ export default function BabaBand() {
     const onFocus = (e: Event) => {
       focusOn = (e as CustomEvent<{ el: HTMLElement | null }>).detail.el;
       focusAt = performance.now();
+      wake();
     };
     // Baba says something about a card: the pupils open wide, sometimes a blink
     const onReact = (e: Event) => {
       const now = performance.now();
       if (still) return;
       reactUntil = now + 1500;
+      wake();
       // only a remark about a card can end in a blink (the pull's wide eyes stay open)
       const about = (e as CustomEvent<{ el: HTMLElement | null }>).detail?.el;
       if (about && Math.random() < 0.5 && now - lastBlink > 1200) window.setTimeout(blink, 900);
@@ -201,17 +228,30 @@ export default function BabaBand() {
       blinking = true;
       lastBlink = performance.now();
       root.dataset.blinking = "true";
+      wake();
       v.currentTime = 0;
       v.play().catch(endBlink);
       safety = window.setTimeout(endBlink, 2500);
     };
     const schedule = () => {
       timer = window.setTimeout(() => {
-        blink();
+        if (!tucked()) blink();
         schedule();
       }, 2600 + Math.random() * 5200);
     };
     v.onended = endBlink;
+    // The blink clip is not needed for the first paint: with a mouse the band
+    // is on show, so fetch it now; on a touch screen it is tucked away, so
+    // fetch it once the page has settled (or at the first touch at the top).
+    let warmed = false;
+    const warm = () => {
+      if (warmed) return;
+      warmed = true;
+      v.preload = "auto";
+      v.load();
+    };
+    const warmLater = tuckable ? window.setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => f()))(warm), 3000) : 0;
+    if (!tuckable) warm();
 
     // big glances sometimes come with a blink, as they do in people
     const gaze = new Gaze({
@@ -269,12 +309,20 @@ export default function BabaBand() {
       return { at: glance };
     };
 
-    const tick = (now: number) => {
+    const tick = (now: number): boolean | "stop" => {
+      if (tucked()) {
+        lastNow = 0;
+        return "stop";
+      }
+      changed = false;
       const dt = lastNow ? Math.min(0.05, (now - lastNow) / 1000) : 0;
       lastNow = now;
       // the eyes look the way the target is, from the middle of the face,
       // both turned together; they do not converge on it
-      const rects = eyes.map((eye) => eye.getBoundingClientRect());
+      if (now - rectAt > 300) {
+        rects = eyes.map((eye) => eye.getBoundingClientRect());
+        rectAt = now;
+      }
       const cx = rects.reduce((a, r) => a + r.left + r.width / 2, 0) / rects.length;
       const cy = rects.reduce((a, r) => a + r.top + r.height / 2, 0) / rects.length;
       const t = target(now, cx, cy);
@@ -288,15 +336,15 @@ export default function BabaBand() {
       dil += (want - dil) * (1 - Math.exp(-dt / (startled ? 0.07 : 0.45)));
       eyes.forEach((eye, i) => {
         const r = rects[i];
-        eye.style.setProperty("--ix", `${(g.x * 0.3 * r.width).toFixed(1)}px`);
-        eye.style.setProperty("--iy", `${(g.y * 0.24 * r.height).toFixed(1)}px`);
+        put(eye, i, "--ix", `${(g.x * 0.3 * r.width).toFixed(1)}px`);
+        put(eye, i, "--iy", `${(g.y * 0.24 * r.height).toFixed(1)}px`);
         // a turned iris is seen at an angle, so it narrows that way
-        eye.style.setProperty("--fx", (1 - 0.06 * g.x * g.x).toFixed(3));
-        eye.style.setProperty("--fy", (1 - 0.05 * g.y * g.y).toFixed(3));
-        eye.style.setProperty("--dil", dil.toFixed(3));
+        put(eye, i, "--fx", (1 - 0.06 * g.x * g.x).toFixed(2));
+        put(eye, i, "--fy", (1 - 0.05 * g.y * g.y).toFixed(2));
+        put(eye, i, "--dil", dil.toFixed(2));
       });
       if (blinking) setLids(Math.round(v.currentTime * BLINK.fps));
-      frame = requestAnimationFrame(tick);
+      return changed || blinking;
     };
 
     // poking an eye blinks it, and on an iPhone asks to follow its tilt
@@ -323,10 +371,20 @@ export default function BabaBand() {
     root.addEventListener("click", poke);
     window.addEventListener(BLINK_EVENT, blink);
     startTilt();
-    frame = requestAnimationFrame(tick);
+    const loop = eyeLoop(tick);
+    wake = loop.wake;
+    // pulled out: wake the eyes (they have been "watching all along")
+    const pulled = new MutationObserver(() => {
+      if (tucked()) return;
+      rectAt = -Infinity;
+      wake();
+    });
+    if (band) pulled.observe(band, { attributes: true, attributeFilter: ["data-peek"] });
     if (!still) schedule();
     return () => {
-      cancelAnimationFrame(frame);
+      pulled.disconnect();
+      clearTimeout(warmLater);
+      loop.stop();
       clearTimeout(timer);
       clearTimeout(safety);
       window.removeEventListener("pointermove", onMove);
@@ -490,7 +548,7 @@ export default function BabaBand() {
     <div ref={bandRef} className="bb-band">
       <div ref={stage} className="bb-stage">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={band.src} alt="" className="bb-art" aria-hidden="true" />
+        <img src={band.src} alt="" className="bb-art" aria-hidden="true" decoding="async" fetchPriority="low" />
         <video
           ref={video}
           className="bb-blink"
@@ -500,7 +558,7 @@ export default function BabaBand() {
           disablePictureInPicture
           disableRemotePlayback
           controlsList="nodownload"
-          preload="auto"
+          preload="none"
           aria-hidden="true"
           tabIndex={-1}
         />

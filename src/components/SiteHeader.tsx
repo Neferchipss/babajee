@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SceneLink, { isScenePath } from "@/components/SceneLink";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cartCount, useCart } from "@/lib/cart";
@@ -22,23 +23,21 @@ export default function SiteHeader() {
   const count = cartCount(useCart());
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-  const navLink = (href: string, label: string) => (
-    <Link
-      key={href}
-      href={href}
-      onClick={() => setOpen(false)}
-      aria-current={isActive(href) ? "page" : undefined}
-    >
-      {label}
-    </Link>
-  );
+  const navLink = (href: string, label: string) => {
+    const L = isScenePath(href) ? SceneLink : Link;
+    return (
+      <L key={href} href={href} onClick={() => setOpen(false)} aria-current={isActive(href) ? "page" : undefined}>
+        {label}
+      </L>
+    );
+  };
 
   return (
     <header className="hdr">
       <div className="hdr-inner">
-        <Link href="/" aria-label="Babajee home" className="hdr-logo" onClick={() => setOpen(false)}>
+        <SceneLink href="/" aria-label="Babajee home" className="hdr-logo" onClick={() => setOpen(false)}>
           <Logo className="hdr-logo-img" priority />
-        </Link>
+        </SceneLink>
 
         <nav aria-label="Main" className="hdr-nav">
           {NAV.map((n) => navLink(n.href, n.label))}

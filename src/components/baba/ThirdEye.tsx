@@ -7,7 +7,7 @@ import third from "@/assets/baba/third.webp";
 import thirdMask from "@/assets/baba/third-mask.png";
 import { hasBabaEyes } from "@/lib/themes";
 import { useShopTheme } from "@/lib/useShopTheme";
-import { aim, Gaze, SEE_EVENT } from "./gaze";
+import { aim, cardFor, eyeLoop, Gaze, SEE_EVENT } from "./gaze";
 import { askTilt, readTilt, startTilt } from "./tilt";
 
 type Pick = { href: string; name: string };
@@ -36,11 +36,27 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
     let inputAt = 0;
     let fixOn: HTMLElement | null = null;
     let fixUntil = 0;
-    let frame = 0;
+    let wake = () => {}; // set once the loop is running
+    let changed = false;
+    // measured now and then, not every frame; styles written only on change
+    let r = el.getBoundingClientRect();
+    let rectAt = -Infinity;
+    const written = new Map<string, string>();
+    const put = (key: string, value: string) => {
+      if (written.get(key) === value) return;
+      written.set(key, value);
+      el.style.setProperty(key, value);
+      changed = true;
+    };
+    const onScroll = () => {
+      rectAt = -Infinity;
+      wake();
+    };
     const onMove = (e: PointerEvent) => {
       px = e.clientX;
       py = e.clientY;
       inputAt = performance.now();
+      wake();
     };
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0];
@@ -48,16 +64,22 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
       px = t.clientX;
       py = t.clientY;
       inputAt = performance.now();
+      wake();
     };
     // once it has chosen, it looks at what it picked
     const onSee = (e: Event) => {
       const d = (e as CustomEvent<{ phase: string; href?: string }>).detail;
       if (d.phase !== "pick" || !d.href) return;
-      fixOn = document.querySelector<HTMLElement>(`.pc:has(a[href="${d.href}"])`);
+      fixOn = cardFor(d.href);
       fixUntil = performance.now() + 2600;
+      wake();
     };
     const tick = (now: number) => {
-      const r = el.getBoundingClientRect();
+      changed = false;
+      if (now - rectAt > 300) {
+        r = el.getBoundingClientRect();
+        rectAt = now;
+      }
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
       // the pick, else the pointer or finger, else (on a phone left alone)
@@ -69,11 +91,11 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
         want = aim(cx, cy, f.left + f.width / 2, f.top + f.height / 2, 40);
       }
       const g = gaze.step(now, want);
-      el.style.setProperty("--ix", `${(g.x * 0.18 * r.width).toFixed(1)}px`);
-      el.style.setProperty("--iy", `${(g.y * 0.26 * r.height).toFixed(1)}px`);
-      el.style.setProperty("--fx", (1 - 0.06 * g.x * g.x).toFixed(3));
-      el.style.setProperty("--fy", (1 - 0.05 * g.y * g.y).toFixed(3));
-      frame = requestAnimationFrame(tick);
+      put("--ix", `${(g.x * 0.18 * r.width).toFixed(1)}px`);
+      put("--iy", `${(g.y * 0.26 * r.height).toFixed(1)}px`);
+      put("--fx", (1 - 0.06 * g.x * g.x).toFixed(2));
+      put("--fy", (1 - 0.05 * g.y * g.y).toFixed(2));
+      return changed;
     };
     const opts = { passive: true } as const;
     window.addEventListener("pointermove", onMove, opts);
@@ -81,15 +103,20 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
     window.addEventListener("touchstart", onTouch, opts);
     window.addEventListener("touchmove", onTouch, opts);
     window.addEventListener(SEE_EVENT, onSee);
+    window.addEventListener("scroll", onScroll, opts);
+    window.addEventListener("resize", onScroll, opts);
     startTilt();
-    frame = requestAnimationFrame(tick);
+    const loop = eyeLoop(tick);
+    wake = loop.wake;
     return () => {
-      cancelAnimationFrame(frame);
+      loop.stop();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onMove);
       window.removeEventListener("touchstart", onTouch);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener(SEE_EVENT, onSee);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, [on]);
 
@@ -112,7 +139,7 @@ export default function ThirdEye({ products }: { products: Pick[] }) {
         setSeeing(false);
         setPick(p);
         document.querySelectorAll(".pc[data-seen]").forEach((c) => c.removeAttribute("data-seen"));
-        const card = document.querySelector<HTMLElement>(`.pc:has(a[href="${p.href}"])`);
+        const card = cardFor(p.href);
         if (card) {
           card.dataset.seen = "true";
           card.scrollIntoView({ behavior: still ? "instant" : "smooth", block: "center" });
