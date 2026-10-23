@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -97,10 +96,8 @@ export default function ShopScene({ categories, intro }: { categories: Category[
   const canvas = useRef<HTMLCanvasElement>(null);
   const landing = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLElement>(null);
-  const bubble = useRef<HTMLButtonElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const arrived = useRef(false); // once inside, scrolling back up does not rewind the walk
-  const router = useRouter();
   const spotEls = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [status, setStatus] = useState<"loading" | "ready" | "flat">("loading");
   const [spots, setSpots] = useState<Spot[]>([]);
@@ -595,25 +592,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           door.quaternion.slerpQuaternions(doorShut, doorOpen, swing);
         }
         world?.update(sec, dt, inside, camera);
-        const said = magic?.update(sec, dt, inside, camera) ?? null;
-        const bub = bubble.current;
-        if (bub) {
-          if (said && said.text) {
-            v.copy(said.at).project(camera);
-            const show = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
-            bub.dataset.on = show ? "true" : "false";
-            if (bub.dataset.who !== said.label + said.text.length) {
-              bub.dataset.who = said.label + said.text.length;
-              (bub.querySelector(".scene-bubble-name") as HTMLElement).textContent = said.label;
-              (bub.querySelector(".scene-bubble-text") as HTMLElement).textContent = said.text;
-              const slug = said.slugs[0];
-              bub.dataset.link = slug ? "true" : "false";
-              bub.dataset.slug = slug ?? "";
-              bub.tabIndex = slug ? 0 : -1;
-            }
-            bub.style.transform = `translate(${((v.x + 1) / 2) * stageEl.clientWidth}px, ${((1 - v.y) / 2) * stageEl.clientHeight}px) translate(-50%, -100%)`;
-          } else bub.dataset.on = "false";
-        }
+        magic?.update(sec, dt, inside, camera);
         if (fxOff) renderer.render(scene, camera);
         else composer.render();
         camera.updateMatrixWorld();
@@ -727,15 +706,13 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     const onLeave = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
       const a = t?.closest<HTMLAnchorElement>("a[href]");
-      const toCategory = a ? /\/shop\/[^/]+\/?$/.test(a.pathname) : !!t?.closest(".scene-bubble[data-slug]");
+      const toCategory = !!a && /\/shop\/[^/]+\/?$/.test(a.pathname);
       if (!toCategory || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       leaving = true;
       cancelAnimationFrame(raf);
       raf = 0;
       // say where we're going while it opens
-      const name = a
-        ? (a.querySelector("span")?.textContent ?? a.textContent ?? "")
-        : (t?.closest(".scene-bubble")?.querySelector(".scene-bubble-name")?.textContent ?? "");
+      const name = a?.querySelector("span")?.textContent ?? a?.textContent ?? "";
       const label = stageEl.querySelector(".scene-leaving b");
       if (label) label.textContent = name.trim() || "the shelf";
       stageEl.dataset.leaving = "true";
@@ -841,21 +818,6 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           </Link>
         ))}
 
-        <button
-          type="button"
-          ref={bubble}
-          className="scene-bubble"
-          data-on="false"
-          tabIndex={-1}
-          aria-live="polite"
-          onClick={(e) => {
-            const slug = e.currentTarget.dataset.slug;
-            if (slug) router.push(`/shop/${slug}`);
-          }}
-        >
-          <b className="scene-bubble-name" />
-          <span className="scene-bubble-text" />
-        </button>
 
         {intro && (
           <button type="button" ref={back} className="scene-back" onClick={goBack}>

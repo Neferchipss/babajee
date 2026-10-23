@@ -252,52 +252,6 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   color: var(--color-char);
 }
 
-/* what a portrait is saying; the first line points at its category */
-.scene-bubble {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-width: min(280px, 70vw);
-  padding: 10px 14px 11px;
-  border: 1px solid rgb(255 255 255 / 0.28);
-  border-radius: 14px 14px 14px 3px;
-  background: rgb(20 8 40 / 0.82);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s;
-  will-change: transform;
-}
-.scene-bubble[data-on="true"] {
-  opacity: 1;
-}
-.scene-bubble[data-on="true"][data-link="true"] {
-  pointer-events: auto;
-}
-.scene-bubble-name {
-  color: var(--color-rasta-gold);
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.scene-bubble-text {
-  font-size: 0.92rem;
-  line-height: 1.35;
-}
-.scene-bubble[data-link="true"]:hover,
-.scene-bubble[data-link="true"]:focus-visible {
-  border-color: var(--color-rasta-gold);
-}
-
 .scene-hint {
   position: absolute;
   top: 20px;
@@ -469,7 +423,6 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
    in on /shop): everything that sits over the canvas gets a solid fill instead. */
 .scene-spot,
 .scene-back,
-.scene-bubble,
 .scene-box,
 body:has(.scene) .hdr,
 body:has(.scene) .theme-toggle {
@@ -479,9 +432,6 @@ body:has(.scene) .theme-toggle {
 .scene-spot,
 .scene-back {
   background: rgb(0 0 0 / 0.75);
-}
-.scene-bubble {
-  background: rgb(20 8 40 / 0.92);
 }
 .scene-box {
   background: color-mix(in srgb, var(--color-iron) 94%, transparent);

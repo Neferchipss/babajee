@@ -225,7 +225,7 @@ export default function CategoryView({ category, products, categories }: Props) 
         <DaydreamBloom />
       </div>
 
-      <ShelfReader category={category.name} />
+      <ShelfReader />
 
       {openAt >= 0 && (
         <ProductSheet
