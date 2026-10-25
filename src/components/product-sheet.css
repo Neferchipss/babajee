@@ -79,8 +79,7 @@
 
 .ps-pull {
   position: relative;
-  flex: 0 1 auto;
-  min-height: 0;
+  flex: none; /* never squeezed: the photo is sized to fit instead (--ps-fit) */
   display: flex;
   flex-direction: column;
   touch-action: none;
@@ -108,7 +107,29 @@
 .ps-top-end {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
+}
+/* over the photo: dark frosted glass, so they read on any picture */
+.ps-round,
+.ps-full,
+.ps-top .wish,
+.ps-top .jar-sheet {
+  background: rgb(12 10 28 / 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.ps-top .wish,
+.ps-top .jar-sheet {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 3px 0 0;
+  border-radius: 50%;
+}
+.ps-top .jar-sheet .jar-art {
+  width: 24px;
 }
 .ps-round {
   display: grid;
@@ -117,14 +138,12 @@
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.08);
   color: inherit;
   cursor: pointer;
 }
 .ps-full {
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
   color: inherit;
   font-size: 0.75rem;
   font-weight: 700;
@@ -140,23 +159,25 @@
 
 .ps-stage {
   position: relative;
-  flex: 0 1 auto;
-  min-height: 0;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 58px 14px 4px;
+  padding: 0;
   perspective: 900px;
-  background: radial-gradient(circle at 50% 58%, rgb(var(--ps-glow) / 0.2), transparent 62%);
+  /* the photo runs edge to edge; on a short screen it narrows, and the
+     plate colour either side keeps it one piece */
+  background: var(--color-plate, #1c1b21);
 }
 /* as big as the card is wide, but small enough on a short screen that the
    name and the Add button still fit above the wheel */
 .ps-art {
-  /* never taller than the room the details leave (--ps-fit, measured) */
-  width: min(clamp(140px, min(100%, 100dvh - 400px), 400px), var(--ps-fit, 100vw));
+  /* the card's full width, never taller than the room the details leave
+     (--ps-fit, measured); the close button and jar sit on top of it */
+  width: min(100%, var(--ps-fit, 100vw));
   height: auto;
-  border-radius: 16px !important;
-  box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
+  border-radius: 0 !important;
+  box-shadow: none;
   animation: ps-pop 0.3s ease-out;
 }
 /* several photos: a strip that snaps photo by photo, dots underneath */
@@ -216,8 +237,50 @@
   height: 6px;
   margin: 0 auto;
   border-radius: 3px;
-  background: rgb(20 16 40 / 0.28);
+  background: #c3c1cb; /* light, like the shelf cards' dots, on the dark plate */
   transition: width 0.25s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.25s;
+}
+/* arrows over the photo's sides, for a mouse or trackpad (a finger swipes) */
+/* in the photo's bottom corners, level with the dots: clear of the product
+   and of the buttons along the top */
+.ps-nav {
+  position: absolute;
+  bottom: 3px; /* centred on the dots */
+  z-index: 2;
+  display: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 50%;
+  background: rgb(12 10 28 / 0.72);
+  color: var(--color-paper, #f4efff);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+.ps-nav[data-dir="-1"] {
+  left: 8px;
+}
+.ps-nav[data-dir="1"] {
+  right: 8px;
+}
+.ps-nav:hover,
+.ps-nav:focus-visible {
+  border-color: var(--ps-pink, #ff8fb4);
+  opacity: 1;
+}
+.ps-nav[hidden] {
+  display: none !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ps-nav {
+    display: grid;
+  }
+}
+.ps-nav:focus-visible {
+  display: grid;
 }
 .ps-dots button[data-on="true"]::before {
   width: 14px;
@@ -248,7 +311,7 @@
 /* the details keep their full height: the photo gives way instead */
 .ps-info {
   flex: none;
-  padding: 6px 16px 10px;
+  padding: 12px 16px 10px;
   animation: ps-fade 0.3s ease-out;
 }
 .ps-cat {
@@ -566,9 +629,6 @@
   .ps-stack {
     max-width: 540px;
   }
-  .ps-art {
-    width: min(clamp(160px, min(100%, 100dvh - 430px), 460px), var(--ps-fit, 100vw));
-  }
 }
 
 /* the floating third eye would sit over the sheet */
@@ -682,4 +742,17 @@ html #site[data-scope] .ps .pa-initial {
   display: block;
   color: var(--ps-pink);
   font-weight: 700;
+}
+
+/* the heart in the top bar, over the photo: frosted like its neighbours
+   (outranks the shelf cards' plain dark heart) */
+#site .ps-top .wish {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgb(12 10 28 / 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: var(--color-paper, #f4efff);
 }

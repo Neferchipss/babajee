@@ -386,6 +386,22 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       opacity: 0;
       cursor: pointer;
     }
+    /* The title bar gives way to the shop header (ShopBar): where to, the
+       profile button and the category strip scroll away; the search bar,
+       under them, stays at the top. */
+    & .cp-hero {
+      top: calc(10px - var(--sb-lift, 140px)); /* only the search stays, a little room above it */
+      display: block;
+      height: auto;
+      padding: 0;
+      background: none;
+    }
+    & .cp-hero .sb {
+      display: flex;
+    }
+    & .cp-hero :is(.cp-back, .cp-hero-copy, .cp-bar-tools) {
+      display: none;
+    }
     /* the site header gives way to the title bar on the shelf */
     &:has(.cp) .hdr {
       display: none;
@@ -418,8 +434,9 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       display: none;
       margin: 8px 0 4px;
     }
+    /* the shop header's search bar replaces it */
     & .cp-toolbar[data-open="true"] {
-      display: flex;
+      display: none;
     }
     & .cp-toolbar .cp-sort {
       display: none;
@@ -642,28 +659,31 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   & .pc:hover .pc-img {
     border-color: var(--bb-maroon);
   }
+  /* rings go inside the picture's edge, not around it: the card is clipped
+     to its box (Safari allows no margin), so anything outside would be cut */
   & .pc[data-seen="true"] .pc-img {
-    border-color: var(--bb-green);
-    box-shadow: 0 0 0 3px var(--bb-green);
+    outline: 2px solid var(--bb-green);
+    outline-offset: -2px;
   }
   & .cp-grid > .pc[data-focus="true"] .pc-img {
-    border-color: var(--bb-maroon);
-    box-shadow:
-      0 0 0 2px var(--bb-maroon),
-      0 0 26px rgb(var(--bbn-glow, 255 143 179) / 0.4);
-    transform: translateY(-2px);
+    outline: 2px solid var(--bb-maroon);
+    outline-offset: -2px;
+  }
+  /* just the ring: no candle light or shade over the photo */
+  & .cp-grid > .pc[data-focus="true"] .pc-img::before {
+    display: none;
   }
 
   /* a product with options: their dots in a row right under the picture,
      with the price and "+" moved down under them */
   & .pc-dotrow {
     position: absolute;
-    top: calc(100cqw + 10px);
+    top: calc(100cqw + 7px);
     right: 0;
     left: 0;
     z-index: 2;
     flex-wrap: nowrap;
-    margin: 0 2px;
+    margin: 0;
   }
   /* every card on a shelf that has any dots keeps their row, so the prices
      and "+" buttons line up across the shelf */
@@ -839,11 +859,57 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     & .cp {
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas:
-        "side"
+        "mast"
         "main";
     }
+    /* The shop header, as on phones, in a panel over the shelf: where to,
+       the categories and the search bar; scrolled down, only the search
+       stays, under the site header. No arched masthead or third eye, and
+       the site header keeps the account button, so none here. */
     & .cp-hero {
+      position: sticky;
+      top: calc(var(--sb-head, 0px) + 10px - var(--sb-lift, 140px));
+      z-index: 30;
+      display: block;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      margin-bottom: 18px;
+      padding: 0;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
+      text-align: left;
+    }
+    & .cp-hero > :not(.sb) {
+      display: none !important;
+    }
+    & .sb {
+      display: flex;
+      padding: 6px 8px 0;
+      border: 1px solid var(--color-line, #2d2860);
+      border-radius: 20px;
+      box-shadow: 0 14px 30px rgb(0 0 0 / 0.35);
+    }
+    & .sb-top {
+      padding: 0 12px;
+    }
+    & .sb-profile {
       display: none;
+    }
+    & .sb-search {
+      margin: 10px 12px 12px;
+    }
+    /* the strip and the search take its place */
+    & .cp-side,
+    & .cp-toolbar {
+      display: none;
+    }
+    /* wide screens fit every category: centred, scrolling only if not */
+    & .sb-cats {
+      justify-content: safe center;
     }
   }
   html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-title .csw-btn {

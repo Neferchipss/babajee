@@ -31,4 +31,4 @@ export default function SceneLink({ onPointerEnter, onTouchStart, onFocus, ...pr
 }
 
 // Use SceneLink for the scene's own paths and a plain Link for the rest.
-export const isScenePath = (href: string) => href === "/" || href === "/shop";
+export const isScenePath = (href: string) => href === "/";

@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import Branded from "./Branded";
-import CartJar from "./CartJar";
 import CategorySwitch from "./CategorySwitch";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
@@ -123,7 +121,7 @@ export default function ProductSheet({
       const gap = parseFloat(getComputedStyle(stack).rowGap) || 0;
       let room = stack.clientHeight;
       for (const c of Array.from(stack.children)) if (c !== el) room -= (c as HTMLElement).offsetHeight + gap;
-      const rest = el.scrollHeight - art.offsetHeight;
+      const rest = el.scrollHeight + (el.offsetHeight - el.clientHeight) - art.offsetHeight; // with its border
       const size = `${Math.max(140, Math.floor(room - rest))}px`;
       if (el.style.getPropertyValue("--ps-fit") !== size) el.style.setProperty("--ps-fit", size);
     };
@@ -332,7 +330,9 @@ export default function ProductSheet({
     const x = -Math.sign(off) * k * 0.6 * el.clientWidth;
     el.style.transition = "transform 40ms linear, opacity 40ms linear";
     el.style.transform = `translateX(${x.toFixed(1)}px) rotate(${(x * 0.03).toFixed(2)}deg)`;
-    el.style.opacity = (1 - k * 0.75).toFixed(3);
+    // gone entirely at the switch, so its jump to the other side (and the
+    // swap to the next product, which can lag a frame) is never seen
+    el.style.opacity = (1 - k).toFixed(3);
   }
 
   function add() {
@@ -368,10 +368,6 @@ export default function ProductSheet({
               </button>
               <div className="ps-top-end">
                 <WishButton item={{ slug: p.slug, href: p.href, name: p.name, tone: p.tone, price: variant.price, options: Math.max(0, p.variants.length - 1) }} />
-                <Link href={p.href} className="ps-full">
-                  Full page
-                </Link>
-                <CartJar variant="sheet" />
               </div>
             </div>
             <div key={p.slug} className="ps-stage" data-dir={view.dir}>
@@ -455,6 +451,10 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
   const photos = photosFor(slug, option);
   const strip = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(0);
+  const go = (k: number) => {
+    const g = strip.current;
+    if (g) g.scrollTo({ left: Math.max(0, Math.min(photos.length - 1, k)) * g.clientWidth, behavior: "smooth" });
+  };
   if (photos.length < 2) {
     // eslint-disable-next-line @next/next/no-img-element
     if (photos[0]) return <div className="ps-art ps-photos"><img className="ps-one" src={photos[0]} alt={name} /></div>;
@@ -476,6 +476,22 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
           <img key={src} src={src} alt={k === 0 ? name : ""} loading={k ? "lazy" : "eager"} draggable={false} />
         ))}
       </div>
+      {/* with a mouse there is no swipe: arrows either side step through */}
+      {[-1, 1].map((d) => (
+        <button
+          key={d}
+          type="button"
+          className="ps-nav"
+          data-dir={d}
+          hidden={d < 0 ? shown === 0 : shown === photos.length - 1}
+          aria-label={d < 0 ? "Previous photo" : "Next photo"}
+          onClick={() => go(shown + d)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d={d < 0 ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+          </svg>
+        </button>
+      ))}
       <div className="ps-dots">
         {photos.map((src, k) => (
           <button
@@ -483,7 +499,7 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
             type="button"
             data-on={k === shown}
             aria-label={`Photo ${k + 1} of ${photos.length}`}
-            onClick={() => strip.current?.scrollTo({ left: k * strip.current.clientWidth, behavior: "smooth" })}
+            onClick={() => go(k)}
           />
         ))}
       </div>

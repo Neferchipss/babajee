@@ -1,10 +1,9 @@
-import ShopScene from "@/components/ShopScene";
-import { getIndexCategories } from "@/lib/catalog-db";
+import CategoryView from "@/components/CategoryView";
+import { allShelfProducts } from "./all-products";
 
-// The category index: the inside of the shop, as the landing's walk ends,
-// with the categories listed over it. The same in every theme; the box takes
-// the theme's colours.
+// Every product in the shop, as one shelf: the categories in their order,
+// each under its own heading.
 export default async function ShopPage() {
-  const categories = await getIndexCategories();
-  return <ShopScene intro={false} categories={categories.map(({ slug, name, count }) => ({ slug, name, count }))} />;
+  const { categories, products } = await allShelfProducts();
+  return <CategoryView category={{ slug: "all", name: "All" }} categories={categories} products={products} />;
 }

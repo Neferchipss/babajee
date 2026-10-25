@@ -71,7 +71,7 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
         </button>
         <ul ref={listRef} onScroll={measure}>
           <li>
-            <SceneLink href="/shop">
+            <SceneLink href="/shop" aria-current={currentSlug === "all" ? "page" : undefined}>
               <span className="cp-ico">
                 <CategoryIcon slug="all" />
               </span>

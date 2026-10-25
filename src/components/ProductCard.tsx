@@ -27,6 +27,8 @@ export type CardProduct = {
   // present on the category shelf, where a tap opens the product sheet
   slug?: string;
   variants?: BuyVariant[];
+  // on the all-products shelf, the category it is listed under
+  group?: string;
 };
 
 // One card, five looks. The features are fixed: image, name, price, an

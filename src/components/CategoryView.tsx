@@ -2,13 +2,14 @@
 
 import SceneLink from "@/components/SceneLink";
 import { useRouter } from "next/navigation";
-import { byBrand } from "@/lib/brand";
+import { byBrand, byGroup } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
 import CategorySwitch from "./CategorySwitch";
 import ShelfReader from "./baba/ShelfReader";
+import ShopBar from "./ShopBar";
 import ThirdEye from "./baba/ThirdEye";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
@@ -84,15 +85,30 @@ export default function CategoryView({ category, products, categories }: Props) 
   // phones and tablets: the search field opens from the title bar
   const [finding, setFinding] = useState(false);
 
+  // the search page and the all-products shelf list every product, under
+  // their category; the search page takes its query from the address
+  const everything = category.slug === "all" || category.slug === "search";
+  const searching = category.slug === "search";
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the query in the address, once
+    if (searching) setQuery(new URLSearchParams(window.location.search).get("q") ?? "");
+  }, [searching]);
+
   const q = query.trim().toLowerCase();
-  const filtered = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
+  const words = q.split(/\s+/).filter(Boolean);
+  const filtered = words.length
+    ? products.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""}`.toLowerCase().includes(w)))
+    : products;
   // Featured lists the shelf brand by brand, under a heading for each
-  const brands = sort === "featured" ? byBrand(filtered) : null;
+  const brands = sort === "featured" ? (everything ? byGroup(filtered) : byBrand(filtered)) : null;
   const shown = brands
     ? brands.flatMap((g) => g.items)
     : sort === "featured"
       ? filtered
       : [...filtered].sort((a, b) => a.name.localeCompare(b.name) * (sort === "az" ? 1 : -1));
+
+  // a few of the shelf's own products, for the search bar to suggest
+  const hints = products.slice(0, 8).map((p) => p.name);
 
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
   const sheetItems = shown.filter((p) => p.slug && p.variants);
@@ -109,6 +125,14 @@ export default function CategoryView({ category, products, categories }: Props) 
   return (
     <div className="cp">
       <section className="cp-hero" aria-labelledby="cp-title">
+        <ShopBar
+          current={category.slug}
+          categories={categories}
+          sort={sort}
+          onSort={setSort}
+          hints={hints}
+          {...(searching ? { query, onQuery: setQuery } : {})}
+        />
         {/* phones and tablets: the masthead is a compact title bar */}
         <SceneLink href="/shop" className="cp-bar-btn cp-back" aria-label="All categories">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

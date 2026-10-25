@@ -89,3 +89,11 @@ export function byBrand<T extends { name: string }>(items: T[]): { brand?: strin
     .sort(([a, x], [b, y]) => rank(a) - rank(b) || y.length - x.length)
     .map(([brand, items]) => ({ brand, items }));
 }
+
+// the all-products shelf: grouped by the category each product is in,
+// in the order the categories come
+export function byGroup<T extends { group?: string }>(items: T[]): { brand?: string; items: T[] }[] {
+  const groups = new Map<string | undefined, T[]>();
+  for (const it of items) groups.set(it.group, [...(groups.get(it.group) ?? []), it]);
+  return [...groups.entries()].map(([brand, items]) => ({ brand, items }));
+}

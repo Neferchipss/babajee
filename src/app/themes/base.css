@@ -1052,34 +1052,50 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 8px 2px 0;
+  gap: 2px;
+  margin: 8px 0 0;
 }
+/* Each dot sits in its own 26px frame, and the chosen one's ring is drawn
+   inside that frame: shelf cards are clipped to their box (to skip drawing
+   the ones off screen), and Safari allows nothing outside it, so a ring
+   drawn outside would be cut. */
 #site[data-scope="shop"] .pc-dot {
   position: relative;
-  width: 20px;
-  height: 20px;
+  flex: none;
+  width: 26px;
+  height: 26px;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.22);
-  border-radius: 6px;
-  background: var(--dot, var(--color-plate, #1c1b21));
+  border: 1.5px solid transparent;
+  border-radius: 8.5px;
+  background: none;
   cursor: pointer;
+  transition: border-color 0.15s ease;
+  /* the colour, inset from the ring with a hairline edge of its own */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 1.5px;
+    border-radius: 5.5px;
+    background: var(--dot, var(--color-plate, #1c1b21));
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+  }
   /* a bigger target than it looks */
   &::before {
     content: "";
     position: absolute;
-    inset: -6px -3px;
+    inset: -6px -1px;
   }
   & img {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    inset: 1.5px;
+    z-index: 1;
+    width: calc(100% - 3px);
+    height: calc(100% - 3px);
+    border-radius: 5.5px;
     object-fit: cover;
-    transform: scale(1.5);
   }
   &[aria-checked="true"] {
-    outline: 2px solid var(--bb-hot, var(--bb-maroon));
-    outline-offset: 2px;
+    border-color: var(--bb-hot, var(--bb-maroon));
   }
 }
 #site[data-scope="shop"] .pc-dot-more {
