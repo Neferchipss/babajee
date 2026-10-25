@@ -42,6 +42,9 @@ type Live = {
   spun: boolean;
   samples: { t: number; x: number }[];
   spacing: number;
+  // the card is turning the wheel (a swipe), so the wheel does not move the card back
+  fromCard: boolean;
+  told: number;
 };
 
 // place every drawn product on the arc for the dial's current position
@@ -68,19 +71,23 @@ export default function ProductWheel({
   start,
   onChange,
   onPick,
+  onTurn,
   steerRef,
 }: {
   items: WheelItem[];
   start: number;
   onChange: (i: number) => void;
   onPick?: (i: number) => void;
+  // how far the dial sits from the product in the middle (-0.5 to 0.5) while
+  // a thumb, flick, scroll or spin turns it, for the card to follow
+  onTurn?: (offset: number) => void;
   // filled in by the wheel, for a swipe on the card to turn it
   steerRef?: RefObject<WheelSteer | null>;
 }) {
   const wheel = useRef<HTMLDivElement>(null);
   const [centre, setCentre] = useState(start);
   const [turned, setTurned] = useState(false);
-  const cb = useRef({ onChange, onPick });
+  const cb = useRef({ onChange, onPick, onTurn });
   const live = useRef<Live>({
     pos: start,
     vel: 0,
@@ -98,11 +105,13 @@ export default function ProductWheel({
     spun: false,
     samples: [],
     spacing: 90,
+    fromCard: false,
+    told: 0,
   });
   const n = items.length;
 
   useEffect(() => {
-    cb.current = { onChange, onPick };
+    cb.current = { onChange, onPick, onTurn };
   });
 
   // a re-render swaps which products are drawn; put the new ones in place
@@ -149,6 +158,14 @@ export default function ProductWheel({
       cb.current.onChange(c);
     };
 
+    // the card follows the dial, unless it is the card turning it
+    const tell = () => {
+      const off = s.fromCard ? 0 : clamp(s.pos - s.centre, -0.5, 0.5);
+      if (Math.abs(off - s.told) < 0.001) return;
+      s.told = off;
+      cb.current.onTurn?.(off);
+    };
+
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - s.last) / 1000);
       s.last = now;
@@ -173,12 +190,13 @@ export default function ProductWheel({
         } else {
           if (s.target === null) s.target = clamp(Math.round(s.pos + s.vel * 0.12), 0, n - 1);
           s.vel = 0;
-          s.pos += (s.target - s.pos) * (1 - Math.exp(-dt * 20));
+          s.pos += (s.target - s.pos) * (1 - Math.exp(-dt * 28));
           if (Math.abs(s.target - s.pos) < 0.002) s.pos = s.target;
         }
       }
       settleCentre();
       layout(el, s.pos, s.spacing);
+      tell();
       const moving = s.dragging || s.spin || s.vel !== 0 || (s.target !== null && s.pos !== s.target);
       s.frame = moving ? requestAnimationFrame(loop) : 0;
     };
@@ -189,6 +207,7 @@ export default function ProductWheel({
     };
 
     const spin = () => {
+      s.fromCard = false;
       s.spun = true;
       s.dragging = false;
       s.vel = 0;
@@ -222,12 +241,14 @@ export default function ProductWheel({
       if (!d) return;
       e.preventDefault();
       wake();
+      s.fromCard = false;
       s.dragging = true;
       s.vel = 0;
       s.target = null;
       s.pos = clamp(s.pos + d / (s.spacing * 1.6), -0.35, n - 0.65);
       layout(el, s.pos, s.spacing);
       settleCentre();
+      tell();
       setTurned(true);
       window.clearTimeout(wheelEnd);
       wheelEnd = window.setTimeout(() => {
@@ -245,6 +266,7 @@ export default function ProductWheel({
     const onDown = (e: PointerEvent) => {
       if (s.spin || e.button > 0) return;
       el.setPointerCapture(e.pointerId);
+      s.fromCard = false;
       s.dragging = true;
       s.target = null;
       s.vel = 0;
@@ -298,6 +320,7 @@ export default function ProductWheel({
       const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
       if (step) {
         e.preventDefault();
+        s.fromCard = false;
         s.vel = 0;
         s.target = clamp((s.target ?? Math.round(s.pos)) + step, 0, n - 1);
         wake();
@@ -313,6 +336,7 @@ export default function ProductWheel({
       steerRef.current = {
         lean: (f) => {
           if (s.spin || s.dragging) return;
+          s.fromCard = true;
           s.vel = 0;
           s.target = null;
           s.pos = s.centre + clamp(f, -0.45, 0.45);
@@ -320,6 +344,7 @@ export default function ProductWheel({
         },
         to: (i) => {
           if (s.spin) return;
+          s.fromCard = true;
           s.dragging = false;
           s.vel = 0;
           s.target = clamp(i, 0, n - 1);

@@ -13,7 +13,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   --color-paper: #f4efff;
   --color-muted: #a39cd0;
   /* what product photos sit on (they are cut out, background clear) */
-  --color-plate: #2f2e36;
+  --color-plate: #1c1b21;
   --color-ink: #0c0a1c;
   --color-rasta-gold: #ff8fb3;
   --plate-ink: #ff8fb3;
@@ -149,7 +149,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
 
   /* poster tiles: a tall plate, the name printed on its foot */
   & .cp-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
   }
   & .pc {
@@ -216,7 +216,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
 
   @media (max-width: 1100px) {
     & .cp-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   @media (max-width: 900px) {
@@ -654,6 +654,28 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     transform: translateY(-2px);
   }
 
+  /* a product with options: their dots in a row right under the picture,
+     with the price and "+" moved down under them */
+  & .pc-dotrow {
+    position: absolute;
+    top: calc(100cqw + 10px);
+    right: 0;
+    left: 0;
+    z-index: 2;
+    flex-wrap: nowrap;
+    margin: 0 2px;
+  }
+  /* every card on a shelf that has any dots keeps their row, so the prices
+     and "+" buttons line up across the shelf */
+  & :is(.cp-grid, .pd-more-grid):has(.pc-dotrow) .pc-price,
+  & .pc:has(.pc-dotrow) .pc-price {
+    margin-top: 40px;
+  }
+  & :is(.cp-grid, .pd-more-grid):has(.pc-dotrow) .pc-add,
+  & .pc:has(.pc-dotrow) .pc-add {
+    top: calc(100cqw + 40px);
+  }
+
   /* price first, big; the name under it in plain case, two lines at most;
      then how it comes, small and grey */
   & .pc-link {
@@ -811,6 +833,19 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
 /* large screens keep the category list beside the shelf: the title there is
    just the title */
 @media (min-width: 901px) {
+  /* no arched masthead (or third eye) beside the shelf: the category list
+     on top says where you are, and the shelf takes the full width */
+  html[data-theme="baba-poster"] #site[data-scope="shop"] {
+    & .cp {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "side"
+        "main";
+    }
+    & .cp-hero {
+      display: none;
+    }
+  }
   html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-title .csw-btn {
     pointer-events: none;
   }

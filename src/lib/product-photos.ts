@@ -29,3 +29,45 @@ export const hasOptionPhotos = (slug: string | undefined) => !!slug && !!VARIANT
 // the product page's gallery follows the option chosen beside it
 export const OPTION_EVENT = "bb:option";
 
+
+// the names of a product's options that have their own photos, in order
+export const optionsWithPhotos = (slug: string | undefined): string[] =>
+  slug && PHOTOS[slug] ? (VARIANTS[slug]?.map(([label]) => label) ?? []) : [];
+
+// The dot for an option on a shelf card: the colour its name gives, or none
+// (then the dot is a small round photo) for a pattern or design, where a
+// flat colour would mislead ("Red Camo", "Galaxy", the soda cans).
+const COLOURS: Record<string, string> = {
+  silver: "#c3c7cc",
+  black: "#1c1c1f",
+  grey: "#8a8d91",
+  gunmetal: "#53575d",
+  white: "#f4f4f2",
+  clear: "rgb(255 255 255 / 0.28)",
+  blue: "#2f6fe4",
+  navy: "#22306b",
+  red: "#d9342b",
+  orange: "#f07c2c",
+  yellow: "#f3d03b",
+  gold: "#d6aa3c",
+  brass: "#c4a44c",
+  bronze: "#a06c36",
+  copper: "#bd6a3c",
+  brown: "#7b4a2d",
+  green: "#2f9e5c",
+  "army green": "#5c6b3a",
+  pink: "#f283b6",
+  purple: "#7f4fd3",
+};
+const PATTERN = /camo|graffiti|galaxy|psychedelic|skull|mosaic|floral|heart|pastel|fanta|sprite|coca/i;
+export function dotColour(label: string): string | null {
+  if (PATTERN.test(label)) return null;
+  const l = label.toLowerCase();
+  const key = Object.keys(COLOURS)
+    .sort((a, b) => b.length - a.length)
+    .find((c) => ` ${l} `.includes(` ${c} `));
+  return key ? COLOURS[key] : null;
+}
+
+// the option last picked on a shelf card, so the product sheet opens on it
+export const shelfPicks = new Map<string, string>();

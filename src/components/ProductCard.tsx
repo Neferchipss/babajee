@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { type MouseEvent, type UIEvent, useEffect, useState, useSyncExternalStore } from "react";
+import { type MouseEvent, type UIEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
+import { dotColour, optionsWithPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
+import Branded from "./Branded";
 import { JarIcon } from "./icons";
 import Price from "./Price";
 import type { BuyVariant } from "./ProductBuy";
@@ -36,6 +38,7 @@ export type CardProduct = {
 // ?demo=photos (in development only) gives every card three stand-in photos,
 // to try the swipe before real ones exist
 const noop = () => () => {};
+const MAX_DOTS = 6;
 const useDemoPhotos = () =>
   useSyncExternalStore(
     noop,
@@ -55,7 +58,21 @@ export default function ProductCard({
   const [added, setAdded] = useState(false);
   const [shown, setShown] = useState(0);
   const demo = useDemoPhotos();
-  const photos = product.images ?? [];
+  // options with their own photos show as dots under the card (a colour, or
+  // a tiny photo for a pattern); a dot swaps the card's photos to its option
+  const opts = optionsWithPhotos(product.slug);
+  const [opt, setOpt] = useState(0);
+  const strip = useRef<HTMLDivElement>(null);
+  const photos = opts.length > 1 && opt > 0 ? photosFor(product.slug, opts[opt]) : (product.images ?? []);
+  const pick = (k: number) => {
+    setOpt(k);
+    setShown(0);
+    strip.current?.scrollTo({ left: 0 });
+    shelfPicks.set(product.slug!, opts[k]);
+    try {
+      navigator.vibrate?.(6);
+    } catch {}
+  };
   const deal = dealFor(product.slug, product.price, product.mrp);
   const count = photos.length || (demo ? 3 : 1);
   // which photo is in view, from how far the strip has scrolled
@@ -92,9 +109,9 @@ export default function ProductCard({
     <li className="pc">
       <Link href={product.href} className="pc-link" onClick={open}>
         <div className="pc-img">
-          <div className="pc-slides" data-many={count > 1 || undefined} onScroll={count > 1 ? onSlide : undefined}>
+          <div ref={strip} className="pc-slides" data-many={count > 1 || undefined} onScroll={count > 1 ? onSlide : undefined}>
             {Array.from({ length: count }, (_, k) => (
-              <div key={k} className="pc-slide">
+              <div key={`${opt}-${k}`} className="pc-slide">
                 {photos[k] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={photos[k]} alt={k === 0 ? product.name : ""} className="pa pc-photo" loading="lazy" draggable={false} />
@@ -112,7 +129,9 @@ export default function ProductCard({
             </span>
           )}
         </div>
-        <h3 className="pc-name">{product.name}</h3>
+        <h3 className="pc-name">
+          <Branded name={product.name} />
+        </h3>
         {product.options > 0 && <span className="pc-opts">{product.options + 1} options</span>}
         {deal ? (
           <>
@@ -127,10 +146,38 @@ export default function ProductCard({
         )}
         {(product.unit || product.options > 0) && (
           <span className="pc-meta">
-            {[product.unit, product.options > 0 ? `${product.options + 1} options` : null].filter(Boolean).join(" · ")}
+            {[product.unit, opts.length > 1 ? opts[opt] : product.options > 0 ? `${product.options + 1} options` : null]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         )}
       </Link>
+      {opts.length > 1 && (
+        <div className="pc-dotrow" role="radiogroup" aria-label={`${product.name} options`}>
+          {opts.slice(0, MAX_DOTS).map((label, k) => {
+            const colour = dotColour(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                role="radio"
+                aria-checked={k === opt}
+                aria-label={label}
+                title={label}
+                className="pc-dot"
+                style={colour ? ({ "--dot": colour } as React.CSSProperties) : undefined}
+                onClick={() => pick(k)}
+              >
+                {!colour && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photosFor(product.slug, label)[0]} alt="" loading="lazy" draggable={false} />
+                )}
+              </button>
+            );
+          })}
+          {opts.length > MAX_DOTS && <span className="pc-dot-more">+{opts.length - MAX_DOTS}</span>}
+        </div>
+      )}
       {product.slug && (
         <WishButton
           className="pc-wish"

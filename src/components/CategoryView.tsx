@@ -2,6 +2,7 @@
 
 import SceneLink from "@/components/SceneLink";
 import { useRouter } from "next/navigation";
+import { byBrand } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
@@ -85,8 +86,11 @@ export default function CategoryView({ category, products, categories }: Props) 
 
   const q = query.trim().toLowerCase();
   const filtered = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
-  const shown =
-    sort === "featured"
+  // Featured lists the shelf brand by brand, under a heading for each
+  const brands = sort === "featured" ? byBrand(filtered) : null;
+  const shown = brands
+    ? brands.flatMap((g) => g.items)
+    : sort === "featured"
       ? filtered
       : [...filtered].sort((a, b) => a.name.localeCompare(b.name) * (sort === "az" ? 1 : -1));
 
@@ -191,25 +195,33 @@ export default function CategoryView({ category, products, categories }: Props) 
             </p>
           ) : (
             <ul className="cp-grid">
-              {shown.map((p) => (
-                <ProductCard
-                  key={p.href}
-                  product={p}
-                  onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
-                  onAdd={
-                    p.slug && p.variants?.length === 1 && p.variants[0].stockQty > 0
-                      ? (from) => {
-                          const v = p.variants![0];
-                          addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
-                          tossIntoJar(from);
-                          try {
-                            navigator.vibrate?.([10, 40, 10]);
-                          } catch {}
-                        }
-                      : undefined
-                  }
-                />
-              ))}
+              {(brands ?? [{ brand: undefined, items: shown }]).map((g) => [
+                brands && (
+                  <li key={`brand-${g.brand ?? ""}`} className="cp-brand">
+                    <h2>{g.brand ?? "More"}</h2>
+                    <span>{g.items.length}</span>
+                  </li>
+                ),
+                ...g.items.map((p) => (
+                  <ProductCard
+                    key={p.href}
+                    product={p}
+                    onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
+                    onAdd={
+                      p.slug && p.variants?.length === 1 && p.variants[0].stockQty > 0
+                        ? (from) => {
+                            const v = p.variants![0];
+                            addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
+                            tossIntoJar(from);
+                            try {
+                              navigator.vibrate?.([10, 40, 10]);
+                            } catch {}
+                          }
+                        : undefined
+                    }
+                  />
+                )),
+              ])}
             </ul>
           )}
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SceneLink from "@/components/SceneLink";
 import { notFound } from "next/navigation";
+import Branded from "@/components/Branded";
 import ProductBuy from "@/components/ProductBuy";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
@@ -37,7 +38,9 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
 
         <div className="pd-info">
           <p className="pd-cat">{category.name}</p>
-          <h1 className="pd-title">{product.name}</h1>
+          <h1 className="pd-title">
+            <Branded name={product.name} />
+          </h1>
           {product.description && <p className="pd-desc">{product.description}</p>}
           <ProductBuy
             variants={product.variants}

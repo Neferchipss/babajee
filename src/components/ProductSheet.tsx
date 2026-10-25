@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
+import Branded from "./Branded";
 import CartJar from "./CartJar";
 import CategorySwitch from "./CategorySwitch";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
-import { hasOptionPhotos, photosFor } from "@/lib/product-photos";
+import { hasOptionPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
 import WishButton from "./WishButton";
@@ -65,7 +66,9 @@ export default function ProductSheet({
   const host = typeof document === "undefined" ? null : document.getElementById("site");
 
   const p = products[view.i];
-  const v = choice.slug === p.slug ? choice.v : 0;
+  // the option picked on the shelf card, until one is chosen here
+  const v =
+    choice.slug === p.slug ? choice.v : Math.max(0, p.variants.findIndex((x) => x.label === shelfPicks.get(p.slug)));
   const variant = p.variants[v] ?? { label: "Standard", stockQty: 1 };
   const inStock = variant.stockQty > 0;
   const showOptions = p.variants.length > 1;
@@ -105,6 +108,32 @@ export default function ProductSheet({
   useEffect(() => {
     at.current = { i: view.i, n: products.length };
   });
+
+  // The photo takes whatever height is left once the name, options and Add
+  // bar have theirs, so the details never scroll under it. Measured, since
+  // the room left by a phone's browser bars and the details' height (a long
+  // name, a row of swatches) both vary.
+  useLayoutEffect(() => {
+    const el = card.current;
+    const stack = el?.parentElement;
+    if (!el || !stack) return;
+    const fit = () => {
+      const art = el.querySelector<HTMLElement>(".ps-art");
+      if (!art) return;
+      const gap = parseFloat(getComputedStyle(stack).rowGap) || 0;
+      let room = stack.clientHeight;
+      for (const c of Array.from(stack.children)) if (c !== el) room -= (c as HTMLElement).offsetHeight + gap;
+      const rest = el.scrollHeight - art.offsetHeight;
+      const size = `${Math.max(140, Math.floor(room - rest))}px`;
+      if (el.style.getPropertyValue("--ps-fit") !== size) el.style.setProperty("--ps-fit", size);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(stack);
+    const info = el.querySelector(".ps-info");
+    if (info) ro.observe(info);
+    return () => ro.disconnect();
+  }, [p.slug, v]);
 
   // keep the chosen option's chip in view (a swipe through the photos can
   // choose one that is scrolled out of sight)
@@ -281,6 +310,31 @@ export default function ProductSheet({
     };
   }, [onClose]);
 
+  // Turning the wheel carries the whole card with it: it slides out the way
+  // the wheel turns and fades, swaps to the next product halfway, and the
+  // next one slides in from the other side as the wheel settles.
+  function follow(off: number) {
+    const el = card.current;
+    if (!el || (el.dataset.swipe && !el.dataset.dial)) return; // the card's own swipe
+    if (Math.abs(off) < 0.002) {
+      delete el.dataset.dial;
+      delete el.dataset.swipe;
+      el.style.transition = "transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.12s";
+      el.style.transform = "";
+      el.style.opacity = "";
+      return;
+    }
+    el.dataset.dial = "true";
+    el.dataset.swipe = "true";
+    // snappy: it barely stirs for the first part of a turn, then whips out
+    // as the wheel nears the next product, and the next one lands just as fast
+    const k = Math.min(1, Math.abs(off) * 2) ** 2.4;
+    const x = -Math.sign(off) * k * 0.6 * el.clientWidth;
+    el.style.transition = "transform 40ms linear, opacity 40ms linear";
+    el.style.transform = `translateX(${x.toFixed(1)}px) rotate(${(x * 0.03).toFixed(2)}deg)`;
+    el.style.opacity = (1 - k * 0.75).toFixed(3);
+  }
+
   function add() {
     buzz([10, 40, 10]);
     addToCart({ slug: p.slug, href: p.href, name: p.name, tone: p.tone, variant: variant.label, price: variant.price, unit: p.unit });
@@ -329,7 +383,7 @@ export default function ProductSheet({
           <div key={`info-${p.slug}`} className="ps-info" data-dir={view.dir}>
             <p className="ps-cat">{category}</p>
             <h2 id="ps-title" className="ps-title">
-              {p.name}
+              <Branded name={p.name} />
             </h2>
             {showOptions && (
               <div className="ps-opts" role="radiogroup" aria-label="Options" data-swatches={hasOptionPhotos(p.slug) || undefined}>
@@ -387,6 +441,7 @@ export default function ProductSheet({
         onChange={(i) => setView((w) => ({ i, dir: i > w.i ? 1 : -1, picked: false }))}
         onPick={(i) => setView((w) => ({ ...w, i, picked: true }))}
         steerRef={steerRef}
+        onTurn={follow}
       />
     </div>,
     host,

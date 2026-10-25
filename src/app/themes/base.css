@@ -582,7 +582,7 @@
   width: 100%;
   height: 100%;
   border-radius: 11px;
-  background: var(--color-plate, #2f2e36);
+  background: var(--color-plate, #1c1b21);
   object-fit: cover;
 }
 #site[data-scope="shop"] .pd-actions {
@@ -995,4 +995,95 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
+}
+
+/* A product's brand, small and set apart above its name (Branded.tsx) */
+.bb-brand {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--bb-maroon, currentColor);
+  font-size: 0.72em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.pd-title .bb-brand {
+  margin-bottom: 6px;
+  font-family: var(--font-sans);
+  font-size: max(0.8rem, 0.32em);
+  letter-spacing: 0.24em;
+}
+.ps-title .bb-brand {
+  font-size: 0.62em;
+}
+
+/* the shelf, brand by brand: a heading across the whole row before each */
+#site[data-scope="shop"] .cp-brand {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  gap: 10px;
+  margin: 14px 2px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-line, rgb(255 255 255 / 0.15));
+  list-style: none;
+  &:first-child {
+    margin-top: 0;
+  }
+  & h2 {
+    margin: 0;
+    color: var(--bb-maroon, currentColor);
+    font-family: var(--bb-display, inherit);
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+  & span {
+    color: var(--color-muted, #a39cd0);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+}
+
+/* a shelf card's options, as dots under it: the colour, or a tiny photo of
+   a pattern; the chosen one ringed */
+#site[data-scope="shop"] .pc-dotrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 2px 0;
+}
+#site[data-scope="shop"] .pc-dot {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 6px;
+  background: var(--dot, var(--color-plate, #1c1b21));
+  cursor: pointer;
+  /* a bigger target than it looks */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -6px -3px;
+  }
+  & img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.5);
+  }
+  &[aria-checked="true"] {
+    outline: 2px solid var(--bb-hot, var(--bb-maroon));
+    outline-offset: 2px;
+  }
+}
+#site[data-scope="shop"] .pc-dot-more {
+  color: var(--color-muted, #a39cd0);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
