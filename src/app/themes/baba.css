@@ -137,11 +137,11 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
 
   /* ------------------------------------------------- product photos */
-  /* Until the real photos arrive, a blank white plate: the supplier shots are
-     products on white, so this previews how the shelves will read. */
+  /* The plate the cut-out product photos sit on (and the blank plate of a
+     product with none yet). */
   & .pa {
     border-radius: 8px;
-    background: #fff;
+    background: var(--color-plate, #fff);
   }
   & .pa-initial {
     display: none;

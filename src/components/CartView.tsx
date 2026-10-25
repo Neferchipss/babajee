@@ -137,7 +137,7 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
               return (
                 <li key={line.key} className="cv-line">
                   <Link href={line.href} className="cv-thumb" tabIndex={-1} aria-hidden="true">
-                    <ProductArt name={line.name} tone={line.tone} />
+                    <ProductArt name={line.name} tone={line.tone} slug={line.slug} option={line.variant} />
                   </Link>
                   <div className="cv-info">
                     <Link href={line.href} className="cv-name">

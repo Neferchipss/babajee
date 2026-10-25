@@ -8,14 +8,17 @@ export default function ProductArt({
   name,
   tone,
   slug,
+  option,
   className = "",
 }: {
   name: string;
   tone: string;
   slug?: string;
+  // the option (colour, design) whose photo to show, where options have their own
+  option?: string;
   className?: string;
 }) {
-  const photo = photosFor(slug ?? slugify(name))[0];
+  const photo = photosFor(slug ?? slugify(name), option)[0];
   const initial = name.trim().charAt(0).toUpperCase();
   return (
     <div

@@ -9,6 +9,7 @@
 // photographed) are in product-photos.json.
 import raw from "./catalog-data.json";
 import drive from "./drive-products.json";
+import photoVariants from "./photo-variants.json";
 
 export type CatalogVariant = {
   label: string;
@@ -30,9 +31,16 @@ export type CatalogCategory = {
 
 const EXTRA = drive as Record<string, CatalogProduct[]>;
 
-export const CATEGORIES: CatalogCategory[] = (raw as CatalogCategory[]).map((c) =>
-  EXTRA[c.slug] ? { ...c, products: [...EXTRA[c.slug], ...c.products] } : c,
-);
+// Colours and designs seen in a product's photos (photo-variants.json), as
+// its options. Draft names until the client confirms what is stocked.
+const VARIANTS = photoVariants as unknown as Record<string, [string, number[]][]>;
+const withVariants = (p: CatalogProduct): CatalogProduct =>
+  VARIANTS[p.slug] ? { ...p, variants: VARIANTS[p.slug].map(([label]) => ({ label, unitsPerBox: p.unitsPerBox })) } : p;
+
+export const CATEGORIES: CatalogCategory[] = (raw as CatalogCategory[]).map((c) => ({
+  ...c,
+  products: [...(EXTRA[c.slug] ?? []), ...c.products].map(withVariants),
+}));
 
 export function getCategory(slug: string) {
   return CATEGORIES.find((c) => c.slug === slug);

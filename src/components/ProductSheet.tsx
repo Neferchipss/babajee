@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import CartJar from "./CartJar";
+import CategorySwitch from "./CategorySwitch";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
+import { hasOptionPhotos, photosFor } from "@/lib/product-photos";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
 import WishButton from "./WishButton";
@@ -47,7 +49,7 @@ export default function ProductSheet({
   products: SheetProduct[];
   start: number;
   category: string;
-  categories: { slug: string; name: string }[];
+  categories: { slug: string; name: string; count?: number }[];
   categorySlug: string;
   onCategory: (slug: string) => void;
   onIndex: (slug: string) => void;
@@ -60,7 +62,6 @@ export default function ProductSheet({
   const steerRef = useRef<WheelSteer | null>(null);
   const at = useRef({ i: start, n: products.length });
   const closeBtn = useRef<HTMLButtonElement>(null);
-  const cats = useRef<HTMLDivElement>(null);
   const host = typeof document === "undefined" ? null : document.getElementById("site");
 
   const p = products[view.i];
@@ -105,12 +106,14 @@ export default function ProductSheet({
     at.current = { i: view.i, n: products.length };
   });
 
-  // the category chips start with this category in the middle
+  // keep the chosen option's chip in view (a swipe through the photos can
+  // choose one that is scrolled out of sight)
   useEffect(() => {
-    const row = cats.current;
-    const cur = row?.querySelector<HTMLElement>('[aria-current="true"]');
-    if (row && cur) row.scrollLeft = cur.offsetLeft - (row.clientWidth - cur.offsetWidth) / 2;
-  }, []);
+    const row = card.current?.querySelector<HTMLElement>(".ps-opts");
+    const chip = row?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (row && chip) row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  }, [v, p.slug]);
+
 
   // Drag the card: sideways, the whole card follows the finger and the wheel
   // leans with it; let go far enough (or flick) and it slides out while the
@@ -133,12 +136,16 @@ export default function ProductSheet({
     let live = false;
     let fromTop = false;
     let mouse: number | null = null;
+    // a photo strip under the finger swipes its own photos, and hands the
+    // swipe to the card only once it is at its first or last photo
+    let gallery: HTMLElement | null = null;
     const timers: number[] = [];
 
     const start = (x: number, y: number, t: number, target: EventTarget | null) => {
       const hit = target as HTMLElement;
       // controls keep their taps; the option chips scroll sideways themselves
       if (hit.closest("button, a, .ps-opts") || el.dataset.swipe) return false;
+      gallery = hit.closest<HTMLElement>(".ps-gallery");
       x0 = x;
       y0 = y;
       t0 = t;
@@ -159,6 +166,14 @@ export default function ProductSheet({
         if (axis === "y" && !fromTop) {
           live = false; // a scroll of the details, not ours
           return false;
+        }
+        if (axis === "x" && gallery) {
+          const g = gallery;
+          const atEnd = dx < 0 ? g.scrollLeft >= g.scrollWidth - g.clientWidth - 2 : g.scrollLeft <= 2;
+          if (!atEnd) {
+            live = false; // browsing the photos
+            return false;
+          }
         }
         el.style.transition = "none";
       }
@@ -279,22 +294,15 @@ export default function ProductSheet({
       <div className="ps-scrim" onClick={onClose} aria-hidden="true" />
       {/* the chips sit right on top of the card, whatever its height */}
       <div className="ps-stack">
-        <div ref={cats} className="ps-cats" role="group" aria-label="Categories">
-          {categories.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              className="ps-cat-chip"
-              aria-current={c.slug === categorySlug}
-              onClick={() => {
-                buzz(6);
-                onCategory(c.slug);
-              }}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
+        <CategorySwitch
+          variant="sheet"
+          current={categories.find((c) => c.slug === categorySlug) ?? { slug: categorySlug, name: category }}
+          categories={categories}
+          onPick={(slug) => {
+            buzz(6);
+            onCategory(slug);
+          }}
+        />
         <section ref={card} className="ps-card" role="dialog" aria-modal="true" aria-labelledby="ps-title">
           <div className="ps-pull">
             <span className="ps-grip" aria-hidden="true" />
@@ -313,7 +321,7 @@ export default function ProductSheet({
               </div>
             </div>
             <div key={p.slug} className="ps-stage" data-dir={view.dir}>
-              <ProductArt name={p.name} tone={p.tone} slug={p.slug} className="ps-art" />
+              <SheetPhotos key={variant.label} name={p.name} tone={p.tone} slug={p.slug} option={variant.label} />
               {view.picked && <span className="ps-picked">Baba&rsquo;s pick</span>}
             </div>
           </div>
@@ -324,7 +332,7 @@ export default function ProductSheet({
               {p.name}
             </h2>
             {showOptions && (
-              <div className="ps-opts" role="radiogroup" aria-label="Options">
+              <div className="ps-opts" role="radiogroup" aria-label="Options" data-swatches={hasOptionPhotos(p.slug) || undefined}>
                 {p.variants.map((o, k) => (
                   <button
                     key={o.label}
@@ -332,13 +340,22 @@ export default function ProductSheet({
                     role="radio"
                     aria-checked={k === v}
                     className="ps-opt"
+                    aria-label={hasOptionPhotos(p.slug) ? o.label : undefined}
+                    title={hasOptionPhotos(p.slug) ? o.label : undefined}
                     onClick={() => {
                       buzz(5);
                       setChoice({ slug: p.slug, v: k });
                     }}
                   >
-                    <span className="ps-opt-label">{o.label}</span>
-                    <Price className="ps-opt-price" value={o.price} />
+                    {hasOptionPhotos(p.slug) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="ps-swatch" src={photosFor(p.slug, o.label)[0]} alt="" loading="lazy" draggable={false} />
+                    ) : (
+                      <>
+                        <span className="ps-opt-label">{o.label}</span>
+                        <Price className="ps-opt-price" value={o.price} />
+                      </>
+                    )}
                     {o.stockQty <= 0 && <span className="ps-opt-out">Sold out</span>}
                   </button>
                 ))}
@@ -373,5 +390,48 @@ export default function ProductSheet({
       />
     </div>,
     host,
+  );
+}
+
+// The product's photos in the sheet: one, or a strip to swipe through with
+// dots under it (a dot also jumps to its photo). Where the photos show the
+// product's options, only the chosen option's photos are here.
+function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string; slug: string; option: string }) {
+  const photos = photosFor(slug, option);
+  const strip = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(0);
+  if (photos.length < 2) {
+    // eslint-disable-next-line @next/next/no-img-element
+    if (photos[0]) return <div className="ps-art ps-photos"><img className="ps-one" src={photos[0]} alt={name} /></div>;
+    return <ProductArt name={name} tone={tone} slug={slug} className="ps-art" />;
+  }
+  return (
+    <div className="ps-art ps-photos">
+      <div
+        ref={strip}
+        className="ps-gallery"
+        onScroll={(e) => {
+          const g = e.currentTarget;
+          const i = Math.round(g.scrollLeft / Math.max(1, g.clientWidth));
+          if (i !== shown) setShown(i);
+        }}
+      >
+        {photos.map((src, k) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={src} src={src} alt={k === 0 ? name : ""} loading={k ? "lazy" : "eager"} draggable={false} />
+        ))}
+      </div>
+      <div className="ps-dots">
+        {photos.map((src, k) => (
+          <button
+            key={src}
+            type="button"
+            data-on={k === shown}
+            aria-label={`Photo ${k + 1} of ${photos.length}`}
+            onClick={() => strip.current?.scrollTo({ left: k * strip.current.clientWidth, behavior: "smooth" })}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

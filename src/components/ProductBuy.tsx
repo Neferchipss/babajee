@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { addToCart, type CartItem, tossIntoJar } from "@/lib/cart";
+import { hasOptionPhotos, OPTION_EVENT, photosFor } from "@/lib/product-photos";
 import Price from "./Price";
 import QtyStepper from "./QtyStepper";
 
@@ -22,6 +23,11 @@ export default function ProductBuy({
   const [added, setAdded] = useState(false);
   const variant = variants[selected];
   const inStock = variant.stockQty > 0;
+  const swatches = hasOptionPhotos(item.slug);
+  const choose = (i: number) => {
+    setSelected(i);
+    window.dispatchEvent(new CustomEvent(OPTION_EVENT, { detail: variants[i].label }));
+  };
 
   useEffect(() => {
     if (!added) return;
@@ -41,18 +47,25 @@ export default function ProductBuy({
 
       {variants.length > 1 && (
         <fieldset className="pd-opts">
-          <legend className="pd-legend">Option</legend>
-          <div role="radiogroup" className="pd-opt-list">
+          <legend className="pd-legend">{swatches ? variant.label : "Option"}</legend>
+          <div role="radiogroup" className="pd-opt-list" data-swatches={swatches || undefined}>
             {variants.map((v, i) => (
               <button
                 key={v.label}
                 type="button"
                 role="radio"
                 aria-checked={selected === i}
-                onClick={() => setSelected(i)}
+                onClick={() => choose(i)}
                 className="pd-opt"
+                aria-label={swatches ? v.label : undefined}
+                title={swatches ? v.label : undefined}
               >
-                {v.label}
+                {swatches ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="pd-swatch" src={photosFor(item.slug, v.label)[0]} alt="" loading="lazy" draggable={false} />
+                ) : (
+                  v.label
+                )}
               </button>
             ))}
           </div>

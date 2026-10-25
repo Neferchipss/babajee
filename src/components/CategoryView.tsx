@@ -6,6 +6,7 @@ import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
+import CategorySwitch from "./CategorySwitch";
 import ShelfReader from "./baba/ShelfReader";
 import ThirdEye from "./baba/ThirdEye";
 import DaydreamBloom from "./daydream/DaydreamBloom";
@@ -116,7 +117,7 @@ export default function CategoryView({ category, products, categories }: Props) 
             <span className="dd-crumb">The Babajee field guide</span>
           </p>
           <h1 id="cp-title" className="cp-title">
-            {category.name}
+            <CategorySwitch current={category} categories={categories} />
           </h1>
           <p className="cp-tag">Good tools. Brighter days.</p>
           <p className="cp-lede">{products.length} products</p>

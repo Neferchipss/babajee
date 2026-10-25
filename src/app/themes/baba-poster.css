@@ -12,7 +12,8 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   --color-line: #2d2860;
   --color-paper: #f4efff;
   --color-muted: #a39cd0;
-  --color-plate: #171437;
+  /* what product photos sit on (they are cut out, background clear) */
+  --color-plate: #2f2e36;
   --color-ink: #0c0a1c;
   --color-rasta-gold: #ff8fb3;
   --plate-ink: #ff8fb3;
@@ -390,9 +391,16 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       display: none;
     }
 
-    /* compact category chips */
+    /* the category is switched from the title in the bar, so no row of
+       category chips under it */
     & .cp-side {
-      margin: 10px 0 2px;
+      display: none;
+    }
+    & .cp-title .csw-chev {
+      width: 0.8em;
+      height: 0.8em;
+      margin-top: 0.1em;
+      color: var(--bb-hot, #ff8fb4);
     }
     & .cp-cats a {
       min-height: 36px;
@@ -798,4 +806,15 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   color: var(--color-muted, #a39cd0);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+/* large screens keep the category list beside the shelf: the title there is
+   just the title */
+@media (min-width: 901px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-title .csw-btn {
+    pointer-events: none;
+  }
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-title .csw-chev {
+    display: none;
+  }
 }
