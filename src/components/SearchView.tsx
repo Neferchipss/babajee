@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { photosFor } from "@/lib/product-photos";
 import { toneAt } from "@/lib/tone";
 import ProductCard from "./ProductCard";
 
@@ -65,7 +66,14 @@ export default function SearchView({ entries }: { entries: SearchEntry[] }) {
               {matches.slice(0, LIMIT).map((p) => (
                 <ProductCard
                   key={p.href}
-                  product={{ href: p.href, name: p.name, options: p.options, price: p.price, tone: toneAt(p.categoryIndex) }}
+                  product={{
+                    href: p.href,
+                    name: p.name,
+                    options: p.options,
+                    price: p.price,
+                    images: photosFor(p.href.split("/").filter(Boolean).pop()),
+                    tone: toneAt(p.categoryIndex),
+                  }}
                 />
               ))}
             </ul>

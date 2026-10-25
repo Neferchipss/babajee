@@ -5,6 +5,7 @@ import ProductArt from "@/components/ProductArt";
 import ProductBuy from "@/components/ProductBuy";
 import ProductCard from "@/components/ProductCard";
 import { getCategories, getProductDetail, getStaticProductParams } from "@/lib/catalog-db";
+import { photosFor } from "@/lib/product-photos";
 import { toneAt } from "@/lib/tone";
 
 export const dynamicParams = false;
@@ -19,6 +20,7 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
   if (!detail) notFound();
 
   const { category, product, more } = detail;
+  const photos = photosFor(product.slug);
   const tone = toneAt(Math.max(0, categories.findIndex((c) => c.slug === category.slug)));
 
   return (
@@ -31,7 +33,18 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
 
       <div className="pd-main">
         <div className="pd-media">
-          <ProductArt name={product.name} tone={tone} />
+          {photos.length > 1 ? (
+            <div className="pc-slides pd-slides" data-many>
+              {photos.map((src, k) => (
+                <div key={src} className="pc-slide">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={k === 0 ? product.name : ""} className="pa pc-photo" loading={k ? "lazy" : "eager"} draggable={false} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ProductArt name={product.name} tone={tone} slug={product.slug} />
+          )}
         </div>
 
         <div className="pd-info">
@@ -69,6 +82,7 @@ export default async function ProductPage(props: PageProps<"/shop/[category]/[pr
                   name: p.name,
                   options: p.variantCount > 1 ? p.variantCount - 1 : 0,
                   price: p.minPrice,
+                  images: photosFor(p.slug),
                   tone,
                 }}
               />

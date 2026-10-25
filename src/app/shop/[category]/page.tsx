@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import CategoryView from "@/components/CategoryView";
 import { getCategoriesWithCounts, getCategoryDetail, getStaticCategoryParams } from "@/lib/catalog-db";
+import { photosFor } from "@/lib/product-photos";
 import { toneAt } from "@/lib/tone";
 
 export const dynamicParams = false;
@@ -26,6 +27,7 @@ export default async function CategoryPage(props: PageProps<"/shop/[category]">)
         options: p.variantCount > 1 ? p.variantCount - 1 : 0,
         price: p.minPrice,
         unit: p.unit,
+        images: photosFor(p.slug),
         tone,
         slug: p.slug,
         variants: p.variants.map(({ label, price, stockQty }) => ({ label, price, stockQty })),

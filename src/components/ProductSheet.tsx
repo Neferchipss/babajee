@@ -313,7 +313,7 @@ export default function ProductSheet({
               </div>
             </div>
             <div key={p.slug} className="ps-stage" data-dir={view.dir}>
-              <ProductArt name={p.name} tone={p.tone} className="ps-art" />
+              <ProductArt name={p.name} tone={p.tone} slug={p.slug} className="ps-art" />
               {view.picked && <span className="ps-picked">Baba&rsquo;s pick</span>}
             </div>
           </div>

@@ -3,10 +3,12 @@
 // No price or SKU data exists in the source sheet yet — still to come from
 // the client.
 //
-// Images/descriptions: deliberately not wired in for now (removed
-// 2026-09-16 at the client's request). Nothing here renders a product photo
-// or description.
+// Products photographed in the client's Drive folder that the stock sheet
+// does not list yet are added from drive-products.json, first in their
+// category. Their photos (and those of the few sheet products that were
+// photographed) are in product-photos.json.
 import raw from "./catalog-data.json";
+import drive from "./drive-products.json";
 
 export type CatalogVariant = {
   label: string;
@@ -26,7 +28,11 @@ export type CatalogCategory = {
   products: CatalogProduct[];
 };
 
-export const CATEGORIES: CatalogCategory[] = raw as CatalogCategory[];
+const EXTRA = drive as Record<string, CatalogProduct[]>;
+
+export const CATEGORIES: CatalogCategory[] = (raw as CatalogCategory[]).map((c) =>
+  EXTRA[c.slug] ? { ...c, products: [...EXTRA[c.slug], ...c.products] } : c,
+);
 
 export function getCategory(slug: string) {
   return CATEGORIES.find((c) => c.slug === slug);

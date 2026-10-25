@@ -796,7 +796,10 @@
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  object-fit: contain;
+  /* the client's photos are 3:4 with the product centred on a plain
+     backdrop; filling the square trims backdrop above and below (the very
+     tallest figures lose a sliver at the feet) */
+  object-fit: cover;
   background: var(--color-plate, #fff);
   user-select: none;
   -webkit-user-drag: none;
