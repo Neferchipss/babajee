@@ -92,7 +92,7 @@
   width: 40px;
   height: 4px;
   border-radius: 4px;
-  background: rgb(255 255 255 / 0.22);
+  background: rgb(var(--bb-fg) / 0.22);
   transform: translateX(-50%);
 }
 .ps-top {
@@ -114,10 +114,10 @@
 .ps-full,
 .ps-top .wish,
 .ps-top .jar-sheet {
-  background: rgb(12 10 28 / 0.55);
+  background: rgb(var(--bb-bg) / 0.55);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--bb-fg) / 0.1);
 }
 .ps-top .wish,
 .ps-top .jar-sheet {
@@ -252,9 +252,9 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid rgb(255 255 255 / 0.14);
+  border: 1px solid rgb(var(--bb-fg) / 0.14);
   border-radius: 50%;
-  background: rgb(12 10 28 / 0.72);
+  background: rgb(var(--bb-bg) / 0.72);
   color: var(--color-paper, #f4efff);
   cursor: pointer;
   opacity: 0.75;
@@ -413,8 +413,8 @@
   position: absolute;
   inset: auto 3px 3px;
   border-radius: 0 0 12px 12px;
-  background: rgb(12 10 28 / 0.75);
-  color: #fff;
+  background: rgb(var(--bb-bg) / 0.75);
+  color: var(--color-paper, #f4efff);
   font-size: 0.6rem;
   text-align: center;
 }
@@ -545,7 +545,7 @@
   width: 72px;
   height: 72px;
   overflow: hidden;
-  border: 2px solid rgb(255 255 255 / 0.14);
+  border: 2px solid rgb(var(--bb-fg) / 0.14);
   border-radius: 50%;
   background: var(--color-plate, #171437);
   box-shadow: 0 8px 20px rgb(0 0 0 / 0.45);
@@ -626,7 +626,7 @@
   scroll-margin-inline: 8px;
   border: 1.5px solid var(--color-line, #2d2860);
   border-radius: 999px;
-  background: rgb(12 10 28 / 0.6);
+  background: rgb(var(--bb-bg) / 0.6);
   color: var(--color-muted, #a39cd0);
   font: inherit;
   font-size: 0.78rem;
@@ -771,10 +771,10 @@ html #site[data-scope] .ps .pa-initial {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgb(12 10 28 / 0.55);
+  background: rgb(var(--bb-bg) / 0.55);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--bb-fg) / 0.1);
   color: var(--color-paper, #f4efff);
 }
 

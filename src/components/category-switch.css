@@ -54,7 +54,7 @@
   overscroll-behavior: contain;
   list-style: none;
   border: 1.5px solid var(--color-line, #2d2860);
-  background: rgb(12 10 28 / 0.98);
+  background: rgb(var(--bb-bg) / 0.98);
   box-shadow: 0 24px 48px rgb(0 0 0 / 0.55);
   font-family: var(--font-sans, system-ui), system-ui, sans-serif;
   text-shadow: none;
@@ -83,7 +83,7 @@
   padding: 0 12px;
   border: 1.5px solid var(--color-line, #2d2860);
   border-radius: 14px;
-  background: rgb(255 255 255 / 0.03);
+  background: rgb(var(--bb-fg) / 0.03);
   color: var(--color-paper, #f4efff);
   font: inherit;
   font-size: 0.82rem;
@@ -93,7 +93,7 @@
   cursor: pointer;
 }
 .csw-item:active {
-  background: rgb(255 255 255 / 0.08);
+  background: rgb(var(--bb-fg) / 0.08);
 }
 .csw-item[aria-current="page"] {
   border-color: var(--bb-hot, #ff8fb4);
@@ -126,7 +126,7 @@
   padding: 0 18px;
   border: 1.5px solid var(--bb-hot, #ff8fb4);
   border-radius: 999px;
-  background: rgb(12 10 28 / 0.85);
+  background: rgb(var(--bb-bg) / 0.85);
   color: var(--color-paper, #f4efff);
   font-size: 0.9rem;
   font-weight: 800;

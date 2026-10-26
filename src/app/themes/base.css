@@ -902,15 +902,15 @@
    solid grey heart, and the dots the same grey, which reads on white and
    on dark alike */
 #site .pc-wish .wish-heart {
-  fill: #c3c1cb;
-  stroke: #c3c1cb;
+  fill: #a09dab;
+  stroke: #a09dab;
 }
 #site .pc-wish[aria-pressed="true"] .wish-heart {
   fill: var(--bb-hot, var(--bb-maroon, #ff4d8d));
   stroke: var(--bb-hot, var(--bb-maroon, #ff4d8d));
 }
 #site .pc-dots i {
-  background: #c3c1cb;
+  background: #a09dab;
 }
 #site .pc-dots i[data-on="true"] {
   background: var(--bb-hot, rgb(20 16 40 / 0.8));

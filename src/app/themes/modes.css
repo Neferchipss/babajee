@@ -1,0 +1,88 @@
+/* Light and dark. <html data-mode> says which is showing (src/lib/mode.ts;
+   "system" follows the device). Dark is the shop as it was made, Night:
+   Poster; light is its daytime twin: cream instead of midnight, white
+   panels, the same indigo as ink and the same pinks, deepened to read on
+   white. In both the page is flat and the swirls sit behind the products.
+
+   The pieces that sit outside the themed page (sheets, the profile screen,
+   bars) draw with these few channels instead of fixed colours:
+     --bb-fg     the ink, as r g b: hairlines, hover tints, chips
+     --bb-bg     the page, as r g b: bars and frosted fills
+     --bb-sheet  a sheet's own surface
+     --bb-scrim  what dims the page behind a sheet */
+
+:root {
+  --bb-fg: 255 255 255;
+  --bb-bg: 12 10 28;
+  --bb-sheet: #120e2c;
+  --bb-scrim: rgb(4 2 14 / 0.6);
+}
+
+:root[data-mode="light"] {
+  color-scheme: light;
+  --bb-fg: 34 24 72;
+  --bb-bg: 255 255 255;
+  --bb-sheet: #ffffff;
+  --bb-scrim: rgb(34 24 60 / 0.36);
+
+  /* the site's own colours, for pages outside the shop and for anything
+     that opens over the page */
+  --color-char: #fbf6f1;
+  --color-iron: #ffffff;
+  --color-ash: #f6efea;
+  --color-line: #ebe1e4;
+  --color-paper: #1d1638;
+  --color-muted: #6f6789;
+  --color-ink: #1d1638;
+  --color-plate: #eeedf2;
+  --bb-hot: #e8336f;
+  --bb-maroon: #d93271;
+  --bb-green: #0f8a5f;
+  --bb-on-accent: #ffffff;
+}
+
+/* the shop in daylight */
+html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] {
+  --color-char: #fbf6f1;
+  --color-iron: #ffffff;
+  --color-ash: #f6efea;
+  --color-line: #ebe1e4;
+  --color-paper: #1d1638;
+  --color-muted: #6f6789;
+  --color-plate: #eeedf2;
+  --color-ink: #1d1638;
+  --color-rasta-gold: #d93271;
+  --plate-ink: #d93271;
+  --bb-ink: #2a2150;
+  --bb-maroon: #d93271;
+  --bb-maroon-dk: #b8215c;
+  --bb-rose: #d93271;
+  --bb-blush: #f7eef3;
+  --bb-green: #0f8a5f;
+  --bb-green-dk: #0b6b49;
+  --bb-hot: #e8336f;
+  --bb-on-accent: #ffffff;
+  --bb-hdr-bg: rgb(255 255 255 / 0.9);
+  --bb-swirl: url("../../assets/baba/swirl.webp");
+  --bbn-edge: #ece2e6;
+  --bbn-glow: 217 50 113;
+  --bbn-halo: rgb(217 50 113 / 0.1);
+  --bbn-deep: #f4ecf1;
+  --bbn-foot: #f1e8ed;
+  --bbn-scrim: 255 255 255;
+}
+
+/* cards in daylight: a soft shadow lifts them off the cream */
+html[data-mode="light"] :is(#site[data-scope="shop"] :is(.cv-panel, .cv-recs, .cv-sum), .pp-list, .pp-tile) {
+  box-shadow: 0 1px 2px rgb(34 24 72 / 0.05), 0 6px 18px rgb(34 24 72 / 0.06);
+}
+
+/* Both modes: the page is flat, and the swirls sit behind the products
+   instead, on the plates their cut-out photos stand on (shelf cards, the
+   cart, the product sheet). Midnight swirls in the dark, cream in the light. */
+html[data-theme="baba-poster"] #site[data-scope="shop"] {
+  background: var(--color-char);
+  & :is(.pa, .ps-stage, .ps-photos) {
+    background: var(--bb-swirl, none) center / 220px 220px, var(--color-plate);
+  }
+}

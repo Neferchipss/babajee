@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/auth";
-import { cartCount, useCart } from "@/lib/cart";
+import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
+import { setModePref, useModePref, type ModePref } from "@/lib/mode";
 import { JarIcon, UserIcon } from "./icons";
 import "./shop-bar.css";
 import "./profile-panel.css";
@@ -31,35 +32,62 @@ const LIST: { href: string; label: string; d: string }[] = [
   { href: "/legal", label: "Legal", d: "M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zM17 7l-3 7a3 3 0 0 0 6 0l-3-7M8 21h8" },
 ];
 
+// The cart and the profile buttons, side by side at the end of the bar (the
+// same bar on the landing, the shelves and the cart). The cart's badge counts
+// what is in it, and products thrown into the cart fly here.
+//
 // The profile button, and the screen it opens: sliding in from the right,
 // after the delivery apps. Who you are across the top, shortcuts (addresses,
-// orders, wishlist, cart) under it, then the site's pages. Back, Escape, a
-// tap beside it (wide screens) or a swipe to the right closes it. A badge on
-// the button counts what is in the cart.
+// orders, wishlist) under it, then the site's pages. Back, Escape, a
+// tap beside it (wide screens) or a swipe to the right closes it.
 export default function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const closed = useCallback(() => setOpen(false), []);
+  const path = usePathname().replace(/\/$/, "");
+  // a wobble each time something lands in the cart
+  const [plop, setPlop] = useState(0);
+  useEffect(() => {
+    const onLand = () => setPlop((p) => p + 1);
+    window.addEventListener(LANDED_EVENT, onLand);
+    return () => window.removeEventListener(LANDED_EVENT, onLand);
+  }, []);
   return (
     <div className="sb-me">
+      <Link
+        href="/cart"
+        className="sb-profile sb-cart"
+        data-jar="header"
+        aria-current={path === "/cart" ? "page" : undefined}
+        aria-label={count === 0 ? "Cart, empty" : `Cart, ${count} item${count === 1 ? "" : "s"}`}
+      >
+        <span key={plop} className="sb-cart-icon" data-plop={plop > 0 || undefined}>
+          <JarIcon size={22} />
+        </span>
+        <span className="sb-label">Cart</span>
+        {count > 0 && (
+          <b key={`n${count}`} className="sb-badge">
+            {count > 99 ? "99+" : count}
+          </b>
+        )}
+      </Link>
       <button
         type="button"
         className="sb-profile"
-        aria-label={count ? `Profile and menu, ${count} in your cart` : "Profile and menu"}
+        aria-label="Profile and menu"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
         <UserIcon size={22} />
         <span className="sb-label">Profile</span>
-        {count > 0 && <b className="sb-badge">{count > 99 ? "99+" : count}</b>}
       </button>
-      {open && <ProfilePanel count={count} onClosed={closed} />}
+      {open && <ProfilePanel onClosed={closed} />}
     </div>
   );
 }
 
-function ProfilePanel({ count, onClosed }: { count: number; onClosed: () => void }) {
+function ProfilePanel({ onClosed }: { onClosed: () => void }) {
   const { status, user, profile, signOut } = useAuth();
   const path = usePathname();
   const [leaving, setLeaving] = useState(false);
@@ -168,28 +196,40 @@ function ProfilePanel({ count, onClosed }: { count: number; onClosed: () => void
     <div className="pp" data-leaving={leaving || undefined}>
       <div className="pp-scrim" onClick={() => shut()} aria-hidden="true" />
       <div ref={panel} className="pp-panel" role="dialog" aria-modal="true" aria-label="Profile and menu" tabIndex={-1}>
-        <header className="pp-head">
+        {/* a plain bar: back and the title */}
+        <div className="pp-bar">
           <button type="button" className="pp-back" onClick={() => shut()} aria-label="Close">
-            <I d="M19 12H5M11 18l-6-6 6-6" size={24} />
+            <I d="M15 18l-6-6 6-6" size={22} />
           </button>
-          <p className="pp-name">{name}</p>
-          {signedIn ? (
-            <div className="pp-who">
-              {profile?.phone && <span>+91 - {profile.phone.replace(/^\+?91[\s-]?/, "")}</span>}
-              {user.email && <span>{user.email}</span>}
-            </div>
-          ) : status === "loading" ? (
-            <div className="pp-who">
+          <h2 className="pp-title">Profile</h2>
+        </div>
+
+        {/* who you are: a picture, the name, the number */}
+        <header className="pp-head">
+          <span className="pp-avatar" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <defs>
+                <linearGradient id="pp-avatar-ink" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#a54ee0" />
+                  <stop offset="1" stopColor="#6a3fc0" />
+                </linearGradient>
+              </defs>
+              <circle cx="32" cy="25" r="11" />
+              <path d="M10 60c2-12 11-19 22-19s20 7 22 19z" />
+            </svg>
+          </span>
+          <div className="pp-who">
+            <p className="pp-name">{name}</p>
+            {signedIn ? (
+              <span>{profile?.phone ? phoneLine(profile.phone) : user.email}</span>
+            ) : status === "loading" ? (
               <span>Checking your account…</span>
-            </div>
-          ) : (
-            <div className="pp-who">
-              <span>Log in to see your orders and saved addresses.</span>
+            ) : (
               <Link href="/account/login" className="pp-login" onClick={go("/account/login")}>
                 Log in or sign up
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </header>
 
         <div className="pp-body">
@@ -197,16 +237,9 @@ function ProfilePanel({ count, onClosed }: { count: number; onClosed: () => void
             {tile("/account#addresses-heading", <>Saved<br />addresses</>, PIN)}
             {tile("/orders", <>Your<br />orders</>, BOX)}
             {tile("/cart#saved-title", <>Your<br />wishlist</>, HEART)}
-            <Link href="/cart" className="pp-tile" onClick={go("/cart")}>
-              <JarIcon size={22} />
-              <span>
-                Your
-                <br />
-                cart
-              </span>
-              {count > 0 && <b className="pp-count">{count > 99 ? "99+" : count}</b>}
-            </Link>
           </div>
+
+          <ModeSwitch />
 
           <nav className="pp-list" aria-label="Pages">
             {signedIn && (
@@ -245,5 +278,37 @@ function ProfilePanel({ count, onClosed }: { count: number; onClosed: () => void
       </div>
     </div>,
     document.body,
+  );
+}
+
+// "+91 70073 53834", as a phone shows it
+function phoneLine(raw: string) {
+  const d = raw.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
+  return d.length === 10 ? `+91 ${d.slice(0, 5)} ${d.slice(5)}` : raw;
+}
+
+const MODES: { id: ModePref; label: string; d: string }[] = [
+  { id: "system", label: "System", d: "M4 5h16v11H4zM9 20h6M12 16v4" },
+  { id: "light", label: "Light", d: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
+  { id: "dark", label: "Dark", d: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
+];
+
+// Light, dark, or as the device is set (the default)
+function ModeSwitch() {
+  const pref = useModePref();
+  return (
+    <div className="pp-mode">
+      <p className="pp-mode-title" id="pp-mode-title">
+        Appearance
+      </p>
+      <div className="pp-mode-opts" role="radiogroup" aria-labelledby="pp-mode-title">
+        {MODES.map((m) => (
+          <button key={m.id} type="button" role="radio" aria-checked={pref === m.id} className="pp-mode-opt" onClick={() => setModePref(m.id)}>
+            <I d={m.d} size={18} />
+            <span>{m.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -12,8 +12,9 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   --color-line: #2d2860;
   --color-paper: #f4efff;
   --color-muted: #a39cd0;
-  /* what product photos sit on (they are cut out, background clear) */
-  --color-plate: #1c1b21;
+  /* what product photos sit on (they are cut out, background clear): a
+     soft light grey, so dark products stand out */
+  --color-plate: #e7e6ec;
   --color-ink: #0c0a1c;
   --color-rasta-gold: #ff8fb3;
   --plate-ink: #ff8fb3;
@@ -325,7 +326,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       border: 0;
       border-bottom: 1.5px solid var(--color-line);
       border-radius: 0;
-      background: rgb(12 10 28 / 0.96);
+      background: rgb(var(--bb-bg) / 0.96);
       box-shadow: none;
     }
     & .cp-hero-copy {
@@ -375,7 +376,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       cursor: pointer;
     }
     & .cp-bar-btn:active {
-      background: rgb(255 255 255 / 0.08);
+      background: rgb(var(--bb-fg) / 0.08);
     }
     /* the native picker opens from the icon */
     & .cp-bar-sort select {
@@ -916,8 +917,8 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       position: absolute;
       inset: 0;
       z-index: -1;
-      background: rgb(12 10 28 / 0.96);
-      box-shadow: 0 0 0 100vmax rgb(12 10 28 / 0.96);
+      background: rgb(var(--bb-bg) / 0.96);
+      box-shadow: 0 0 0 100vmax rgb(var(--bb-bg) / 0.96);
       clip-path: inset(0 -100vmax);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
@@ -942,7 +943,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     & .sb-me {
       grid-area: me;
     }
-    /* Profile: an icon over a small label (the cart floats, as on phones) */
+    /* Cart and Profile: an icon over a small label */
     & .sb-profile {
       position: relative;
       display: grid;
@@ -958,7 +959,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       text-decoration: none;
     }
     & .sb-profile:hover {
-      background: rgb(255 255 255 / 0.06);
+      background: rgb(var(--bb-fg) / 0.06);
     }
     & .sb-label {
       display: block;

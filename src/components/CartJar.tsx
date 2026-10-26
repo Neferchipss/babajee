@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
 import "./cart-jar.css";
 
 // Baba's jar: the cart. Every item added drops in as a pebble, so the jar
-// fills up as you shop, and it wobbles when something lands. "float" sits
-// in the bottom corner on phones (the thumb's corner), "sheet" in the top
-// of the product sheet, where the product is thrown into it.
+// fills up as you shop, and it wobbles when something lands. It sits in the
+// top of the product sheet, where the product is thrown into it (the bar's
+// cart button takes it everywhere else).
 const ROWS = 4;
 const COLS = 4;
 const CAP = ROWS * COLS;
@@ -51,9 +50,8 @@ export function JarArt({ pebbles }: { pebbles: string[] }) {
   );
 }
 
-export default function CartJar({ variant }: { variant: "float" | "sheet" }) {
+export default function CartJar({ variant }: { variant: "sheet" }) {
   const cart = useCart();
-  const path = usePathname().replace(/\/$/, "") || "/";
   const [plop, setPlop] = useState(0);
   const count = cartCount(cart);
 
@@ -62,14 +60,6 @@ export default function CartJar({ variant }: { variant: "float" | "sheet" }) {
     window.addEventListener(LANDED_EVENT, onLand);
     return () => window.removeEventListener(LANDED_EVENT, onLand);
   }, []);
-
-  // the floating jar stays out of the way where the cart is already the page
-  // (and off the homepage scene); off the shop it only shows once it has
-  // something in it
-  const inShop = path === "/shop" || path.startsWith("/shop/");
-  if (variant === "float" && (path === "/cart" || path === "/checkout" || path === "/" || (!inShop && count === 0))) {
-    return null;
-  }
 
   const pebbles: string[] = [];
   for (const line of cart) {

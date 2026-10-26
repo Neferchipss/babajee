@@ -75,28 +75,6 @@
   border-radius: 12px;
 }
 
-/* floating, bottom corner, at every size. Out of the way while the
-   product sheet is open, over its wheel. */
-.jar-float {
-  position: fixed;
-  right: calc(14px + env(safe-area-inset-right));
-  bottom: calc(14px + env(safe-area-inset-bottom));
-  z-index: 45;
-  display: block;
-  width: 54px;
-  filter: drop-shadow(0 6px 12px rgb(0 0 0 / 0.45));
-}
-@media (min-width: 901px) {
-  .jar-float {
-    right: 28px;
-    bottom: 28px;
-    width: 60px;
-  }
-}
-html[data-sheet] .jar-float {
-  visibility: hidden;
-}
-
 /* in the product sheet's top bar */
 .jar-sheet {
   width: 34px;

@@ -36,7 +36,7 @@ const DRACO = `${BASE}/draco/gltf/`; // decoder for the compressed model
 
 // when each camera is reached, as a share of the scroll
 const STOPS = [0, 0.2, 0.38, 0.55, 0.76, 1];
-const LOOK_FROM = 0.93; // the box and the labels come in over the last stretch
+const LOOK_FROM = 0.93; // the labels come in over the last stretch
 const SETTLE = 0.7; // seconds at the very end before the view may be turned
 const GYRO_EASE = 1.2; // seconds for the view to hand over from the default camera to the phone
 const LABEL_H = 34; // px a label needs to itself, so crowded ones can be pushed apart
@@ -95,8 +95,8 @@ export default function ShopScene({ categories, intro }: { categories: Category[
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const landing = useRef<HTMLDivElement>(null);
-  const box = useRef<HTMLElement>(null);
   const back = useRef<HTMLButtonElement>(null);
+  const dot = useRef<HTMLSpanElement>(null);
   const arrived = useRef(false); // once inside, scrolling back up does not rewind the walk
   const spotEls = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [status, setStatus] = useState<"loading" | "ready" | "flat">("loading");
@@ -377,6 +377,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     let leaving = false;
     let last = performance.now();
     const v = new THREE.Vector3();
+    let aimed: HTMLAnchorElement | null = null; // the label under the centre dot
     const q = new THREE.Quaternion();
     const qYaw = new THREE.Quaternion();
     const qPitch = new THREE.Quaternion();
@@ -628,7 +629,33 @@ export default function ShopScene({ categories, intro }: { categories: Category[
             }
           }
         }
-        for (const l of lit) l.a.style.transform = `translate(${l.x}px, ${l.y}px) translate(-50%, -50%)`;
+        for (const l of lit) l.a.style.transform = `translate(${l.x}px, ${l.y}px) translate(-50%, -50%) scale(var(--aim-scale))`;
+
+        // the dot in the middle: the label it sits on lights up (the nearest,
+        // if it touches more than one), as a sign it opens
+        let hit: HTMLAnchorElement | null = null;
+        if (on > 0.8) {
+          let best = Infinity;
+          for (const l of lit) {
+            const dx = Math.abs(W / 2 - l.x);
+            const dy = Math.abs(H / 2 - l.y);
+            if (dx < l.w / 2 + 14 && dy < LABEL_H / 2 + 12 && dx + dy < best) {
+              best = dx + dy;
+              hit = l.a;
+            }
+          }
+        }
+        if (hit !== aimed) {
+          aimed?.removeAttribute("data-aim");
+          hit?.setAttribute("data-aim", "");
+          if (dot.current) dot.current.dataset.aim = String(!!hit);
+          if (hit) {
+            try {
+              navigator.vibrate?.(5);
+            } catch {}
+          }
+          aimed = hit;
+        }
       }
       // the landing words fade as the walk starts; the box comes in at the end
       if (landing.current) {
@@ -640,11 +667,6 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         const o = arrived.current ? smooth(SETTLE, SETTLE + 0.6, settled) : 0;
         back.current.style.opacity = String(o);
         back.current.style.visibility = o > 0.01 ? "visible" : "hidden";
-      }
-      if (box.current) {
-        const o = smooth(LOOK_FROM, 1, prog);
-        box.current.style.opacity = String(o);
-        box.current.style.visibility = o > 0.01 ? "visible" : "hidden";
       }
       if (visible && !document.hidden && !leaving) raf = requestAnimationFrame(tick);
     };
@@ -841,6 +863,9 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           {gyroNote}
         </p>
 
+        {/* the aim, as in the puzzle games: what it rests on lights up */}
+        <span ref={dot} className="scene-dot" data-hidden={status !== "ready" || !unlocked} aria-hidden="true" />
+
         <p className="scene-hint" data-hidden={touched || status !== "ready" || !unlocked} aria-hidden="true">
           Drag to look around
         </p>
@@ -855,25 +880,29 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           </p>
         </div>
 
-        <nav className="scene-box" ref={box} aria-labelledby="scene-title">
-          <p className="scene-crumb">Babajee &middot; The smoke shop</p>
-          <h1 id="scene-title" className="scene-title">
-            Shop
-          </h1>
-          <p className="scene-lede">
-            {categories.length} categories &middot; {total} products
-          </p>
-          <ul className="scene-list">
-            {categories.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/shop/${c.slug}`} className="scene-cat">
-                  <span>{c.name}</span>
-                  <span className="scene-cat-count">{c.count}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* the categories as a list, only where the scene could not be
+            drawn: in the 3D shop the fixtures' own labels lead to them */}
+        {status === "flat" && (
+          <nav className="scene-box" aria-labelledby="scene-title">
+            <p className="scene-crumb">Babajee &middot; The smoke shop</p>
+            <h1 id="scene-title" className="scene-title">
+              Shop
+            </h1>
+            <p className="scene-lede">
+              {categories.length} categories &middot; {total} products
+            </p>
+            <ul className="scene-list">
+              {categories.map((c) => (
+                <li key={c.slug}>
+                  <Link href={`/shop/${c.slug}`} className="scene-cat">
+                    <span>{c.name}</span>
+                    <span className="scene-cat-count">{c.count}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
       </div>
     </div>
   );

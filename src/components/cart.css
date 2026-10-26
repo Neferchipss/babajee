@@ -28,10 +28,6 @@
 #site:has(.cv, .cv-empty) .ftr {
   display: none;
 }
-/* the floating jar would only point back at this page */
-#site:has(.cv, .cv-empty) .jar-float {
-  display: none;
-}
 
 .cv-main {
   display: grid;
@@ -415,7 +411,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.08);
+  background: rgb(var(--bb-fg) / 0.08);
   color: var(--color-paper, #f4efff);
 }
 .cv-paywith-text {
@@ -457,7 +453,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border-top: 1px solid var(--cv-line);
   border-radius: 20px 20px 0 0;
-  background: rgb(12 10 28 / 0.96);
+  background: rgb(var(--bb-bg) / 0.96);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }

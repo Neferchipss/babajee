@@ -246,10 +246,61 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   pointer-events: none;
   will-change: transform;
 }
+/* how big a label is, eased (it sits in the transform the scene writes
+   each frame, after the label's place, so growing does not move it) */
+@property --aim-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+.scene-spot {
+  --aim-scale: 1;
+  transition:
+    --aim-scale 0.2s cubic-bezier(0.3, 1.5, 0.5, 1),
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
 .scene-spot:hover,
-.scene-spot:focus-visible {
+.scene-spot:focus-visible,
+.scene-spot[data-aim] {
   background: var(--color-rasta-gold);
   color: var(--color-char);
+}
+/* under the centre dot: bigger, lit, and with a ring, to say it opens */
+.scene-spot[data-aim] {
+  z-index: 2;
+  border-color: var(--color-rasta-gold);
+  box-shadow:
+    0 0 0 4px rgb(0 0 0 / 0.35),
+    0 0 22px var(--color-rasta-gold);
+  --aim-scale: 1.22;
+}
+
+/* the centre dot */
+.scene-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 2px solid rgb(0 0 0 / 0.55);
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+  transition:
+    opacity 0.4s,
+    scale 0.2s ease,
+    background-color 0.2s;
+}
+.scene-dot[data-hidden="true"] {
+  opacity: 0;
+}
+.scene-dot[data-aim="true"] {
+  background: var(--color-rasta-gold);
+  scale: 1.5;
 }
 
 .scene-hint {
@@ -548,14 +599,12 @@ body:has(.scene) .theme-toggle {
   opacity: 1;
 }
 
-/* Phones: the shop box fills the bottom of the view, so the two buttons move to
-   the top corners, out of its way; the hint and gyro note drop in below them. */
+/* Phones: the buttons a little smaller, in the bottom corners */
 @media (max-width: 760px) {
   .scene-back,
   .scene-gyro {
-    top: calc(12px + env(safe-area-inset-top));
-    bottom: auto;
-    padding: 7px 13px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    padding: 9px 14px;
   }
   .scene-back {
     left: calc(12px + env(safe-area-inset-left));
@@ -563,12 +612,8 @@ body:has(.scene) .theme-toggle {
   .scene-gyro {
     right: calc(12px + env(safe-area-inset-right));
   }
-  .scene-hint {
-    top: calc(58px + env(safe-area-inset-top));
-  }
   .scene-gyro-note {
-    top: calc(58px + env(safe-area-inset-top));
     right: calc(12px + env(safe-area-inset-right));
-    bottom: auto;
+    bottom: calc(66px + env(safe-area-inset-bottom));
   }
 }
