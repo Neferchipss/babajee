@@ -117,6 +117,13 @@
     border-color: var(--color-rasta-gold);
     box-shadow: 0 0 0 3px rgb(253 238 3 / 0.14);
   }
+  .field[aria-invalid="true"] {
+    border-color: var(--color-red-soft);
+  }
+  select.field {
+    color-scheme: dark;
+    min-height: 2.9rem;
+  }
 
   /* Category tile. The accent bar is the tri-colour stripe from the header,
      one colour per tile, and grows across on hover. */

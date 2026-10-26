@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Page from "@/components/Page";
 import { CheckoutItems } from "@/components/CartView";
+import AddressPicker from "@/components/address/AddressPicker";
 
 const STEPS = [
   "Place your order.",
@@ -20,28 +21,7 @@ export default function CheckoutPage() {
             <h2 id="delivery-heading" className="mb-5 text-2xl">
               Delivery address
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="sm:col-span-2">
-                <span className="mb-1.5 block text-sm font-medium">Full name</span>
-                <input className="field" autoComplete="name" />
-              </label>
-              <label className="sm:col-span-2">
-                <span className="mb-1.5 block text-sm font-medium">Address</span>
-                <input className="field" autoComplete="street-address" />
-              </label>
-              <label>
-                <span className="mb-1.5 block text-sm font-medium">City</span>
-                <input className="field" autoComplete="address-level2" />
-              </label>
-              <label>
-                <span className="mb-1.5 block text-sm font-medium">PIN code</span>
-                <input className="field" inputMode="numeric" autoComplete="postal-code" />
-              </label>
-              <label className="sm:col-span-2">
-                <span className="mb-1.5 block text-sm font-medium">Phone</span>
-                <input className="field" type="tel" autoComplete="tel" />
-              </label>
-            </div>
+            <AddressPicker />
           </section>
 
           <section aria-labelledby="payment-heading">

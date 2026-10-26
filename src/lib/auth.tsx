@@ -6,11 +6,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 // The provider sits in the root layout, but the Supabase client is about
 // 60 KB that only the account and admin pages need straight away. So it is
-// loaded on its own: at once on those pages, and elsewhere once the page has
-// settled (a session left from a sign-in is still picked up, just later).
+// loaded on its own: at once on those pages and checkout (saved addresses),
+// and elsewhere once the page has settled (a session left from a sign-in is
+// still picked up, just later).
 const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 const loadClient = () => import("./supabase").then((m) => m.getSupabase());
-const NEEDS_SESSION = /^\/(account|admin)(\/|$)/;
+const NEEDS_SESSION = /^\/(account|admin|checkout)(\/|$)/;
 
 export type Profile = {
   full_name: string;

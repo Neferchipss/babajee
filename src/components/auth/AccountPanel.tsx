@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
+import AddressBook from "../address/AddressBook";
 import NotConnected from "./NotConnected";
 
 export default function AccountPanel() {
@@ -54,7 +55,7 @@ export default function AccountPanel() {
   }
 
   return (
-    <div className="grid max-w-sm gap-8">
+    <div className="grid max-w-xl gap-8">
       <dl className="grid gap-1 text-sm">
         <dt className="text-muted">Email</dt>
         <dd className="text-base">{user.email}</dd>
@@ -66,7 +67,7 @@ export default function AccountPanel() {
         )}
       </dl>
 
-      <form onSubmit={save} className="grid gap-4" key={`${profile?.full_name}|${profile?.phone}`}>
+      <form onSubmit={save} className="grid max-w-sm gap-4" key={`${profile?.full_name}|${profile?.phone}`}>
         <label>
           <span className="mb-1.5 block text-sm font-medium">Full name</span>
           <input className="field" name="name" defaultValue={profile?.full_name ?? ""} autoComplete="name" />
@@ -86,6 +87,8 @@ export default function AccountPanel() {
           )}
         </div>
       </form>
+
+      <AddressBook />
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-6 text-sm">
         <Link href="/orders" className="font-medium text-paper underline underline-offset-4">

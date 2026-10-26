@@ -23,10 +23,17 @@ export default function LoginForm() {
       password: String(form.get("password")),
     });
     if (error) {
+      const code = "code" in error ? error.code : undefined;
       setError(
-        error.message === "Email not confirmed"
+        code === "email_not_confirmed" || error.message === "Email not confirmed"
           ? "Confirm your email first. We sent you a link when you signed up."
-          : "That email and password do not match.",
+          : code === "invalid_credentials"
+            ? "That email and password do not match."
+            : code === "over_request_rate_limit" || error.status === 429
+              ? "Too many tries. Wait a few minutes and try again."
+              : !error.status
+                ? "We could not reach the server. Check your connection and try again."
+                : `We could not log you in (${error.message}). Try again.`,
       );
       setBusy(false);
       return;
