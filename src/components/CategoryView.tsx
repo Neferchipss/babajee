@@ -9,7 +9,6 @@ import CategoryNav from "./CategoryNav";
 import CategorySwitch from "./CategorySwitch";
 import ShelfReader from "./baba/ShelfReader";
 import ShopBar from "./ShopBar";
-import ThirdEye from "./baba/ThirdEye";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
 import ProductCard, { type CardProduct } from "./ProductCard";
@@ -164,7 +163,6 @@ export default function CategoryView({ category, products, categories }: Props) 
           </button>
         </div>
         <DaydreamHero />
-        <ThirdEye products={products} />
       </section>
 
       <div className="cp-body">
