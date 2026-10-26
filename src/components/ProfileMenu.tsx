@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
 import { setModePref, useModePref, type ModePref } from "@/lib/mode";
 import { JarIcon, UserIcon } from "./icons";
+import SceneLink from "./SceneLink";
 import "./shop-bar.css";
 import "./profile-panel.css";
 
@@ -23,8 +24,8 @@ const BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8";
 const HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z";
 
 const LIST: { href: string; label: string; d: string }[] = [
-  { href: "/shop", label: "Shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
-  { href: "/", label: "Home", d: "M3 11l9-7 9 7M5 9.5V20h14V9.5" },
+  // the shop is the 3D one
+  { href: "/", label: "Shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
   { href: "/about", label: "About Babajee", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
   { href: "/support", label: "Help and support", d: "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z" },
   { href: "/contact", label: "Contact us", d: "M4 6h16v12H4zM4 7l8 6 8-6" },
@@ -254,12 +255,16 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
                 <span>Admin</span>
               </Link>
             )}
-            {LIST.map((r) => (
-              <Link key={r.href} href={r.href} className="pp-row" onClick={go(r.href)}>
-                <I d={r.d} />
-                <span>{r.label}</span>
-              </Link>
-            ))}
+            {LIST.map((r) => {
+              // the 3D shop loads only when it is about to be opened
+              const L = r.href === "/" ? SceneLink : Link;
+              return (
+                <L key={r.href} href={r.href} className="pp-row" onClick={go(r.href)}>
+                  <I d={r.d} />
+                  <span>{r.label}</span>
+                </L>
+              );
+            })}
           </nav>
 
           {signedIn && (
