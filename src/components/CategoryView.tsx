@@ -1,7 +1,6 @@
 "use client";
 
 import SceneLink from "@/components/SceneLink";
-import { useRouter } from "next/navigation";
 import { byBrand, byGroup } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -56,13 +55,6 @@ const closeSheet = () => {
     window.history.back();
   } else setSheet(null, false);
 };
-// ?p=_first opens the category's first product (a category chip in the
-// sheet lands here without knowing the slugs of the next category)
-const FIRST = "_first";
-// switching category from the sheet replaces the entry: nothing to go back to
-const forgetPush = () => {
-  pushedSheet = false;
-};
 // the address follows the wheel quietly: the sheet stays open either way,
 // so there is no need to re-render the whole shelf behind it
 const followSheet = (slug: string) => {
@@ -79,7 +71,6 @@ const VALUES = [
 // The same page in every theme. The theme CSS moves the pieces around:
 // a sidebar or a row of tabs, a banner or a title block, tiles or cards.
 export default function CategoryView({ category, products, categories }: Props) {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
   // phones and tablets: the search field opens from the title bar
@@ -112,15 +103,7 @@ export default function CategoryView({ category, products, categories }: Props) 
 
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
   const sheetItems = shown.filter((p) => p.slug && p.variants);
-  const openAt = openSlug === FIRST ? 0 : openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
-  // a category chip in the sheet: the same sheet, on that category's wheel.
-  // It replaces this entry, so putting the sheet away leaves you on that
-  // category's shelf.
-  const switchCategory = (slug: string) => {
-    if (slug === category.slug) return;
-    forgetPush();
-    router.replace(`/shop/${slug}?p=${FIRST}`, { scroll: true });
-  };
+  const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
 
   return (
     <div className="cp">
@@ -267,12 +250,9 @@ export default function CategoryView({ category, products, categories }: Props) 
       {openAt >= 0 && (
         <ProductSheet
           key={category.slug}
-          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants!, unit: p.unit }))}
+          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants!, unit: p.unit, group: p.group }))}
           start={openAt}
           category={category.name}
-          categories={categories}
-          categorySlug={category.slug}
-          onCategory={switchCategory}
           onIndex={followSheet}
           onClose={closeSheet}
         />

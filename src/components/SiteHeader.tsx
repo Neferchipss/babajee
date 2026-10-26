@@ -7,6 +7,7 @@ import { useState } from "react";
 import { cartCount, useCart } from "@/lib/cart";
 import { JarIcon, SearchIcon, UserIcon } from "./icons";
 import Logo from "./Logo";
+import ProfileMenu from "./ProfileMenu";
 
 const NAV = [
   { href: "/shop", label: "Shop" },
@@ -31,6 +32,19 @@ export default function SiteHeader() {
       </L>
     );
   };
+
+  // the landing: the shop's bar, with only the logo and the profile button
+  // (its menu holds the rest)
+  if (pathname === "/") {
+    return (
+      <header className="lb">
+        <SceneLink href="/" aria-label="Babajee home" className="lb-logo">
+          <Logo className="lb-logo-img" priority />
+        </SceneLink>
+        <ProfileMenu />
+      </header>
+    );
+  }
 
   return (
     <header className="hdr">

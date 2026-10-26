@@ -864,8 +864,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     }
     /* The shop header, as on phones, in a panel over the shelf: where to,
        the categories and the search bar; scrolled down, only the search
-       stays, under the site header. No arched masthead or third eye, and
-       the site header keeps the account button, so none here. */
+       stays. No arched masthead or third eye. */
     & .cp-hero {
       position: sticky;
       top: calc(var(--sb-head, 0px) + 10px - var(--sb-lift, 140px));
@@ -886,21 +885,125 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     & .cp-hero > :not(.sb) {
       display: none !important;
     }
+    /* Wide screens, after Zepto in the shop's colours: one solid bar, the
+       window's width, with the logo, where to, a wide search, Profile and
+       Cart; under it the categories as tabs, icon beside name. Scrolled
+       down, the tabs fold away and the bar stays. */
+    & .cp {
+      padding-top: 0;
+    }
+    & .cp-hero {
+      top: 0;
+      margin-bottom: 22px;
+    }
     & .sb {
-      display: flex;
-      padding: 6px 8px 0;
-      border: 1px solid var(--color-line, #2d2860);
-      border-radius: 20px;
-      box-shadow: 0 14px 30px rgb(0 0 0 / 0.35);
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "logo where search me"
+        "cats cats cats cats";
+      align-items: center;
+      column-gap: 28px;
+      position: relative;
+      isolation: isolate;
+      padding: 14px 0 0;
+      background: none;
+    }
+    /* the bar's colour, behind it and out to the window's edges (on its own
+       layer, so the search suggestions and the menu can hang below) */
+    & .sb::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: rgb(12 10 28 / 0.96);
+      box-shadow: 0 0 0 100vmax rgb(12 10 28 / 0.96);
+      clip-path: inset(0 -100vmax);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
     }
     & .sb-top {
-      padding: 0 12px;
+      display: contents;
     }
-    & .sb-profile {
-      display: none;
+    & .sb-logo {
+      grid-area: logo;
+      display: block;
+    }
+    & .sb-where {
+      grid-area: where;
+      min-width: 190px;
+      max-width: 260px;
     }
     & .sb-search {
-      margin: 10px 12px 12px;
+      grid-area: search;
+      height: 46px;
+      margin: 0;
+    }
+    & .sb-me {
+      grid-area: me;
+    }
+    /* Profile: an icon over a small label (the cart floats, as on phones) */
+    & .sb-profile {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      gap: 3px;
+      width: auto;
+      height: auto;
+      padding: 4px 6px;
+      border-radius: 12px;
+      background: none;
+      box-shadow: none;
+      color: var(--color-paper);
+      text-decoration: none;
+    }
+    & .sb-profile:hover {
+      background: rgb(255 255 255 / 0.06);
+    }
+    & .sb-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    & .sb-profile .sb-badge {
+      top: -2px;
+      right: -2px;
+    }
+    & .sb-menu {
+      top: calc(100% + 14px);
+    }
+
+    /* the categories, between two hairlines */
+    & .sb nav {
+      grid-area: cats;
+      display: grid;
+      grid-template-rows: 1fr;
+      margin-top: 14px;
+      border-top: 1px solid var(--color-line);
+      border-bottom: 1px solid var(--color-line);
+      transition:
+        grid-template-rows 0.25s ease,
+        opacity 0.2s ease,
+        margin 0.25s ease;
+    }
+    /* the tabs themselves are the phone's: icon over name */
+    & .sb-cats {
+      min-height: 0;
+      overflow-y: hidden;
+    }
+    & .sb[data-compact="true"] {
+      padding-bottom: 14px;
+    }
+    & .sb[data-compact="true"] nav {
+      grid-template-rows: 0fr;
+      margin-top: 0;
+      border-color: transparent;
+      opacity: 0;
+    }
+    /* the site header gives way to the shop header on the shelves, as on
+       phones; its contents are in the profile button's menu */
+    &:has(.cp) .hdr {
+      display: none;
     }
     /* the strip and the search take its place */
     & .cp-side,
@@ -917,5 +1020,41 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   }
   html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-title .csw-chev {
     display: none;
+  }
+}
+
+/* Screens wide enough to have a margin beside the shelf: the logo stands
+   centred in the left margin and the profile button centred in the right,
+   both level with the search; where to takes the row's start and the
+   search runs on to the cards' right edge. (The shelf is at most 1360px
+   wide, so each margin is half of what is left of the window; below
+   1760px that is too little room, and both stay in the row.) */
+@media (min-width: 1760px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] {
+    --sb-margin: calc((100vw - 1360px) / 2 - 8px);
+    & .sb {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "where search"
+        "cats cats";
+    }
+    & :is(.sb-logo, .sb-me) {
+      position: absolute;
+      top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--sb-margin);
+      height: 46px;
+    }
+    & .sb-logo {
+      right: 100%;
+    }
+    & .sb-logo img {
+      width: clamp(120px, calc(var(--sb-margin) - 72px), 156px);
+    }
+    & .sb-me {
+      left: 100%;
+    }
   }
 }

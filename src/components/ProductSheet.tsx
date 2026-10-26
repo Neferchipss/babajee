@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import Branded from "./Branded";
-import CategorySwitch from "./CategorySwitch";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
@@ -22,7 +21,12 @@ export type SheetProduct = {
   tone: string;
   variants: BuyVariant[];
   unit?: string;
+  // its category, on the all-products and search shelves
+  group?: string;
 };
+
+// the space between one product's card and the next in the carousel
+const CARD_GAP = 16;
 
 const buzz = (p: number | number[]) => {
   try {
@@ -39,18 +43,12 @@ export default function ProductSheet({
   products,
   start,
   category,
-  categories,
-  categorySlug,
-  onCategory,
   onIndex,
   onClose,
 }: {
   products: SheetProduct[];
   start: number;
   category: string;
-  categories: { slug: string; name: string; count?: number }[];
-  categorySlug: string;
-  onCategory: (slug: string) => void;
   onIndex: (slug: string) => void;
   onClose: () => void;
 }) {
@@ -113,17 +111,18 @@ export default function ProductSheet({
   // name, a row of swatches) both vary.
   useLayoutEffect(() => {
     const el = card.current;
-    const stack = el?.parentElement;
-    if (!el || !stack) return;
+    const box = el?.parentElement; // the strip of cards, which all take this size
+    const stack = box?.parentElement;
+    if (!el || !box || !stack) return;
     const fit = () => {
       const art = el.querySelector<HTMLElement>(".ps-art");
       if (!art) return;
       const gap = parseFloat(getComputedStyle(stack).rowGap) || 0;
       let room = stack.clientHeight;
-      for (const c of Array.from(stack.children)) if (c !== el) room -= (c as HTMLElement).offsetHeight + gap;
+      for (const c of Array.from(stack.children)) if (c !== box) room -= (c as HTMLElement).offsetHeight + gap;
       const rest = el.scrollHeight + (el.offsetHeight - el.clientHeight) - art.offsetHeight; // with its border
       const size = `${Math.max(140, Math.floor(room - rest))}px`;
-      if (el.style.getPropertyValue("--ps-fit") !== size) el.style.setProperty("--ps-fit", size);
+      if (box.style.getPropertyValue("--ps-fit") !== size) box.style.setProperty("--ps-fit", size);
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -142,11 +141,10 @@ export default function ProductSheet({
   }, [v, p.slug]);
 
 
-  // Drag the card: sideways, the whole card follows the finger and the wheel
-  // leans with it; let go far enough (or flick) and it slides out while the
-  // next product slides in from the other side, the wheel turning the same
-  // way (swipe left for the next one, as the wheel turns). Down, from the
-  // top half, puts it away. The first few pixels decide which.
+  // Drag the card: sideways, it turns the wheel, and the cards slide with it
+  // as a carousel (swipe left for the next one); let go far enough (or
+  // flick) and it settles on the next product, otherwise back. Down, from
+  // the top half, puts it away. The first few pixels decide which.
   //
   // Touches go through touch events rather than pointer events: the details
   // can scroll, so the browser must keep vertical drags there, and only a
@@ -166,12 +164,13 @@ export default function ProductSheet({
     // a photo strip under the finger swipes its own photos, and hands the
     // swipe to the card only once it is at its first or last photo
     let gallery: HTMLElement | null = null;
-    const timers: number[] = [];
+    // the card width plus the gap to the next card: one product on the wheel
+    const step = () => el.offsetWidth + CARD_GAP;
 
     const start = (x: number, y: number, t: number, target: EventTarget | null) => {
       const hit = target as HTMLElement;
       // controls keep their taps; the option chips scroll sideways themselves
-      if (hit.closest("button, a, .ps-opts") || el.dataset.swipe) return false;
+      if (hit.closest("button, a, .ps-opts")) return false;
       gallery = hit.closest<HTMLElement>(".ps-gallery");
       x0 = x;
       y0 = y;
@@ -203,17 +202,10 @@ export default function ProductSheet({
           }
         }
         el.style.transition = "none";
+        if (axis === "x") steerRef.current?.grab();
       }
-      if (axis === "y") {
-        el.style.transform = `translateY(${Math.max(0, dy)}px)`;
-      } else {
-        // nothing further that way: it gives a little and springs back
-        const { i, n } = at.current;
-        const end = (dx < 0 && i >= n - 1) || (dx > 0 && i <= 0);
-        const d = end ? dx * 0.3 : dx;
-        el.style.transform = `translateX(${d.toFixed(1)}px) rotate(${(d * 0.03).toFixed(2)}deg)`;
-        steerRef.current?.lean(-d / el.clientWidth);
-      }
+      if (axis === "y") el.style.transform = `translateY(${Math.max(0, dy)}px)`;
+      else steerRef.current?.drag(-dx / step()); // (it gives at either end)
       return true;
     };
     const springBack = () => {
@@ -227,37 +219,13 @@ export default function ProductSheet({
         springBack();
         if (dy > 110) onClose();
       } else if (axis === "x") {
+        // settle on the product nearest where it was let go, or the next one
+        // along once it is a third of the way there, or on a flick
         const speed = Math.abs(dx) / Math.max(1, t - t0); // px per ms
-        const go = Math.abs(dx) > 70 || (Math.abs(dx) > 25 && speed > 0.5);
-        const { i, n } = at.current;
-        const to = i + (dx < 0 ? 1 : -1);
-        if (!go || to < 0 || to >= n) {
-          springBack();
-          steerRef.current?.to(i);
-        } else {
-          // out one side; the wheel turns (the content swaps as it passes
-          // the eye), then the card comes back in from the other side
-          const out = dx < 0 ? -1 : 1;
-          el.dataset.swipe = "true";
-          el.style.transition = "transform 0.12s cubic-bezier(0.4, 0, 1, 1)";
-          el.style.transform = `translateX(${out * 115}%) rotate(${out * 7}deg)`;
-          steerRef.current?.to(to);
-          timers.push(
-            window.setTimeout(() => {
-              el.style.transition = "none";
-              el.style.transform = `translateX(${-out * 55}%) rotate(${-out * 4}deg)`;
-              void el.offsetWidth; // apply the jump before easing back in
-              el.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
-              el.style.transform = "";
-              timers.push(
-                window.setTimeout(() => {
-                  delete el.dataset.swipe;
-                  el.style.transition = "";
-                }, 300),
-              );
-            }, 125),
-          );
-        }
+        const pos = steerRef.current?.at() ?? at.current.i;
+        let to = Math.round(pos);
+        if (to === at.current.i && (Math.abs(dx) > step() * 0.3 || (Math.abs(dx) > 25 && speed > 0.5))) to += dx < 0 ? 1 : -1;
+        steerRef.current?.release(to);
       }
       axis = null;
     };
@@ -296,7 +264,6 @@ export default function ProductSheet({
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
     return () => {
-      timers.forEach((t) => window.clearTimeout(t));
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
@@ -308,32 +275,31 @@ export default function ProductSheet({
     };
   }, [onClose]);
 
-  // Turning the wheel carries the whole card with it: it slides out the way
-  // the wheel turns and fades, swaps to the next product halfway, and the
-  // next one slides in from the other side as the wheel settles.
-  function follow(off: number) {
+  // The cards follow the wheel as a carousel: the strip of cards (this one,
+  // with the products either side) slides one card along per product, so
+  // halfway to the next product half of each card shows. When the product
+  // in the middle changes, the strip is put back only once the new card has
+  // drawn, so no frame shows the old one in the wrong place.
+  const strip = useRef<HTMLDivElement>(null);
+  const turn = useRef({ off: 0, c: start });
+  const drawn = useRef(start);
+  const place = () => {
+    const t = strip.current;
     const el = card.current;
-    if (!el || (el.dataset.swipe && !el.dataset.dial)) return; // the card's own swipe
-    if (Math.abs(off) < 0.002) {
-      delete el.dataset.dial;
-      delete el.dataset.swipe;
-      el.style.transition = "transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.12s";
-      el.style.transform = "";
-      el.style.opacity = "";
-      return;
-    }
-    el.dataset.dial = "true";
-    el.dataset.swipe = "true";
-    // snappy: it barely stirs for the first part of a turn, then whips out
-    // as the wheel nears the next product, and the next one lands just as fast
-    const k = Math.min(1, Math.abs(off) * 2) ** 2.4;
-    const x = -Math.sign(off) * k * 0.6 * el.clientWidth;
-    el.style.transition = "transform 40ms linear, opacity 40ms linear";
-    el.style.transform = `translateX(${x.toFixed(1)}px) rotate(${(x * 0.03).toFixed(2)}deg)`;
-    // gone entirely at the switch, so its jump to the other side (and the
-    // swap to the next product, which can lag a frame) is never seen
-    el.style.opacity = (1 - k).toFixed(3);
+    if (!t || !el) return;
+    const { off } = turn.current;
+    t.style.transform = Math.abs(off) < 0.001 ? "" : `translateX(${(-off * (el.offsetWidth + CARD_GAP)).toFixed(1)}px)`;
+  };
+  function follow(off: number, c: number) {
+    turn.current = { off, c };
+    if (c === drawn.current) place();
   }
+  useLayoutEffect(() => {
+    drawn.current = view.i;
+    if (turn.current.c === view.i) place();
+  }, [view.i]);
+
+
 
   function add() {
     buzz([10, 40, 10]);
@@ -346,17 +312,10 @@ export default function ProductSheet({
   return createPortal(
     <div className="ps">
       <div className="ps-scrim" onClick={onClose} aria-hidden="true" />
-      {/* the chips sit right on top of the card, whatever its height */}
       <div className="ps-stack">
-        <CategorySwitch
-          variant="sheet"
-          current={categories.find((c) => c.slug === categorySlug) ?? { slug: categorySlug, name: category }}
-          categories={categories}
-          onPick={(slug) => {
-            buzz(6);
-            onCategory(slug);
-          }}
-        />
+        <div ref={strip} className="ps-strip">
+        {products[view.i - 1] && <GhostCard p={products[view.i - 1]} category={category} side={-1} />}
+        {products[view.i + 1] && <GhostCard p={products[view.i + 1]} category={category} side={1} />}
         <section ref={card} className="ps-card" role="dialog" aria-modal="true" aria-labelledby="ps-title">
           <div className="ps-pull">
             <span className="ps-grip" aria-hidden="true" />
@@ -377,7 +336,7 @@ export default function ProductSheet({
           </div>
 
           <div key={`info-${p.slug}`} className="ps-info" data-dir={view.dir}>
-            <p className="ps-cat">{category}</p>
+            <p className="ps-cat">{p.group ?? category}</p>
             <h2 id="ps-title" className="ps-title">
               <Branded name={p.name} />
             </h2>
@@ -411,6 +370,8 @@ export default function ProductSheet({
                 ))}
               </div>
             )}
+            {/* no options: the row's room is kept, empty, so every card is the same size */}
+            {!showOptions && <div className="ps-opts ps-opts--none" aria-hidden="true" />}
           </div>
 
           <footer className="ps-bar">
@@ -429,6 +390,7 @@ export default function ProductSheet({
             </button>
           </footer>
         </section>
+        </div>
       </div>
 
       <ProductWheel
@@ -503,6 +465,81 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// A neighbouring product's card, beside this one in the carousel: the same
+// card as it opens (first option, first photo), only to look at.
+function GhostCard({ p, category, side }: { p: SheetProduct; category: string; side: 1 | -1 }) {
+  const photo = photosFor(p.slug)[0];
+  const swatches = hasOptionPhotos(p.slug);
+  const first = p.variants[0] ?? { label: "Standard", stockQty: 1 };
+  const deal = dealFor(p.slug, first.price);
+  return (
+    <div className="ps-card ps-ghost" data-side={side} aria-hidden="true">
+      <div className="ps-pull">
+        <span className="ps-grip" />
+        <div className="ps-top">
+          <span className="ps-round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+          <div className="ps-top-end">
+            <span className="wish">
+              <svg className="wish-heart" width="20" height="20" viewBox="0 0 24 24">
+                <path d="M12 20.3s-7.8-4.7-7.8-10.4A4.5 4.5 0 0 1 12 7.3a4.5 4.5 0 0 1 7.8 2.6c0 5.7-7.8 10.4-7.8 10.4Z" />
+              </svg>
+            </span>
+          </div>
+        </div>
+        <div className="ps-stage">
+          {photo ? (
+            <div className="ps-art ps-photos">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="ps-one" src={photo} alt="" draggable={false} />
+            </div>
+          ) : (
+            <ProductArt name={p.name} tone={p.tone} slug={p.slug} className="ps-art" />
+          )}
+        </div>
+      </div>
+      <div className="ps-info">
+        <p className="ps-cat">{p.group ?? category}</p>
+        <h2 className="ps-title">
+          <Branded name={p.name} />
+        </h2>
+        <div className={p.variants.length > 1 ? "ps-opts" : "ps-opts ps-opts--none"} data-swatches={swatches || undefined}>
+          {p.variants.length > 1 &&
+            p.variants.map((o, k) => (
+              <span key={o.label} className="ps-opt" aria-checked={k === 0}>
+                {swatches ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="ps-swatch" src={photosFor(p.slug, o.label)[0]} alt="" draggable={false} />
+                ) : (
+                  <>
+                    <span className="ps-opt-label">{o.label}</span>
+                    <Price className="ps-opt-price" value={o.price} />
+                  </>
+                )}
+              </span>
+            ))}
+        </div>
+      </div>
+      <footer className="ps-bar">
+        <div className="ps-bar-what">
+          <span className="ps-bar-label">{first.label}</span>
+          {deal ? (
+            <span className="ps-bar-price ps-bar-deal">
+              {formatPrice(deal.price, { paise: true })} <s>{formatPrice(deal.mrp, { paise: true })}</s>
+            </span>
+          ) : (
+            <Price className="ps-bar-price" value={first.price} />
+          )}
+        </div>
+        <span className="ps-add">Add</span>
+      </footer>
     </div>
   );
 }

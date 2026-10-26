@@ -5,9 +5,14 @@ import { SEE_EVENT } from "./baba/gaze";
 import ProductArt from "./ProductArt";
 
 export type WheelItem = { key: string; name: string; tone: string };
-// How the card drives the wheel: lean follows a drag (a fraction of a
-// product either way), to turns to a product and settles there.
-export type WheelSteer = { lean: (f: number) => void; to: (i: number) => void };
+// How the card drives the wheel: grab it, drag it by fractions of a product,
+// release it onto a product; at says where it is.
+export type WheelSteer = {
+  grab: () => void;
+  drag: (f: number) => void;
+  release: (i: number) => void;
+  at: () => number;
+};
 
 // The dial under the product sheet: every product in the category sits on an
 // arc, and turning it with a thumb swaps the product in the sheet. It snaps
@@ -42,8 +47,6 @@ type Live = {
   spun: boolean;
   samples: { t: number; x: number }[];
   spacing: number;
-  // the card is turning the wheel (a swipe), so the wheel does not move the card back
-  fromCard: boolean;
   told: number;
 };
 
@@ -78,9 +81,9 @@ export default function ProductWheel({
   start: number;
   onChange: (i: number) => void;
   onPick?: (i: number) => void;
-  // how far the dial sits from the product in the middle (-0.5 to 0.5) while
-  // a thumb, flick, scroll or spin turns it, for the card to follow
-  onTurn?: (offset: number) => void;
+  // where the dial is, as the product in the middle and how far it sits
+  // from it (-0.5 to 0.5), for the cards to follow
+  onTurn?: (offset: number, centre: number) => void;
   // filled in by the wheel, for a swipe on the card to turn it
   steerRef?: RefObject<WheelSteer | null>;
 }) {
@@ -105,8 +108,7 @@ export default function ProductWheel({
     spun: false,
     samples: [],
     spacing: 90,
-    fromCard: false,
-    told: 0,
+    told: -1,
   });
   const n = items.length;
 
@@ -133,7 +135,7 @@ export default function ProductWheel({
     };
     measure();
 
-    // The wheel rests small and grows the moment a finger is on it, and
+    // The wheel rests small and grows as soon as a finger drags it, and
     // shrinks as soon as it is let go, even while it is still coasting into
     // place. Swiping the card turns it without growing it.
     const pw = el.parentElement;
@@ -158,12 +160,12 @@ export default function ProductWheel({
       cb.current.onChange(c);
     };
 
-    // the card follows the dial, unless it is the card turning it
+    // the cards follow the dial
     const tell = () => {
-      const off = s.fromCard ? 0 : clamp(s.pos - s.centre, -0.5, 0.5);
-      if (Math.abs(off - s.told) < 0.001) return;
+      const off = clamp(s.pos - s.centre, -0.5, 0.5);
+      if (Math.abs(off - s.told) < 0.0005) return;
       s.told = off;
-      cb.current.onTurn?.(off);
+      cb.current.onTurn?.(off, s.centre);
     };
 
     const loop = (now: number) => {
@@ -207,7 +209,6 @@ export default function ProductWheel({
     };
 
     const spin = () => {
-      s.fromCard = false;
       s.spun = true;
       s.dragging = false;
       s.vel = 0;
@@ -241,7 +242,6 @@ export default function ProductWheel({
       if (!d) return;
       e.preventDefault();
       wake();
-      s.fromCard = false;
       s.dragging = true;
       s.vel = 0;
       s.target = null;
@@ -266,7 +266,6 @@ export default function ProductWheel({
     const onDown = (e: PointerEvent) => {
       if (s.spin || e.button > 0) return;
       el.setPointerCapture(e.pointerId);
-      s.fromCard = false;
       s.dragging = true;
       s.target = null;
       s.vel = 0;
@@ -279,7 +278,8 @@ export default function ProductWheel({
       pressOn((e.target as HTMLElement | null)?.closest<HTMLElement>("[data-i]") ?? null);
       window.clearTimeout(s.hold);
       if (s.downOn === s.centre) s.hold = window.setTimeout(spin, HOLD_MS);
-      wake();
+      // it grows only once a drag starts (or a hold spins it): a tap just
+      // turns to the product tapped
       kick();
     };
     const onMove = (e: PointerEvent) => {
@@ -287,6 +287,7 @@ export default function ProductWheel({
       const dx = e.clientX - s.x0;
       if (!s.moved && Math.abs(dx) > 3) {
         s.moved = true;
+        wake();
         pressOn(null);
         window.clearTimeout(s.hold);
         setTurned(true);
@@ -320,8 +321,7 @@ export default function ProductWheel({
       const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
       if (step) {
         e.preventDefault();
-        s.fromCard = false;
-        s.vel = 0;
+          s.vel = 0;
         s.target = clamp((s.target ?? Math.round(s.pos)) + step, 0, n - 1);
         wake();
         rest(450);
@@ -334,23 +334,33 @@ export default function ProductWheel({
 
     if (steerRef) {
       steerRef.current = {
-        lean: (f) => {
-          if (s.spin || s.dragging) return;
-          s.fromCard = true;
+        // a sideways drag on the card turns the wheel as if a finger were on
+        // it (without growing it): grab, drag by fractions of a product, and
+        // let go to settle on a product
+        grab: () => {
+          if (s.spin) return;
           s.vel = 0;
           s.target = null;
-          s.pos = s.centre + clamp(f, -0.45, 0.45);
-          layout(el, s.pos, s.spacing);
+          s.dragging = true;
+          s.p0 = s.pos;
+          kick();
         },
-        to: (i) => {
+        drag: (f) => {
+          if (!s.dragging || s.spin) return;
+          let p = s.p0 + f;
+          if (p < 0) p *= 0.35;
+          else if (p > n - 1) p = n - 1 + (p - (n - 1)) * 0.35;
+          s.pos = p;
+        },
+        release: (i) => {
           if (s.spin) return;
-          s.fromCard = true;
           s.dragging = false;
           s.vel = 0;
           s.target = clamp(i, 0, n - 1);
           setTurned(true);
           kick();
         },
+        at: () => s.pos,
       };
     }
 

@@ -6,7 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { suggest } from "@/lib/search-index";
 import Branded from "./Branded";
 import CategoryIcon from "./CategoryIcon";
-import { SearchIcon, UserIcon } from "./icons";
+import { SearchIcon } from "./icons";
+import Logo from "./Logo";
+import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
 
 type Sort = "featured" | "az" | "za";
@@ -80,25 +82,72 @@ export default function ShopBar({
   }, []);
   const hint = useHint(hints);
 
-  // the current category in view in the strip
+  // scrolled down the shelf: on wide screens the categories fold away and
+  // the top row stays as a bar (phones lift the header instead, in CSS)
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const check = () => {
+      const down = window.scrollY > 90;
+      if ((el.dataset.compact === "true") !== down) el.dataset.compact = String(down);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, []);
+
+  // the current category in view in the strip, and which ends of it have
+  // more to scroll to (an arrow sits over each such end on wide screens)
+  const [ends, setEnds] = useState({ prev: false, next: false });
   useEffect(() => {
     const list = strip.current;
-    const cur = list?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!list || !cur) return;
-    list.scrollLeft = cur.offsetLeft - (list.clientWidth - cur.offsetWidth) / 2;
+    if (!list) return;
+    const cur = list.querySelector<HTMLElement>('[aria-current="page"]');
+    if (cur) list.scrollLeft = cur.offsetLeft - (list.clientWidth - cur.offsetWidth) / 2;
+    const measure = () => {
+      const prev = list.scrollLeft > 2;
+      const next = list.scrollLeft < list.scrollWidth - list.clientWidth - 2;
+      setEnds((e) => (e.prev === prev && e.next === next ? e : { prev, next }));
+    };
+    measure();
+    list.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(list);
+    return () => {
+      list.removeEventListener("scroll", measure);
+      ro.disconnect();
+    };
   }, [current]);
+  const nudge = (dir: 1 | -1) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.7, behavior: "smooth" });
 
   return (
-    <div className="sb">
+    <div ref={bar} className="sb">
       <div className="sb-top">
-        <DeliverTo />
-        <Link href="/account" className="sb-profile" aria-label="Your account">
-          <UserIcon size={22} />
+        {/* wide screens: the logo first, as the site header had it */}
+        <Link href="/" className="sb-logo" aria-label="Babajee home">
+          <Logo className="w-[150px]" priority />
         </Link>
+        <DeliverTo />
+        <ProfileMenu />
       </div>
 
 
-      <nav aria-label="Categories">
+      <nav aria-label="Categories" className="sb-nav">
+        {ends.prev && (
+          <button type="button" className="sb-cats-btn" data-dir="-1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(-1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+        )}
+        {ends.next && (
+          <button type="button" className="sb-cats-btn" data-dir="1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
         <ul ref={strip} className="sb-cats">
           {[{ slug: "all", name: "All" }, ...categories].map((c) => (
             <li key={c.slug}>
@@ -299,3 +348,4 @@ function DeliverTo() {
     </button>
   );
 }
+
