@@ -195,6 +195,12 @@
     transform: translateY(100%);
   }
 }
+@keyframes sb-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
 @keyframes dt-fade {
   from {
     opacity: 0;

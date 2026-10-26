@@ -1,13 +1,5 @@
-import Link from "next/link";
-import SceneLink from "@/components/SceneLink";
-import { notFound } from "next/navigation";
-import Branded from "@/components/Branded";
-import ProductBuy from "@/components/ProductBuy";
-import ProductCard from "@/components/ProductCard";
-import ProductGallery from "@/components/ProductGallery";
-import { getCategories, getProductDetail, getStaticProductParams } from "@/lib/catalog-db";
-import { photosFor } from "@/lib/product-photos";
-import { toneAt } from "@/lib/tone";
+import { getStaticProductParams } from "@/lib/catalog-db";
+import OpenInShelf from "./OpenInShelf";
 
 export const dynamicParams = false;
 
@@ -15,72 +7,10 @@ export async function generateStaticParams() {
   return getStaticProductParams();
 }
 
+// There is no page of its own for a product: it opens in the sheet on its
+// shelf. This address is kept for links made before (carts and wishlists
+// saved in the browser, shared links), and sends them on to the shelf.
 export default async function ProductPage(props: PageProps<"/shop/[category]/[product]">) {
-  const { category: categorySlug, product: productSlug } = await props.params;
-  const [detail, categories] = await Promise.all([getProductDetail(categorySlug, productSlug), getCategories()]);
-  if (!detail) notFound();
-
-  const { category, product, more } = detail;
-  const tone = toneAt(Math.max(0, categories.findIndex((c) => c.slug === category.slug)));
-
-  return (
-    <div className="pd">
-      <nav aria-label="Breadcrumb" className="pd-crumb">
-        <SceneLink href="/shop">Shop</SceneLink>
-        <span aria-hidden="true">/</span>
-        <Link href={`/shop/${category.slug}`}>{category.name}</Link>
-      </nav>
-
-      <div className="pd-main">
-        <div className="pd-media">
-          <ProductGallery slug={product.slug} name={product.name} tone={tone} />
-        </div>
-
-        <div className="pd-info">
-          <p className="pd-cat">{category.name}</p>
-          <h1 className="pd-title">
-            <Branded name={product.name} />
-          </h1>
-          {product.description && <p className="pd-desc">{product.description}</p>}
-          <ProductBuy
-            variants={product.variants}
-            item={{
-              slug: product.slug,
-              href: `/shop/${category.slug}/${product.slug}`,
-              name: product.name,
-              tone,
-            }}
-          />
-        </div>
-      </div>
-
-      {more.length > 0 && (
-        <section className="pd-more" aria-labelledby="more-heading">
-          <div className="pd-more-head">
-            <h2 id="more-heading" className="pd-more-title">
-              More in {category.name}
-            </h2>
-            <Link href={`/shop/${category.slug}`} className="pd-more-all">
-              See all
-            </Link>
-          </div>
-          <ul className="cp-grid">
-            {more.map((p) => (
-              <ProductCard
-                key={p.slug}
-                product={{
-                  href: `/shop/${category.slug}/${p.slug}`,
-                  name: p.name,
-                  options: p.variantCount > 1 ? p.variantCount - 1 : 0,
-                  price: p.minPrice,
-                  images: photosFor(p.slug),
-                  tone,
-                }}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
-  );
+  const { category, product } = await props.params;
+  return <OpenInShelf href={`/shop/${category}?p=${encodeURIComponent(product)}`} />;
 }

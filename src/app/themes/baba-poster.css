@@ -969,9 +969,6 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       top: -2px;
       right: -2px;
     }
-    & .sb-menu {
-      top: calc(100% + 14px);
-    }
 
     /* the categories, between two hairlines */
     & .sb nav {

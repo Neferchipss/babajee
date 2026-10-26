@@ -11,7 +11,7 @@ export async function allShelfProducts() {
   const products = details.flatMap((detail, i) =>
     detail
       ? detail.products.map((p) => ({
-          href: `/shop/${detail.category.slug}/${p.slug}`,
+          href: `/shop/${detail.category.slug}?p=${encodeURIComponent(p.slug)}`,
           name: p.name,
           options: p.variantCount > 1 ? p.variantCount - 1 : 0,
           price: p.minPrice,

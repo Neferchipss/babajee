@@ -22,7 +22,7 @@ export default async function CategoryPage(props: PageProps<"/shop/[category]">)
       category={detail.category}
       categories={categories}
       products={detail.products.map((p) => ({
-        href: `/shop/${categorySlug}/${p.slug}`,
+        href: `/shop/${categorySlug}?p=${encodeURIComponent(p.slug)}`,
         name: p.name,
         options: p.variantCount > 1 ? p.variantCount - 1 : 0,
         price: p.minPrice,

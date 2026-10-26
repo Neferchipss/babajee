@@ -1,7 +1,6 @@
-/* The cart page (CartView.tsx), after the quick-commerce carts: a savings
-   strip, every line in one panel, a row of things to add, the bill beside
-   (wide screens) or under (phones) with what to pay and checkout in a bar at
-   the bottom. Colours come from the shop theme, with Night: Poster values
+/* The cart page (CartView.tsx), after the quick-commerce carts: every line in one panel, tabs of
+   things to add, the bill beside (wide screens) or under (phones), and how
+   to pay with the pay button in a bar at the bottom on phones. Colours come from the shop theme, with Night: Poster values
    as fallbacks. */
 
 .cv {
@@ -22,8 +21,12 @@
 /* room under everything for the bar on phones */
 @media (max-width: 959px) {
   #site:has(.cv) {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
+}
+/* the cart is its own screen: no site footer under it */
+#site:has(.cv, .cv-empty) .ftr {
+  display: none;
 }
 /* the floating jar would only point back at this page */
 #site:has(.cv, .cv-empty) .jar-float {
@@ -36,26 +39,15 @@
   min-width: 0;
 }
 
-/* what the deals saved */
-.cv-yay {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgb(126 240 196 / 0.12);
-  color: var(--cv-green);
-  font-size: 0.9rem;
-  text-align: center;
-}
-.cv-yay b {
-  font-weight: 800;
-}
-
+/* clear all, and how many, along the top of the panel */
 .cv-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 32px;
+  min-height: 48px;
+  margin: 0 14px;
+  border-bottom: 1.5px dashed var(--cv-line);
 }
 .cv-count {
   margin: 0;
@@ -198,9 +190,9 @@
   font-variant-numeric: tabular-nums;
 }
 .cv-price {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
   margin: 0;
   color: var(--color-paper, #f4efff);
   font-weight: 800;
@@ -212,34 +204,100 @@
 }
 .cv-price s {
   color: var(--color-muted, #a39cd0);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
-.cv-forgot {
-  margin: 0;
-  padding: 14px;
-  color: var(--color-paper, #f4efff);
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-align: center;
-}
-.cv-forgot a {
-  margin-left: 4px;
-  color: var(--cv-pink);
-  font-weight: 800;
-  text-decoration: none;
+.cv-lines > .cv-line:last-child {
+  border-bottom: 0;
 }
 
-/* ------------------------------------------------- you might also like */
+/* ------------------------------------------------ things to add, in tabs */
 .cv-recs {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 14px;
   min-width: 0;
+  padding: 4px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--cv-line);
+  border-radius: 18px;
+  background: var(--cv-panel);
 }
-.cv-recs-title {
-  margin: 0;
-  font-size: 1.15rem;
+.cv-tabs {
+  position: relative;
+  display: flex;
+  gap: 22px;
+  padding: 0 16px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--cv-line);
+  scrollbar-width: none;
+}
+.cv-tabs::-webkit-scrollbar {
+  display: none;
+}
+.cv-tab {
+  flex: none;
+  padding: 12px 0 13px;
+  border: 0;
+  background: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.2s ease,
+    transform 0.15s ease;
+  color: var(--color-muted, #a39cd0);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cv-tab:active {
+  transform: scale(0.94);
+}
+/* one underline, sliding to the tab picked */
+.cv-ink {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--cv-pink);
+  pointer-events: none;
+  transition:
+    transform 0.34s cubic-bezier(0.3, 0.9, 0.25, 1),
+    width 0.34s cubic-bezier(0.3, 0.9, 0.25, 1);
+}
+/* the new tab's products come in from its side */
+html:root #site[data-scope] .cv-recs .cp-grid[data-dir="next"] {
+  animation: cv-row-next 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+html:root #site[data-scope] .cv-recs .cp-grid[data-dir="prev"] {
+  animation: cv-row-prev 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes cv-row-next {
+  from {
+    opacity: 0.2;
+    transform: translateX(32px);
+  }
+}
+@keyframes cv-row-prev {
+  from {
+    opacity: 0.2;
+    transform: translateX(-32px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-ink,
+  .cv-tab {
+    transition: none;
+  }
+  html:root #site[data-scope] .cv-recs .cp-grid[data-dir] {
+    animation: none;
+  }
+}
+.cv-tab[aria-selected="true"] {
+  color: var(--color-paper, #f4efff);
   font-weight: 800;
 }
 html:root #site[data-scope] .cv-recs .cp-grid {
@@ -248,12 +306,13 @@ html:root #site[data-scope] .cv-recs .cp-grid {
   grid-auto-flow: column;
   grid-auto-columns: 148px;
   gap: 12px;
-  margin: 0 -20px;
-  padding: 2px 20px 8px;
+  align-items: start;
+  margin: 0;
+  padding: 2px 16px 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
-  scroll-padding-inline: 20px;
+  scroll-padding-inline: 16px;
   scrollbar-width: none;
   list-style: none;
 }
@@ -262,6 +321,11 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
 }
 #site[data-scope] .cv-recs .pc {
   scroll-snap-align: start;
+}
+@media (max-width: 639px) {
+  html:root #site[data-scope] .cv-recs .cp-grid {
+    grid-auto-columns: 128px;
+  }
 }
 
 /* --------------------------------------------------------- the bill */
@@ -327,14 +391,60 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   font-weight: 800;
 }
 .cv-go {
-  width: 100%;
-  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
 }
-/* phones: the bar has checkout, so the bill is just the bill */
+/* phones: the bar has the pay button, so the bill is just the bill */
 @media (max-width: 959px) {
   .cv-go {
     display: none;
   }
+}
+
+/* how to pay, then the pay button */
+.cv-paywith {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cv-paywith-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--color-paper, #f4efff);
+}
+.cv-paywith-text {
+  display: grid;
+  line-height: 1.2;
+}
+.cv-paywith-text small {
+  color: var(--color-muted, #a39cd0);
+  font-size: 0.8rem;
+}
+.cv-paywith-text b {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.cv-pay {
+  display: grid;
+  place-items: center;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--cv-pink);
+  color: var(--bb-on-accent, #16061a);
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  transition: transform 0.12s;
+}
+.cv-pay:active {
+  transform: scale(0.98);
 }
 
 /* ------------------------------------------------- the bar on phones */
@@ -342,12 +452,12 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   position: fixed;
   inset: auto 0 0;
   z-index: 44;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: grid;
+  gap: 12px;
   padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border-top: 1px solid var(--cv-line);
-  background: rgb(12 10 28 / 0.94);
+  border-radius: 20px 20px 0 0;
+  background: rgb(12 10 28 / 0.96);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
@@ -356,42 +466,12 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
     display: none;
   }
 }
-.cv-bar-sum {
-  display: grid;
-  flex: none;
-}
-.cv-bar-label {
-  color: var(--color-muted, #a39cd0);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.cv-bar-total {
-  color: var(--color-paper, #f4efff);
-  font-size: 1.2rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.cv-bar-go {
-  display: grid;
-  flex: 1;
-  place-items: center;
-  height: 52px;
-  border-radius: 14px;
-  background: var(--cv-pink);
-  color: var(--bb-on-accent, #16061a);
-  font-size: 1.05rem;
-  font-weight: 800;
-  text-decoration: none;
-}
-.cv-bar-go:active {
-  transform: scale(0.98);
-}
 
 /* ------------------------------------------------------------ undo */
 .cv-toast {
   position: fixed;
   left: 50%;
-  bottom: calc(92px + env(safe-area-inset-bottom));
+  bottom: calc(150px + env(safe-area-inset-bottom));
   z-index: 46;
   display: flex;
   align-items: center;

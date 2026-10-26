@@ -1,0 +1,221 @@
+/* The profile screen (ProfileMenu.tsx): slides in from the right over the
+   page, the whole screen on phones and a tall panel at the side on wide
+   ones. Who you are on a coloured card at the top, shortcut tiles, then the
+   site's pages as rows. */
+
+.pp {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+}
+.pp-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(4 2 14 / 0.6);
+  animation: pp-fade 0.3s ease-out;
+  transition: opacity 0.28s ease;
+}
+.pp[data-leaving] .pp-scrim {
+  opacity: 0;
+}
+
+.pp-panel {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  background: #0f0b24;
+  color: var(--color-paper, #f4efff);
+  box-shadow: -24px 0 60px rgb(0 0 0 / 0.5);
+  outline: none;
+  animation: pp-in 0.36s cubic-bezier(0.22, 0.9, 0.24, 1);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.6, 1);
+  will-change: transform;
+}
+.pp[data-leaving] .pp-panel {
+  transform: translateX(100%);
+}
+@media (min-width: 640px) {
+  .pp-panel {
+    width: 420px;
+    border-radius: 24px 0 0 24px;
+  }
+}
+
+/* who you are, on the shop's colours */
+.pp-head {
+  flex: none;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: calc(10px + env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 28px max(24px, env(safe-area-inset-left));
+  border-radius: 0 0 28px 28px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(255 255 255 / 0.14), transparent 55%),
+    linear-gradient(135deg, var(--bb-hot, #ff4d8d), #8a2a7a 70%, #5a1f72);
+  color: #fff;
+}
+.pp-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 0 10px -10px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.pp-back:active {
+  background: rgb(255 255 255 / 0.16);
+}
+.pp-name {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.pp-who {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  color: rgb(255 255 255 / 0.82);
+  font-size: 0.98rem;
+}
+.pp-login {
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #3a0f3a;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.pp-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+/* shortcuts: a row of tiles, scrolling sideways if they run out of room */
+.pp-tiles {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(104px, 1fr);
+  gap: 10px;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pp-tiles::-webkit-scrollbar {
+  display: none;
+}
+.pp-tile {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid var(--color-line, #2d2860);
+  border-radius: 18px;
+  background: var(--color-iron, #151232);
+  color: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.pp-tile svg {
+  color: var(--bb-hot, #ff4d8d);
+}
+.pp-tile:active {
+  transform: scale(0.96);
+}
+.pp-count {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bb-hot, #ff4d8d);
+  color: #16061a;
+  font-size: 0.72rem;
+}
+
+/* the site's pages */
+.pp-list {
+  display: grid;
+  margin-top: 16px;
+  padding: 4px 16px;
+  border: 1px solid var(--color-line, #2d2860);
+  border-radius: 20px;
+  background: var(--color-iron, #151232);
+}
+.pp-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  border-bottom: 1px solid var(--color-line, #2d2860);
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.pp-row:last-child {
+  border-bottom: 0;
+}
+.pp-row svg {
+  flex: none;
+  color: var(--color-muted, #a39cd0);
+}
+.pp-row:active {
+  opacity: 0.6;
+}
+@media (hover: hover) {
+  .pp-row:hover,
+  .pp-row:hover svg {
+    color: var(--bb-hot, #ff4d8d);
+  }
+}
+
+.pp-out {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 16px;
+  border: 1px solid var(--color-line, #2d2860);
+  border-radius: 16px;
+  background: none;
+  color: var(--bb-hot, #ff4d8d);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@keyframes pp-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes pp-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-panel,
+  .pp-scrim {
+    animation: none;
+    transition: none;
+  }
+}

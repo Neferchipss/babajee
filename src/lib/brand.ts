@@ -72,24 +72,6 @@ export function brandOf(name: string): Branded {
   return { title: name.trim() };
 }
 
-// a shelf's products in brand groups: the brands with the most products
-// first, the house brand after them, unbranded last. Order inside a group
-// is kept. Null when most of the shelf has no brand (glass, novelty
-// grinders): grouping would only push the few branded ones to the top.
-export function byBrand<T extends { name: string }>(items: T[]): { brand?: string; items: T[] }[] | null {
-  const groups = new Map<string | undefined, T[]>();
-  for (const it of items) {
-    const b = brandOf(it.name).brand;
-    groups.set(b, [...(groups.get(b) ?? []), it]);
-  }
-  const plain = groups.get(undefined)?.length ?? 0;
-  if (groups.size < 2 || plain * 2 > items.length) return null;
-  const rank = (b: string | undefined) => (b === undefined ? 2 : b === "Babajee" ? 1 : 0);
-  return [...groups.entries()]
-    .sort(([a, x], [b, y]) => rank(a) - rank(b) || y.length - x.length)
-    .map(([brand, items]) => ({ brand, items }));
-}
-
 // the all-products shelf: grouped by the category each product is in,
 // in the order the categories come
 export function byGroup<T extends { group?: string }>(items: T[]): { brand?: string; items: T[] }[] {

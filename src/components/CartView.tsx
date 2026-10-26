@@ -6,11 +6,12 @@ import { useEffect, useRef, useState } from "react";
 import { type CartLine, cartSums, clearCart, lineUnit, removeLine, restoreLine, setQty, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { toggleSaved } from "@/lib/wishlist";
-import CartRecs from "./CartRecs";
+import CartRecs, { type RecGroup } from "./CartRecs";
 import { JarArt } from "./CartJar";
-import type { CardProduct } from "./ProductCard";
 import ProductArt from "./ProductArt";
 import "./cart.css";
+
+export type { RecGroup };
 
 const rs = (n: number) => formatPrice(n, { paise: true });
 const buzz = (p: number | number[]) => {
@@ -27,12 +28,13 @@ const Bin = () => (
   </svg>
 );
 
-// What is in Baba's jar, laid out like the quick-commerce carts: what the
-// deals saved across the top, every line in one panel (picture, name, how it
-// comes, move to wishlist; the stepper and price on the right, its minus a
-// bin at one), a row of things to add, and on phones the total and checkout
-// in a bar at the bottom. Removing, saving or clearing can be undone.
-export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
+// What is in Baba's jar, laid out like the quick-commerce carts (the site's
+// bar above says where it is going): every line in one panel
+// (picture, name, how it comes, move to wishlist; the stepper and price on
+// the right, its minus a bin at one), tabs of things to add, the bill, and
+// how to pay with the pay button in a bar at the bottom. Removing, saving or
+// clearing can be undone.
+export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
   const cart = useCart();
   const sums = cartSums(cart);
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -80,9 +82,13 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
     </div>
   );
 
+  // the bar above holds where it is going and the profile button
+  const top = <h1 className="sr-only">Your cart</h1>;
+
   if (cart.length === 0) {
     return (
       <>
+        {top}
         <div className="cv-empty">
           <div className="cv-empty-jar">
             <JarArt pebbles={[]} />
@@ -94,42 +100,51 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
           </SceneLink>
           {toast}
         </div>
-        <CartRecs products={recs} />
+        <CartRecs groups={recs} />
       </>
     );
   }
 
+  // the one way to pay for now; the bank details come at checkout
+  const payWith = (
+    <div className="cv-paywith">
+      <span className="cv-paywith-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18" />
+        </svg>
+      </span>
+      <span className="cv-paywith-text">
+        <small>Pay using</small>
+        <b>Bank transfer</b>
+      </span>
+    </div>
+  );
+
   return (
     <div className="cv">
+      {top}
       <div className="cv-main">
-        {sums.saved > 0 && (
-          <p className="cv-yay">
-            Yay! You saved <b>{rs(sums.saved)}</b> on this order
-          </p>
-        )}
-
-        <div className="cv-head">
-          <p className="cv-count">
-            {sums.count} item{sums.count === 1 ? "" : "s"} in the jar
-          </p>
-          {clearing ? (
-            <p className="cv-confirm">
-              Empty the jar?
-              <button type="button" className="cv-link cv-link--danger" onClick={clearAll}>
-                Yes, clear
-              </button>
-              <button type="button" className="cv-link" onClick={() => setClearing(false)}>
-                Keep
-              </button>
-            </p>
-          ) : (
-            <button type="button" className="cv-link" onClick={() => setClearing(true)}>
-              Clear all
-            </button>
-          )}
-        </div>
-
         <div className="cv-panel">
+          <div className="cv-head">
+            {clearing ? (
+              <p className="cv-confirm">
+                Empty the jar?
+                <button type="button" className="cv-link cv-link--danger" onClick={clearAll}>
+                  Yes, clear
+                </button>
+                <button type="button" className="cv-link" onClick={() => setClearing(false)}>
+                  Keep
+                </button>
+              </p>
+            ) : (
+              <button type="button" className="cv-link" onClick={() => setClearing(true)}>
+                Clear all
+              </button>
+            )}
+            <p className="cv-count">
+              {sums.count} item{sums.count === 1 ? "" : "s"}
+            </p>
+          </div>
           <ul className="cv-lines">
             {cart.map((line) => {
               const u = lineUnit(line);
@@ -186,12 +201,9 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
               );
             })}
           </ul>
-          <p className="cv-forgot">
-            Forgot something? <SceneLink href="/shop">Add more items</SceneLink>
-          </p>
         </div>
 
-        <CartRecs products={recs} />
+        <CartRecs groups={recs} />
       </div>
 
       <aside className="cv-sum" aria-label="Bill details">
@@ -218,19 +230,19 @@ export default function CartView({ recs = [] }: { recs?: CardProduct[] }) {
             <dd>{rs(sums.total)}</dd>
           </div>
         </dl>
-        <Link href="/checkout" className="btn btn-primary cv-go">
-          Checkout
-        </Link>
+        <div className="cv-go">
+          {payWith}
+          <Link href="/checkout" className="cv-pay">
+            Pay {rs(sums.total)}
+          </Link>
+        </div>
       </aside>
 
-      {/* phones: what to pay and checkout stay in reach */}
+      {/* phones: how to pay and the pay button stay in reach */}
       <div className="cv-bar">
-        <div className="cv-bar-sum">
-          <span className="cv-bar-label">To pay</span>
-          <span className="cv-bar-total">{rs(sums.total)}</span>
-        </div>
-        <Link href="/checkout" className="cv-bar-go">
-          Checkout
+        {payWith}
+        <Link href="/checkout" className="cv-pay">
+          Pay {rs(sums.total)}
         </Link>
       </div>
       {toast}

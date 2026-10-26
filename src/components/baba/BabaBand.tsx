@@ -416,6 +416,8 @@ export default function BabaBand() {
     const touchScreen = window.matchMedia(PEEK_MEDIA).matches;
     const root = document.documentElement;
     let y0 = 0;
+    let x0 = 0;
+    let decided = false; // whether the finger has shown which way it is going
     let pull = 0;
     let armed = false; // the touch started at the top of the page
     let going = false;
@@ -447,11 +449,24 @@ export default function BabaBand() {
     const onStart = (e: TouchEvent) => {
       armed = !going && e.touches.length === 1 && window.scrollY <= 0 && !root.dataset.sheet;
       y0 = e.touches[0]?.clientY ?? 0;
+      x0 = e.touches[0]?.clientX ?? 0;
+      decided = false;
       pull = 0;
     };
     const onMove = (e: TouchEvent) => {
       if (!armed) return;
       const dy = (e.touches[0]?.clientY ?? 0) - y0;
+      // a sideways swipe (the category strip, a row of cards) is not a pull:
+      // wait for the finger to show its way, and let sideways ones be
+      if (!decided) {
+        const dx = (e.touches[0]?.clientX ?? 0) - x0;
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        decided = true;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          armed = false;
+          return;
+        }
+      }
       if (dy <= 0 || window.scrollY > 0) {
         if (pull > 0) show(0, false);
         pull = 0;

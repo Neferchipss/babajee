@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { suggest } from "@/lib/search-index";
 import Branded from "./Branded";
 import CategoryIcon from "./CategoryIcon";
@@ -13,6 +13,38 @@ import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
 
 type Sort = "featured" | "az" | "za";
+
+// Each category is its own page, so the strip is built afresh on every tap.
+// What it looked like as the old page went (scrolled where, the underline
+// where, which tab) is kept here, and the new strip carries on from it: the
+// underline slides over and the strip glides the new tab to the middle.
+type Carry = { left: number; x: number; w: number; from: number; t: number };
+let carry: Carry | null = null;
+// note where the strip is (scroll, underline) as its page goes
+function remember(list: HTMLElement, ink: HTMLElement, from: number) {
+  const box = list.getBoundingClientRect();
+  const r = ink.getBoundingClientRect();
+  if (!r.width) return;
+  carry = { left: list.scrollLeft, x: r.left - box.left + list.scrollLeft, w: r.width, from, t: Date.now() };
+}
+const buzz = () => {
+  try {
+    navigator.vibrate?.(6);
+  } catch {}
+};
+// the underline, under a tab (or where it was)
+function inkAt(i: HTMLElement, x: number, w: number, animate: boolean) {
+  i.style.transition = animate ? "" : "none";
+  i.style.transform = `translateX(${x}px)`;
+  i.style.width = `${w}px`;
+  if (!animate) {
+    void i.offsetWidth;
+    i.style.transition = "";
+  }
+}
+const inkUnder = (i: HTMLElement, el: HTMLElement, animate: boolean) =>
+  inkAt(i, el.offsetLeft + 10, el.offsetWidth - 20, animate);
+const centre = (list: HTMLElement, el: HTMLElement) => el.offsetLeft - (list.clientWidth - el.offsetWidth) / 2;
 
 // The shelf's header on phones, after the quick-commerce apps: where it is
 // delivering to and the profile button, then the search bar and the strip
@@ -98,28 +130,89 @@ export default function ShopBar({
     return () => window.removeEventListener("scroll", check);
   }, []);
 
-  // the current category in view in the strip, and which ends of it have
-  // more to scroll to (an arrow sits over each such end on wide screens)
+  // the tab tapped: lit at once, before its page arrives
+  const [pending, setPending] = useState<string | null>(null);
+  const active = pending ?? current;
+  const pendingRef = useRef<string | null>(null);
+  const ink = useRef<HTMLLIElement>(null);
+  const list = [{ slug: "all", name: "All" }, ...categories];
+
+  // arriving: carry on from the old strip, or just sit on the current tab
+  useLayoutEffect(() => {
+    const el = strip.current;
+    const i = ink.current;
+    const cur = el?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!el || !i || !cur) return;
+    const from = carry && Date.now() - carry.t < 5000 ? carry : null;
+    carry = null;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (from && !still) {
+      el.scrollLeft = from.left;
+      inkAt(i, from.x, from.w, false);
+      // which way the shelf came from, for the cards sliding in
+      const to = list.findIndex((c) => c.slug === current);
+      document.documentElement.dataset.bbSlide = to >= from.from ? "next" : "prev";
+      window.setTimeout(() => delete document.documentElement.dataset.bbSlide, 450);
+      requestAnimationFrame(() => {
+        inkUnder(i, cur, true);
+        el.scrollTo({ left: centre(el, cur), behavior: "smooth" });
+      });
+    } else {
+      el.scrollLeft = centre(el, cur);
+      inkUnder(i, cur, false);
+    }
+    // leaving: note where everything is, mid-slide or not
+    return () => remember(el, i, list.findIndex((c) => c.slug === current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per category
+  }, [current]);
+
+  // the underline follows the strip's size (fonts, rotation)
+  useEffect(() => {
+    const el = strip.current;
+    const i = ink.current;
+    if (!el || !i) return;
+    const ro = new ResizeObserver(() => {
+      const on = el.querySelector<HTMLElement>(`[data-slug="${pendingRef.current ?? current}"]`);
+      if (on) inkUnder(i, on, false);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [current]);
+
+  const tap = (slug: string, el: HTMLElement) => {
+    if (slug === active) return;
+    buzz();
+    pendingRef.current = slug;
+    setPending(slug);
+    const box = strip.current;
+    const i = ink.current;
+    if (!box || !i) return;
+    // where things were, in case the old strip goes before it can say
+    remember(box, i, list.findIndex((c) => c.slug === current));
+    inkUnder(i, el, true);
+    box.scrollTo({ left: centre(box, el), behavior: "smooth" });
+  };
+
+  // which ends of the strip have more to scroll to (an arrow sits over each
+  // such end on wide screens)
   const [ends, setEnds] = useState({ prev: false, next: false });
   useEffect(() => {
-    const list = strip.current;
-    if (!list) return;
-    const cur = list.querySelector<HTMLElement>('[aria-current="page"]');
-    if (cur) list.scrollLeft = cur.offsetLeft - (list.clientWidth - cur.offsetWidth) / 2;
+    const el = strip.current;
+    if (!el) return;
     const measure = () => {
-      const prev = list.scrollLeft > 2;
-      const next = list.scrollLeft < list.scrollWidth - list.clientWidth - 2;
+      const prev = el.scrollLeft > 2;
+      const next = el.scrollLeft < el.scrollWidth - el.clientWidth - 2;
       setEnds((e) => (e.prev === prev && e.next === next ? e : { prev, next }));
     };
     measure();
-    list.addEventListener("scroll", measure, { passive: true });
+    el.addEventListener("scroll", measure, { passive: true });
     const ro = new ResizeObserver(measure);
-    ro.observe(list);
+    ro.observe(el);
     return () => {
-      list.removeEventListener("scroll", measure);
+      el.removeEventListener("scroll", measure);
       ro.disconnect();
     };
-  }, [current]);
+  }, []);
   const nudge = (dir: 1 | -1) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.7, behavior: "smooth" });
 
   return (
@@ -238,12 +331,16 @@ export default function ShopBar({
           </button>
         )}
         <ul ref={strip} className="sb-cats">
-          {[{ slug: "all", name: "All" }, ...categories].map((c) => (
+          <li ref={ink} className="sb-ink" role="presentation" aria-hidden="true" />
+          {list.map((c) => (
             <li key={c.slug}>
               <Link
                 href={c.slug === "all" ? "/shop" : `/shop/${c.slug}`}
                 className="sb-cat"
+                data-slug={c.slug}
+                data-on={c.slug === active || undefined}
                 aria-current={c.slug === current ? "page" : undefined}
+                onClick={(e) => tap(c.slug, e.currentTarget)}
               >
                 <CategoryIcon slug={c.slug} size={26} />
                 <span>{c.name}</span>

@@ -140,8 +140,11 @@
   cursor: pointer;
 }
 
-/* the categories: icon over name, the current one underlined */
+/* the categories: icon over name, the current one underlined. One
+   underline for the whole strip, sliding to the tab tapped (ShopBar.tsx
+   carries it over from the page before). */
 .sb-cats {
+  position: relative;
   display: flex;
   gap: 4px;
   margin: 0;
@@ -153,6 +156,20 @@
 }
 .sb-cats::-webkit-scrollbar {
   display: none;
+}
+.sb-ink {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--bb-hot, #ff4d8d);
+  pointer-events: none;
+  will-change: transform, width;
+  transition:
+    transform 0.34s cubic-bezier(0.3, 0.9, 0.25, 1),
+    width 0.34s cubic-bezier(0.3, 0.9, 0.25, 1);
 }
 .sb-cat {
   position: relative;
@@ -166,23 +183,69 @@
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease;
 }
-.sb-cat[aria-current="page"] {
+.sb-cat svg {
+  transition:
+    transform 0.16s ease,
+    color 0.2s ease;
+}
+/* lit the moment it is tapped, before its page arrives */
+.sb-cat[data-on] {
   color: var(--color-paper, #f4efff);
   font-weight: 800;
 }
-.sb-cat[aria-current="page"]::after {
-  content: "";
-  position: absolute;
-  right: 10px;
-  bottom: 0;
-  left: 10px;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--bb-hot, #ff4d8d);
-}
-.sb-cat[aria-current="page"] svg {
+.sb-cat[data-on] svg {
   color: var(--bb-hot, #ff4d8d);
+}
+/* tap: the icon presses in, and pops as its shelf arrives */
+.sb-cat:active svg {
+  transform: scale(0.8);
+}
+[data-bb-slide] .sb-cat[aria-current="page"] svg {
+  animation: sb-pop 0.42s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes sb-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  55% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+/* the new shelf's cards come in from the side the tab was on */
+[data-bb-slide="next"] .cp-grid {
+  animation: sb-in-next 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+[data-bb-slide="prev"] .cp-grid {
+  animation: sb-in-prev 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes sb-in-next {
+  from {
+    opacity: 0.3;
+    transform: translateX(28px);
+  }
+}
+@keyframes sb-in-prev {
+  from {
+    opacity: 0.3;
+    transform: translateX(-28px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-ink,
+  .sb-cat,
+  .sb-cat svg {
+    transition: none;
+  }
+  .sb-cat:active svg {
+    transform: none;
+  }
 }
 /* a hairline under the strip, where the current one's underline sits */
 .sb nav {
@@ -283,7 +346,7 @@
   box-shadow: none;
 }
 
-/* the profile button's menu: what the site header held */
+/* the profile button (it opens the profile screen, ProfileMenu.tsx) */
 .sb-me {
   position: relative;
   flex: none;
@@ -310,63 +373,6 @@
   font-weight: 800;
   line-height: 1;
 }
-.sb-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 50;
-  display: grid;
-  width: 230px;
-  padding: 8px;
-  border: 1px solid var(--color-line, #2d2860);
-  border-radius: 18px;
-  background: #120e2c;
-  box-shadow: 0 18px 40px rgb(0 0 0 / 0.55);
-  animation: sb-drop 0.16s ease-out;
-}
-@keyframes sb-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-.sb-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  color: inherit;
-  font-weight: 700;
-  text-decoration: none;
-}
-.sb-menu-item:hover,
-.sb-menu-item:focus-visible {
-  background: rgb(255 255 255 / 0.07);
-}
-.sb-menu-item svg {
-  color: var(--bb-hot, #ff4d8d);
-}
-.sb-menu-count {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgb(255 77 141 / 0.16);
-  color: var(--bb-hot, #ff4d8d);
-  font-size: 0.75rem;
-}
-.sb-menu-page {
-  min-height: 40px;
-  color: var(--color-muted, #a39cd0);
-  font-weight: 600;
-}
-.sb-menu-rule {
-  height: 1px;
-  margin: 6px 4px;
-  background: var(--color-line, #2d2860);
-}
-
 /* the logo and the button's label show on wide screens only */
 .sb-logo,
 .sb-label {
@@ -378,7 +384,7 @@
   scroll-snap-type: x proximity;
   scroll-padding-inline: 10px;
 }
-.sb-cats > li {
+.sb-cats > li:not(.sb-ink) {
   scroll-snap-align: start;
 }
 /* wide screens: a solid arrow over each end with more to scroll to */
@@ -430,7 +436,8 @@
   justify-content: space-between;
   gap: 16px;
   padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
-  min-height: calc(64px + env(safe-area-inset-top));
+  /* the shelf bar's top row */
+  min-height: calc(58px + env(safe-area-inset-top));
   background: rgb(12 10 28 / 0.96);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -439,6 +446,30 @@
 }
 .lb-logo {
   display: block;
+}
+/* where to, as on the shelves: phones drop the logo for it */
+.lb--where {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.lb--where .lb-logo {
+  display: none;
+}
+.lb--where .dt {
+  flex: 1 1 auto;
+}
+@media (min-width: 901px) {
+  .lb--where {
+    gap: 28px;
+  }
+  .lb--where .lb-logo {
+    display: block;
+  }
+  .lb--where .dt {
+    flex: 0 1 260px;
+    min-width: 190px;
+    margin-right: auto;
+  }
 }
 .lb-logo-img {
   width: 120px;

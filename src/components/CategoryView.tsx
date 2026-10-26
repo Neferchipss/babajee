@@ -1,7 +1,7 @@
 "use client";
 
 import SceneLink from "@/components/SceneLink";
-import { byBrand, byGroup } from "@/lib/brand";
+import { byGroup } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
@@ -89,8 +89,10 @@ export default function CategoryView({ category, products, categories }: Props) 
   const filtered = words.length
     ? products.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""}`.toLowerCase().includes(w)))
     : products;
-  // Featured lists the shelf brand by brand, under a heading for each
-  const brands = sort === "featured" ? (everything ? byGroup(filtered) : byBrand(filtered)) : null;
+  // Featured on the all-products shelf lists it category by category, under
+  // a heading for each; a category's own shelf is one run of cards (the
+  // brand is on each card)
+  const brands = sort === "featured" && everything ? byGroup(filtered) : null;
   const shown = brands
     ? brands.flatMap((g) => g.items)
     : sort === "featured"

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cartCount, useCart } from "@/lib/cart";
 import { JarIcon, SearchIcon, UserIcon } from "./icons";
+import DeliverTo from "./address/DeliverTo";
 import Logo from "./Logo";
 import ProfileMenu from "./ProfileMenu";
 
@@ -33,14 +34,19 @@ export default function SiteHeader() {
     );
   };
 
-  // the landing: the shop's bar, with only the logo and the profile button
-  // (its menu holds the rest)
-  if (pathname === "/") {
+  // The landing and the cart wear the shop's bar, the one the shelves have:
+  // the same strip, only what is in it changes. The landing has the logo and
+  // the profile button (its menu holds the rest); the cart has where it is
+  // delivering to and the profile button, as the shelves do on phones (wide
+  // screens keep the logo at the start, as the shelves do).
+  if (pathname === "/" || pathname === "/cart") {
+    const cart = pathname === "/cart";
     return (
-      <header className="lb">
+      <header className={cart ? "lb lb--where" : "lb"}>
         <SceneLink href="/" aria-label="Babajee home" className="lb-logo">
           <Logo className="lb-logo-img" priority />
         </SceneLink>
+        {cart && <DeliverTo />}
         <ProfileMenu />
       </header>
     );
