@@ -8,14 +8,15 @@ import Branded from "./Branded";
 import CategoryIcon from "./CategoryIcon";
 import { SearchIcon } from "./icons";
 import Logo from "./Logo";
+import DeliverTo from "./address/DeliverTo";
 import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
 
 type Sort = "featured" | "az" | "za";
 
 // The shelf's header on phones, after the quick-commerce apps: where it is
-// delivering to and the profile button, then the strip of categories and a
-// search bar. Scrolled down, only the search bar stays.
+// delivering to and the profile button, then the search bar and the strip
+// of categories. Scrolled down, the search bar and the strip stay.
 export default function ShopBar({
   current,
   categories,
@@ -58,9 +59,9 @@ export default function ShopBar({
   const strip = useRef<HTMLUListElement>(null);
   const search = useRef<HTMLFormElement>(null);
 
-  // Scrolled down, only the search bar stays: the header (sticky in the
-  // theme) is lifted by everything above the search, measured, since the
-  // strip's height depends on the font and the address on the phone.
+  // Scrolled down, the search bar and the categories under it stay: the
+  // header (sticky in the theme) is lifted by everything above the search,
+  // measured, since the address row's height varies on the phone.
   useEffect(() => {
     const form = search.current;
     const host = form?.closest<HTMLElement>(".cp-hero");
@@ -132,37 +133,6 @@ export default function ShopBar({
         <ProfileMenu />
       </div>
 
-
-      <nav aria-label="Categories" className="sb-nav">
-        {ends.prev && (
-          <button type="button" className="sb-cats-btn" data-dir="-1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(-1)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </button>
-        )}
-        {ends.next && (
-          <button type="button" className="sb-cats-btn" data-dir="1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(1)}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
-        <ul ref={strip} className="sb-cats">
-          {[{ slug: "all", name: "All" }, ...categories].map((c) => (
-            <li key={c.slug}>
-              <Link
-                href={c.slug === "all" ? "/shop" : `/shop/${c.slug}`}
-                className="sb-cat"
-                aria-current={c.slug === current ? "page" : undefined}
-              >
-                <CategoryIcon slug={c.slug} size={26} />
-                <span>{c.name}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
 
       <form
         ref={search}
@@ -251,6 +221,37 @@ export default function ShopBar({
           </select>
         </label>
       </form>
+
+      <nav aria-label="Categories" className="sb-nav">
+        {ends.prev && (
+          <button type="button" className="sb-cats-btn" data-dir="-1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(-1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+        )}
+        {ends.next && (
+          <button type="button" className="sb-cats-btn" data-dir="1" aria-label="More categories" tabIndex={-1} onClick={() => nudge(1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+        <ul ref={strip} className="sb-cats">
+          {[{ slug: "all", name: "All" }, ...categories].map((c) => (
+            <li key={c.slug}>
+              <Link
+                href={c.slug === "all" ? "/shop" : `/shop/${c.slug}`}
+                className="sb-cat"
+                aria-current={c.slug === current ? "page" : undefined}
+              >
+                <CategoryIcon slug={c.slug} size={26} />
+                <span>{c.name}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 }
@@ -264,88 +265,5 @@ function useHint(hints: string[]) {
     return () => window.clearInterval(t);
   }, [hints.length]);
   return hints[i % Math.max(1, hints.length)];
-}
-
-// Where to deliver: the phone's location, turned into an area name. It asks
-// for the location once on its own (the first visit); after that the address
-// is remembered, and a tap finds it again.
-const ADDR_KEY = "bb-address";
-const ASKED_KEY = "bb-address-asked";
-type Addr = { area: string; line: string };
-
-function DeliverTo() {
-  const [addr, setAddr] = useState<Addr | null>(null);
-  const [state, setState] = useState<"idle" | "finding" | "denied" | "failed">("idle");
-
-  const locate = () => {
-    if (!("geolocation" in navigator)) return setState("failed");
-    setState("finding");
-    try {
-      localStorage.setItem(ASKED_KEY, "1");
-    } catch {}
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const r = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.latitude}&longitude=${coords.longitude}&localityLanguage=en`,
-          );
-          const d = await r.json();
-          const area: string = d.locality || d.city || d.principalSubdivision || "";
-          const line = [d.city && d.city !== area ? d.city : "", d.postcode].filter(Boolean).join(", ");
-          if (!area) throw new Error("no area");
-          const found = { area, line };
-          setAddr(found);
-          setState("idle");
-          try {
-            localStorage.setItem(ADDR_KEY, JSON.stringify(found));
-          } catch {}
-        } catch {
-          setState("failed");
-        }
-      },
-      (err) => setState(err.code === err.PERMISSION_DENIED ? "denied" : "failed"),
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 10 * 60 * 1000 },
-    );
-  };
-
-  useEffect(() => {
-    let saved: Addr | null = null;
-    let asked = false;
-    try {
-      saved = JSON.parse(localStorage.getItem(ADDR_KEY) ?? "null");
-      asked = localStorage.getItem(ASKED_KEY) === "1";
-    } catch {}
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a remembered address once
-    if (saved) setAddr(saved);
-    else if (!asked) locate();
-  }, []);
-
-  const label =
-    state === "finding"
-      ? "Finding you…"
-      : addr
-        ? addr.area
-        : state === "denied"
-          ? "Location is off"
-          : state === "failed"
-            ? "Couldn't find you"
-            : "Set your location";
-
-  return (
-    <button type="button" className="sb-where" onClick={locate} aria-label={`Delivering to ${label}. Tap to find your location again.`}>
-      <span className="sb-where-kicker">Delivering to</span>
-      <span className="sb-where-addr">
-        <svg className="sb-pin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
-          <circle cx="12" cy="10" r="2.3" />
-        </svg>
-        <b>{label}</b>
-        {addr?.line && <span className="sb-where-line">{addr.line}</span>}
-        <svg className="sb-caret" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M6 9h12l-6 7z" />
-        </svg>
-      </span>
-    </button>
-  );
 }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { deleteAddress, listAddresses, makeDefault, saveAddress } from "@/lib/address-db";
 import { addressLines, EMPTY_ADDRESS, type Address, type AddressInput } from "@/lib/addresses";
 import { useAuth } from "@/lib/auth";
+import { deliverToAddress, getDeliverTo, setDeliverTo } from "@/lib/deliver-to";
 import AddressForm from "./AddressForm";
 
 // "Saved addresses" on the account page: add, edit, remove, pick the default.
@@ -17,8 +18,15 @@ export default function AddressBook() {
 
   const load = useCallback(async () => {
     try {
-      setList(await listAddresses());
+      const rows = await listAddresses();
+      setList(rows);
       setFailed(false);
+      // keep the header's "Delivering to" in step with an edit or removal
+      const pickedId = getDeliverTo()?.addressId;
+      if (pickedId) {
+        const row = rows.find((r) => r.id === pickedId);
+        setDeliverTo(row ? deliverToAddress(row) : null);
+      }
     } catch {
       setFailed(true);
     }
@@ -97,7 +105,14 @@ export default function AddressBook() {
                 className={`rounded-xl border bg-iron p-4 sm:p-5 ${a.is_default ? "border-rasta-gold/60" : "border-line"}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-medium">{a.recipient_name}</p>
+                  <p className="font-medium">
+                    {a.label} <span className="font-normal text-muted">· {a.recipient_name}</span>
+                    {a.latitude !== null && (
+                      <span className="ml-2 text-xs text-rasta-gold" title="Pinned on the map">
+                        Pinned
+                      </span>
+                    )}
+                  </p>
                   {a.is_default && (
                     <span className="rounded-full bg-rasta-gold px-2 py-0.5 text-xs font-semibold text-ink">
                       Default
@@ -158,6 +173,7 @@ export default function AddressBook() {
           <div className="mt-3 rounded-xl border border-line bg-iron p-4 sm:p-5">
             <AddressForm
               initial={fresh}
+              startWithMap
               onSave={(a) => save(a)}
               onCancel={() => setEditing(null)}
               showDefault={list.length > 0}

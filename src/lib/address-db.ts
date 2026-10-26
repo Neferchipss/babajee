@@ -3,7 +3,7 @@ import { tidy, type Address, type AddressInput } from "./addresses";
 
 // Reads and writes for saved addresses. Kept apart from ./addresses so pages
 // can use the form helpers without loading the Supabase client.
-const COLUMNS = "id, recipient_name, phone, line1, line2, landmark, city, state, pincode, is_default";
+const COLUMNS = "id, recipient_name, phone, line1, line2, landmark, city, state, pincode, is_default, label, latitude, longitude";
 
 // The default first, then newest.
 export async function listAddresses(): Promise<Address[]> {

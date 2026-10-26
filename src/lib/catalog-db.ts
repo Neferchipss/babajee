@@ -20,8 +20,9 @@ function client() {
   return createClient(URL, KEY, { auth: { persistSession: false }, db: { retry: !useLocal } });
 }
 
-// Price is unset only for local stand-in products (see useLocal below); it
-// then renders as the "₹420.00" placeholder.
+// Price is unset for local stand-in products (see useLocal below) and for
+// database options not priced yet (still ₹0); it then renders as the
+// "₹420.00" placeholder.
 export type DbVariant = { id: string; label: string; price?: number; stockQty: number };
 export type DbCardProduct = {
   slug: string;
@@ -75,7 +76,22 @@ function normalizeVariants(
   return (rows ?? [])
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((v) => ({ id: v.id, label: v.label, price: toNumber(v.price), stockQty: toNumber(v.stock_qty) }));
+    .map((v) => {
+      const price = toNumber(v.price);
+      // Until the client's prices and stock are loaded, an option still at
+      // the seed's ₹0 is "not priced yet": it shows the ₹420 stand-in and
+      // counts as in stock. Setting a real price in the admin switches that
+      // option to its real price and stock.
+      if (!(price > 0)) return { id: v.id, label: v.label, price: undefined, stockQty: PLACEHOLDER_STOCK };
+      return { id: v.id, label: v.label, price, stockQty: toNumber(v.stock_qty) };
+    });
+}
+
+const PLACEHOLDER_STOCK = 1;
+
+function minPriced(variants: DbVariant[]) {
+  const priced = variants.map((v) => v.price).filter((p): p is number => p !== undefined);
+  return priced.length ? Math.min(...priced) : undefined;
 }
 
 function toCard(row: {
@@ -88,7 +104,8 @@ function toCard(row: {
     slug: row.slug,
     name: row.name,
     variantCount: variants.length,
-    minPrice: variants.length ? Math.min(...variants.map((v) => v.price ?? 0)) : 0,
+    // the lowest real price; none yet (all stand-ins) leaves it unset
+    minPrice: minPriced(variants),
     variants,
   };
 }

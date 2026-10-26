@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { addressLines, EMPTY_ADDRESS, type Address, type AddressInput } from "@/lib/addresses";
 import { useAuth } from "@/lib/auth";
+import { deliverToAddress, setDeliverTo, startFrom, useDeliverTo } from "@/lib/deliver-to";
 import AddressForm from "./AddressForm";
 
 // The database calls pull in the Supabase client, so load them only for
@@ -14,7 +15,9 @@ const ONE_OFF = "one-off";
 
 // Checkout's delivery step. Signed in: pick a saved address (the default
 // comes ready picked) or add one, saving it to the account if wanted.
-// Guests type the address in, with a nudge to log in and keep it.
+// Guests type the address in, with a nudge to log in and keep it. Starts
+// from what was picked in the header's "Delivering to", and picking here
+// updates the header too.
 export default function AddressPicker() {
   const { status, user, profile } = useAuth();
   const [list, setList] = useState<Address[] | null>(null);
@@ -23,6 +26,7 @@ export default function AddressPicker() {
   const [adding, setAdding] = useState(false);
   const [oneOff, setOneOff] = useState<AddressInput | null>(null);
   const [keep, setKeep] = useState(true);
+  const where = useDeliverTo();
 
   useEffect(() => {
     if (!user) return;
@@ -32,7 +36,6 @@ export default function AddressPicker() {
       .then((rows) => {
         if (!live) return;
         setList(rows);
-        setChosen((c) => c || rows[0]?.id || "");
       })
       .catch(() => live && setFailed(true));
     return () => {
@@ -60,16 +63,23 @@ export default function AddressPicker() {
             We could not load your saved addresses. Type the address in below.
           </p>
         )}
-        <AddressForm initial={EMPTY_ADDRESS} showDefault={false} nested />
+        <AddressForm initial={startFrom(where)} showDefault={false} nested />
       </>
     );
   }
 
   const saved = list ?? [];
-  const fresh: AddressInput = {
+  const fresh = startFrom(where, {
     ...EMPTY_ADDRESS,
     recipient_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
+  });
+  // until something is picked here: the header's pick, else the default
+  const current = chosen || saved.find((a) => a.id === where?.addressId)?.id || saved[0]?.id || "";
+  const pick = (id: string) => {
+    setChosen(id);
+    const a = saved.find((x) => x.id === id);
+    if (a) setDeliverTo(deliverToAddress(a));
   };
 
   async function use(a: AddressInput) {
@@ -83,10 +93,11 @@ export default function AddressPicker() {
     const row = await m.saveAddress(user!.id, saved.length ? a : { ...a, is_default: true });
     setList(await m.listAddresses());
     setChosen(row.id);
+    setDeliverTo(deliverToAddress(row));
     setAdding(false);
   }
 
-  const picked = chosen === ONE_OFF ? oneOff : saved.find((a) => a.id === chosen);
+  const picked = current === ONE_OFF ? oneOff : saved.find((a) => a.id === current);
   const showForm = adding || (!saved.length && !oneOff);
 
   return (
@@ -95,9 +106,9 @@ export default function AddressPicker() {
         <fieldset className="grid gap-3">
           <legend className="sr-only">Choose a delivery address</legend>
           {saved.map((a) => (
-            <Choice key={a.id} id={a.id} a={a} chosen={chosen} onPick={setChosen} badge={a.is_default ? "Default" : ""} />
+            <Choice key={a.id} id={a.id} a={a} chosen={current} onPick={pick} badge={a.is_default ? "Default" : ""} />
           ))}
-          {oneOff && <Choice id={ONE_OFF} a={oneOff} chosen={chosen} onPick={setChosen} badge="This order only" />}
+          {oneOff && <Choice id={ONE_OFF} a={oneOff} chosen={current} onPick={setChosen} badge="This order only" />}
         </fieldset>
       )}
 
@@ -107,6 +118,7 @@ export default function AddressPicker() {
           <AddressForm
             initial={fresh}
             nested
+            startWithMap
             showDefault={false}
             onSave={use}
             onCancel={saved.length || oneOff ? () => setAdding(false) : undefined}
@@ -136,8 +148,8 @@ export default function AddressPicker() {
 
       {/* what the order will be sent to, for when the form is submitted */}
       {picked &&
-        (["recipient_name", "phone", "line1", "line2", "landmark", "city", "state", "pincode"] as const).map((k) => (
-          <input key={k} type="hidden" name={`address_${k}`} value={picked[k]} />
+        (["recipient_name", "phone", "line1", "line2", "landmark", "city", "state", "pincode", "latitude", "longitude"] as const).map((k) => (
+          <input key={k} type="hidden" name={`address_${k}`} value={picked[k] ?? ""} />
         ))}
     </>
   );
@@ -172,7 +184,9 @@ function Choice({
       />
       <span className="min-w-0 flex-1">
         <span className="flex items-start justify-between gap-3">
-          <span className="font-medium">{a.recipient_name}</span>
+          <span className="font-medium">
+            {a.label} <span className="font-normal text-muted">· {a.recipient_name}</span>
+          </span>
           {badge && <span className="shrink-0 text-xs font-semibold text-rasta-gold">{badge}</span>}
         </span>
         <span className="mt-1 block text-sm text-muted">

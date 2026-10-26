@@ -386,11 +386,11 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       opacity: 0;
       cursor: pointer;
     }
-    /* The title bar gives way to the shop header (ShopBar): where to, the
-       profile button and the category strip scroll away; the search bar,
-       under them, stays at the top. */
+    /* The title bar gives way to the shop header (ShopBar): where to and
+       the profile button scroll away; the search bar and the category
+       strip under it stay at the top. */
     & .cp-hero {
-      top: calc(10px - var(--sb-lift, 140px)); /* only the search stays, a little room above it */
+      top: calc(10px - var(--sb-lift, 140px)); /* the search and the strip stay, a little room above */
       display: block;
       height: auto;
       padding: 0;
@@ -929,7 +929,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       grid-area: logo;
       display: block;
     }
-    & .sb-where {
+    & .dt {
       grid-area: where;
       min-width: 190px;
       max-width: 260px;

@@ -1,0 +1,247 @@
+/* The map pin picker: a full-screen map, a pin fixed in the middle, search
+   on top and the address with "Confirm" in a sheet at the bottom. Sized for
+   phones first, clear of the notch and the home bar. */
+
+.mp {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--color-char);
+  color: var(--color-paper);
+}
+
+.mp-map {
+  position: absolute;
+  inset: 0;
+  background: #1b1b1b;
+}
+
+/* Tiles a touch darker so the page around them doesn't glare. */
+.mp-map .leaflet-tile-pane {
+  filter: brightness(0.86) saturate(0.9);
+}
+
+.mp-map .leaflet-control-attribution {
+  background: rgb(18 18 18 / 0.7);
+  color: var(--color-muted);
+  font-size: 10px;
+  margin-bottom: calc(var(--mp-sheet-h, 15rem) + 0.25rem);
+}
+.mp-map .leaflet-control-attribution a {
+  color: var(--color-paper);
+}
+
+/* The pin: its tip sits on the centre of the map. It lifts while the map
+   moves and drops back when it settles. */
+.mp-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%; /* the map's centre, which is what gets saved */
+  z-index: 500;
+  width: 40px;
+  height: 52px;
+  margin: -52px 0 0 -20px;
+  pointer-events: none;
+}
+.mp-pin svg {
+  display: block;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1.3);
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.45));
+}
+.mp-pin.is-lifted svg {
+  transform: translateY(-12px);
+}
+.mp-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 8px;
+  height: 4px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.5);
+}
+
+.mp-top {
+  position: absolute;
+  z-index: 600;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: calc(env(safe-area-inset-top) + 0.75rem) calc(env(safe-area-inset-right) + 0.75rem) 0.75rem
+    calc(env(safe-area-inset-left) + 0.75rem);
+}
+
+.mp-back {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 999px;
+  background: var(--color-iron);
+  border: 1px solid #333;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+}
+
+.mp-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 34rem;
+}
+.mp-search input {
+  width: 100%;
+  height: 2.9rem;
+  padding: 0 2.6rem 0 1rem;
+  border-radius: 999px;
+  background: var(--color-iron);
+  border: 1px solid #333;
+  color: var(--color-paper);
+  font-size: 1rem; /* 16px keeps iOS from zooming in on focus */
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+}
+.mp-search input:focus {
+  outline: none;
+  border-color: var(--color-rasta-gold);
+}
+.mp-spin {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin-top: -0.5rem;
+  border: 2px solid var(--color-muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: mp-spin 0.7s linear infinite;
+}
+@keyframes mp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mp-results {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  background: var(--color-iron);
+  border: 1px solid #333;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+}
+.mp-results button {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
+}
+.mp-results li:last-child button {
+  border-bottom: 0;
+}
+.mp-results button:hover,
+.mp-results button:focus-visible {
+  background: var(--color-ash);
+}
+
+.mp-sheet {
+  --pad: 1.25rem;
+  position: absolute;
+  z-index: 600;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem calc(env(safe-area-inset-right) + var(--pad)) calc(env(safe-area-inset-bottom) + 1rem)
+    calc(env(safe-area-inset-left) + var(--pad));
+  border-radius: 20px 20px 0 0;
+  background: var(--color-iron);
+  border-top: 1px solid #333;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.45);
+}
+@media (min-width: 640px) {
+  .mp-sheet {
+    left: 50%;
+    right: auto;
+    width: 28rem;
+    margin-left: -14rem;
+    bottom: 1.25rem;
+    border-radius: 20px;
+    border: 1px solid #333;
+    padding-bottom: 1.25rem;
+  }
+}
+
+.mp-locate {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.75rem);
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--color-iron);
+  border: 1px solid var(--color-rasta-gold);
+  color: var(--color-rasta-gold);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.4);
+}
+.mp-locate:disabled {
+  opacity: 0.7;
+}
+
+.mp-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.mp-area {
+  margin-top: 0.15rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.mp-detail {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+.mp-note {
+  margin-top: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--color-red-soft);
+}
+.mp-confirm {
+  width: 100%;
+  margin-top: 1rem;
+}
+.mp-confirm:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-pin svg {
+    transition: none;
+  }
+}
