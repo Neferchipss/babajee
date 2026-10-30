@@ -617,3 +617,160 @@ body:has(.scene) .theme-toggle {
     bottom: calc(66px + env(safe-area-inset-bottom));
   }
 }
+
+/* Bottom right: the music, and the gyro on phones. */
+.scene-tools {
+  position: absolute;
+  right: clamp(14px, 3vw, 32px);
+  bottom: clamp(14px, 3vh, 28px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.4s;
+}
+.scene-tools[data-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.scene-tools .scene-gyro {
+  position: static;
+}
+.scene-sound {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.75);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+.scene-sound:hover,
+.scene-sound:focus-visible {
+  border-color: var(--color-rasta-gold);
+}
+.scene-sound:active {
+  transform: scale(0.92);
+}
+.scene-sound[aria-pressed="true"] {
+  border-color: var(--color-rasta-gold);
+  color: var(--color-rasta-gold);
+}
+/* the music is ready but the browser wants a tap first: it pulses to ask */
+.scene-sound[data-wait="true"] {
+  animation: scene-sound-ask 1.6s ease-in-out infinite;
+}
+@keyframes scene-sound-ask {
+  50% {
+    box-shadow: 0 0 0 7px rgb(255 255 255 / 0.12), 0 0 18px var(--color-rasta-gold);
+  }
+}
+@media (max-width: 760px) {
+  .scene-tools {
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+}
+
+/* A fixture's products, fanned out above its label while it is looked at:
+   they spring up out of the shelf one after another. The scene places the
+   box on the label each frame. */
+.scene-peek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.scene-peek-fan {
+  position: absolute;
+  left: 0;
+  bottom: 26px;
+  display: flex;
+  gap: 8px;
+  padding: 12px 10px 6px;
+  transform: translateX(-50%);
+}
+.scene-peek[data-below="true"] .scene-peek-fan {
+  top: 26px;
+  bottom: auto;
+}
+.scene-peek[data-open="true"] .scene-peek-fan {
+  pointer-events: auto;
+}
+.scene-peek-item {
+  --s: 78px;
+  position: relative;
+  display: block;
+  flex: none;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% 46%, rgb(255 214 120 / 0.55), transparent 68%),
+    #f3eff8;
+  box-shadow:
+    0 0 0 2px rgb(0 0 0 / 0.55),
+    0 10px 24px rgb(0 0 0 / 0.45),
+    0 0 26px rgb(255 190 80 / 0.35);
+  opacity: 0;
+  transform: translateY(34px) scale(0.4) rotate(0deg);
+  transition:
+    transform 0.22s ease-in,
+    opacity 0.16s ease-in;
+}
+.scene-peek-item img {
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.scene-peek[data-below="true"] .scene-peek-item {
+  transform: translateY(-34px) scale(0.4);
+}
+.scene-peek[data-open="true"] .scene-peek-item {
+  opacity: 1;
+  transform: translateY(var(--y)) rotate(var(--r)) scale(1);
+  transition:
+    transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--i) * 55ms),
+    opacity 0.2s ease-out calc(var(--i) * 55ms),
+    box-shadow 0.2s;
+}
+.scene-peek[data-below="true"][data-open="true"] .scene-peek-item {
+  transform: translateY(calc(var(--y) * -1)) rotate(calc(var(--r) * -1)) scale(1);
+}
+.scene-peek[data-open="true"] .scene-peek-item:hover,
+.scene-peek[data-open="true"] .scene-peek-item:focus-visible {
+  z-index: 1;
+  transform: translateY(calc(var(--y) - 10px)) rotate(0deg) scale(1.14);
+  transition-delay: 0s;
+  box-shadow:
+    0 0 0 2px var(--color-rasta-gold),
+    0 12px 28px rgb(0 0 0 / 0.5),
+    0 0 30px var(--color-rasta-gold);
+}
+@media (max-width: 760px) {
+  .scene-peek-item {
+    --s: 62px;
+    border-radius: 16px;
+  }
+  .scene-peek-fan {
+    gap: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-peek-item,
+  .scene-peek[data-open="true"] .scene-peek-item {
+    transition: opacity 0.2s;
+  }
+  .scene-sound[data-wait="true"] {
+    animation: none;
+  }
+}

@@ -12,11 +12,24 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { InkPass } from "./ink-pass";
 import Logo from "./Logo";
 import { createMagic } from "./shop-magic";
+import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
 import { createWorld } from "./shop-world";
 import "./shop-scene.css";
 
 type Category = { slug: string; name: string; count: number };
-type Spot = { name: string; label: string; href: string };
+type Spot = { name: string; label: string; href: string; cats: string[] };
+type Pick = { slug: string; name: string; cat: string; image: string };
+const PEEK = 4; // products that pop out of a fixture
+const PEEK_LINGER = 600; // ms a fan stays out after the pointer leaves
+const AIM_LINGER = 1500; // and after the aim dot moves off (longer: a thumb has to reach it)
+
+// a fixture's products, taking turns from each of its categories
+function picksFor(spot: Spot, shelves: Record<string, Pick[]>) {
+  const lists = spot.cats.map((c) => shelves[c] ?? []);
+  const out: Pick[] = [];
+  for (let i = 0; out.length < PEEK && lists.some((l) => l.length > i); i++) for (const l of lists) if (l[i] && out.length < PEEK) out.push(l[i]);
+  return out;
+}
 
 // The landing and the shop index in one: a 3D model of the street and the
 // shop (public/models/shop.glb, built by tools/blender/build_shop.py) with the
@@ -90,7 +103,7 @@ const smooth = (a: number, b: number, n: number) => {
   return t * t * (3 - 2 * t);
 };
 
-export default function ShopScene({ categories, intro }: { categories: Category[]; intro: boolean }) {
+export default function ShopScene({ categories, intro, shelves = {} }: { categories: Category[]; intro: boolean; shelves?: Record<string, Pick[]> }) {
   const track = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -99,6 +112,31 @@ export default function ShopScene({ categories, intro }: { categories: Category[
   const dot = useRef<HTMLSpanElement>(null);
   const arrived = useRef(false); // once inside, scrolling back up does not rewind the walk
   const spotEls = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const peekEls = useRef<Record<string, HTMLDivElement | null>>({});
+  // the fixture under the mouse (the aim dot does the same on its own)
+  const hovered = useRef<{ name: string; until: number }>({ name: "", until: 0 });
+  const hoverOn = (name: string) => (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") hovered.current = { name, until: Infinity };
+  };
+  const hoverOff = (name: string) => (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && hovered.current.name === name) hovered.current.until = performance.now() + PEEK_LINGER;
+  };
+  // the soundtrack: on unless they turned it off
+  const music = useRef<ShopMusic | null>(null);
+  const soundOn = useSyncExternalStore(soundPref.subscribe, soundPref.get, () => true);
+  const soundRef = useRef(soundOn);
+  const [soundBlocked, setSoundBlocked] = useState(false);
+  useEffect(() => {
+    soundRef.current = soundOn;
+  }, [soundOn]);
+  function toggleSound() {
+    setTouched(true);
+    // waiting for a tap counts as off: this tap turns it on
+    const on = !(soundOn && !soundBlocked);
+    soundRef.current = on;
+    soundPref.set(on);
+    if (on) music.current?.unlock();
+  }
   const [status, setStatus] = useState<"loading" | "ready" | "flat">("loading");
   const [spots, setSpots] = useState<Spot[]>([]);
   const [touched, setTouched] = useState(false);
@@ -284,6 +322,14 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     let magic: ReturnType<typeof createMagic> | null = null;
     let baseFov = 60;
     let ready = false;
+    const tune = createShopMusic();
+    music.current = tune;
+    // sound may only start from a tap or a key
+    const unlock = () => {
+      if (soundRef.current) tune.unlock();
+    };
+    for (const ev of ["pointerdown", "keydown", "touchend"]) window.addEventListener(ev, unlock, { passive: true });
+    let wasBlocked = false;
     let cancelled = false;
 
     const draco = new DRACOLoader().setDecoderPath(DRACO);
@@ -346,7 +392,10 @@ export default function ShopScene({ categories, intro }: { categories: Category[
             .split(",")
             .find((s) => have.has(s));
           if (!slug) return;
-          found.push({ name: o.name, label: String(o.userData.label ?? o.name), href: `/shop/${slug}` });
+          const cats = String(o.userData.categories ?? "")
+            .split(",")
+            .filter((c) => have.has(c));
+          found.push({ name: o.name, label: String(o.userData.label ?? o.name), href: `/shop/${slug}`, cats });
           spotAt.push({ name: o.name, at: o.getWorldPosition(new THREE.Vector3()) });
         });
         setSpots(found);
@@ -378,6 +427,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
     let last = performance.now();
     const v = new THREE.Vector3();
     let aimed: HTMLAnchorElement | null = null; // the label under the centre dot
+    let peekAim = { name: "", until: 0 }; // the fixture whose products are out, from the aim
     const q = new THREE.Quaternion();
     const qYaw = new THREE.Quaternion();
     const qPitch = new THREE.Quaternion();
@@ -592,6 +642,13 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           const swing = smooth(0.3, 0.52, prog) * (1 - Math.pow(smooth(0.78, 0.86, prog), 2));
           door.quaternion.slerpQuaternions(doorShut, doorOpen, swing);
         }
+        // the music comes up as you cross the door, and goes as you leave
+        tune.want(soundRef.current && !leaving ? smooth(0.35, 0.9, inside) : 0);
+        const blocked = tune.blocked();
+        if (blocked !== wasBlocked) {
+          wasBlocked = blocked;
+          setSoundBlocked(blocked);
+        }
         world?.update(sec, dt, inside, camera);
         magic?.update(sec, dt, inside, camera);
         if (fxOff) renderer.render(scene, camera);
@@ -602,7 +659,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
         const on = smooth(LOOK_FROM, 1, prog);
         const W = stageEl.clientWidth;
         const H = stageEl.clientHeight;
-        const lit: { a: HTMLAnchorElement; x: number; y: number; w: number }[] = [];
+        const lit: { a: HTMLAnchorElement; name: string; x: number; y: number; w: number }[] = [];
         for (const s of spotAt) {
           const a = spotEls.current[s.name];
           if (!a) continue;
@@ -610,7 +667,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           const show = on > 0.05 && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
           a.style.opacity = show ? String(on) : "0";
           a.style.pointerEvents = show && on > 0.8 ? "auto" : "none";
-          if (show) lit.push({ a, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 7.4 + 30 });
+          if (show) lit.push({ a, name: s.name, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 7.4 + 30 });
           else a.style.transform = `translate(${((v.x + 1) / 2) * W}px, ${((1 - v.y) / 2) * H}px) translate(-50%, -50%)`;
         }
         // labels that would land on one another are pushed apart, so each one reads on its own
@@ -655,6 +712,29 @@ export default function ShopScene({ categories, intro }: { categories: Category[
             } catch {}
           }
           aimed = hit;
+        }
+
+        // the fixture looked at (or under the mouse) shows its products,
+        // fanned out above its label; they linger a moment after
+        const t = performance.now();
+        const hv = hovered.current;
+        if (hv.name && t > hv.until) hv.name = "";
+        const aimName = hit ? (lit.find((l) => l.a === hit)?.name ?? "") : "";
+        if (aimName) peekAim = { name: aimName, until: t + AIM_LINGER };
+        else if (peekAim.name && t > peekAim.until) peekAim = { name: "", until: 0 };
+        const open = hv.name || peekAim.name;
+        for (const s of spotAt) {
+          const pk = peekEls.current[s.name];
+          if (!pk) continue;
+          const l = lit.find((x) => x.name === s.name);
+          const isOpen = !!l && s.name === open && on > 0.8;
+          if (l) {
+            // no room above: hang under the label instead
+            const below = String(l.y < 170);
+            if (pk.dataset.below !== below) pk.dataset.below = below;
+            pk.style.transform = `translate(${l.x}px, ${l.y}px)`;
+          }
+          if (pk.dataset.open !== String(isOpen)) pk.dataset.open = String(isOpen);
         }
       }
       // the landing words fade as the walk starts; the box comes in at the end
@@ -774,6 +854,9 @@ export default function ShopScene({ categories, intro }: { categories: Category[
       window.removeEventListener("deviceorientation", onOrient);
       g.on = false;
       document.removeEventListener("visibilitychange", onVisibility);
+      for (const ev of ["pointerdown", "keydown", "touchend"]) window.removeEventListener(ev, unlock);
+      tune.dispose();
+      music.current = null;
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           o.geometry.dispose();
@@ -835,10 +918,47 @@ export default function ShopScene({ categories, intro }: { categories: Category[
             ref={(a) => {
               spotEls.current[s.name] = a;
             }}
+            onPointerEnter={hoverOn(s.name)}
+            onPointerLeave={hoverOff(s.name)}
           >
             {s.label}
           </Link>
         ))}
+
+        {/* each fixture's products, which pop out when it is looked at */}
+        {spots.map((s) => {
+          const picks = picksFor(s, shelves);
+          if (!picks.length) return null;
+          const mid = (picks.length - 1) / 2;
+          return (
+            <div
+              key={s.name}
+              className="scene-peek"
+              data-open="false"
+              ref={(d) => {
+                peekEls.current[s.name] = d;
+              }}
+              onPointerEnter={hoverOn(s.name)}
+              onPointerLeave={hoverOff(s.name)}
+            >
+              <div className="scene-peek-fan">
+                {picks.map((p, i) => (
+                  <Link
+                    key={p.slug}
+                    href={`/shop/${p.cat}?p=${p.slug}`}
+                    className="scene-peek-item"
+                    title={p.name}
+                    style={{ "--i": i, "--r": `${(i - mid) * 7}deg`, "--y": `${Math.abs(i - mid) ** 2 * 7}px` } as React.CSSProperties}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.image} alt="" draggable={false} loading="lazy" />
+                    <span className="sr-only">{p.name}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
 
 
         {intro && (
@@ -847,6 +967,18 @@ export default function ShopScene({ categories, intro }: { categories: Category[
           </button>
         )}
 
+        <div className="scene-tools" data-hidden={status !== "ready" || !unlocked}>
+          <button
+            type="button"
+            className="scene-sound"
+            aria-pressed={soundOn && !soundBlocked}
+            data-wait={soundOn && soundBlocked}
+            aria-label={soundOn && !soundBlocked ? "Turn the music off" : "Play the music"}
+            tabIndex={status === "ready" && unlocked ? 0 : -1}
+            onClick={toggleSound}
+          >
+            <SoundIcon on={soundOn && !soundBlocked} />
+          </button>
         {gyroAble && (
           <button
             type="button"
@@ -859,6 +991,7 @@ export default function ShopScene({ categories, intro }: { categories: Category[
             <GyroIcon /> {gyroOn ? "Gyro on" : "Gyro"}
           </button>
         )}
+        </div>
         <p className="scene-gyro-note" role="status" data-on={gyroNote !== ""}>
           {gyroNote}
         </p>
@@ -913,6 +1046,22 @@ function GyroIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
       <path d="M3 9a10 10 0 0 0 0 6M21 9a10 10 0 0 1 0 6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SoundIcon({ on }: { on: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+      {on ? (
+        <>
+          <path d="M15.5 9a4 4 0 0 1 0 6" />
+          <path d="M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+        </>
+      ) : (
+        <path d="M16 9.5l5 5M21 9.5l-5 5" />
+      )}
     </svg>
   );
 }

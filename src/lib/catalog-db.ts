@@ -8,6 +8,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { CATEGORIES, type CatalogProduct } from "./catalog-data";
 import { toNumber } from "./currency";
+import { photosFor } from "./product-photos";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -263,4 +264,23 @@ async function liveSearchCatalog(): Promise<DbSearchProduct[]> {
       return { ...toCard(row), categorySlug: cat.slug, categoryName: cat.name };
     })
     .filter((p) => p.variantCount > 0);
+}
+
+// A few products from each category that have photos, for the 3D shop: they
+// pop out of their fixture when it is looked at. Categories with no photos
+// yet are left out.
+export type ShelfPick = { slug: string; name: string; cat: string; image: string };
+export async function getShelfPicks(slugs: string[], per = 4): Promise<Record<string, ShelfPick[]>> {
+  const out: Record<string, ShelfPick[]> = {};
+  await Promise.all(
+    slugs.map(async (cat) => {
+      const detail = await getCategoryDetail(cat);
+      const picks = (detail?.products ?? [])
+        .map((p) => ({ slug: p.slug, name: p.name, cat, image: photosFor(p.slug)[0] ?? "" }))
+        .filter((p) => p.image)
+        .slice(0, per);
+      if (picks.length) out[cat] = picks;
+    }),
+  );
+  return out;
 }
