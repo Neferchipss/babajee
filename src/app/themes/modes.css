@@ -2,7 +2,7 @@
    "system" follows the device). Dark is the shop as it was made, Night:
    Poster; light is its daytime twin: cream instead of midnight, white
    panels, the same indigo as ink and the same pinks, deepened to read on
-   white. In both the page is flat and the swirls sit behind the products.
+   white. The page is flat; only the dark has swirls, behind the products.
 
    The pieces that sit outside the themed page (sheets, the profile screen,
    bars) draw with these few channels instead of fixed colours:
@@ -34,7 +34,7 @@
   --color-paper: #1d1638;
   --color-muted: #6f6789;
   --color-ink: #1d1638;
-  --color-plate: #eeedf2;
+  --color-plate: #ffffff;
   --bb-hot: #e8336f;
   --bb-maroon: #d93271;
   --bb-green: #0f8a5f;
@@ -49,7 +49,7 @@ html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] {
   --color-line: #ebe1e4;
   --color-paper: #1d1638;
   --color-muted: #6f6789;
-  --color-plate: #eeedf2;
+  --color-plate: #ffffff;
   --color-ink: #1d1638;
   --color-rasta-gold: #d93271;
   --plate-ink: #d93271;
@@ -63,7 +63,7 @@ html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] {
   --bb-hot: #e8336f;
   --bb-on-accent: #ffffff;
   --bb-hdr-bg: rgb(255 255 255 / 0.9);
-  --bb-swirl: url("../../assets/baba/swirl.webp");
+  --bb-swirl: none;
   --bbn-edge: #ece2e6;
   --bbn-glow: 217 50 113;
   --bbn-halo: rgb(217 50 113 / 0.1);
@@ -77,12 +77,27 @@ html[data-mode="light"] :is(#site[data-scope="shop"] :is(.cv-panel, .cv-recs, .c
   box-shadow: 0 1px 2px rgb(34 24 72 / 0.05), 0 6px 18px rgb(34 24 72 / 0.06);
 }
 
-/* Both modes: the page is flat, and the swirls sit behind the products
-   instead, on the plates their cut-out photos stand on (shelf cards, the
-   cart, the product sheet). Midnight swirls in the dark, cream in the light. */
+/* The page and the bars are flat. In the dark the midnight swirls sit
+   behind the products, on the plates their cut-out photos stand on (shelf
+   cards, the cart, the product sheet); in the light those plates are plain
+   white. */
+:root {
+  --bb-tex: url("../../assets/baba/night/swirl-midnight.webp");
+}
+:root[data-mode="light"] {
+  --bb-tex: none;
+}
 html[data-theme="baba-poster"] #site[data-scope="shop"] {
   background: var(--color-char);
   & :is(.pa, .ps-stage, .ps-photos) {
-    background: var(--bb-swirl, none) center / 220px 220px, var(--color-plate);
+    background: var(--bb-tex) center / 220px 220px, var(--color-plate);
   }
+}
+
+/* in the light, a soft glow behind each product on its white plate, as if
+   it stood in a little light of its own */
+html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] :is(.pa, .ps-stage, .ps-photos) {
+  background:
+    radial-gradient(circle at 50% 48%, rgb(217 50 113 / 0.1) 0%, rgb(160 120 240 / 0.07) 34%, transparent 66%),
+    #ffffff;
 }
