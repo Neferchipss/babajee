@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { InkPass } from "./ink-pass";
 import Logo from "./Logo";
 import { createMagic } from "./shop-magic";
 import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
+import { createSky } from "./shop-sky";
 import { createWorld } from "./shop-world";
 import "./shop-scene.css";
 
@@ -52,9 +55,36 @@ const STOPS = [0, 0.2, 0.38, 0.55, 0.76, 1];
 const LOOK_FROM = 0.93; // the labels come in over the last stretch
 const SETTLE = 0.7; // seconds at the very end before the view may be turned
 const GYRO_EASE = 1.2; // seconds for the view to hand over from the default camera to the phone
-const LABEL_H = 34; // px a label needs to itself, so crowded ones can be pushed apart
+const LABEL_H = 29; // px a label needs to itself, so crowded ones can be pushed apart
 
 const clamp = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
+const PITCH_MAX = 1.35; // how far the view tilts up or down, in radians
+const EDGE_FROM = 0.3; // with a mouse: how far out from the middle (0..1), up or down, before the view starts turning
+const EDGE_FROM_X = 0.2; // and sideways: the still middle is narrower than it is tall
+const EDGE_SPEED = 1.15; // and how fast it turns right at the edge, radians a second
+// the time, for the animation loop and the glide; only ever read in effects and handlers
+const clock = () => performance.now();
+
+// ambient occlusion that leaves the see-through things out (glass, light and
+// smoke), and on a sharp phone screen is worked out at half size: soft anyway,
+// and a quarter of the cost
+class SolidAO extends GTAOPass {
+  constructor(
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    private seeThrough: THREE.Object3D[],
+  ) {
+    super(scene, camera, 1, 1);
+  }
+  setSize(width: number, height: number) {
+    const k = (window.devicePixelRatio || 1) > 1 ? 0.5 : 1;
+    super.setSize(Math.round(width * k), Math.round(height * k));
+  }
+  overrideVisibility() {
+    super.overrideVisibility();
+    for (const o of this.seeThrough) o.visible = false;
+  }
+}
 
 // The gyro button is only offered on touch screens that have a motion sensor.
 const noSub = () => () => {};
@@ -110,6 +140,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
   const landing = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const dot = useRef<HTMLSpanElement>(null);
+  const vignette = useRef<HTMLDivElement>(null);
+  const cursor = useRef<HTMLSpanElement>(null);
   const arrived = useRef(false); // once inside, scrolling back up does not rewind the walk
   const spotEls = useRef<Record<string, HTMLAnchorElement | null>>({});
   const peekEls = useRef<Record<string, HTMLDivElement | null>>({});
@@ -185,7 +217,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
   function glide(to: number, dur: number) {
     const from = window.scrollY;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo(0, to);
-    const t0 = performance.now();
+    const t0 = clock();
     let stop = false;
     const cancel = () => {
       stop = true;
@@ -284,18 +316,76 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }),
     );
     composer.addPass(new RenderPass(scene, camera));
+    // ambient occlusion: the corners, the backs of the shelves and the undersides
+    // of things go dark, so the room has weight (?ao=0 to see without). Glass,
+    // light and smoke are see-through and kept out of it.
+    const seeThrough: THREE.Object3D[] = [];
+    const ao = new SolidAO(scene, camera, seeThrough);
+    ao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.4, thickness: 1.2, scale: 1.25, samples: 12 });
+    ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    ao.blendIntensity = 0.9;
+    ao.enabled = new URLSearchParams(window.location.search).get("ao") !== "0";
+    composer.addPass(ao);
     const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.1, 0.3, 1.5);
     composer.addPass(bloom);
-    // toon look (?toon=0 for the plain one): flat light bands + ink outlines
-    const toon = new URLSearchParams(window.location.search).get("toon") !== "0";
+    // plain, physically lit surfaces; ?toon=1 brings back the soft painted
+    // shading (a smooth, slightly flattened falloff), ?ink=1 the ink outlines
+    const toon = new URLSearchParams(window.location.search).get("toon") === "1";
     const fxOff = new URLSearchParams(window.location.search).get("fx") === "0";
     const inkPass = new InkPass(scene, camera, 2, 2);
-    inkPass.enabled = toon;
+    inkPass.enabled = new URLSearchParams(window.location.search).get("ink") === "1";
     composer.addPass(inkPass);
     composer.addPass(new OutputPass());
-    const ramp = new THREE.DataTexture(new Uint8Array([70, 150, 255]), 3, 1, THREE.RedFormat);
-    ramp.minFilter = ramp.magFilter = THREE.NearestFilter;
+    const ramp = new THREE.DataTexture(new Uint8Array([60, 105, 160, 205, 235, 255]), 6, 1, THREE.RedFormat);
+    ramp.minFilter = ramp.magFilter = THREE.LinearFilter;
     ramp.needsUpdate = true;
+
+    // Glass: clear and tinted, with a sheen on its curves and the room reflected in
+    // it from a soft studio light. On a desktop the pieces (bongs, jars, pipes) also
+    // let through and bend what is behind them; transmission costs a second pass over
+    // the scene, so phones get the lighter see-through kind instead. Flat glass (panes,
+    // shelves, the shop window) is always the see-through kind: a transmissive surface
+    // cannot show other glass behind it, and the pieces stand behind it
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const glassEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    const bend = !window.matchMedia("(pointer: coarse)").matches;
+    const glassMade = new Map<THREE.Material, THREE.MeshPhysicalMaterial>();
+    const glassFor = (old: THREE.MeshStandardMaterial) => {
+      const had = glassMade.get(old);
+      if (had) return had;
+      const pane = old.name.startsWith("m_pane") || old.name.startsWith("m_glass_flat");
+      const tint = old.color.clone();
+      const clear = old.name === "m_glass" || pane;
+      const g = new THREE.MeshPhysicalMaterial({
+        name: old.name,
+        color: clear ? new THREE.Color(0.94, 0.97, 1) : tint,
+        roughness: 0.04,
+        metalness: 0,
+        ior: 1.5,
+        clearcoat: 1,
+        clearcoatRoughness: 0.03,
+        specularIntensity: 1,
+        envMap: glassEnv,
+        envMapIntensity: pane ? 0.35 : 0.9,
+        side: THREE.FrontSide,
+      });
+      if (bend && !pane) {
+        g.transmission = 1;
+        g.thickness = pane ? 0.01 : 0.06;
+        if (!clear) {
+          g.attenuationColor = tint;
+          g.attenuationDistance = 0.12;
+        }
+      } else {
+        g.transparent = true;
+        g.opacity = old.name.startsWith("m_pane") ? 0.06 : pane ? 0.12 : clear ? 0.22 : 0.5;
+        g.depthWrite = false;
+      }
+      glassMade.set(old, g);
+      old.dispose();
+      return g;
+    };
 
     // outside is cold and ordinary; inside is another world (see `inside` in tick)
     const OUT = {
@@ -320,6 +410,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const spotAt: { name: string; at: THREE.Vector3 }[] = [];
     let world: ReturnType<typeof createWorld> | null = null;
     let magic: ReturnType<typeof createMagic> | null = null;
+    let sky: ReturnType<typeof createSky> | null = null;
     let baseFov = 60;
     let ready = false;
     const tune = createShopMusic();
@@ -347,6 +438,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         root.traverse((o) => {
           if (o instanceof THREE.Mesh) {
             let m = o.material as THREE.Material;
+            // glass is real glass, not painted: see glassFor
+            if (/^m_(glass|pane)/.test(m.name)) {
+              o.material = glassFor(m as THREE.MeshStandardMaterial);
+              return;
+            }
             if (toon && !(m as THREE.MeshToonMaterial).isMeshToonMaterial) {
               // same name and maps, so the neon / flame / chalkboard lookups still find them
               const old = m as THREE.MeshStandardMaterial;
@@ -369,6 +465,12 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
             }
             m.side = THREE.FrontSide;
             if (m.transparent) m.depthWrite = false;
+            // metal shows what it reflects: without something to reflect, brass and gold go black
+            const sm = m as THREE.MeshStandardMaterial;
+            if (sm.isMeshStandardMaterial && sm.metalness > 0.5 && !sm.envMap) {
+              sm.envMap = glassEnv;
+              sm.envMapIntensity = 0.45;
+            }
           }
         });
         for (let i = 0; i < 6; i++) {
@@ -385,6 +487,13 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         if (door) doorOpen.copy(door.quaternion);
         world = createWorld(root, scene);
         magic = createMagic(root, scene, new Set(categories.map((c) => c.slug)));
+        sky = createSky(root, scene);
+        // the whole scene, not just the model: the sky adds see-through beams of its own
+        scene.traverse((o) => {
+          if (!(o instanceof THREE.Mesh)) return;
+          const ms = Array.isArray(o.material) ? o.material : [o.material];
+          if (ms.some((m) => m.transparent || (m as THREE.MeshPhysicalMaterial).transmission > 0)) seeThrough.push(o);
+        });
         const have = new Set(categories.map((c) => c.slug));
         root.traverse((o) => {
           if (!o.name.startsWith("hot_")) return;
@@ -424,10 +533,17 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     // main thread (a frame of the scene can cost a slow phone tens of ms,
     // and the next page has to load between frames)
     let leaving = false;
-    let last = performance.now();
+    let last = clock();
     const v = new THREE.Vector3();
-    let aimed: HTMLAnchorElement | null = null; // the label under the centre dot
+    let aimed: HTMLAnchorElement | null = null; // the label lit up: its shelf is the one in focus
     let peekAim = { name: "", until: 0 }; // the fixture whose products are out, from the aim
+    let focusName = ""; // the category in focus: its shelf or label under the mouse, or the dot
+    let mouseAt: THREE.Vector2 | null = null; // the mouse over the view, in -1..1; null once it leaves
+    let shelfHover = { name: "", until: 0 }; // the shelf under the mouse, lingering a moment after
+    const ray = new THREE.Raycaster();
+    const mid = new THREE.Vector2();
+    const hoverable = window.matchMedia("(hover: hover)").matches; // a mouse: no aiming with the dot
+    const edgeVel = new THREE.Vector2(); // how fast the mouse at the edge is turning the view
     const q = new THREE.Quaternion();
     const qYaw = new THREE.Quaternion();
     const qPitch = new THREE.Quaternion();
@@ -470,6 +586,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     let gRoll = 0; // what the camera uses
     let gLogged = false; // temporary debug
     const qGRoll = new THREE.Quaternion();
+    // a turn leans the view into it a little, like a head turning, and it settles
+    // back level a beat after the turn stops
+    const qBank = new THREE.Quaternion();
+    let bank = 0;
+    let lean = 0;
     const onOrient = (e: DeviceOrientationEvent) => {
       if (e.beta == null || e.gamma == null) return;
       g.seen = true;
@@ -580,11 +701,31 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         gRoll *= Math.exp(-dt * 6); // level again, gently
         if (Math.abs(gRoll) < 1e-4) gRoll = 0;
       }
-      // the phone may look further up and down than a drag; once it is off
-      // the view eases back inside the drag's range
-      if (g.on) pitchOff = clamp(pitchOff, -1.25, 1.25);
-      else if (dragging) pitchOff = clamp(pitchOff, -0.7, 0.7);
-      else pitchOff += (clamp(pitchOff, -0.7, 0.7) - pitchOff) * (1 - Math.exp(-dt * 6));
+      // with a mouse, resting near an edge of the view turns it that way, slowly at
+      // first and a little faster right at the edge; the middle stays still
+      let ex = 0;
+      let ey = 0;
+      if (canLook && mouseAt && !dragging && !g.on) {
+        // each way on its own: nothing inside the still middle, then faster the
+        // nearer the edge, full speed right at it
+        const ramp = (n: number, from: number) => Math.sign(n) * clamp((Math.abs(n) - from) / (1 - from));
+        ex = ramp(mouseAt.x, EDGE_FROM_X) * EDGE_SPEED;
+        ey = ramp(mouseAt.y, EDGE_FROM) * EDGE_SPEED;
+      }
+      // eased in and out, so it never lurches when the mouse crosses into the edge or leaves it
+      const ek = 1 - Math.exp(-dt * 9);
+      edgeVel.x += (ex - edgeVel.x) * ek;
+      edgeVel.y += (ey - edgeVel.y) * ek;
+      yawOff += edgeVel.x * dt;
+      // the cursor's arrow points the way the view is turning, stronger the faster
+      if (cursor.current) {
+        const push = Math.min(1, Math.hypot(edgeVel.x, edgeVel.y) / EDGE_SPEED);
+        cursor.current.style.setProperty("--push", push.toFixed(3));
+        if (push > 0.01) cursor.current.style.setProperty("--turn", `${Math.atan2(-edgeVel.y, edgeVel.x).toFixed(3)}rad`);
+      }
+      pitchOff += edgeVel.y * dt;
+      // up to the dome and down to the floor, short of straight up or down
+      pitchOff = clamp(pitchOff, -PITCH_MAX, PITCH_MAX);
       if (!canLook && !dragging) yawOff = pitchOff = vyaw = vpitch = 0;
 
       if (ready && pos && aim) {
@@ -601,6 +742,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         camera.quaternion.copy(qYaw).multiply(q).multiply(qPitch);
         // the phone's roll turns the camera with it, so the shop stays level
         if (gRoll) camera.quaternion.multiply(qGRoll.setFromAxisAngle(zAxis, -gRoll * free));
+        // lean into the turn: roll with how fast the view swings round, and dip the
+        // head a touch as it does; both trail behind, so it settles rather than stops
+        const swing = edgeVel.x + (dragging || Math.abs(vyaw) > 1e-5 ? vyaw * 1000 : 0);
+        const tilt = edgeVel.y + (dragging || Math.abs(vpitch) > 1e-5 ? vpitch * 1000 : 0);
+        bank += (clamp(swing * 0.018, -0.02, 0.02) - bank) * (1 - Math.exp(-dt * 4));
+        lean += (clamp(-Math.abs(swing) * 0.008 + tilt * 0.01, -0.015, 0.015) - lean) * (1 - Math.exp(-dt * 4));
+        if (!g.on && (Math.abs(bank) > 1e-4 || Math.abs(lean) > 1e-4)) {
+          camera.quaternion.multiply(qBank.setFromAxisAngle(zAxis, -bank * free));
+          camera.quaternion.multiply(qBank.setFromAxisAngle(xAxis, lean * free));
+        }
         // landing: turn the view a little left so the shop sits right of centre, under Baba's eyes
         const wide = stageEl.clientWidth / stageEl.clientHeight > 1.1;
         if (intro && wide) {
@@ -626,8 +777,14 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         (scene.fog as THREE.FogExp2).density = 0.016 - 0.008 * inside;
         hemi.color.copy(OUT.sky).lerp(IN.sky, inside);
         hemi.groundColor.copy(OUT.ground).lerp(IN.ground, inside);
-        hemi.intensity = 0.55 + 0.35 * inside;
-        bloom.strength = 0.1 + 0.06 * inside;
+        // inside the room is dim, like a museum after hours: the lit cases, Baba and the sky carve it out of the dark
+        hemi.intensity = 0.55 - 0.48 * inside;
+        // and the frame closes in at the edges, like a lens
+        if (vignette.current) {
+          const vo = inside.toFixed(2);
+          if (vignette.current.style.getPropertyValue("--inside") !== vo) vignette.current.style.setProperty("--inside", vo);
+        }
+        bloom.strength = 0.1 + 0.08 * inside;
         renderer.toneMappingExposure = 1.1 + 0.15 * inside;
         // crossing over is a lurch: the view rolls and the lens pulls wide, then it settles
         qRoll.setFromAxisAngle(zAxis, bump * 0.07 * Math.sin(sec * 2.3));
@@ -651,6 +808,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         world?.update(sec, dt, inside, camera);
         magic?.update(sec, dt, inside, camera);
+        sky?.update(sec, dt, inside, focusName);
         if (fxOff) renderer.render(scene, camera);
         else composer.render();
         camera.updateMatrixWorld();
@@ -667,7 +825,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           const show = on > 0.05 && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
           a.style.opacity = show ? String(on) : "0";
           a.style.pointerEvents = show && on > 0.8 ? "auto" : "none";
-          if (show) lit.push({ a, name: s.name, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 7.4 + 30 });
+          if (show) lit.push({ a, name: s.name, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 6.6 + 24 });
           else a.style.transform = `translate(${((v.x + 1) / 2) * W}px, ${((1 - v.y) / 2) * H}px) translate(-50%, -50%)`;
         }
         // labels that would land on one another are pushed apart, so each one reads on its own
@@ -702,27 +860,51 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
             }
           }
         }
-        if (hit !== aimed) {
-          aimed?.removeAttribute("data-aim");
-          hit?.setAttribute("data-aim", "");
-          if (dot.current) dot.current.dataset.aim = String(!!hit);
-          if (hit) {
-            try {
-              navigator.vibrate?.(5);
-            } catch {}
-          }
-          aimed = hit;
-        }
-
         // the fixture looked at (or under the mouse) shows its products,
         // fanned out above its label; they linger a moment after
         const t = performance.now();
         const hv = hovered.current;
         if (hv.name && t > hv.until) hv.name = "";
-        const aimName = hit ? (lit.find((l) => l.a === hit)?.name ?? "") : "";
+        // the shelf itself counts as much as its label: under the mouse, or, on a
+        // phone, under the dot in the middle
+        let shelf = "";
+        if (sky && on > 0.8) {
+          const from = mouseAt && !dragging ? mouseAt : !mouseAt && !hoverable ? mid : null;
+          if (from) {
+            ray.setFromCamera(from, camera);
+            shelf = sky.pick(ray.ray);
+          }
+        }
+        if (shelf && mouseAt) shelfHover = { name: shelf, until: Infinity };
+        if (cursor.current) {
+          const onShelf = String(!!(shelf && mouseAt));
+          if (cursor.current.dataset.on !== onShelf) cursor.current.dataset.on = onShelf;
+          const held = String(dragging);
+          if (cursor.current.dataset.drag !== held) cursor.current.dataset.drag = held;
+        }
+        else if (shelfHover.until === Infinity) shelfHover.until = t + PEEK_LINGER;
+        if (shelfHover.name && t > shelfHover.until) shelfHover = { name: "", until: 0 };
+        // the label under the dot in the middle only counts where there is a dot (touch)
+        const aimName = hit && !hoverable ? (lit.find((l) => l.a === hit)?.name ?? "") : mouseAt ? "" : shelf;
         if (aimName) peekAim = { name: aimName, until: t + AIM_LINGER };
         else if (peekAim.name && t > peekAim.until) peekAim = { name: "", until: 0 };
-        const open = hv.name || peekAim.name;
+        const open = hv.name || shelfHover.name || peekAim.name;
+        focusName = on > 0.8 ? open : "";
+        // one focus for everything: its label lights up with its shelf, whether
+        // the shelf or the label is under the mouse or the dot
+        const lightUp = focusName ? (spotEls.current[focusName] ?? null) : null;
+        if (lightUp !== aimed) {
+          aimed?.removeAttribute("data-aim");
+          lightUp?.setAttribute("data-aim", "");
+          if (lightUp) {
+            try {
+              navigator.vibrate?.(5);
+            } catch {}
+          }
+          aimed = lightUp;
+        }
+        const onTarget = String(!!hit || (!mouseAt && !!shelf));
+        if (dot.current && dot.current.dataset.aim !== onTarget) dot.current.dataset.aim = onTarget;
         for (const s of spotAt) {
           const pk = peekEls.current[s.name];
           if (!pk) continue;
@@ -772,8 +954,12 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       if (!dragging) return;
       const now = performance.now();
       const per = (camera.fov * Math.PI) / 180 / el.clientHeight;
-      const dx = (e.clientX - lastX) * per;
-      const dy = touch ? 0 : (e.clientY - lastY) * per; // a finger's up and down scrolls the page
+      // a mouse drags the view round the way the mouse goes (drag right to look right,
+      // up to look up); a finger moves the room under it instead, the other way
+      const way = touch ? 1 : -1;
+      const dx = (e.clientX - lastX) * per * way;
+      // in the shop a finger tilts the view too; on the category pages its up and down scrolls
+      const dy = touch && !intro ? 0 : (lastY - e.clientY) * per * way;
       lastX = e.clientX;
       lastY = e.clientY;
       yawOff += dx;
@@ -792,8 +978,10 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const onKey = (e: KeyboardEvent) => {
       if (!canLook) return;
       const step = e.key === "ArrowLeft" ? -0.15 : e.key === "ArrowRight" ? 0.15 : 0;
-      if (!step) return;
+      const tilt = e.key === "ArrowUp" ? 0.12 : e.key === "ArrowDown" ? -0.12 : 0;
+      if (!step && !tilt) return;
       yawOff += step;
+      pitchOff = clamp(pitchOff + tilt, -PITCH_MAX, PITCH_MAX);
       if (g.on) gAnchor += step;
       e.preventDefault();
       setTouched(true);
@@ -802,7 +990,27 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       const r = stageEl.getBoundingClientRect();
       tx = clamp((e.clientX - r.left) / r.width, 0, 1) - 0.5;
       ty = clamp((e.clientY - r.top) / r.height, 0, 1) - 0.5;
+      // a mouse over the view itself, not over the top bar or something else on top of it
+      const fx = (e.clientX - r.left) / r.width;
+      const fy = (e.clientY - r.top) / r.height;
+      const onView = e.target instanceof Element && !!e.target.closest(".scene-stage");
+      const over = e.pointerType === "mouse" && onView && fx >= 0 && fx <= 1 && fy >= 0 && fy <= 1;
+      mouseAt = over ? (mouseAt ?? new THREE.Vector2()).set(tx * 2, -ty * 2) : null;
+      // our own cursor follows the mouse over the view, and gives way to the
+      // ordinary pointer over the labels and buttons
+      const c = cursor.current;
+      if (c) {
+        const onUi = e.target instanceof Element && !!e.target.closest("a, button");
+        const show = String(over && canLook && !onUi);
+        if (c.dataset.show !== show) c.dataset.show = show;
+        if (over) c.style.translate = `${e.clientX - r.left}px ${e.clientY - r.top}px`;
+      }
     };
+    const onMouseOut = () => {
+      mouseAt = null;
+      if (cursor.current) cursor.current.dataset.show = "false";
+    };
+    document.documentElement.addEventListener("pointerleave", onMouseOut);
     window.addEventListener("pointermove", onPointer, { passive: true });
     const onVisibility = () => kick();
     const onLeave = (e: MouseEvent) => {
@@ -827,6 +1035,13 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       kick();
     });
     ro.observe(stageEl);
+    // the bar on top's height, so the view can sit under it rather than behind it,
+    // and its top edge is free for looking around (shop-scene.css)
+    const hdr = document.querySelector<HTMLElement>(".lb, .hdr");
+    const hro = new ResizeObserver(() => {
+      if (hdr) document.documentElement.style.setProperty("--ribbon-h", `${hdr.offsetHeight}px`);
+    });
+    if (hdr) hro.observe(hdr);
     const io = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       kick();
@@ -864,11 +1079,18 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
       });
       window.removeEventListener("pointermove", onPointer);
+      document.documentElement.removeEventListener("pointerleave", onMouseOut);
       delete document.documentElement.dataset.ribbon;
+      hro.disconnect();
+      document.documentElement.style.removeProperty("--ribbon-h");
       magic?.dispose();
+      sky?.dispose();
       world?.dispose();
       draco.dispose();
       inkPass.dispose();
+      ao.dispose();
+      glassEnv.dispose();
+      for (const g of glassMade.values()) g.dispose();
       ramp.dispose();
       composer.dispose();
       renderer.dispose();
@@ -876,7 +1098,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
   }, [categories, intro]);
 
   return (
-    <div className="scene" ref={track} data-intro={intro} data-status={status}>
+    <div className="scene" ref={track} data-intro={intro} data-status={status} data-look={unlocked ? "free" : "locked"}>
       <div className="scene-stage" ref={stage}>
         <canvas
           ref={canvas}
@@ -886,7 +1108,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           aria-label="A 3D walk from the street into the Babajee shop. Scroll to walk in; at the end, drag or use the arrow keys to look around."
         />
 
-        <div className="scene-vignette" aria-hidden="true" />
+        <div className="scene-vignette" ref={vignette} aria-hidden="true" />
 
         {intro && (
           <div className="scene-landing" ref={landing}>
@@ -998,6 +1220,9 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
 
         {/* the aim, as in the puzzle games: what it rests on lights up */}
         <span ref={dot} className="scene-dot" data-hidden={status !== "ready" || !unlocked} aria-hidden="true" />
+        <span ref={cursor} className="scene-cursor" data-show="false" aria-hidden="true">
+          <i className="scene-cursor-arrow" />
+        </span>
 
         <p className="scene-hint" data-hidden={touched || status !== "ready" || !unlocked} aria-hidden="true">
           Drag to look around

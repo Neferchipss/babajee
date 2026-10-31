@@ -12,10 +12,12 @@
 body:has(.scene[data-intro="true"]) .ftr {
   display: none;
 }
+/* the view sits under the bar on top (the scene measures it into --ribbon-h),
+   never behind it, so nothing covers the view's top edge */
 .scene-stage {
   position: sticky;
-  top: 0;
-  height: 100svh;
+  top: var(--ribbon-h, 0px);
+  height: calc(100svh - var(--ribbon-h, 0px));
   overflow: hidden;
   background: #0d0a07;
 }
@@ -30,6 +32,10 @@ body:has(.scene[data-intro="true"]) .ftr {
   touch-action: pan-y; /* a finger's sideways drag looks around; up and down scrolls */
   opacity: 0;
   transition: opacity 0.6s;
+}
+/* inside the shop the walk is over: every drag looks around, up and down included */
+.scene[data-intro="true"][data-look="free"] .scene-canvas {
+  touch-action: none;
 }
 .scene-canvas:active {
   cursor: grabbing;
@@ -52,6 +58,14 @@ body:has(.scene[data-intro="true"]) .ftr {
   inset: 0;
   pointer-events: none;
   background: radial-gradient(ellipse 88% 82% at 56% 52%, transparent 52%, rgb(2 4 12 / 0.55) 100%);
+}
+/* inside the shop the frame closes in, like a lens: the scene sets --inside (0 on the street, 1 in the room) */
+.scene-vignette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: var(--inside, 0);
+  background: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 50%, rgb(3 1 10 / 0.28) 78%, rgb(3 1 10 / 0.6) 100%);
 }
 .scene-landing {
   position: absolute;
@@ -232,14 +246,14 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 6px 14px;
+  padding: 4px 11px;
   border: 1px solid rgb(255 255 255 / 0.35);
   border-radius: 999px;
   background: rgb(0 0 0 / 0.6);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
   opacity: 0;
@@ -274,7 +288,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   box-shadow:
     0 0 0 4px rgb(0 0 0 / 0.35),
     0 0 22px var(--color-rasta-gold);
-  --aim-scale: 1.22;
+  --aim-scale: 1.15;
 }
 
 /* the centre dot */
@@ -301,6 +315,107 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
 .scene-dot[data-aim="true"] {
   background: var(--color-rasta-gold);
   scale: 1.5;
+}
+/* with a mouse the cursor does the aiming: no dot */
+@media (hover: hover) and (pointer: fine) {
+  .scene-dot {
+    display: none;
+  }
+  /* inside the shop the mouse is an eye of Baba's: our own cursor (.scene-cursor) */
+  .scene[data-look="free"] .scene-canvas,
+  .scene[data-look="free"] .scene-canvas:active {
+    cursor: none;
+  }
+}
+
+/* the cursor: a warm gold iris and pupil. It opens up over a shelf, pinches in
+   while dragging, and a small arrow outside it shows which way the view turns
+   when the mouse rests near an edge (the scene sets --push and --turn) */
+.scene-cursor {
+  --push: 0;
+  --turn: 0rad;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.scene-cursor[data-show="true"] {
+  opacity: 1;
+}
+.scene-cursor::before,
+.scene-cursor::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  translate: -50% -50%;
+  transition:
+    width 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    height 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    border-width 0.25s,
+    background-color 0.25s,
+    box-shadow 0.25s;
+}
+.scene-cursor::before {
+  /* the iris */
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid rgb(255 196 120 / 0.95);
+  /* a thin dark edge either side, so it reads on the pale floor as on the dark walls */
+  box-shadow:
+    0 0 0 1px rgb(20 8 4 / 0.45),
+    inset 0 0 0 1px rgb(20 8 4 / 0.35),
+    0 0 10px rgb(255 160 70 / 0.45);
+}
+.scene-cursor::after {
+  /* the pupil */
+  width: 5px;
+  height: 5px;
+  background: #ffd9a3;
+  box-shadow:
+    0 0 0 1px rgb(20 8 4 / 0.5),
+    0 0 8px rgb(255 170 80 / 0.9);
+}
+.scene-cursor[data-on="true"]::before {
+  width: 46px;
+  height: 46px;
+  border-width: 2px;
+  background: rgb(255 170 80 / 0.08);
+  box-shadow:
+    0 0 0 1px rgb(20 8 4 / 0.45),
+    inset 0 0 0 1px rgb(20 8 4 / 0.35),
+    0 0 18px rgb(255 160 70 / 0.6);
+}
+.scene-cursor[data-on="true"]::after {
+  width: 11px;
+  height: 11px;
+}
+.scene-cursor[data-drag="true"]::before {
+  width: 18px;
+  height: 18px;
+}
+.scene-cursor[data-drag="true"]::after {
+  width: 0;
+  height: 0;
+}
+.scene-cursor-arrow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  /* a small chevron set out past the iris, turned to face where the view is going */
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid rgb(255 196 120 / 0.95);
+  filter: drop-shadow(0 0 1px rgb(20 8 4 / 0.8)) drop-shadow(0 0 4px rgb(255 160 70 / 0.8));
+  opacity: var(--push);
+  transform: rotate(var(--turn)) translate(calc(20px + 6px * var(--push)), -50%);
+  transform-origin: 0 0;
 }
 
 .scene-hint {

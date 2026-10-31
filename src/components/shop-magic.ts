@@ -283,14 +283,14 @@ export function createMagic(root: THREE.Object3D, scene: THREE.Scene, have: Set<
     }
     if (ladder) ladder.position.x = ladderX + Math.sin(t * 0.18) * 0.45;
 
-    // books in flight: circuits of the vault, covers flapping
+    // books in flight: circuits of the dome, covers flapping
     for (const f of fly) {
       const sp = (0.18 + 0.05 * (f.k % 4)) * (f.k % 2 ? 1 : -1);
       const th = t * sp + f.k * 0.8;
       const rx = 2.3 + 0.18 * (f.k % 3);
       const rz = 3.0;
-      const x = 0.2 + Math.cos(th) * rx;
-      const z = -7.0 + Math.sin(th) * rz;
+      const x = Math.cos(th) * rx;
+      const z = -9.0 + Math.sin(th) * rz; // round the middle of the room
       f.o.position.set(x, 4.4 + 0.2 * f.k + Math.sin(t * 0.7 + f.k) * 0.15, z);
       f.o.rotation.y = Math.atan2(-Math.sin(th) * rx * Math.sign(sp), Math.cos(th) * rz * Math.sign(sp));
       const flap = Math.sin(t * 8 + f.k * 1.3) * 0.75;

@@ -8,11 +8,12 @@ Direction: a reggae smoke shop at night. Black facade, one big neon sign in
 the logo's red / yellow / green, warm amber spilling from an arched display
 window; inside, dark walnut, brass, lit glass cases and a long curved counter.
 The plan is deliberately lopsided: the door is on the left, the window on the
-right, and the camera turns into the room instead of walking down its middle.
+right. Inside is a round room (shop_rotunda.py): one arched alcove per
+category all the way round, Baba's face across from the door, a dome above.
 
 Plain geometry with role-named materials (m_walnut, m_brass, m_neon_red, ...);
-no textures. Units are metres. The shop is 9 m wide (x, -4.5..4.5) and 11 m
-deep (y, 0.2..11) with the street on the -y side; Blender is Z-up, the glTF
+no textures. Units are metres. The facade is 9.8 m wide (x, -4.9..4.9) at y = 0
+with the street on the -y side, and the room's centre is at (0, 9.0); Blender is Z-up, the glTF
 export turns that into Y-up.
 
 What the site reads from the file (plain nodes):
@@ -28,7 +29,7 @@ import random
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import shoplib  # noqa: E402
@@ -77,6 +78,7 @@ M = dict(
     black=mat("black", "#0b0b0c", 0.5),
     rubber=mat("rubber", "#111112", 0.8),
     glass=mat("glass", "#cfe8f0", 0.05, 0.0, 0.16),
+    glass_flat=mat("glass_flat", "#cfe8f0", 0.05, 0.0, 0.16),  # panes and shelves: the site keeps them simply see-through
     g_amber=mat("glass_amber", "#d9972a", 0.05, 0.0, 0.5),
     g_green=mat("glass_green", "#2fbf6a", 0.05, 0.0, 0.5),
     g_blue=mat("glass_blue", "#2f7fbf", 0.05, 0.0, 0.5),
@@ -115,7 +117,7 @@ M.update(
     glow_m=mat("glow_magenta", "#ff3fa4", 0.4, 0.0, 1.0, 3.0),
     glow_t=mat("glow_teal", "#25e0d0", 0.4, 0.0, 1.0, 3.0),
     mandala=mat("mandala_glow", "#9a5cff", 0.4, 0.0, 1.0, 2.5),
-    planet=mat("planet", "#ffd98a", 0.6, 0.0, 1.0, 2.2),
+    planet=mat("planet", "#e8a24a", 0.6, 0.0, 1.0, 0.5),
     eye_white=mat("eye_white", "#f5efe4", 0.35, 0.0, 1.0, 0.45),
     eye_ink=mat("eye_ink", "#07060a", 0.5),
     iris_g=mat("iris_green", "#32d17a", 0.3, 0.0, 1.0, 1.4),
@@ -186,73 +188,6 @@ def leaf_cluster(b, cx, cy, cz, r, n, rng):
                scale=(0.55, 1.0, 0.07), rot=(rng.uniform(-0.8, 0.8), rng.uniform(-0.5, 0.5), a), u=8, v=5)
 
 
-def plant(b, x, y, z, s, rng, tall=True):
-    pot = M["pot"] if rng.random() < 0.6 else M["black"]
-    b.lathe([(0, 0), (0.11 * s, 0), (0.17 * s, 0.34 * s), (0.185 * s, 0.36 * s), (0.17 * s, 0.35 * s), (0.16 * s, 0.31 * s), (0, 0.31 * s)], (x, y, z), pot, seg=20)
-    if tall:
-        b.tube([(x, y, z + 0.3 * s), (x + 0.05 * s, y, z + 0.9 * s), (x - 0.03 * s, y + 0.03 * s, z + 1.5 * s), (x + 0.04 * s, y, z + 2.0 * s)], 0.02 * s, M["walnut"], 6)
-        for t in range(10):
-            leaf_cluster(b, x, y, z + (0.7 + t * 0.13) * s, 0.32 * s, 5, rng)
-    else:
-        leaf_cluster(b, x, y, z + 0.5 * s, 0.25 * s, 22, rng)
-
-
-def hanging_plant(b, x, y, ztop, rng):
-    b.tube([(x, y, ceil_at(x, y)), (x, y, ztop)], 0.004, M["brass"], 4)
-    for k in range(3):
-        a = k * 2.1
-        b.tube([(x + 0.1 * math.cos(a), y + 0.1 * math.sin(a), ztop), (x, y, ztop - 0.45)], 0.004, M["brass"], 4)
-    b.lathe([(0, 0), (0.1, 0.02), (0.15, 0.16), (0.15, 0.18), (0.13, 0.17), (0, 0.15)], (x, y, ztop - 0.65), M["pot"], 18)
-    for k in range(5):
-        a = k * 1.3
-        pts = [(x + 0.08 * math.cos(a), y + 0.08 * math.sin(a), ztop - 0.6)]
-        for t in range(1, 8):
-            pts.append((pts[0][0] + 0.05 * t * math.cos(a), pts[0][1] + 0.05 * t * math.sin(a), ztop - 0.6 - 0.12 * t - rng.uniform(0, 0.04)))
-        b.tube(pts, 0.005, M["leaf2"], 4)
-        for p in pts[2:]:
-            b.ball(p[0], p[1], p[2], 0.045, M["leaf"], scale=(0.7, 1, 0.12), rot=(0, 0, rng.uniform(0, 6)), u=8, v=5)
-
-
-# the room: a low entry (ceiling 4 m) up to y = 2.8, then a tall barrel vault
-# whose underside is vault_h(x) (7 m at the walls, 9.6 m on the centre line)
-VR, APEX, SOF = 5.194, 9.6, 2.8
-VCZ = APEX - VR
-
-
-def vault_h(x):
-    return VCZ + math.sqrt(max(0.0, VR * VR - x * x))
-
-
-def ceil_at(x, y):
-    """Where a cord hung at (x, y) is fixed: the entry ceiling or the vault."""
-    return 4.0 if y < SOF else vault_h(max(-4.5, min(4.5, x))) - 0.08
-
-
-def pendant(b, x, y, zlow, name=None):
-    b.tube([(x, y, ceil_at(x, y)), (x, y, zlow + 0.26)], 0.005, M["black"], 4)
-    b.lathe([(0.03, 0), (0.28, 0.02), (0.25, 0.12), (0.06, 0.26), (0.02, 0.28), (0, 0.28)], (x, y, zlow), M["brass"], 22)
-    b.ball(x, y, zlow + 0.02, 0.06, M["lamp"], u=12, v=8)
-    if name:
-        lamp(name, (x, y, zlow - 0.1))
-
-
-def sign_board(b, cx, cy, ztop, text, theta, w, h=0.4, size=0.19, ceil=None):
-    """A brass-edged board on two cords from the ceiling, with text on both
-    faces. theta turns it; 0 faces -y, +90 deg faces +x."""
-    ceil = ceil_at(cx, cy) if ceil is None else ceil
-    zc = ztop - h / 2
-    nrm = Vector((math.sin(theta), -math.cos(theta), 0))
-    tan = Vector((math.cos(theta), math.sin(theta), 0))
-    for sg in (-1, 1):
-        if ceil > ztop + 0.01:  # a board set flush to the wall has no cords
-            b.tube([(cx + tan.x * (w / 2 - 0.12) * sg, cy + tan.y * (w / 2 - 0.12) * sg, ztop), (cx + tan.x * (w / 2 - 0.12) * sg, cy + tan.y * (w / 2 - 0.12) * sg, ceil)], 0.005, M["steel"], 4)
-    b.box(cx - w / 2 - 0.03, cx + w / 2 + 0.03, cy - 0.04, cy + 0.04, zc - h / 2 - 0.03, zc + h / 2 + 0.03, M["brass"], bev=0.01, rot=(0, 0, theta))
-    b.box(cx - w / 2, cx + w / 2, cy - 0.045, cy + 0.045, zc - h / 2, zc + h / 2, M["black"], bev=0.008, rot=(0, 0, theta))
-    for sg, th in ((1, theta), (-1, theta + PI)):
-        n = nrm * sg
-        b.text(text, (cx + n.x * 0.054, cy + n.y * 0.054, zc), size, M["neon_y"], rot=(PI / 2, 0, th), extrude=0.012, fnt=FONT2, bevel=0.0)
-
-
 # --- the street -------------------------------------------------------------------------------
 rng = random.Random(7)
 b = B("street", "Exterior")
@@ -292,7 +227,7 @@ def block(b, x0, x1, y0, y1, h, wall, floors, rng, lit=0.15, cols=5, gap=1.4, gr
 
 # a tall brick building on the left, with a fire escape and a shuttered shop
 b = B("neighbour_left", "Exterior")
-block(b, -24, -4.9, -0.2, 14, 12.5, M["brick"], 4, random.Random(3), 0.04, 6, 1.3)
+block(b, -24, -4.9, -0.2, 0.6, 12.5, M["brick"], 4, random.Random(3), 0.04, 6, 1.3)
 for k in range(30):
     b.box(-14.5, -6.0, -0.32, -0.2, 0.1 * k, 0.1 * k + 0.085, M["steel"])
 for fl in range(1, 4):
@@ -308,7 +243,7 @@ b.build()
 
 # a lit tea shop under stucco on the right
 b = B("neighbour_right", "Exterior")
-block(b, 4.9, 24, -0.2, 14, 10.5, M["stucco"], 3, random.Random(5), 0.0, 5, 1.4)
+block(b, 4.9, 24, -0.2, 0.6, 10.5, M["stucco"], 3, random.Random(5), 0.0, 5, 1.4)
 b.box(5.4, 10.4, -0.1, 0.05, 0.4, 2.9, M["black"], bev=0.02)
 b.box(5.55, 10.25, -0.12, -0.08, 0.55, 2.75, M["win_dim"])
 for k in range(10):
@@ -412,7 +347,7 @@ CZ = TOP - RAD
 a0, a1 = math.atan2(SPRING - CZ, -HALF), math.atan2(SPRING - CZ, HALF)
 archpts = arc(CX, CZ, RAD, a0, a1, 28)
 f.prism_xz(archpts + [(3.7, 4.5), (-1.5, 4.5)], -0.2, 0.2, BLK)
-f.prism_xz([(-1.5, 0.55)] + archpts + [(3.7, 0.55)], -0.015, 0.015, M["glass"])
+f.prism_xz([(-1.5, 0.55)] + archpts + [(3.7, 0.55)], -0.015, 0.015, M["glass_flat"])
 f.tube([(x, -0.24, z) for x, z in archpts], 0.065, M["brass"], 8)
 for x in (-1.5, 3.7):
     f.tube([(x, -0.24, 0.55), (x, -0.24, SPRING)], 0.065, M["brass"], 8)
@@ -446,7 +381,7 @@ for i, (x0, x1) in enumerate([(-3.8, -2.6), (-1.2, 0.0), (1.6, 3.4)]):
     f.box(x0 - 0.06, x1 + 0.06, -0.26, -0.18, 4.94, 5.0, M["brass"], bev=0.015)
     for xx in (x0 - 0.06, x1):
         f.box(xx, xx + 0.06, -0.26, -0.18, 5.0, 6.5, M["trim"], bev=0.012)
-    f.box(x0, x1, -0.14, -0.1, 5.0, 6.5, M["glass"])
+    f.box(x0, x1, -0.14, -0.1, 5.0, 6.5, M["glass_flat"])
     f.box((x0 + x1) / 2 - 0.02, (x0 + x1) / 2 + 0.02, -0.15, -0.09, 5.0, 6.5, M["steel"])
     f.box(x0 - 0.1, x1 + 0.1, -0.5, -0.2, 4.7, 5.0, M["walnut"], bev=0.02)
     leaf_cluster(f, (x0 + x1) / 2, -0.36, 5.05, (x1 - x0) / 2, 18, random.Random(i + 40))
@@ -514,7 +449,7 @@ for x0, x1, z0, z1 in [(0, 0.14, 0, H), (W - 0.14, W, 0, H), (0, W, 0, 0.18), (0
     d.box(x0, x1, -0.04, 0.04, z0, z1, M["walnut"], bev=0.012)
 for k in range(2):
     d.box(0.2 + k * 0.5, 0.66 + k * 0.5, -0.03, 0.05, 0.28, 0.92, M["walnut2"], bev=0.015)
-d.box(0.14, W - 0.14, -0.012, 0.012, 1.1, H - 0.14, M["glass"])
+d.box(0.14, W - 0.14, -0.012, 0.012, 1.1, H - 0.14, M["glass_flat"])
 for x in (0.4, 0.7, 1.0):
     d.box(x, x + 0.025, -0.02, 0.02, 1.1, H - 0.14, M["brass"])
 for z in (1.55, 2.0):
@@ -524,99 +459,6 @@ for y in (-0.1, 0.1):
     d.tube([(W - 0.2, y, 0.95), (W - 0.2, y, 1.5)], 0.016, M["brass"], 8)
 door = d.build(loc=(-3.7, 0.0, 0.0))
 door.rotation_euler = (0, 0, math.radians(95))  # exported ajar so nothing blocks the camera; 0 = shut
-
-# --- the shell --------------------------------------------------------------------------------------------
-s = B("shell", "Shell")
-s.box(-4.9, -4.5, 0.2, 11.4, 0, 7.0, M["indigo"])
-s.box(4.5, 4.9, 0.2, 11.4, 0, 7.0, M["indigo"])
-s.box(-4.5, 0.0, 11.0, 11.4, 0, 7.0, M["indigo"])  # back wall, with an arched doorway
-s.box(1.2, 4.5, 11.0, 11.4, 0, 7.0, M["indigo"])
-s.prism_xz(arc(0.6, 2.1, 0.6, PI, 0, 14) + [(1.2, 7.0), (0.0, 7.0)], 11.0, 11.4, M["indigo"])
-VAULT = [(-4.5 + 9.0 * i / 32, vault_h(-4.5 + 9.0 * i / 32)) for i in range(33)]
-s.prism_xz(VAULT, 11.0, 11.4, M["indigo"])  # the back wall's gable, up to the vault
-s.box(-4.5, 4.5, 0.2, SOF, 4.0, 4.25, M["indigo"])  # the low ceiling over the entry
-s.box(-4.5, 4.5, 0.2, SOF, 4.25, 7.0, M["black"])  # solid above it, so the flat's windows are not see-through
-s.box(-5.0, 5.0, -0.3, SOF, 7.0, 7.3, M["kerb"])
-for k in range(54):
-    y0 = 0.2 + k * (10.8 / 54)
-    s.box(-4.5, 4.5, y0 + 0.003, y0 + 10.8 / 54 - 0.003, -0.02, 0.0, M["floor_dark"])
-for i in range(6):  # tiled entry: the last of the ordinary world
-    for j in range(5):
-        s.box(-4.5 + i * 0.5 + 0.004, -4.5 + (i + 1) * 0.5 - 0.004, 0.2 + j * 0.5 + 0.004, 0.2 + (j + 1) * 0.5 - 0.004, 0.0, 0.012, M["tile_a"] if (i + j) % 2 else M["tile_b"], bev=0.003)
-for xx, sg in ((-4.5, 1), (4.5, -1)):  # panelled dado and a gold picture rail
-    for k in range(20):
-        y0 = 0.4 + k * 0.52
-        s.box(xx, xx + sg * 0.03, y0, y0 + 0.46, 0.14, 1.0, M["plum"], bev=0.01)
-    s.box(xx, xx + sg * 0.06, 0.2, 11.0, 0.0, 0.14, M["plum"], bev=0.01)
-    s.box(xx, xx + sg * 0.06, 0.2, 11.0, 1.0, 1.06, M["gold"], bev=0.01)
-s.box(-4.5, 4.5, 10.94, 11.0, 0.0, 0.14, M["plum"], bev=0.01)
-s.box(-0.4, 1.6, 11.4, 14.5, -0.03, 0.0, M["plum"])  # the room behind the arch
-s.box(-0.4, 1.6, 11.4, 14.5, 3.0, 3.1, M["black"])
-s.box(-0.5, -0.4, 11.4, 14.5, 0, 3.1, M["black"])
-s.box(1.6, 1.7, 11.4, 14.5, 0, 3.1, M["black"])
-s.box(-0.4, 1.6, 14.5, 14.6, 0, 3.1, M["black"])
-s.box(-0.3, 1.5, 13.9, 14.0, 0.2, 2.9, M["glow_v"])  # a violet light back there
-s.box(-3.5, -2.5, -0.5, 0.0, 0.0, 0.015, M["rubber"], bev=0.004)
-s.build()
-
-# the vault: a single-sided sheet (seen from inside only), ribs, and a soffit where the entry opens up
-v = B("vault", "Shell")
-rows = [[(x, y, z) for x, z in VAULT] for y in [SOF + (11.0 - SOF) * i / 8 for i in range(9)]]
-v.sheet(rows, M["cosmos"], flip=True)
-v.face_xz([(-4.5, 4.0), (4.5, 4.0)] + VAULT[::-1], SOF, M["cosmos"], toward=1)
-v.build(recalc=False)
-v = B("vault_ribs", "Shell")
-for y in (5.8, 8.0, 10.2):  # none nearer than 5 m: the front ones would show over the roofline from the street
-    v.prism_xz([(x, z) for x, z in VAULT] + [(x, z - 0.3) for x, z in VAULT[::-1]], y - 0.12, y + 0.12, M["plum2"])
-    v.tube([(x, y, z - 0.31) for x, z in VAULT], 0.022, M["gold"], 6, caps=False)
-v.build()
-# stars on the vault
-v = B("stars", "Shell")
-rs = random.Random(77)
-for _ in range(420):
-    x, y = rs.uniform(-4.3, 4.3), rs.uniform(SOF + 0.2, 10.9)
-    z = vault_h(x) - 0.03
-    r = rs.choice([0.012, 0.015, 0.02, 0.03, 0.05])
-    v.sheet([[(x - r, y - r, z), (x + r, y - r, z)], [(x - r, y + r, z), (x + r, y + r, z)]], rs.choice([M["star"], M["star_b"], M["star_c"]]), flip=False)
-v.build(recalc=False)
-
-# a round mandala laid in the floor under the table
-b = B("mandala", "Shell")
-MX, MY = 0.5, 5.0
-b.cyl(MX, MY, 0.012, 3.9, 3.9, 0.024, M["floor_dark"], 64)
-for r in (1.35, 2.1, 2.95, 3.7):
-    b.tube([(MX + r * math.cos(2 * PI * i / 72), MY + r * math.sin(2 * PI * i / 72), 0.03) for i in range(73)], 0.022, M["gold"], 6)
-for r in (1.6, 3.3):
-    b.tube([(MX + r * math.cos(2 * PI * i / 72), MY + r * math.sin(2 * PI * i / 72), 0.028) for i in range(73)], 0.014, M["mandala"], 6)
-for k in range(12):  # radial lines and petal points
-    a = 2 * PI * k / 12
-    b.tube([(MX + 1.4 * math.cos(a), MY + 1.4 * math.sin(a), 0.028), (MX + 3.65 * math.cos(a), MY + 3.65 * math.sin(a), 0.028)], 0.012, M["mandala"], 6)
-    for r0, r1 in ((2.15, 2.9), (3.0, 3.65)):
-        w = 0.14
-        rm = (r0 + r1) / 2
-        pts = [
-            (MX + r0 * math.cos(a), MY + r0 * math.sin(a)),
-            (MX + rm * math.cos(a) + w * math.sin(a), MY + rm * math.sin(a) - w * math.cos(a)),
-            (MX + r1 * math.cos(a), MY + r1 * math.sin(a)),
-            (MX + rm * math.cos(a) - w * math.sin(a), MY + rm * math.sin(a) + w * math.cos(a)),
-        ]
-        b.prism_xy(pts, 0.024, 0.034, M["mandala"] if k % 2 else M["gold"])
-b.build()
-
-# the curtain in the back doorway, in two halves the site can part
-cu = B("curtain_rod", "Shell")
-cu.tube([(-0.05, 10.9, 2.3), (1.25, 10.9, 2.3)], 0.014, M["gold"], 8)
-cu.build()
-for nm, span in (("curtain_l", range(0, 6)), ("curtain_r", range(6, 12))):
-    cu = B(nm, "Shell")
-    for i in span:
-        cu.cyl(0.06 + i * 0.1, 10.88, 1.15, 0.062, 0.062, 2.3, M["fabric_r"] if i % 2 else M["velvet"], 12)
-    cu.build()
-n = B("neon_doorway", "Shell")  # a neon arch round the back doorway
-pts = [(-0.07, 10.97, 0.0)] + [(0.6 + 0.67 * math.cos(a), 10.97, 2.1 + 0.67 * math.sin(a)) for a in [PI - i * PI / 20 for i in range(21)]] + [(1.27, 10.97, 0.0)]
-n.tube(pts, 0.016, M["glow_v"], 8)
-n.build()
-
 
 # --- fixtures: shared pieces --------------------------------------------------------------------------------
 def at(wall, s, d):
@@ -701,309 +543,11 @@ def hot(name, wall, s, d, z, cats, label):
     HOTSPOTS.append((name, (x, y, z), cats, label))
 
 
-# --- the bong wall (left) -----------------------------------------------------------------------------------
-b = B("bong_wall", "Fixtures")
-rng = random.Random(31)
-Y0, Y1 = 1.0, 7.0
-cabinet(b, "L", Y0, Y1, 0.6, 0.95)
-b.box(-4.5, -4.44, Y0, Y1, 0.95, 3.45, M["black"])
-b.box(-4.44, -4.4, Y0 + 0.05, Y1 - 0.05, 1.05, 3.3, M["glow_v"])
-for k in range(int((Y1 - Y0) / 0.12) + 1):
-    y = Y0 + 0.06 + k * 0.12
-    b.box(-4.4, -4.36, y, y + 0.05, 1.0, 3.35, M["plum"], bev=0.004)
-for yy in [Y0 + i * 1.5 for i in range(5)]:
-    b.box(-4.5, -3.94, yy - 0.04, yy + 0.04, 0.95, 3.45, M["plum"], bev=0.01)
-b.box(-4.5, -3.9, Y0 - 0.06, Y1 + 0.06, 3.45, 3.62, M["plum"], bev=0.012)
-b.box(-4.5, -3.84, Y0 - 0.1, Y1 + 0.1, 3.62, 3.72, M["brass"], bev=0.012)
-for z in [1.45, 1.95, 2.45, 2.95]:
-    b.box(-4.5, -3.96, Y0, Y1, z, z + 0.014, M["glass"])
-    b.box(-3.985, -3.96, Y0, Y1, z - 0.012, z + 0.014, M["brass"])
-    for k in range(int((Y1 - Y0) / 0.31)):
-        y = Y0 + 0.18 + k * 0.31 + rng.uniform(-0.03, 0.03)
-        if y < Y1 - 0.12:
-            bong(b, -4.18, y, z + 0.014, rng, h=rng.uniform(0.26, 0.42))
-for k, y in enumerate([1.6, 3.2, 4.9, 6.4]):
-    bong(b, -4.15, y, 1.0, rng, h=0.38 + 0.1 * (k % 2))
-sign_board(b, -3.9, 4.0, 3.95, "BONGS", PI / 2, 1.5, ceil=4.3)
-b.build()
-hot("hot_bongs", "L", 4.0, 0.3, 2.2, "bong,bong-accessory", "Bongs")
-lamp("lamp_bongs_a", (-3.7, 2.4, 3.3))
-lamp("lamp_bongs_b", (-3.7, 5.6, 3.3))
+# --- the room: a rotunda of alcoves under a dome (shop_rotunda.py) ---------------------------------------------
+exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_rotunda.py"), encoding="utf-8").read(), "shop_rotunda.py", "exec"))
 
-# --- the pipe case (freestanding) ------------------------------------------------------------------------------------
-b = B("case_pipes", "Fixtures")
-rng = random.Random(32)
-X0, X1, YA, YB = 3.5, 4.4, 0.9, 3.2  # against the right wall by the door, out of the aisle
-b.box(X0, X1, YA, YB, 0.08, 0.82, M["plum"], bev=0.015)
-b.box(X0 - 0.03, X1 + 0.03, YA - 0.03, YB + 0.03, 0.0, 0.1, M["black"], bev=0.01)
-b.box(X0 - 0.02, X1 + 0.02, YA - 0.02, YB + 0.02, 0.82, 0.86, M["brass"], bev=0.01)
-b.box(X0, X1, YA, YB, 0.86, 0.9, M["velvet"])
-for yy in (YA, YB - 0.03):
-    b.box(X0 - 0.02, X1 + 0.02, yy, yy + 0.03, 0.86, 1.2, M["brass"], bev=0.006)
-for xx in (X0 - 0.02, X1 - 0.01):
-    b.box(xx, xx + 0.03, YA, YB, 0.86, 1.2, M["brass"], bev=0.006)
-b.box(X0, X1, YA, YB, 1.18, 1.2, M["glass"])
-for k in range(11):
-    y = YA + 0.15 + k * 0.2
-    x = (X0 + X1) / 2 + rng.uniform(-0.15, 0.15)
-    gm = rng.choice(GLASSES)
-    b.tube([(x - 0.12, y, 0.93), (x - 0.04, y, 0.925), (x + 0.04, y + rng.uniform(-0.02, 0.02), 0.93), (x + 0.12, y, 0.95)], 0.017, gm, 8)
-    b.ball(x + 0.14, y, 0.97, 0.03, gm, scale=(1, 1, 1.2), u=10, v=6)
-sign_board(b, 4.4, 2.05, 3.0, "PIPES", -PI / 2, 1.1, ceil=3.0)
-b.build()
-hot("hot_pipes", "R", 2.05, 0.5, 1.05, "pipe,roach", "Pipes")
-lamp("lamp_pipes", (3.9, 2.05, 2.4))
-
-# --- the round table (rolling trays) -----------------------------------------------------------------------------------------
-b = B("table_trays", "Fixtures")
-rng = random.Random(33)
-TX, TY = 0.5, 5.0
-b.lathe([(0, 0), (0.45, 0), (0.45, 0.03), (0.2, 0.08), (0.13, 0.15), (0.12, 0.78), (0.3, 0.84), (1.0, 0.86), (1.03, 0.88), (1.03, 0.92), (1.0, 0.94), (0, 0.94)], (TX, TY, 0), M["plum"], 56)
-b.lathe([(0.9, 0.935), (1.0, 0.935), (1.0, 0.945), (0.9, 0.945)], (TX, TY, 0), M["brass"], 56)
-for k in range(7):
-    a = k * 2 * PI / 7 + 0.2
-    cx, cy = TX + 0.62 * math.cos(a), TY + 0.62 * math.sin(a)
-    rot = (0, 0, a + PI / 2)
-    b.box(cx - 0.2, cx + 0.2, cy - 0.14, cy + 0.14, 0.945, 0.96, M["black"], bev=0.01, rot=rot)
-    b.box(cx - 0.18, cx + 0.18, cy - 0.12, cy + 0.12, 0.96, 0.97, rng.choice(PAPER), rot=rot)
-    ar = a + PI / 2
-    lx_, ly_ = (math.cos(ar), math.sin(ar)), (-math.sin(ar), math.cos(ar))
-    for sg in (-1, 1):  # raised rims, long sides then short
-        px, py = cx + sg * 0.135 * ly_[0], cy + sg * 0.135 * ly_[1]
-        b.box(px - 0.2, px + 0.2, py - 0.008, py + 0.008, 0.945, 0.99, M["black"], bev=0.003, rot=rot)
-        px, py = cx + sg * 0.195 * lx_[0], cy + sg * 0.195 * lx_[1]
-        b.box(px - 0.008, px + 0.008, py - 0.14, py + 0.14, 0.945, 0.99, M["black"], bev=0.003, rot=rot)
-b.lathe([(0, 0), (0.18, 0), (0.18, 0.02), (0.05, 0.05), (0.03, 0.55), (0.12, 0.58), (0, 0.6)], (TX, TY, 0.94), M["brass"], 24)
-for k in range(5):
-    a = k * 2 * PI / 5 + 0.3
-    px, py = TX + 0.22 * math.cos(a), TY + 0.22 * math.sin(a)
-    b.box(px - 0.12, px + 0.12, py - 0.008, py + 0.008, 1.02, 1.3, rng.choice(PAPER), bev=0.003, rot=(0, 0, a + PI / 2))
-b.build()
-HOTSPOTS.append(("hot_trays", (TX, TY, 1.25), "rolling-tray", "Trays"))
-
-b = B("chandelier", "Lights")
-rng = random.Random(34)
-CH = 1.6  # hung high: nothing at eye level between the door and the face
-b.tube([(TX, TY, ceil_at(TX, TY)), (TX, TY, 3.55 + CH)], 0.012, M["gold"], 6)
-b.lathe([(0, 0), (0.22, 0.0), (0.24, 0.07), (0.1, 0.16), (0, 0.16)], (TX, TY, 3.45 + CH), M["gold"], 24)
-for k in range(9):
-    a = k * 2 * PI / 9
-    r = 0.18 + 0.22 * (k % 3)
-    zz = 2.65 + CH + 0.25 * (k % 3) + rng.uniform(-0.08, 0.08)
-    px, py = TX + r * math.cos(a), TY + r * math.sin(a)
-    b.tube([(TX, TY, 3.5 + CH), (px, py, zz + 0.2)], 0.006, M["gold"], 5)
-    b.ball(px, py, zz, 0.12, M["lamp"], u=18, v=12)
-    b.lathe([(0.0, 0), (0.035, 0), (0.04, 0.05), (0, 0.05)], (px, py, zz + 0.1), M["brass"], 10)
-lamp("lamp_chandelier", (TX, TY, 2.9))
-b.build()
-
-# --- the papers bay (back wall, left) with a library ladder -----------------------------------------------------------------------------
-b = B("papers_bay", "Fixtures")
-rng = random.Random(35)
-S0, S1 = -2.6, -1.5  # the back-left corner belongs to the spiral stair
-cabinet(b, "B", S0, S1, 0.55, 0.95)
-b.box(S0, S1, 10.95, 11.0, 0.95, 3.7, M["black"])
-for xx in [S0 + i * 0.75 for i in range(int((S1 - S0) / 0.75) + 1)]:
-    b.box(xx - 0.03, xx + 0.03, 10.68, 11.0, 0.95, 3.7, M["plum"], bev=0.008)
-zs = [1.3 + i * 0.36 for i in range(7)]
-shelves(b, "B", S0, S1, 0.32, zs)
-b.box(S0, S1, 10.64, 11.0, 3.7, 3.78, M["brass"], bev=0.01)
-kinds = ["booklet", "booklet", "cone", "box", "booklet", "box", "cone", "booklet"]
-for i, z in enumerate([0.995] + [z + 0.035 for z in zs]):
-    shelf_row(b, "B", S0, S1, 0.17, z, kinds[i % len(kinds)], rng, 0.2)
-b.tube([(S0 + 0.05, 10.55, 3.2), (S1 - 0.05, 10.55, 3.2)], 0.015, M["brass"], 8)
-sign_board(b, -2.05, 10.6, 3.95, "PAPERS", 0.0, 1.2)
-b.build()
-lad = B("ladder", "Fixtures")  # on its own, so the site can slide it along the rail
-for sx in (-0.2, 0.2):
-    lad.tube([(sx, 10.45, 0.0), (sx, 10.8, 3.3)], 0.022, M["plum"], 8)
-for k in range(12):
-    t = 0.1 + k * 0.075
-    lad.tube([(-0.2, 10.45 + 0.35 * t, t * 3.2), (0.2, 10.45 + 0.35 * t, t * 3.2)], 0.014, M["plum2"], 6)
-lad.build(loc=(-2.05, 0, 0))
-hot("hot_papers", "B", -2.05, 0.4, 2.8, "rolling-paper,blunt-wraps,blunt-pre-rolled-cone", "Papers & wraps")
-lamp("lamp_papers", (-2.05, 10.2, 3.4))
-
-# --- the humidor (back wall, by the door) ------------------------------------------------------------------------------------------------
-b = B("humidor", "Fixtures")
-rng = random.Random(36)
-H0, H1 = -1.4, -0.15
-cabinet(b, "B", H0, H1, 0.55, 0.95)
-b.box(H0, H1, 10.96, 11.0, 0.95, 3.1, M["cedar"])  # back
-for xx in (H0, H1 - 0.04):
-    b.box(xx, xx + 0.04, 10.5, 11.0, 0.95, 3.1, M["cedar"], bev=0.006)  # sides
-b.box(H0, H1, 10.5, 11.0, 3.06, 3.1, M["cedar"], bev=0.006)  # top
-b.box(H0 + 0.04, H1 - 0.04, 10.9, 10.96, 3.0, 3.06, M["lamp"])  # light along the top
-zs = [1.3, 1.85, 2.4, 2.94]
-shelves(b, "B", H0 + 0.06, H1 - 0.06, 0.42, zs, M["cedar"])
-for z in zs:
-    x = H0 + 0.14
-    while x < H1 - 0.2:
-        b.box(x, x + 0.24, 10.64, 10.9, z + 0.035, z + 0.1, M["cedar"], bev=0.008)
-        b.box(x, x + 0.24, 10.64, 10.9, z + 0.1, z + 0.108, M["brass"])
-        for c in range(7):
-            b.cyl(x + 0.03 + c * 0.03, 10.77, z + 0.118, 0.008, 0.008, 0.2, M["leather"], 8, rot=(PI / 2, 0, 0))
-        x += 0.3
-shelf_row(b, "B", H0, H1, 0.2, 0.995, "tin", rng)
-b.box(H0, H1, 10.44, 10.5, 0.95, 3.1, M["glass"])
-b.box(H0 - 0.03, H1 + 0.03, 10.4, 11.0, 3.1, 3.2, M["brass"], bev=0.01)
-b.build()
-hot("hot_tobacco", "B", -0.8, 0.4, 1.9, "rolling-tobacco,cigars", "Tobacco & cigars")
-
-# --- grinders & ashtrays (left, back) --------------------------------------------------------------------------------------------------------------
-b = B("shelves_grinders", "Fixtures")
-rng = random.Random(37)
-G0, G1 = 7.4, 9.0  # ends where the stair begins
-cabinet(b, "L", G0, G1, 0.5, 0.95)
-b.box(-4.5, -4.46, G0, G1, 0.95, 3.5, M["black"])
-b.box(-4.46, -4.42, G0 + 0.05, G1 - 0.05, 1.2, 3.3, M["glow_t"])
-for xx in [G0 + i * 0.7 for i in range(int((G1 - G0) / 0.7) + 1)]:
-    b.box(-4.5, -4.12, xx - 0.025, xx + 0.025, 0.95, 3.5, M["plum"], bev=0.008)
-zs = [1.3, 1.75, 2.2, 2.65, 3.1]
-for i, z in enumerate(zs):
-    b.box(-4.5, -4.12, G0, G1, z, z + 0.03, M["glass"])
-    if i < 3:
-        for k in range(int((G1 - G0) / 0.14)):
-            y = G0 + 0.12 + k * 0.14
-            if y < G1 - 0.1:
-                grinder(b, -4.3, y, z + 0.03, rng.uniform(0.04, 0.055), rng.choice(METALS))
-    else:
-        for k in range(int((G1 - G0) / 0.27)):
-            dish(b, -4.3, G0 + 0.16 + k * 0.27, z + 0.03, rng.uniform(0.07, 0.1), rng.choice([M["glass"], M["brass"], M["tile"], M["fabric_r"]]))
-b.box(-4.5, -4.1, G0 - 0.04, G1 + 0.04, 3.5, 3.62, M["brass"], bev=0.01)
-sign_board(b, -3.9, 8.2, 3.95, "GRINDERS", PI / 2, 1.5, ceil=4.3)
-b.build()
-hot("hot_grinders", "L", 8.2, 0.4, 1.5, "grinder,ashtray", "Grinders & ashtrays")
-lamp("lamp_grinders", (-3.9, 8.2, 3.3))
-
-# --- the counter (back right, a quarter circle) --------------------------------------------------------------------------------------------------------
-b = B("counter", "Fixtures")
-rng = random.Random(38)
-CXc, CYc = 4.5, 11.0
-Rin, Rout = 2.5, 3.2
-N = 44
-a_lo, a_hi = PI, 1.5 * PI
-
-
-def on_arc(r, a, z=0.0):
-    return (CXc + r * math.cos(a), CYc + r * math.sin(a), z)
-
-
-for k in range(N):  # slatted front, each slat turned to the radius
-    a = a_lo + (a_hi - a_lo) * (k + 0.5) / N
-    w = (Rout * (a_hi - a_lo) / N) * 0.9
-    px, py, _ = on_arc(Rout - 0.04, a)
-    b.box(px - 0.03, px + 0.03, py - w / 2, py + w / 2, 0.12, 1.02, M["plum"] if k % 2 else M["plum2"], bev=0.008, rot=(0, 0, a))
-b.tube([on_arc(Rout - 0.1, a_lo + (a_hi - a_lo) * i / 40, 0.06) for i in range(41)], 0.05, M["black"], 8)
-outer = [on_arc(Rout + 0.08, a_lo + (a_hi - a_lo) * i / 30)[:2] for i in range(31)]
-inner = [on_arc(Rin - 0.05, a_hi - (a_hi - a_lo) * i / 30)[:2] for i in range(31)]
-b.prism_xy(outer + inner, 1.02, 1.07, M["marble"])
-b.tube([on_arc(Rout + 0.08, a_lo + (a_hi - a_lo) * i / 40, 1.045) for i in range(41)], 0.014, M["brass"], 6)
-b.tube([on_arc(Rout + 0.16, a_lo + (a_hi - a_lo) * i / 40, 0.18) for i in range(41)], 0.022, M["brass"], 8)
-for i in range(5):
-    a = a_lo + (a_hi - a_lo) * (i + 0.5) / 5
-    b.tube([on_arc(Rout - 0.04, a, 0.18), on_arc(Rout + 0.16, a, 0.18)], 0.014, M["brass"], 6)
-inner_wall = [on_arc(Rin, a_lo + (a_hi - a_lo) * i / 30)[:2] for i in range(31)] + [on_arc(Rin - 0.05, a_hi - (a_hi - a_lo) * i / 30)[:2] for i in range(31)]
-b.prism_xy(inner_wall, 0.0, 1.02, M["black"])
-# the till, a card reader, a tip jar, a lighter case and a keychain spinner on top
-a = 1.25 * PI
-px, py, _ = on_arc(2.85, a)
-b.box(px - 0.2, px + 0.2, py - 0.17, py + 0.17, 1.07, 1.14, M["steel"], bev=0.01, rot=(0, 0, a))
-b.box(px - 0.01, px + 0.01, py - 0.14, py + 0.14, 1.14, 1.34, M["black"], bev=0.004, rot=(0, 0, a))
-px, py, _ = on_arc(3.05, 1.12 * PI)
-b.box(px - 0.04, px + 0.04, py - 0.06, py + 0.06, 1.07, 1.12, M["black"], bev=0.008, rot=(0, 0, 1.12 * PI))
-px, py, _ = on_arc(2.85, 1.34 * PI)
-jar(b, px, py, 1.07, 0.09, 0.2, M["glass"], M["brass"])
-a = 1.43 * PI
-px, py, _ = on_arc(2.85, a)
-b.box(px - 0.3, px + 0.3, py - 0.2, py + 0.2, 1.07, 1.12, M["black"], bev=0.01, rot=(0, 0, a))
-b.box(px - 0.3, px + 0.3, py - 0.2, py + 0.2, 1.12, 1.14, M["glass"], rot=(0, 0, a))
-for i in range(14):
-    lx_, ly_ = (i % 7 - 3) * 0.075, (i // 7 - 0.5) * 0.1
-    b.box(px + lx_ * math.cos(a) - ly_ * math.sin(a) - 0.011, px + lx_ * math.cos(a) - ly_ * math.sin(a) + 0.011,
-          py + lx_ * math.sin(a) + ly_ * math.cos(a) - 0.007, py + lx_ * math.sin(a) + ly_ * math.cos(a) + 0.007, 1.12, 1.19, rng.choice(PAPER), rot=(0, 0, a))
-px, py, _ = on_arc(2.85, 1.12 * PI + 0.0)
-px, py, _ = on_arc(2.95, 1.2 * PI)
-b.tube([(px, py, 1.07), (px, py, 1.55)], 0.012, M["steel"], 6)
-for lvl in range(3):
-    for k in range(6):
-        aa = k * PI / 3
-        b.tube([(px + 0.1 * math.cos(aa), py + 0.1 * math.sin(aa), 1.2 + lvl * 0.14), (px + 0.1 * math.cos(aa), py + 0.1 * math.sin(aa), 1.1 + lvl * 0.14)], 0.003, M["steel"], 4)
-        b.ball(px + 0.1 * math.cos(aa), py + 0.1 * math.sin(aa), 1.06 + lvl * 0.14, 0.025, rng.choice(PAPER), u=8, v=6)
-# the back bar behind the counter: shelves of lighter refills and a pegboard of keychains
-for wall, s0, s1 in (("R", 8.2, 10.9), ("B", 1.9, 4.4)):
-    wbox(b, wall, s0, s1, 0, 0.02, 0.95, 3.4, M["plum"])
-    for z in (1.35, 1.8, 2.25):
-        shelves(b, wall, s0, s1, 0.28, [z])
-    for i, z in enumerate((1.385, 1.835, 2.285)):
-        shelf_row(b, wall, s0, s1, 0.14, z, ["can", "jar", "can"][i], rng)
-    cabinet(b, wall, s0, s1, 0.5, 0.95)
-wbox(b, "B", 1.9, 4.4, 0.02, 0.06, 2.55, 3.4, M["plum2"], 0.01)
-for k in range(9):
-    for rr in range(3):
-        xk = 2.0 + k * 0.27
-        b.tube([(xk, 10.94, 2.7 + rr * 0.22), (xk, 10.84, 2.7 + rr * 0.22)], 0.004, M["steel"], 4)
-        b.tube([(xk, 10.84, 2.7 + rr * 0.22), (xk, 10.84, 2.6 + rr * 0.22)], 0.002, M["steel"], 4)
-        b.ball(xk, 10.84, 2.56 + rr * 0.22, 0.03, rng.choice(PAPER), u=8, v=6)
-b.build()
-cx_, cy_, _ = on_arc(2.85, 1.3 * PI)
-hot_c = (cx_, cy_, 1.35)
-HOTSPOTS.append(("hot_counter", hot_c, "lighter,lighter-refills,keychain", "Lighters & keychains"))
-for i, a in enumerate((1.1 * PI, 1.25 * PI, 1.4 * PI)):
-    b2 = B("pendants_counter_%d" % i, "Lights")
-    px, py, _ = on_arc(2.8, a)
-    pendant(b2, px, py, 2.45, "lamp_counter_%d" % i)
-    b2.build()
-
-# --- the right wall units ----------------------------------------------------------------------------------------------------------------------------------
-b = B("cubbies_storage", "Fixtures")
-rng = random.Random(39)
-R0, R1 = 3.3, 5.5
-cabinet(b, "R", R0, R1, 0.5, 0.95)
-wbox(b, "R", R0, R1, 0, 0.02, 0.95, 3.5, M["black"])
-for i in range(5):
-    wbox(b, "R", R0 + i * 0.55 - 0.012, R0 + i * 0.55 + 0.012, 0, 0.36, 0.95, 3.45, M["plum"], 0.005)
-zs = [1.35, 1.8, 2.25, 2.7, 3.15]
-shelves(b, "R", R0, R1, 0.36, zs)
-for i, z in enumerate([0.995] + [z + 0.035 for z in zs]):
-    shelf_row(b, "R", R0, R1, 0.18, z, ["tin", "jar", "box", "tin", "jar", "box"][i % 6], rng, 0.2)
-wbox(b, "R", R0 - 0.04, R1 + 0.04, 0, 0.42, 3.45, 3.57, M["brass"], 0.01)
-sign_board(b, 4.4, 4.4, 4.05, "STORAGE", -PI / 2, 1.3, ceil=4.05)
-b.build()
-hot("hot_storage", "R", 4.4, 0.4, 2.2, "storage,accessory", "Storage & accessories")
-lamp("lamp_storage", (4.0, 4.4, 3.3))
-
-b = B("shelves_filters", "Fixtures")
-rng = random.Random(40)
-F0, F1 = 5.7, 7.4
-cabinet(b, "R", F0, F1, 0.5, 0.95)
-wbox(b, "R", F0, F1, 0, 0.02, 0.95, 3.2, M["black"])
-zs = [1.35, 1.85, 2.35, 2.85]
-shelves(b, "R", F0, F1, 0.3, zs)
-for i, z in enumerate([0.995] + [z + 0.035 for z in zs]):
-    shelf_row(b, "R", F0, F1, 0.15, z, ["bottle", "box", "bottle", "cone", "box"][i], rng, 0.18)
-wbox(b, "R", F0 - 0.03, F1 + 0.03, 0, 0.36, 3.2, 3.3, M["brass"], 0.01)
-sign_board(b, 4.4, 6.5, 4.0, "FILTERS", -PI / 2, 1.2, ceil=4.0)
-b.build()
-hot("hot_filters", "R", 6.5, 0.4, 2.2, "filter,cleaning-accessory", "Filters & cleaning")
-
-# --- the entry, frames, fan, plants and lamps ------------------------------------------------------------------------------------------------------------------
-b = B("entry_props", "Props")
-rng = random.Random(41)
-b.lathe([(0, 0), (0.12, 0), (0.13, 0.55), (0.1, 0.56), (0, 0.5)], (-4.15, 0.55, 0), M["steel"], 18)  # umbrella stand
-for k in range(3):
-    b.tube([(-4.15 + 0.03 * k, 0.55, 0.5), (-4.1 + 0.03 * k, 0.55 + 0.02 * k, 0.95)], 0.012, M["plum"], 6)
-plant(b, -4.1, 0.9, 0.0, 1.3, rng)
-plant(b, 0.0, 10.55, 0.0, 1.1, rng, False)
-b.build()
-
-b = B("pendants_misc", "Lights")
-lamp("lamp_entry", (-3.0, 1.9, 2.45))
-lamp("lamp_front", (3.3, 3.2, 2.5))
-b.build()
-
-exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_world.py"), encoding="utf-8").read(), "shop_world.py", "exec"))  # eyes, floaters, gallery, banners
-exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_magic.py"), encoding="utf-8").read(), "shop_magic.py", "exec"))  # portraits, candles, rolling joints, chalkboard
+exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_world.py"), encoding="utf-8").read(), "shop_world.py", "exec"))  # Baba's face, eyes, floaters, incense
+exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_magic.py"), encoding="utf-8").read(), "shop_magic.py", "exec"))  # candles that float
 exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shop_street.py"), encoding="utf-8").read(), "shop_street.py", "exec"))  # cars and people
 
 # --- hotspot and lamp empties --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1029,9 +573,9 @@ def camera(name, loc, target, fov=60):
 camera("cam_00", (-3.6, -13.8, 1.9), (0.0, 0.0, 3.0), 55)
 camera("cam_01", (-4.0, -8.6, 1.9), (-3.0, 0.0, 2.4))
 camera("cam_02", (-3.5, -4.4, 1.75), (-3.0, 0.0, 1.9))
-camera("cam_03", (-3.0, -0.9, 1.7), (-2.0, 6.0, 2.2))
-camera("cam_04", (-1.7, 1.7, 1.65), (0.4, 7.0, 3.1))
-camera("cam_05", (0.4, 3.1, 1.65), (0.6, 11.0, 3.9))
+camera("cam_03", (-3.0, -0.9, 1.7), (-2.5, 6.0, 2.1))
+camera("cam_04", (-2.95, 2.1, 1.65), polar(R, FACE_A, 1.75))
+camera("cam_05", (RX, RY, 1.65), polar(R, FACE_A, 1.65))  # level, at eye height: the middle of the room, looking at Baba
 scene.render.resolution_x, scene.render.resolution_y = 1920, 1080
 
 # --- export ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1071,19 +615,15 @@ if PREVIEW:
         lo = bpy.data.objects.new(name, li)
         lo.location = loc
         scene.collection.objects.link(lo)
-    which = arg("--shots", "cam_00,cam_02,cam_03,cam_04,cam_05,back,aerial,side").split(",")
+    which = arg("--shots", "cam_00,cam_03,cam_04,cam_05,back,left,right,aerial").split(",")
     extra = {
-        "back": camera("pv_back", (3.4, 1.4, 1.7), (-1.5, 8.0, 1.7)),
-        "aerial": camera("pv_aerial", (9, 3.0, 11.0), (-0.5, 5.5, 0.0), 60),
+        "back": camera("pv_back", (RX, RY, 1.65), polar(R, FACE_A + PI, 1.6)),
+        "left": camera("pv_left", (RX, RY, 1.65), polar(R, FACE_A + PI / 2, 1.6)),
+        "right": camera("pv_right", (RX, RY, 1.65), polar(R, FACE_A - PI / 2, 1.6)),
+        "aerial": camera("pv_aerial", (RX + 0.01, RY, 11.0), (RX, RY, 0.0), 80),
         "side": camera("pv_side", (-10, -8, 3.4), (-1.5, 0, 2.4), 55),
-        "counter": camera("pv_counter", (-0.5, 5.8, 1.7), (3.4, 9.2, 1.2), 62),
-        "bongs": camera("pv_bongs", (-1.0, 4.0, 1.7), (-4.4, 4.0, 2.0), 60),
-        "vault": camera("pv_vault", (0.5, 3.4, 1.7), (0.5, 7.5, 8.0), 70),
-        "gallery": camera("pv_gallery", (3.0, 3.6, 1.7), (-4.0, 8.0, 5.0), 65),
         "landing": camera("pv_landing", (-3.6, -13.8, 1.9), (0.0, 0.0, 3.0), 55),
-        "portrait": camera("pv_portrait", (2.2, 4.4, 1.9), (4.4, 3.55, 5.0), 55),
-        "rolls": camera("pv_rolls", (1.6, 8.4, 1.9), (3.1, 9.9, 1.1), 55),
-        "face": camera("pv_face", (0.6, 5.2, 1.7), (0.6, 11.0, 4.6), 60),
+        "dome": camera("pv_dome", (RX, RY, 1.65), polar(R * 0.6, FACE_A, 9.8), 70),
     }
     for n in which:
         cam = extra[n] if n in extra else bpy.data.objects[n]

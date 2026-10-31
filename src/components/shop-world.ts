@@ -39,17 +39,22 @@ type Eye = {
   seed: number;
 };
 
-type Lamp = { light: THREE.PointLight; kind: string; base: number; seed: number };
+type Lamp = { at: THREE.Vector3; kind: string; base: number; seed: number };
 
 const KIND: Record<string, { color: string; intensity: number; distance: number }> = {
   street: { color: "#ffc27a", intensity: 38, distance: 13 }, // the street is dim; the shop is not
   window: { color: "#ffb066", intensity: 46, distance: 10 },
   shop: { color: "#ffd29a", intensity: 16, distance: 6.5 },
-  magenta: { color: "#ff3fa4", intensity: 24, distance: 8 },
-  teal: { color: "#25e0d0", intensity: 22, distance: 8 },
-  violet: { color: "#8a5cff", intensity: 34, distance: 10 },
+  // inside, only washes of colour: the room is kept dim so the lit alcoves and the sky stand out
+  magenta: { color: "#ff3fa4", intensity: 5, distance: 6 },
+  teal: { color: "#25e0d0", intensity: 4.5, distance: 6 },
+  violet: { color: "#8a5cff", intensity: 10, distance: 8 },
 };
-const BUDGET = 16; // point lights are the costly part; the dullest go first
+// Point lights are the costly part, and changing how many there are stalls
+// while every shader recompiles. So there is one fixed set: it lights the
+// street while you are out there, goes dark as you cross the threshold, and
+// comes up again on the lamps inside.
+const BUDGET = 16;
 
 function softDot() {
   const c = document.createElement("canvas");
@@ -136,9 +141,7 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene) {
     } else if (name.startsWith("lamp_")) {
       const kind = String(o.userData.kind ?? "shop");
       const k = KIND[kind] ?? KIND.shop;
-      const light = new THREE.PointLight(k.color, k.intensity, k.distance, 2);
-      light.position.copy(o.getWorldPosition(new THREE.Vector3()));
-      lamps.push({ light, kind, base: k.intensity, seed: n });
+      lamps.push({ at: o.getWorldPosition(new THREE.Vector3()), kind, base: k.intensity, seed: n });
     }
     if (o instanceof THREE.Mesh) {
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
@@ -148,11 +151,17 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene) {
     }
     n++;
   }
-  // too many lights is slow: keep street, window and the coloured ones, thin out the plain shop lamps
+  // if a side has more lamps than the budget, the plain shop lamps go first
   const order = (l: Lamp) => ({ street: 0, window: 1, violet: 2, magenta: 3, teal: 4, shop: 5 })[l.kind] ?? 5;
   lamps.sort((a, b) => order(a) - order(b));
-  for (const l of lamps.slice(0, BUDGET)) scene.add(l.light);
-  lamps.length = Math.min(lamps.length, BUDGET);
+  const outLamps = lamps.filter((l) => l.at.z > -1.4); // the door is at z = 0, the room beyond it
+  const inLamps = lamps.filter((l) => l.at.z <= -1.4);
+  const lights = Array.from({ length: Math.min(BUDGET, Math.max(outLamps.length, inLamps.length)) }, () => {
+    const light = new THREE.PointLight("#ffffff", 0, 1, 2);
+    scene.add(light);
+    return light;
+  });
+  const lit: (Lamp | undefined)[] = [];
 
   // --- smoke and dust ------------------------------------------------------------------------
   const dot = softDot();
@@ -273,10 +282,24 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene) {
     const pulse = 1.3 + Math.sin(t * 1.1) * 0.7;
     for (const m of mandala) m.emissiveIntensity = pulse;
 
-    for (const l of lamps) {
+    const within = inside > 0.55;
+    const side = within ? inLamps : outLamps;
+    const fade = within ? smooth(0.55, 0.85, inside) : 1 - smooth(0.3, 0.55, inside);
+    lights.forEach((light, i) => {
+      const l = side[i];
+      if (lit[i] !== l) {
+        lit[i] = l;
+        if (l) {
+          const k = KIND[l.kind] ?? KIND.shop;
+          light.position.copy(l.at);
+          light.color.set(k.color);
+          light.distance = k.distance;
+        }
+      }
+      if (!l) return void (light.intensity = 0);
       const flick = l.kind === "street" || l.kind === "window" ? 1 : 0.9 + 0.1 * Math.sin(t * (1.3 + hash(l.seed)) + l.seed);
-      l.light.intensity = l.base * flick;
-    }
+      light.intensity = l.base * flick * fade;
+    });
 
     // the street: cars cross, people walk, one stays at the window
     for (const m of movers) {
@@ -358,7 +381,7 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene) {
   }
 
   function dispose() {
-    for (const l of lamps) scene.remove(l.light);
+    for (const l of lights) scene.remove(l);
     scene.remove(smokePts, dustPts, steamPts);
     steamGeo.dispose();
     steamMat.dispose();
