@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 
+// the site may be served under a sub-path (GitHub Pages: /babajee)
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 // The surfaces of the shop's inside get real textures (public/textures, made by
 // tools/textures/make_textures.py from generated pictures): marble floors and
 // table tops, plaster walls, lacquered wood, brushed brass, a velvet runner.
@@ -119,10 +122,10 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
   const load = (name: string) => {
     let t = loaded.get(name);
     if (t) return t;
-    const map = loader.load(`/textures/${name}.webp`);
+    const map = loader.load(`${BASE}/textures/${name}.webp`);
     map.colorSpace = THREE.SRGBColorSpace;
-    const normal = loader.load(`/textures/${name}_n.webp`);
-    const rough = loader.load(`/textures/${name}_r.webp`);
+    const normal = loader.load(`${BASE}/textures/${name}_n.webp`);
+    const rough = loader.load(`${BASE}/textures/${name}_r.webp`);
     for (const x of [map, normal, rough]) {
       x.wrapS = x.wrapT = THREE.RepeatWrapping;
       x.anisotropy = aniso;
