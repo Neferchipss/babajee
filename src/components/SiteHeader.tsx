@@ -3,6 +3,7 @@
 import Link from "next/link";
 import SceneLink, { isScenePath } from "@/components/SceneLink";
 import { usePathname } from "next/navigation";
+import { TO_STREET } from "@/components/scene-note";
 import { useState } from "react";
 import { cartCount, useCart } from "@/lib/cart";
 import { JarIcon, SearchIcon, UserIcon } from "./icons";
@@ -43,7 +44,17 @@ export default function SiteHeader() {
     const cart = pathname === "/cart";
     return (
       <header className={cart ? "lb lb--where" : "lb"}>
-        <SceneLink href="/" aria-label="Babajee home" className="lb-logo">
+        <SceneLink
+          href="/"
+          aria-label="Babajee home"
+          className="lb-logo"
+          onClick={(e) => {
+            // already here: walk back out to the street rather than reload the page
+            if (pathname !== "/") return;
+            e.preventDefault();
+            window.dispatchEvent(new Event(TO_STREET));
+          }}
+        >
           <Logo className="lb-logo-img" priority />
         </SceneLink>
         {cart && <DeliverTo />}

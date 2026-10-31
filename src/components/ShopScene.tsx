@@ -16,6 +16,7 @@ import Logo from "./Logo";
 import { createMagic } from "./shop-magic";
 import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
 import { optimiseScene } from "./shop-cull";
+import { clearShopNote, peekShopNote, TO_STREET } from "./scene-note";
 import { createSky } from "./shop-sky";
 import { applyTextures } from "./shop-textures";
 import { createWorld } from "./shop-world";
@@ -61,6 +62,8 @@ const LABEL_H = 23; // px a label needs to itself, so crowded ones can be pushed
 
 const clamp = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 const PITCH_MAX = 1.35; // how far the view tilts up or down, in radians
+const ENTER_MS = 1050; // walking up to a shelf before its page opens
+const ARRIVE_MS = 1300; // coming back in: stepping back out of the shelf you left
 // with the gyro: from flat to upright the phone does not tilt the view at all; tipped
 // past upright it looks up. GYRO_KNEE (radians either side of upright) is how gently
 // the one turns into the other
@@ -172,6 +175,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
   const vignette = useRef<HTMLDivElement>(null);
   const cursor = useRef<HTMLSpanElement>(null);
   const arrived = useRef(false); // once inside, scrolling back up does not rewind the walk
+  const rewinding = useRef(false); // walking back out: the latch above waits until it is under way
   const spotEls = useRef<Record<string, HTMLAnchorElement | null>>({});
   const peekEls = useRef<Record<string, HTMLDivElement | null>>({});
   // the fixture under the mouse (the aim dot does the same on its own)
@@ -298,13 +302,25 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     g.manual = true;
   }
 
-  // the only way back out: unlatch, then play the walk in reverse
-  function goBack() {
+  // the only way back out: unlatch, then play the walk in reverse (slowly from the
+  // button; quicker from the logo)
+  function goBack(ms = 6000) {
     const end = document.documentElement.scrollHeight - window.innerHeight;
     window.scrollTo(0, end); // the view is held at the end, so start the rewind from there
     arrived.current = false;
-    glide(0, 6000);
+    rewinding.current = true; // and not caught again at the end before it has left
+    glide(0, ms);
   }
+  const goBackRef = useRef(goBack);
+  useEffect(() => {
+    goBackRef.current = goBack;
+  });
+  useEffect(() => {
+    if (!intro) return;
+    const toStreet = () => goBackRef.current(2600);
+    window.addEventListener(TO_STREET, toStreet);
+    return () => window.removeEventListener(TO_STREET, toStreet);
+  }, [intro]);
 
   useEffect(() => {
     const el = canvas.current;
@@ -607,7 +623,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     );
 
     // view state
-    let prog = intro ? 0 : 1;
+    // a "shop" button leaves a note to start already inside, the walk done (scene-note.ts);
+    // otherwise (the logo, a reload, a new visit) the landing starts out on the street
+    const note = intro ? peekShopNote() : "";
+    const noteGone = note ? window.setTimeout(clearShopNote, 4000) : 0; // in case the arrival never plays
+    const startInside = note !== "";
+    let prog = startInside ? 1 : intro ? 0 : 1;
+    if (startInside) {
+      arrived.current = true;
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    }
     let yawOff = 0;
     let pitchOff = 0;
     let vyaw = 0;
@@ -623,6 +648,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     // main thread (a frame of the scene can cost a slow phone tens of ms,
     // and the next page has to load between frames)
     let leaving = false;
+    // walking up to a shelf before its page opens: where to, which, the link, when it began
+    let enter: { to: THREE.Vector3; name: string; link: HTMLAnchorElement; t0: number } | null = null;
+    let entered = false;
+    // coming back in: out of the dark, stepping back from the shelf you left (or the
+    // one under Baba) to the middle of the room
+    // (timed in drawn frames, not the clock: the first ones stall while shaders compile)
+    let arrive: { from: string; to: THREE.Vector3 | null; t: number; wait: number } | null = startInside
+      ? { from: note === "-" ? "hot_bong" : "hot_" + note.replace(/-/g, "_"), to: null, t: 0, wait: 10 }
+      : null;
+    const qTo = new THREE.Quaternion();
     let last = clock();
     const v = new THREE.Vector3();
     let aimed: HTMLAnchorElement | null = null; // the label lit up: its shelf is the one in focus
@@ -744,7 +779,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         const span = r.height - window.innerHeight;
         const scrolled = span > 0 ? clamp(-r.top / span) : 1;
         // reaching the end latches: from then on only the back button lets the walk run in reverse
-        if (!arrived.current && prog >= 0.995 && scrolled >= 0.999) arrived.current = true;
+        if (rewinding.current && scrolled < 0.97) rewinding.current = false;
+        if (!arrived.current && !rewinding.current && prog >= 0.995 && scrolled >= 0.999) arrived.current = true;
         target = arrived.current ? 1 : scrolled;
         if (arrived.current !== ribbon) {
           ribbon = arrived.current;
@@ -895,6 +931,53 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           qSway.setFromAxisAngle(xAxis, (my * 0.035 + Math.sin(now / 5300) * 0.006) * sway);
           camera.quaternion.multiply(qSway);
         }
+        // walking up to a shelf: turn to face it, step most of the way there, the lens
+        // narrowing; then the view fades and its page opens
+        let enterZoom = 0;
+        if (arrive) {
+          if (!arrive.to) {
+            // dark at first, then the room opens up
+            arrive.to = (spotAt.find((s) => s.name === arrive!.from) ?? spotAt.find((s) => s.name === "hot_bong"))?.at.clone() ?? null;
+            stageEl.dataset.leaving = "true";
+            const label = stageEl.querySelector(".scene-leaving b");
+            if (label) label.textContent = "the shop";
+          }
+          if (arrive.wait > 0) arrive.wait--;
+          else arrive.t += dt * 1000;
+          const raw = clamp(arrive.t / ARRIVE_MS);
+          const k = 1 - smooth(0, 1, raw);
+          if (arrive.to) {
+            m4.lookAt(camera.position, arrive.to, up);
+            qTo.setFromRotationMatrix(m4);
+            camera.quaternion.slerp(qTo, smooth(0.35, 1, k));
+            camera.position.lerp(arrive.to, 0.62 * k);
+            enterZoom = 14 * k;
+          }
+          if (raw > 0.12 && stageEl.dataset.leaving) delete stageEl.dataset.leaving;
+          if (raw >= 1) {
+            arrive = null;
+            clearShopNote();
+          }
+        }
+        if (enter) {
+          const raw = clamp((now - enter.t0) / ENTER_MS);
+          const k = smooth(0, 1, raw);
+          m4.lookAt(camera.position, enter.to, up);
+          qTo.setFromRotationMatrix(m4);
+          camera.quaternion.slerp(qTo, smooth(0, 0.55, raw));
+          camera.position.lerp(enter.to, 0.62 * k);
+          enterZoom = 14 * k;
+          if (raw > 0.55 && !stageEl.dataset.leaving) {
+            const label = stageEl.querySelector(".scene-leaving b");
+            if (label) label.textContent = enter.link.textContent?.trim() || "the shelf";
+            stageEl.dataset.leaving = "true";
+          }
+          if (raw >= 1 && !entered) {
+            entered = true;
+            leaving = true;
+            enter.link.click(); // now the link itself opens the page
+          }
+        }
         // how far into the other world: the entry is the doorstep, the vault is all the way in
         const inside = smooth(0.4, -3.2, camera.position.z);
         const bump = Math.sin(Math.PI * inside); // the moment of crossing
@@ -916,7 +999,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         // crossing over is a lurch: the view rolls and the lens pulls wide, then it settles
         qRoll.setFromAxisAngle(zAxis, bump * 0.07 * Math.sin(sec * 2.3));
         camera.quaternion.multiply(qRoll);
-        const fov = baseFov + bump * 9;
+        const fov = baseFov + bump * 9 - enterZoom;
         if (Math.abs(camera.fov - fov) > 0.01) {
           camera.fov = fov;
           camera.updateProjectionMatrix();
@@ -1034,7 +1117,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         if (aimName) peekAim = { name: aimName, until: t + AIM_LINGER };
         else if (peekAim.name && t > peekAim.until) peekAim = { name: "", until: 0 };
         const open = hv.name || shelfHover.name || peekAim.name;
-        focusName = on > 0.8 ? open : "";
+        focusName = enter ? enter.name : on > 0.8 ? open : "";
         // one focus for everything: its label lights up with its shelf, whether
         // the shelf or the label is under the mouse or the dot
         const lightUp = focusName ? (spotEls.current[focusName] ?? null) : null;
@@ -1164,6 +1247,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       const a = t?.closest<HTMLAnchorElement>("a[href]");
       const toCategory = !!a && /\/shop\/[^/]+\/?$/.test(a.pathname);
       if (!toCategory || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      // a category's own label: walk up to its shelf first, and open the page after
+      // (the second click, ours, goes straight through)
+      const spot = spotAt.find((s) => spotEls.current[s.name] === a || peekEls.current[s.name]?.contains(a));
+      if (spot && !entered && !still && ready) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!enter) enter = { to: spot.at.clone(), name: spot.name, link: a!, t0: performance.now() };
+        kick();
+        return;
+      }
       leaving = true;
       cancelAnimationFrame(raf);
       raf = 0;
@@ -1203,6 +1296,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
 
     return () => {
       cancelled = true;
+      window.clearTimeout(noteGone);
       cancelAnimationFrame(raf);
       stageEl.removeEventListener("click", onLeave, true);
       ro.disconnect();
@@ -1333,7 +1427,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
 
 
         {intro && (
-          <button type="button" ref={back} className="scene-back" onClick={goBack}>
+          <button type="button" ref={back} className="scene-back" onClick={() => goBack()}>
             <span aria-hidden="true">&larr;</span> Back to the street
           </button>
         )}

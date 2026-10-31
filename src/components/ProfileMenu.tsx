@@ -9,6 +9,7 @@ import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
 import { setModePref, useModePref, type ModePref } from "@/lib/mode";
 import { JarIcon, UserIcon } from "./icons";
 import SceneLink from "./SceneLink";
+import { enterShop } from "./scene-note";
 import "./shop-bar.css";
 import "./profile-panel.css";
 
@@ -259,7 +260,16 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
               // the 3D shop loads only when it is about to be opened
               const L = r.href === "/" ? SceneLink : Link;
               return (
-                <L key={r.href} href={r.href} className="pp-row" onClick={go(r.href)}>
+                <L
+                  key={r.href}
+                  href={r.href}
+                  className="pp-row"
+                  onClick={() => {
+                    // Shop: straight into the shop, not the street (already there, nothing to do)
+                    if (r.href === "/" && path !== "/") enterShop();
+                    go(r.href)();
+                  }}
+                >
                   <I d={r.d} />
                   <span>{r.label}</span>
                 </L>
