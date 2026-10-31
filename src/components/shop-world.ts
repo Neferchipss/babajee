@@ -54,7 +54,6 @@ const KIND: Record<string, { color: string; intensity: number; distance: number 
 // while every shader recompiles. So there is one fixed set: it lights the
 // street while you are out there, goes dark as you cross the threshold, and
 // comes up again on the lamps inside.
-const BUDGET = 16;
 
 function softDot() {
   const c = document.createElement("canvas");
@@ -71,7 +70,8 @@ function softDot() {
   return t;
 }
 
-export function createWorld(root: THREE.Object3D, scene: THREE.Scene) {
+// BUDGET: how many lights at most (fewer on a phone, where each costs every pixel)
+export function createWorld(root: THREE.Object3D, scene: THREE.Scene, BUDGET = 16) {
   const eyes: Eye[] = [];
   const eyeballs: { o: THREE.Object3D; base: THREE.Vector3; seed: number }[] = [];
   const floaters: { o: THREE.Object3D; base: THREE.Vector3; seed: number; book: boolean }[] = [];

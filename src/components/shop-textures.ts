@@ -107,7 +107,8 @@ const FRAG_MIRROR = /* glsl */ `
   outgoingLight = mix(outgoingLight, seen, fres * polish * uMirrorOn);
 }`;
 
-export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRenderer) {
+// lite (phones): colour only, no relief or roughness maps; a third of the texture reads
+export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRenderer, lite = false) {
   // the table tops (all at one height) can mirror the room; see mirrorTables below
   const mirror = {
     uMirror: { value: null as THREE.Texture | null },
@@ -124,9 +125,10 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
     if (t) return t;
     const map = loader.load(`${BASE}/textures/${name}.webp`);
     map.colorSpace = THREE.SRGBColorSpace;
-    const normal = loader.load(`${BASE}/textures/${name}_n.webp`);
-    const rough = loader.load(`${BASE}/textures/${name}_r.webp`);
-    for (const x of [map, normal, rough]) {
+    // a phone does not use the relief or roughness maps, so does not download them
+    const normal = lite ? map : loader.load(`${BASE}/textures/${name}_n.webp`);
+    const rough = lite ? map : loader.load(`${BASE}/textures/${name}_r.webp`);
+    for (const x of new Set([map, normal, rough])) {
       x.wrapS = x.wrapT = THREE.RepeatWrapping;
       x.anisotropy = aniso;
     }
@@ -144,7 +146,8 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
       const t = load(s.tex);
       // the material's own colour would tint the texture twice: the texture brings the colour now
       m.color.set("#ffffff");
-      m.roughness = 1; // the roughness map decides
+      // the roughness map decides; on a phone, without it, a fixed value near its middle
+      m.roughness = lite ? ({ velvet: 0.85, plaster_plum: 0.65, brass: 0.38 } as Record<string, number>)[s.tex] ?? 0.25 : 1;
       if (s.metal !== undefined) m.metalness = s.metal;
       const uniforms = {
         uTriMap: { value: t.map },
@@ -177,8 +180,8 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
         sh.fragmentShader = sh.fragmentShader
           .replace("#include <common>", "#include <common>\n" + FRAG_PARS)
           .replace("#include <map_fragment>", "#include <map_fragment>\n" + FRAG_MAP)
-          .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n" + FRAG_ROUGH)
-          .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\n" + FRAG_NORMAL);
+          .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n" + (lite ? "" : FRAG_ROUGH))
+          .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\n" + (lite ? "" : FRAG_NORMAL));
       };
       m.customProgramCacheKey = () => key() + (isTable ? "|tri|mirror" : "|tri");
       m.needsUpdate = true;
@@ -230,8 +233,8 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
     dispose() {
       for (const t of loaded.values()) {
         t.map.dispose();
-        t.normal.dispose();
-        t.rough.dispose();
+        if (t.normal !== t.map) t.normal.dispose();
+        if (t.rough !== t.map) t.rough.dispose();
       }
     },
   };

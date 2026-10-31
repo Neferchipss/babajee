@@ -51,7 +51,8 @@ float noise(vec2 p) {
 }
 float fbm(vec2 p) {
   float v = 0.0, a = 0.5;
-  for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+  // fewer layers on a phone (OCTAVES): the finest are too small to see there anyway
+  for (int i = 0; i < OCTAVES; i++) { v += a * noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
   return v;
 }
 vec2 turn(vec2 p, float a) { float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
@@ -165,13 +166,15 @@ vec3 museum() {
     if (da > A.y) continue;
     float across = 1.0 - smoothstep(A.y * 0.3, A.y * 0.95, da); // dark at the sides
     L += uMuTint[i] * A.z * across * down;
+    break; // the alcoves do not overlap: the one it is in is the only one
   }
   return L;
 }`;
 
 type Case = { name: string; angle: number; half: number; at: THREE.Vector3; tint: THREE.Color };
 
-export function createSky(root: THREE.Object3D, scene: THREE.Scene) {
+// lite: a phone's lighter version (see ShopScene)
+export function createSky(root: THREE.Object3D, scene: THREE.Scene, lite = false) {
   const made: THREE.Material[] = [];
   const patched: THREE.Material[] = [];
   const stars: { m: THREE.MeshStandardMaterial; base: number; seed: number }[] = [];
@@ -275,6 +278,7 @@ export function createSky(root: THREE.Object3D, scene: THREE.Scene) {
     },
     vertexShader: SKY_VERT,
     fragmentShader: SKY_FRAG,
+    defines: { OCTAVES: lite ? 3 : 5 },
     side: THREE.DoubleSide,
   });
   made.push(skyMat);

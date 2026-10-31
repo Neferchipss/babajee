@@ -142,6 +142,19 @@ function facing(e: DeviceOrientationEvent, screenAngle: number) {
   const down = Math.max(0, -fz);
   return { heading: Math.atan2(fx + ux * down, fy + uy * down), elevation: Math.asin(clamp(fz, -1, 1)), roll };
 }
+// How far the screen is turned from the device's portrait, in degrees: the frame the
+// motion sensor reads in. iOS (iPads especially) still has window.orientation, which
+// is exactly that; its screen.orientation.angle can be counted from landscape instead,
+// which swaps portrait and landscape. Anywhere else, screen.orientation, checked
+// against the window's shape in case it too is counted from the other way round.
+function screenAngle() {
+  const legacy = (window as { orientation?: number }).orientation;
+  if (typeof legacy === "number") return legacy;
+  let a = screen.orientation?.angle ?? 0;
+  const wide = window.innerWidth > window.innerHeight;
+  if (wide !== (Math.abs(a) % 180 === 90)) a += screen.orientation?.type === "landscape-secondary" ? -90 : 90;
+  return a;
+}
 type MotionPermission = { requestPermission?: () => Promise<string> };
 const needsAsk = () => typeof DeviceOrientationEvent !== "undefined" && !!(DeviceOrientationEvent as unknown as MotionPermission).requestPermission;
 const smooth = (a: number, b: number, n: number) => {
@@ -311,7 +324,15 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       return void queueMicrotask(() => setStatus("flat"));
     }
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Phones and tablets get a lighter frame (?lite=1 to see it on a desktop, ?lite=0 to
+    // turn it off): fewer pixels, no ambient occlusion or multisampling, a smaller
+    // bloom, fewer lights, cheaper texturing and sky, and at most 60 frames a second
+    const liteQ = new URLSearchParams(window.location.search).get("lite");
+    const lite = liteQ === "1" || (liteQ !== "0" && window.matchMedia("(pointer: coarse)").matches);
+    // the most pixels a frame may use; on a touch screen the frame rate sets it, between 1x and this
+    const maxRatio = lite ? Math.min(window.devicePixelRatio || 1, 1.5) : Math.min(window.devicePixelRatio || 1, 2);
+    let ratio = maxRatio;
+    renderer.setPixelRatio(ratio);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     const stats = new URLSearchParams(window.location.search).get("stats") === "1" ? { calls: 0, tris: 0, frames: 0, ms: 0 } : null;
     if (stats) {
@@ -319,6 +340,9 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       Reflect.set(window, "__shopStats", stats);
     }
     let frameStart = 0;
+    let frameAvg = 16.7; // ms between frames, smoothed
+    let judgeAt = 1000; // ms until the resolution is next reconsidered
+    let goodSecs = 0;
     renderer.toneMappingExposure = 1.1;
 
     // night: a deep blue sky, thin fog, and every light comes from the model
@@ -335,7 +359,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     // neon and lit glass glow: bloom over the frame
     const composer = new EffectComposer(
       renderer,
-      new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }),
+      new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: lite ? 0 : 4 }),
     );
     composer.addPass(new RenderPass(scene, camera));
     // ambient occlusion: the corners, the backs of the shelves and the undersides
@@ -346,7 +370,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     ao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.4, thickness: 1.2, scale: 1.25, samples: 12 });
     ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
     ao.blendIntensity = 0.9;
-    ao.enabled = new URLSearchParams(window.location.search).get("ao") !== "0";
+    const aoQ = new URLSearchParams(window.location.search).get("ao");
+    ao.enabled = aoQ === "1" || (aoQ !== "0" && !lite);
     composer.addPass(ao);
     const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.1, 0.3, 1.5);
     composer.addPass(bloom);
@@ -512,11 +537,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         aim = new THREE.CatmullRomCurve3(targets, false, "centripetal");
         door = root.getObjectByName("door_leaf") ?? null;
         if (door) doorOpen.copy(door.quaternion);
-        world = createWorld(root, scene);
+        world = createWorld(root, scene, lite ? 8 : 16);
         magic = createMagic(root, scene, new Set(categories.map((c) => c.slug)));
-        sky = createSky(root, scene);
+        sky = createSky(root, scene, lite);
         // marble, plaster, wood, brass and velvet on the inside's surfaces (?tex=0 for plain colours)
-        if (new URLSearchParams(window.location.search).get("tex") !== "0") surfaces = applyTextures(root, renderer);
+        if (new URLSearchParams(window.location.search).get("tex") !== "0") surfaces = applyTextures(root, renderer, lite);
         // what the polished surfaces reflect: the room itself, taken from the middle at table
         // height once you are inside with its lights up (on the street it is dark and hidden),
         // and once more a little later, for textures that came in slowly
@@ -663,8 +688,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       g.seen = true;
       if (!g.on) return;
       // older iPhones only have the deprecated window.orientation
-      const legacy = (window as { orientation?: number }).orientation;
-      const view = facing(e, screen.orientation?.angle ?? legacy ?? 0);
+      const view = facing(e, screenAngle());
       gHead = view.heading;
       gElev = view.elevation;
       gRollRaw = view.roll;
@@ -678,7 +702,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       renderer.setSize(w, h, false);
       composer.setSize(w, h);
       inkPass.setSize(Math.round(w * renderer.getPixelRatio()), Math.round(h * renderer.getPixelRatio()));
-      bloom.resolution.set(w, h);
+      // a smaller bloom on a phone: it is soft anyway
+      bloom.resolution.set(lite ? w / 2 : w, lite ? h / 2 : h);
       tableMirror?.setSize(Math.round((w * renderer.getPixelRatio()) / 2), Math.round((h * renderer.getPixelRatio()) / 2));
       camera.aspect = w / h;
       baseFov = w / h < 1 ? 78 : 60; // a taller view needs more room
@@ -687,9 +712,31 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     };
 
     const tick = (now: number) => {
+      // a 120 Hz phone screen would draw every frame twice as often for nothing: 60 is plenty
+      if (lite && now - last < 14) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       frameStart = clock();
       raf = 0;
       const dt = Math.min(0.05, (now - last) / 1000);
+      // on a touch screen, the frame rate sets the resolution: slow frames drop it a
+      // step (down to 1x), a few steady seconds at full speed raise it again
+      if (lite && now - last < 200) {
+        frameAvg += (now - last - frameAvg) * 0.05;
+        judgeAt -= now - last;
+        if (judgeAt <= 0) {
+          judgeAt = 1000;
+          const next = frameAvg > 21 ? Math.max(1, ratio - 0.15) : frameAvg < 17.5 && ++goodSecs >= 3 ? Math.min(maxRatio, ratio + 0.1) : ratio;
+          if (frameAvg > 21) goodSecs = 0;
+          if (next !== ratio) {
+            ratio = next;
+            goodSecs = 0;
+            renderer.setPixelRatio(ratio);
+            size();
+          }
+        }
+      }
       last = now;
       let target = 1;
       if (intro) {
