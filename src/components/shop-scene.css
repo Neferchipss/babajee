@@ -4,6 +4,19 @@
 .scene {
   position: relative;
   color: var(--color-paper);
+  /* kept for the landing words, which stay on brand */
+  --brand-gold: var(--color-rasta-gold);
+  --brand-char: var(--color-char);
+}
+/* in the 3D view the highlight is violet, like Baba's fire: the labels, the
+   buttons, the frame, the product fans and the cursor */
+.scene-stage {
+  --color-rasta-gold: #b58cff;
+  --color-char: #1c0b30; /* text on it: a deep plum, readable on the violet */
+}
+.scene-landing {
+  --color-rasta-gold: var(--brand-gold);
+  --color-char: var(--brand-char);
 }
 .scene[data-intro="true"] {
   height: 360svh; /* a short walk: about 260% of a screen of scrolling */
@@ -15,6 +28,9 @@ body:has(.scene[data-intro="true"]) .ftr {
 /* the view sits under the bar on top (the scene measures it into --ribbon-h),
    never behind it, so nothing covers the view's top edge */
 .scene-stage {
+  /* dragging to look round must not select the labels' text */
+  -webkit-user-select: none;
+  user-select: none;
   position: sticky;
   top: var(--ribbon-h, 0px);
   height: calc(100svh - var(--ribbon-h, 0px));
@@ -246,14 +262,14 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 4px 11px;
+  padding: 2px 7px;
   border: 1px solid rgb(255 255 255 / 0.35);
   border-radius: 999px;
   background: rgb(0 0 0 / 0.6);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   font-weight: 700;
   white-space: nowrap;
   opacity: 0;
@@ -328,7 +344,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   }
 }
 
-/* the cursor: a warm gold iris and pupil. It opens up over a shelf, pinches in
+/* the cursor: a violet iris and pupil. It opens up over a shelf, pinches in
    while dragging, and a small arrow outside it shows which way the view turns
    when the mouse rests near an edge (the scene sets --push and --turn) */
 .scene-cursor {
@@ -364,31 +380,31 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   /* the iris */
   width: 26px;
   height: 26px;
-  border: 1.5px solid rgb(255 196 120 / 0.95);
+  border: 1.5px solid rgb(196 160 255 / 0.95);
   /* a thin dark edge either side, so it reads on the pale floor as on the dark walls */
   box-shadow:
     0 0 0 1px rgb(20 8 4 / 0.45),
     inset 0 0 0 1px rgb(20 8 4 / 0.35),
-    0 0 10px rgb(255 160 70 / 0.45);
+    0 0 10px rgb(160 100 255 / 0.5);
 }
 .scene-cursor::after {
   /* the pupil */
   width: 5px;
   height: 5px;
-  background: #ffd9a3;
+  background: #e2d0ff;
   box-shadow:
     0 0 0 1px rgb(20 8 4 / 0.5),
-    0 0 8px rgb(255 170 80 / 0.9);
+    0 0 8px rgb(170 110 255 / 0.9);
 }
 .scene-cursor[data-on="true"]::before {
   width: 46px;
   height: 46px;
   border-width: 2px;
-  background: rgb(255 170 80 / 0.08);
+  background: rgb(170 110 255 / 0.1);
   box-shadow:
     0 0 0 1px rgb(20 8 4 / 0.45),
     inset 0 0 0 1px rgb(20 8 4 / 0.35),
-    0 0 18px rgb(255 160 70 / 0.6);
+    0 0 18px rgb(160 100 255 / 0.65);
 }
 .scene-cursor[data-on="true"]::after {
   width: 11px;
@@ -411,8 +427,8 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   /* a small chevron set out past the iris, turned to face where the view is going */
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 8px solid rgb(255 196 120 / 0.95);
-  filter: drop-shadow(0 0 1px rgb(20 8 4 / 0.8)) drop-shadow(0 0 4px rgb(255 160 70 / 0.8));
+  border-left: 8px solid rgb(196 160 255 / 0.95);
+  filter: drop-shadow(0 0 1px rgb(20 8 4 / 0.8)) drop-shadow(0 0 4px rgb(160 100 255 / 0.85));
   opacity: var(--push);
   transform: rotate(var(--turn)) translate(calc(20px + 6px * var(--push)), -50%);
   transform-origin: 0 0;

@@ -15,7 +15,9 @@ import { InkPass } from "./ink-pass";
 import Logo from "./Logo";
 import { createMagic } from "./shop-magic";
 import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
+import { optimiseScene } from "./shop-cull";
 import { createSky } from "./shop-sky";
+import { applyTextures } from "./shop-textures";
 import { createWorld } from "./shop-world";
 import "./shop-scene.css";
 
@@ -55,13 +57,21 @@ const STOPS = [0, 0.2, 0.38, 0.55, 0.76, 1];
 const LOOK_FROM = 0.93; // the labels come in over the last stretch
 const SETTLE = 0.7; // seconds at the very end before the view may be turned
 const GYRO_EASE = 1.2; // seconds for the view to hand over from the default camera to the phone
-const LABEL_H = 29; // px a label needs to itself, so crowded ones can be pushed apart
+const LABEL_H = 23; // px a label needs to itself, so crowded ones can be pushed apart
 
 const clamp = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 const PITCH_MAX = 1.35; // how far the view tilts up or down, in radians
+// with the gyro: from flat to upright the phone does not tilt the view at all; tipped
+// past upright it looks up. GYRO_KNEE (radians either side of upright) is how gently
+// the one turns into the other
+const GYRO_KNEE = 0.3;
+// how far up the phone looks, from how far its back points above level (e): nothing
+// below level, e itself well above, and a smooth bend between with no corner
+const gyroLook = (e: number) => Math.max(0, e * smooth(-GYRO_KNEE, GYRO_KNEE, e));
 const EDGE_FROM = 0.3; // with a mouse: how far out from the middle (0..1), up or down, before the view starts turning
 const EDGE_FROM_X = 0.2; // and sideways: the still middle is narrower than it is tall
 const EDGE_SPEED = 1.15; // and how fast it turns right at the edge, radians a second
+const EDGE_HOLD = 1.2; // seconds it keeps turning after the mouse stops moving, before it runs down
 // the time, for the animation loop and the glide; only ever read in effects and handlers
 const clock = () => performance.now();
 
@@ -122,9 +132,15 @@ function facing(e: DeviceOrientationEvent, screenAngle: number) {
   if (h > 0.05) {
     const l = [(-fz * fx) / h, (-fz * fy) / h, h]; // level up
     const r = [fy / h, -fx / h, 0]; // level right (forward x world up)
-    roll = Math.atan2(ux * r[0] + uy * r[1] + uz * r[2], ux * l[0] + uy * l[1] + uz * l[2]);
+    // near flat the roll cannot be told, so it fades out there rather than jumping
+    roll = Math.atan2(ux * r[0] + uy * r[1] + uz * r[2], ux * l[0] + uy * l[1] + uz * l[2]) * smooth(0.05, 0.35, h);
   }
-  return { heading: Math.atan2(fx, fy), elevation: Math.asin(clamp(fz, -1, 1)), roll };
+  // heading: which way the back points, but as the phone tips back towards flat
+  // (the back pointing down, where it says nothing about direction) the screen's
+  // top edge takes over, which points the same way; flat on a table, turning the
+  // phone round still turns the view
+  const down = Math.max(0, -fz);
+  return { heading: Math.atan2(fx + ux * down, fy + uy * down), elevation: Math.asin(clamp(fz, -1, 1)), roll };
 }
 type MotionPermission = { requestPermission?: () => Promise<string> };
 const needsAsk = () => typeof DeviceOrientationEvent !== "undefined" && !!(DeviceOrientationEvent as unknown as MotionPermission).requestPermission;
@@ -297,6 +313,12 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    const stats = new URLSearchParams(window.location.search).get("stats") === "1" ? { calls: 0, tris: 0, frames: 0, ms: 0 } : null;
+    if (stats) {
+      renderer.info.autoReset = false;
+      Reflect.set(window, "__shopStats", stats);
+    }
+    let frameStart = 0;
     renderer.toneMappingExposure = 1.1;
 
     // night: a deep blue sky, thin fog, and every light comes from the model
@@ -411,6 +433,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     let world: ReturnType<typeof createWorld> | null = null;
     let magic: ReturnType<typeof createMagic> | null = null;
     let sky: ReturnType<typeof createSky> | null = null;
+    let cull: ReturnType<typeof optimiseScene> | null = null;
+    let surfaces: ReturnType<typeof applyTextures> | null = null;
+    let roomEnv: THREE.Texture | null = null;
+    let tableMirror: { update(c: THREE.Camera): void; setSize(w: number, h: number): void; dispose(): void } | null = null;
+    let snapRoom: (() => void) | null = null; // takes the room's reflection, the first time you are inside
     let baseFov = 60;
     let ready = false;
     const tune = createShopMusic();
@@ -488,6 +515,44 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         world = createWorld(root, scene);
         magic = createMagic(root, scene, new Set(categories.map((c) => c.slug)));
         sky = createSky(root, scene);
+        // marble, plaster, wood, brass and velvet on the inside's surfaces (?tex=0 for plain colours)
+        if (new URLSearchParams(window.location.search).get("tex") !== "0") surfaces = applyTextures(root, renderer);
+        // what the polished surfaces reflect: the room itself, taken from the middle at table
+        // height once you are inside with its lights up (on the street it is dark and hidden),
+        // and once more a little later, for textures that came in slowly
+        if (surfaces) {
+          const at = new THREE.Box3().setFromObject(root.getObjectByName("dome") ?? root).getCenter(new THREE.Vector3()).setY(1.2);
+          const snap = () => {
+            if (cancelled || !surfaces) return;
+            const cubeRt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+            const cube = new THREE.CubeCamera(0.2, 40, cubeRt);
+            cube.position.copy(at);
+            cube.update(renderer, scene);
+            const gen = new THREE.PMREMGenerator(renderer);
+            const env = gen.fromCubemap(cubeRt.texture).texture;
+            gen.dispose();
+            cubeRt.dispose();
+            roomEnv?.dispose();
+            roomEnv = env;
+            surfaces.reflect(env);
+            kick();
+          };
+          // on a desktop the table tops also mirror the room for real (?mirror=0 without)
+          if (bend && new URLSearchParams(window.location.search).get("mirror") !== "0") {
+            const pr = renderer.getPixelRatio() / 2;
+            tableMirror = surfaces.mirrorTables(scene, Math.round(stageEl.clientWidth * pr), Math.round(stageEl.clientHeight * pr));
+          }
+          snapRoom = () => {
+            snap();
+            window.setTimeout(snap, 4000);
+          };
+        }
+        // merge what never moves and zone it either side of the door (?merge=0 to compare)
+        if (new URLSearchParams(window.location.search).get("merge") !== "0") {
+          const domeAt = new THREE.Box3().setFromObject(root.getObjectByName("dome") ?? root).getCenter(new THREE.Vector3());
+          cull = optimiseScene(root, domeAt);
+          if (stats) console.info("[shop] meshes merged", cull.before, "->", cull.after);
+        }
         // the whole scene, not just the model: the sky adds see-through beams of its own
         scene.traverse((o) => {
           if (!(o instanceof THREE.Mesh)) return;
@@ -544,6 +609,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const mid = new THREE.Vector2();
     const hoverable = window.matchMedia("(hover: hover)").matches; // a mouse: no aiming with the dot
     const edgeVel = new THREE.Vector2(); // how fast the mouse at the edge is turning the view
+    let mouseMovedAt = 0; // when the mouse last moved: resting at an edge does not turn the view for long
     const q = new THREE.Quaternion();
     const qYaw = new THREE.Quaternion();
     const qPitch = new THREE.Quaternion();
@@ -589,6 +655,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     // a turn leans the view into it a little, like a head turning, and it settles
     // back level a beat after the turn stops
     const qBank = new THREE.Quaternion();
+    const qInv = new THREE.Quaternion();
     let bank = 0;
     let lean = 0;
     const onOrient = (e: DeviceOrientationEvent) => {
@@ -612,6 +679,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       composer.setSize(w, h);
       inkPass.setSize(Math.round(w * renderer.getPixelRatio()), Math.round(h * renderer.getPixelRatio()));
       bloom.resolution.set(w, h);
+      tableMirror?.setSize(Math.round((w * renderer.getPixelRatio()) / 2), Math.round((h * renderer.getPixelRatio()) / 2));
       camera.aspect = w / h;
       baseFov = w / h < 1 ? 78 : 60; // a taller view needs more room
       camera.fov = baseFov;
@@ -619,6 +687,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     };
 
     const tick = (now: number) => {
+      frameStart = clock();
       raf = 0;
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -642,6 +711,10 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       // the view is locked until the camera has arrived and come to rest; then it frees up
       settled = prog >= 0.998 && target >= 0.998 ? settled + dt : 0;
       const now_ok = settled > SETTLE;
+      if (now_ok && snapRoom) {
+        snapRoom();
+        snapRoom = null;
+      }
       if (now_ok !== canLook) {
         canLook = now_ok;
         setUnlocked(now_ok);
@@ -694,8 +767,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           console.info("[gyro] handed over", { head: gHead.toFixed(2), elev: gElev.toFixed(2), roll: gRollRaw.toFixed(2), yaw: yawOff.toFixed(2), pitch: pitchOff.toFixed(2) });
         }
         const k = smooth(0, 1, gBlend);
+        // held anywhere from flat to upright (as people hold a phone) the view turns left
+        // and right and rolls with the phone, but stays level, so the shop never drops out
+        // of sight. Tipped back past upright it looks up
         yawOff = fromYaw + (gHead + gAnchor - fromYaw) * k;
-        pitchOff = fromPitch + (gElev - fromPitch) * k;
+        pitchOff = fromPitch + (gyroLook(gElev) - fromPitch) * k;
         gRoll = gRollRaw * k;
       } else if (!g.on && gRoll) {
         gRoll *= Math.exp(-dt * 6); // level again, gently
@@ -705,12 +781,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       // first and a little faster right at the edge; the middle stays still
       let ex = 0;
       let ey = 0;
-      if (canLook && mouseAt && !dragging && !g.on) {
+      if (canLook && mouseAt && !dragging && !g.on && !still) {
         // each way on its own: nothing inside the still middle, then faster the
         // nearer the edge, full speed right at it
         const ramp = (n: number, from: number) => Math.sign(n) * clamp((Math.abs(n) - from) / (1 - from));
-        ex = ramp(mouseAt.x, EDGE_FROM_X) * EDGE_SPEED;
-        ey = ramp(mouseAt.y, EDGE_FROM) * EDGE_SPEED;
+        // and only while the mouse is in use: left resting at an edge, the turn runs
+        // down and stops, so the room never keeps spinning on its own
+        const idle = (now - mouseMovedAt) / 1000;
+        const keep = 1 - smooth(EDGE_HOLD, EDGE_HOLD + 0.8, idle);
+        ex = ramp(mouseAt.x, EDGE_FROM_X) * EDGE_SPEED * keep;
+        ey = ramp(mouseAt.y, EDGE_FROM) * EDGE_SPEED * keep;
       }
       // eased in and out, so it never lurches when the mouse crosses into the edge or leaves it
       const ek = 1 - Math.exp(-dt * 9);
@@ -799,6 +879,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           const swing = smooth(0.3, 0.52, prog) * (1 - Math.pow(smooth(0.78, 0.86, prog), 2));
           door.quaternion.slerpQuaternions(doorShut, doorOpen, swing);
         }
+        // with the door shut, only the side you are on can be seen
+        cull?.show(prog < 0.3 ? "street" : prog > 0.9 ? "inside" : "all");
         // the music comes up as you cross the door, and goes as you leave
         tune.want(soundRef.current && !leaving ? smooth(0.35, 0.9, inside) : 0);
         const blocked = tune.blocked();
@@ -809,8 +891,20 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         world?.update(sec, dt, inside, camera);
         magic?.update(sec, dt, inside, camera);
         sky?.update(sec, dt, inside, focusName);
+        if (stats) renderer.info.reset();
+        if (tableMirror && inside > 0.6) tableMirror.update(camera);
         if (fxOff) renderer.render(scene, camera);
         else composer.render();
+        if (stats) {
+          // ?stats=1: what each frame costs, for measuring (read from the console or a test)
+          const gl = renderer.getContext();
+          gl.finish();
+          const r = renderer.info.render;
+          stats.calls = r.calls;
+          stats.tris = r.triangles;
+          stats.frames++;
+          stats.ms += clock() - frameStart;
+        }
         camera.updateMatrixWorld();
 
         // labels on the fixtures, once the camera has settled
@@ -825,7 +919,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           const show = on > 0.05 && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
           a.style.opacity = show ? String(on) : "0";
           a.style.pointerEvents = show && on > 0.8 ? "auto" : "none";
-          if (show) lit.push({ a, name: s.name, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 6.6 + 24 });
+          if (show) lit.push({ a, name: s.name, x: ((v.x + 1) / 2) * W, y: ((1 - v.y) / 2) * H, w: (a.textContent?.length ?? 8) * 5.9 + 16 });
           else a.style.transform = `translate(${((v.x + 1) / 2) * W}px, ${((1 - v.y) / 2) * H}px) translate(-50%, -50%)`;
         }
         // labels that would land on one another are pushed apart, so each one reads on its own
@@ -844,7 +938,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
             }
           }
         }
-        for (const l of lit) l.a.style.transform = `translate(${l.x}px, ${l.y}px) translate(-50%, -50%) scale(var(--aim-scale))`;
+        // the labels lean with the room when the view rolls, so they stay level with the
+        // shelves rather than with the screen: the angle the room's "up" makes on screen
+        v.set(0, 1, 0).applyQuaternion(qInv.copy(camera.quaternion).invert());
+        const level = Math.hypot(v.x, v.y) > 0.2 ? Math.atan2(v.x, v.y) : 0;
+        for (const l of lit) l.a.style.transform = `translate(${l.x}px, ${l.y}px) translate(-50%, -50%) rotate(${level.toFixed(4)}rad) scale(var(--aim-scale))`;
 
         // the dot in the middle: the label it sits on lights up (the nearest,
         // if it touches more than one), as a sign it opens
@@ -914,7 +1012,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
             // no room above: hang under the label instead
             const below = String(l.y < 170);
             if (pk.dataset.below !== below) pk.dataset.below = below;
-            pk.style.transform = `translate(${l.x}px, ${l.y}px)`;
+            pk.style.transform = `translate(${l.x}px, ${l.y}px) rotate(${level.toFixed(4)}rad)`;
           }
           if (pk.dataset.open !== String(isOpen)) pk.dataset.open = String(isOpen);
         }
@@ -996,6 +1094,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       const onView = e.target instanceof Element && !!e.target.closest(".scene-stage");
       const over = e.pointerType === "mouse" && onView && fx >= 0 && fx <= 1 && fy >= 0 && fy <= 1;
       mouseAt = over ? (mouseAt ?? new THREE.Vector2()).set(tx * 2, -ty * 2) : null;
+      mouseMovedAt = clock();
       // our own cursor follows the mouse over the view, and gives way to the
       // ordinary pointer over the labels and buttons
       const c = cursor.current;
@@ -1085,6 +1184,9 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       document.documentElement.style.removeProperty("--ribbon-h");
       magic?.dispose();
       sky?.dispose();
+      surfaces?.dispose();
+      roomEnv?.dispose();
+      tableMirror?.dispose();
       world?.dispose();
       draco.dispose();
       inkPass.dispose();

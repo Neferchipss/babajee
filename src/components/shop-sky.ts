@@ -352,8 +352,8 @@ export function createSky(root: THREE.Object3D, scene: THREE.Scene) {
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   })();
-  const bodyMat = new THREE.SpriteMaterial({ map: flameTex, color: new THREE.Color(2.4, 0.7, 0.12), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
-  const coreMat = new THREE.SpriteMaterial({ map: flameTex, color: new THREE.Color(2.6, 1.6, 0.55), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  const bodyMat = new THREE.SpriteMaterial({ map: flameTex, color: new THREE.Color(1.5, 0.35, 2.6) /* a violet flame: Baba's fire, not a hearth */, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  const coreMat = new THREE.SpriteMaterial({ map: flameTex, color: new THREE.Color(2.2, 1.5, 2.9), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
   made.push(bodyMat, coreMat);
   const flame = (at: THREE.Vector3, size: number, seed: number) => {
     const body = new THREE.Sprite(bodyMat);
@@ -371,7 +371,7 @@ export function createSky(root: THREE.Object3D, scene: THREE.Scene) {
   // candles are small flames with no light of their own: the torches beside them light the case
   const candles = candleAt.map((c, i) => ({ ...flame(c.at, 0.42, i * 2.11 + 0.5), alcove: c.alcove }));
   const fires = [0, 1].map(() => {
-    const l = new THREE.PointLight("#ff8a3a", 0, 5.5, 2);
+    const l = new THREE.PointLight("#a46bff", 0, 5.5, 2);
     scene.add(l);
     return l;
   });

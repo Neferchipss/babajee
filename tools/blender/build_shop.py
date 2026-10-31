@@ -159,22 +159,22 @@ def bong(b, x, y, z, rng, h=None, gm=None):
         pr = [(0, 0), (0.05, 0), (0.06, 0.02), (0.075, 0.07), (0.07, 0.11), (0.04, 0.15), (0.03, 0.19), (0.03, h * 0.85), (0.036, h), (0.028, h), (0, h)]
     else:
         pr = [(0, 0), (0.04, 0), (0.07, 0.03), (0.095, 0.09), (0.09, 0.15), (0.05, 0.2), (0.03, 0.24), (0.028, h * 0.88), (0.036, h * 0.95), (0.036, h), (0, h)]
-    b.lathe(pr, (x, y, z), gm, seg=18)
+    b.lathe(pr, (x, y, z), gm, seg=12)  # small on a shelf: a dozen sides reads as round
     b.tube([(x, y - 0.035, z + 0.08), (x, y - 0.075, z + 0.12), (x, y - 0.115, z + 0.2)], 0.012, M["glass"], 8)
-    b.lathe([(0, 0), (0.016, 0), (0.026, 0.02), (0.03, 0.03), (0.026, 0.03), (0, 0.022)], (x, y - 0.12, z + 0.2), gm, seg=12)
+    b.lathe([(0, 0), (0.016, 0), (0.026, 0.02), (0.03, 0.03), (0.026, 0.03), (0, 0.022)], (x, y - 0.12, z + 0.2), gm, seg=8)
 
 
 def jar(b, x, y, z, r, h, body, lid):
-    b.lathe([(0, 0), (r * 0.9, 0), (r, 0.01), (r, h * 0.82), (r * 0.85, h * 0.86), (0, h * 0.86)], (x, y, z), body, seg=20)
-    b.lathe([(0, h * 0.84), (r * 0.9, h * 0.84), (r * 0.9, h * 0.96), (r * 0.7, h), (0, h)], (x, y, z), lid, seg=20)
+    b.lathe([(0, 0), (r * 0.9, 0), (r, 0.01), (r, h * 0.82), (r * 0.85, h * 0.86), (0, h * 0.86)], (x, y, z), body, seg=12)
+    b.lathe([(0, h * 0.84), (r * 0.9, h * 0.84), (r * 0.9, h * 0.96), (r * 0.7, h), (0, h)], (x, y, z), lid, seg=12)
 
 
 def grinder(b, x, y, z, r, m):
     h = r * 0.9
-    b.lathe([(0, 0), (r, 0), (r, h * 0.35), (r * 1.03, h * 0.37), (r * 1.03, h * 0.66), (r, h * 0.68), (r, h * 0.95), (r * 0.9, h), (0, h)], (x, y, z), m, seg=28)
+    b.lathe([(0, 0), (r, 0), (r, h * 0.35), (r * 1.03, h * 0.37), (r * 1.03, h * 0.66), (r, h * 0.68), (r, h * 0.95), (r * 0.9, h), (0, h)], (x, y, z), m, seg=16)
 
 
-def dish(b, x, y, z, r, m, seg=22):
+def dish(b, x, y, z, r, m, seg=14):
     b.lathe([(0, 0), (r * 0.9, 0), (r, 0.012), (r * 1.02, 0.03), (r * 0.9, 0.034), (r * 0.8, 0.02), (0, 0.016)], (x, y, z), m, seg)
 
 
@@ -508,7 +508,7 @@ def shelf_row(b, wall, s0, s1, d, z, kind, rng, hmax=0.3):
             s += 2 * r + 0.02
         elif kind == "tin":
             r = rng.uniform(0.04, 0.06)
-            b.lathe([(0, 0), (r, 0), (r, 0.05), (r * 1.04, 0.055), (r * 1.04, 0.065), (0, 0.065)], (x, y, z), rng.choice([M["brass"], M["fabric_r"], M["fabric_g"], M["fabric_y"], M["black"]]), 18)
+            b.lathe([(0, 0), (r, 0), (r, 0.05), (r * 1.04, 0.055), (r * 1.04, 0.065), (0, 0.065)], (x, y, z), rng.choice([M["brass"], M["fabric_r"], M["fabric_g"], M["fabric_y"], M["black"]]), 12)
             s += 2 * r + 0.02
         elif kind == "can":
             b.cyl(x, y, z + 0.075, 0.025, 0.025, 0.15, rng.choice([M["fabric_r"], M["black"], M["fabric_y"]]), 12)
@@ -582,8 +582,8 @@ scene.render.resolution_x, scene.render.resolution_y = 1920, 1080
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 bpy.ops.export_scene.gltf(
     filepath=OUT, export_format="GLB", export_cameras=True, export_extras=True, export_apply=True, export_yup=True,
-    export_draco_mesh_compression_enable="--nodraco" not in argv, export_draco_mesh_compression_level=6,
-    export_draco_position_quantization=14, export_draco_normal_quantization=10, export_draco_texcoord_quantization=12,
+    export_draco_mesh_compression_enable="--nodraco" not in argv, export_draco_mesh_compression_level=10,
+    export_draco_position_quantization=14, export_draco_normal_quantization=8, export_draco_texcoord_quantization=10,
 )
 print("EXPORTED", OUT, os.path.getsize(OUT), "bytes")
 if BLEND:

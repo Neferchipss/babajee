@@ -3,7 +3,7 @@
 #   float_candle_N      drifts like the other float_*; the material m_flame flickers
 
 M2 = dict(
-    flame=mat("flame", "#ffb347", 0.4, 0.0, 1.0, 6.0),
+    flame=mat("flame", "#b77bff", 0.4, 0.0, 1.0, 6.0),  # violet, like the torches and candles
 )
 
 

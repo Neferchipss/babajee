@@ -16,7 +16,7 @@
 import json
 
 RX, RY = 0.0, 9.0  # the centre of the room, where the walk ends: far enough back that the ring clears the shop window
-R = 5.8  # the inner face of the piers between the alcoves
+R = 5.2  # the inner face of the piers between the alcoves
 ND = 0.55  # how deep an alcove is
 RB = R + ND  # the back of an alcove
 WH = 8.2  # the wall's height; the dome starts there
@@ -26,6 +26,7 @@ P_ANG = PIER / R
 ARCH_SPRING, ARCH_TOP, NICHE_H = 4.15, 4.8, 5.0
 DOOR_SPRING, DOOR_TOP = 3.15, 3.9  # the arch over the way in, a half circle
 SHELF_TOP = 3.85  # how high the fixtures in the alcoves rise
+LABEL_Z = 1.55  # the height of every category label
 
 
 def dome_z(r):
@@ -448,7 +449,8 @@ for n_, (theta, h, (slug, label, kind, rows)) in enumerate(BAYS):
     top = fixture(b, kind, rows, -hw + 0.12, hw - 0.12, rng)
     ob = b.build(loc=loc, rot=rot)
     ob["half"] = h  # the site lights each alcove like a museum case, across this angle either side
-    HOTSPOTS.append((f"hot_{slug.replace('-', '_')}", to_world((0.0, 11.0 - 0.35, top)), slug, label))
+    # every label at the same height, so they read as one line round the room
+    HOTSPOTS.append((f"hot_{slug.replace('-', '_')}", to_world((0.0, 11.0 - 0.35, LABEL_Z)), slug, label))
     ALCOVES.append((ob, to_world, hw, slug))
 
 # a few candles stood about on each alcove's shelves, unlit until the alcove is
@@ -547,13 +549,14 @@ M.update(
     marble_black=mat("marble_black", "#1a171c", 0.18),
     marble_ivory=mat("marble_ivory", "#e3d8c6", 0.2),
     marble_taupe=mat("marble_taupe", "#b3a590", 0.2),
+    marble_table=mat("marble_table", "#e3d8c6", 0.2),
     marble_grey=mat("marble_grey", "#6a646d", 0.2),
 )
 s = B("rotunda_floor", "Shell")
 s.cyl(RX, RY, -0.01, RB + 0.32, RB + 0.32, 0.02, M["marble_ivory"], 96)
 s.build()
 
-RC, RT0, RT1 = 2.3, 2.42, 3.3  # the compass's reach, and the band of tiles
+RC, RT0, RT1 = 1.85, 1.97, 2.7  # the compass's reach, and the band of tiles
 b = B("floor_inlay", "Shell")
 for r0, r1 in ((RC, RT0), (RT1, RT1 + 0.07), (R - 0.4, R - 0.35)):  # brass rings
     annulus(b, r0, r1, 0.0, 0.006, M["brass"], seg=120)
@@ -594,7 +597,7 @@ b.build()
 b = B("tables", "Fixtures")
 rt = random.Random(61)
 T0, T1, TH = R - 2.35, R - 1.2, 0.86  # inner and outer edge, height of the top
-HS = 0.59  # half of each table's sweep round the ring
+HS = 0.54  # half of each table's sweep round the ring (keeps the gap at the runner wider than it)
 DOOR_GAP = 1.6 / T0  # the gap at the way in, measured along the inner edge
 GAP = (2 * PI - 8 * HS - DOOR_GAP) / 3  # the other three gaps, all the same
 
@@ -617,7 +620,7 @@ for k in range(4):
     b.prism_xy(table_shape(T0 + 0.1, T1 - 0.1, a0, a1, 0.06), 0.0, 0.07, M["black"])  # kick
     b.prism_xy(table_shape(T0 + 0.06, T1 - 0.06, a0, a1, 0.03), 0.07, TH - 0.04, M["plum2"])  # lacquered body
     b.prism_xy(table_shape(T0 + 0.03, T1 - 0.03, a0, a1, 0.015), TH - 0.04, TH - 0.015, M["brass"])
-    b.prism_xy(table_shape(T0, T1, a0, a1, 0.0), TH - 0.015, TH + 0.035, M["marble_ivory"])  # the top
+    b.prism_xy(table_shape(T0, T1, a0, a1, 0.0), TH - 0.015, TH + 0.035, M["marble_table"])  # the top: its own, so its veins can be laid larger than the floor's
     # the pieces on show: one big statement bong in the middle and two more either
     # side, each standing on a lit brass plinth so the glass glows from below
     for f_, sc in ((0.22, 1.25), (0.5, 1.9), (0.78, 1.25)):

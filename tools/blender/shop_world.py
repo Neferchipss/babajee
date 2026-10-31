@@ -172,6 +172,6 @@ b.build()
 lamp("lamp_face_key", polar(2.2, FACE_A, 5.9), "window")
 lamp("lamp_violet_face", polar(R - 1.0, FACE_A, 7.8), "violet")
 lamp("lamp_violet_dome", (RX, RY, 7.2), "violet")
-lamp("lamp_teal_floor", (RX, RY, 0.6), "teal")
+lamp("lamp_warm_floor", (RX, RY, 0.6), "shop")  # warm: a coloured wash here tints the glossy wood and marble
 lamp("lamp_mag_left", polar(3.4, FACE_A + 1.9, 4.6), "magenta")
 lamp("lamp_teal_right", polar(3.4, FACE_A - 1.9, 4.6), "teal")
