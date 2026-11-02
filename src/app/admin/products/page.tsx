@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
@@ -25,7 +25,6 @@ export default function ProductsAdminPage() {
 }
 
 function ProductsAdmin() {
-  const router = useRouter();
   const params = useSearchParams();
   const api = adminApi();
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -64,8 +63,10 @@ function ProductsAdmin() {
     if (openId) q.set("product", openId);
     else q.delete("product");
     const next = `${window.location.pathname}${q.size ? `?${q}` : ""}`;
-    if (next !== window.location.pathname + window.location.search) router.replace(next, { scroll: false });
-  }, [cat, openId, router]);
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next + window.location.hash);
+    }
+  }, [cat, openId]);
 
   const inCat = useMemo(() => (cat ? rows.filter((p) => p.category_id === cat) : rows), [rows, cat]);
   const counts = useMemo(() => {
