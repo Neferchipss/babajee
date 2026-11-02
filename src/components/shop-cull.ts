@@ -20,6 +20,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const MOVES = /^(eye_|eyeball_|float_|planet_|flybook_|car_|ped_|curtain_|door_leaf|rose$|dome$|book_|bslot_|step_|ladder$|roll_|portrait_|grind_top|lflame_|chalk_board)/;
 
+const STREET = /^(v2_backwall|decal_lit)/;
+
 type Zone = "street" | "inside" | "both";
 
 export function optimiseScene(root: THREE.Object3D, centre: THREE.Vector3) {
@@ -43,7 +45,11 @@ export function optimiseScene(root: THREE.Object3D, centre: THREE.Vector3) {
     if (!(o instanceof THREE.Mesh) || o instanceof THREE.SkinnedMesh || o instanceof THREE.InstancedMesh) return;
     box.setFromObject(o);
     if (box.isEmpty()) return;
-    const zone = zoneOf(box);
+    // v2's backdrop wall (and what is painted on it) stands well behind the shopfront, as
+    // deep as the room, but is only ever seen from the street
+    let street = false;
+    for (let p: THREE.Object3D | null = o; p && p !== root; p = p.parent) if (STREET.test(p.name)) street = true;
+    const zone = street ? "street" : zoneOf(box);
     o.userData.zone = zone;
     if (moves(o) || Array.isArray(o.material) || o.morphTargetInfluences) {
       loose.push(o);

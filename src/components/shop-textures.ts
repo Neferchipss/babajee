@@ -17,7 +17,9 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 // rough scales the texture's own roughness map (1 = as made); refl is how strongly
 // it reflects the room (see reflect below)
-type Surface = { tex: string; tint?: string; size: number; rough: number; bump: number; metal?: number; refl?: number };
+type Surface = { tex: string; tint?: string; gain?: number; size: number; rough: number; bump: number; metal?: number; refl?: number;
+  sat?: number; // colour saturation: 1 as painted, 0 grey
+};
 
 // material (by its name in the model) -> texture, how many metres one tile covers
 const SURFACES: Record<string, Surface> = {
@@ -36,6 +38,38 @@ const SURFACES: Record<string, Surface> = {
   m_brass: { tex: "brass", size: 0.6, rough: 1, bump: 0.3, metal: 1 },
   m_gold: { tex: "brass", tint: "#ffe2a0", size: 0.6, rough: 0.85, bump: 0.3, metal: 1 },
   m_runner: { tex: "velvet", size: 0.9, rough: 1, bump: 0.6 },
+  // the second model (build_shop_v2.py): made with ChatGPT from crops of the pitch video
+  // (tools/textures/refs_v2); size = metres one tile covers
+  m_v2_slate: { tex: "v2_slate_mural", tint: "#e8eedc", size: 5.5, rough: 1, bump: 0.4 }, // slate plaster with sage swirls; a green lean so the grey dusk reads grey-green, as in the pitch
+  m_v2_slate_dark: { tex: "v2_slate_mural", tint: "#7a7468", size: 5.5, rough: 1, bump: 0.4 },
+  m_v2_awning: { tex: "v2_awning", gain: 1.3, size: 1.8, rough: 1, bump: 0.5 },
+  m_v2_pave: { tex: "v2_pavement", size: 4.4, rough: 1, bump: 0.6 }, // 4 x 4 slabs of 1.1 m
+  m_v2_kerb: { tex: "v2_pavement", tint: "#b8b4ac", size: 4.4, rough: 1, bump: 0.6 },
+  m_v2_walnut: { tex: "v2_walnut", size: 1.0, rough: 1, bump: 0.35, refl: 0.12 },
+  m_v2_walnut_dark: { tex: "v2_walnut", tint: "#8a7a6a", size: 1.0, rough: 1, bump: 0.35 },
+  m_v2_wall_in: { tex: "v2_charcoal", gain: 1.4, size: 2.6, rough: 1, bump: 0.4 },
+  m_v2_ceiling: { tex: "v2_walnut", tint: "#6e5e50", size: 1.4, rough: 1, bump: 0.3 }, // dark boards overhead
+  m_v2_floor: { tex: "v2_floor", tint: "#b4b4b0", sat: 0.35, size: 2.4, rough: 1, bump: 0.2, refl: 0.12 }, // 2 x 2 tiles of 1.2 m
+  m_v2_backdrop: { tex: "v2_charcoal", tint: "#a4aca2", gain: 1.5, sat: 0.6, size: 7, rough: 1, bump: 0.3 }, // the plain wall the shop stands out from
+  m_v2_oak: { tex: "v2_walnut", tint: "#e8c8a0", gain: 1.25, size: 1.0, rough: 1, bump: 0.35 }, // lighter uprights against dark shelves
+  m_v2_rug: { tex: "v2_rug", tint: "#b0a8b4", sat: 0.45, size: 1.3, rough: 1, bump: 0.6 }, // a muted grey-plum, as in the pitch
+  m_v2_pot: { tex: "v2_terracotta", tint: "#e6d2c4", size: 0.45, rough: 1, bump: 0.5 }, // planters, wheel lines running round
+  m_v2_pot_glaze: { tex: "v2_glaze", size: 0.45, rough: 1, bump: 0.3, refl: 0.2 },
+  m_v2_soil: { tex: "v2_soil", size: 0.3, rough: 1, bump: 0.8 },
+};
+
+// Pictures laid on by a mesh's own texture coordinates rather than by position: the
+// leaves (one pothos leaf, tinted per material so the plants are not all one green), the
+// painted lettering on the walls (keyed out of a flat green, so cut = the
+// see-through part is not drawn). All made with ChatGPT; see build_shop_v2.py.
+type Laid = { tex: string; tint?: string; normal?: boolean; cut?: boolean };
+const LAID: Record<string, Laid> = {
+  m_leaf: { tex: "v2_leaf", tint: "#8a9a84", normal: true },
+  m_leaf_dark: { tex: "v2_leaf", tint: "#5a6a56", normal: true },
+  m_leaf_light: { tex: "v2_leaf", tint: "#b8c8a4", normal: true },
+  m_decal_good: { tex: "v2_decal_good", cut: true },
+  m_decal_roll: { tex: "v2_decal_roll", cut: true },
+  m_decal_lit: { tex: "v2_decal_lit", cut: true },
 };
 
 const VERT_PARS = /* glsl */ `
@@ -51,6 +85,7 @@ uniform sampler2D uTriNormal;
 uniform sampler2D uTriRough;
 uniform float uTriRoughScale;
 uniform vec3 uTriTint;
+uniform float uTriSat;
 uniform float uTriSize;
 uniform float uTriBump;
 varying vec3 vTriPos;
@@ -66,6 +101,7 @@ const FRAG_MAP = /* glsl */ `
   vec3 tw = triWeights();
   vec3 p = vTriPos / uTriSize;
   vec3 tc = texture2D(uTriMap, p.zy).rgb * tw.x + texture2D(uTriMap, p.xz).rgb * tw.y + texture2D(uTriMap, p.xy).rgb * tw.z;
+  tc = mix(vec3(dot(tc, vec3(0.299, 0.587, 0.114))), tc, uTriSat);
   diffuseColor.rgb *= tc * uTriTint;
 }`;
 
@@ -136,10 +172,37 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
     return t;
   };
 
+  const laidMats = new Set<THREE.Material>();
+  const laidTex = new Map<string, THREE.Texture>();
+  const laid = (name: string) => {
+    let t = laidTex.get(name);
+    if (t) return t;
+    t = loader.load(`${BASE}/textures/${name}.webp`);
+    if (!name.endsWith("_n")) t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = false; // glTF's coordinates: the top of the picture is up
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    t.anisotropy = aniso;
+    laidTex.set(name, t);
+    return t;
+  };
   const done = new Set<THREE.Material>();
   root.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      const lay = LAID[m.name];
+      if (lay && o.geometry.attributes.uv && m instanceof THREE.MeshStandardMaterial && !laidMats.has(m)) {
+        // a picture laid on by the mesh's own coordinates (a leaf: midrib down the middle)
+        laidMats.add(m);
+        m.map = laid(lay.tex);
+        if (lay.normal && !lite) {
+          m.normalMap = laid(lay.tex + "_n");
+          m.normalScale.set(0.6, 0.6);
+        }
+        if (lay.cut) m.alphaTest = 0.5;
+        m.color.set(lay.tint ?? "#ffffff");
+        m.needsUpdate = true;
+        continue;
+      }
       const s = SURFACES[m.name];
       if (!s || done.has(m) || !(m instanceof THREE.MeshStandardMaterial)) continue;
       done.add(m);
@@ -147,15 +210,16 @@ export function applyTextures(root: THREE.Object3D, renderer: THREE.WebGLRendere
       // the material's own colour would tint the texture twice: the texture brings the colour now
       m.color.set("#ffffff");
       // the roughness map decides; on a phone, without it, a fixed value near its middle
-      m.roughness = lite ? ({ velvet: 0.85, plaster_plum: 0.65, brass: 0.38 } as Record<string, number>)[s.tex] ?? 0.25 : 1;
+      m.roughness = lite ? ({ velvet: 0.85, plaster_plum: 0.65, brass: 0.38, v2_slate_mural: 0.85, v2_awning: 0.9, v2_pavement: 0.85, v2_walnut: 0.5, v2_charcoal: 0.75, v2_floor: 0.5, v2_rug: 0.9 } as Record<string, number>)[s.tex] ?? 0.25 : 1;
       if (s.metal !== undefined) m.metalness = s.metal;
       const uniforms = {
         uTriMap: { value: t.map },
         uTriNormal: { value: t.normal },
         uTriRough: { value: t.rough },
         uTriRoughScale: { value: s.rough },
-        uTriTint: { value: new THREE.Color(s.tint ?? "#ffffff") },
+        uTriTint: { value: new THREE.Color(s.tint ?? "#ffffff").multiplyScalar(s.gain ?? 1) }, // gain: brighter than the texture was painted
         uTriSize: { value: s.size },
+        uTriSat: { value: s.sat ?? 1 },
         uTriBump: { value: s.bump },
       };
       const isTable = m.name === "m_marble_table";

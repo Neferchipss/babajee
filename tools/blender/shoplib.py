@@ -299,20 +299,32 @@ class B:
         for loop, uv in zip(f.loops, [(0, 0), (1, 0), (1, 1), (0, 1)]):
             loop[self.uv].uv = uv
 
-    def sheet(self, rows, m, flip=False):
+    def sheet(self, rows, m, flip=False, uv=False):
         """A grid of quads through rows of 3D points (each row the same
         length); the face normal follows row-direction x column-direction,
-        reversed when flip is set."""
+        reversed when flip is set. With uv, the grid is mapped onto the
+        square: across the columns is u, down the rows is v."""
+        # an open sheet keeps the side it was made facing (build's recalculation can't tell)
+        lay = [self.bm.faces.layers.float.get(k) or self.bm.faces.layers.float.new(k) for k in ("tn_x", "tn_y", "tn_z")] if uv else None
         vr = [[self.bm.verts.new(p) for p in row] for row in rows]
         i_mat = self.mi(m)
-        for r in range(len(vr) - 1):
-            for c in range(len(vr[r]) - 1):
-                q = [vr[r][c], vr[r][c + 1], vr[r + 1][c + 1], vr[r + 1][c]]
+        nr, nc = len(vr) - 1, len(vr[0]) - 1
+        for r in range(nr):
+            for c in range(nc):
+                q = [(r, c), (r, c + 1), (r + 1, c + 1), (r + 1, c)]
+                if flip:
+                    q = q[::-1]
                 try:
-                    f = self.bm.faces.new(q[::-1] if flip else q)
+                    f = self.bm.faces.new([vr[i][j] for i, j in q])
                     f.material_index = i_mat
                 except ValueError:
-                    pass
+                    continue
+                if uv:
+                    for loop, (i, j) in zip(f.loops, q):
+                        loop[self.uv].uv = (j / nc, i / nr)
+                    f.normal_update()
+                    for k in range(3):
+                        f[lay[k]] = f.normal[k]
 
     def prism_xy(self, pts, z0, z1, m):
         """A flat shape given in (x, y), thickened from z0 to z1."""
@@ -357,15 +369,33 @@ class B:
         dg = bpy.context.evaluated_depsgraph_get()
         eo = ob.evaluated_get(dg)
         me = eo.to_mesh()
+        # (made before the snapshot below: adding a layer invalidates face references)
+        lay = [self.bm.faces.layers.float.get(k) or self.bm.faces.layers.float.new(k) for k in ("tn_x", "tn_y", "tn_z")]
         old_v = set(self.bm.verts)
         old_f = set(self.bm.faces)
         self.bm.from_mesh(me)
         # bmesh reuses freed slots, so "the last N" is not "the new ones"
         nv = [v for v in self.bm.verts if v not in old_v]
         nf = [f for f in self.bm.faces if f not in old_f]
+        # which way each face of the letters must face, decided here in the text's own space
+        # (its depth is local z): recalculating normals over the whole mesh (build) can turn
+        # a word's face into the wall it is on, and Blender's own fill sometimes faces a
+        # glyph's cap inwards (an S, a B), leaving only a bevelled outline to be seen. So: a
+        # cap faces away from the middle of the text's depth; the sides keep Blender's way.
+        rot3 = ob.matrix_world.to_3x3()
+        want = {}
+        for f in nf:
+            f.normal_update()
+            n = f.normal.copy()
+            cz = f.calc_center_median().z
+            if abs(n.z) > 0.9 and abs(cz) > 1e-6:
+                n = Vector((0.0, 0.0, 1.0 if cz > 0 else -1.0))
+            want[f] = (rot3 @ n).normalized() if n.length > 0.5 else Vector()
         bmesh.ops.transform(self.bm, matrix=ob.matrix_world, verts=nv)
         for f in nf:
             f.material_index = self.mi(used[min(f.material_index, len(used) - 1)])
+            for k in range(3):
+                f[lay[k]] = want[f][k]
         eo.to_mesh_clear()
         bpy.data.objects.remove(ob)
         bpy.data.curves.remove(cu)
@@ -378,6 +408,14 @@ class B:
                 v.co = warp(v.co.copy())
         if recalc:
             bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        lay = [bm.faces.layers.float.get(k) for k in ("tn_x", "tn_y", "tn_z")]
+        if all(lay):  # put text faces back the way they were made (see text)
+            for f in bm.faces:
+                want = Vector((f[lay[0]], f[lay[1]], f[lay[2]]))
+                if want.length > 0.5 and f.normal.dot(want) < 0:
+                    f.normal_flip()
+            for k in lay:
+                bm.faces.layers.float.remove(k)
         # smooth shading, with hard edges wherever the surface turns sharply
         for f in bm.faces:
             f.smooth = True

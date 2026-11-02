@@ -7,6 +7,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
@@ -17,6 +18,8 @@ import { createMagic } from "./shop-magic";
 import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
 import { optimiseScene } from "./shop-cull";
 import { clearShopNote, peekShopNote, TO_STREET } from "./scene-note";
+import { createShelfGlow } from "./shop-glow";
+import { applyBake } from "./shop-bake";
 import { createSky } from "./shop-sky";
 import { applyTextures } from "./shop-textures";
 import { createWorld } from "./shop-world";
@@ -51,6 +54,22 @@ function picksFor(spot: Spot, shelves: Record<string, Pick[]>) {
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const MODEL = `${BASE}/models/shop.glb`;
+// the second model, after the pitch video's shop (tools/blender/build_shop_v2.py): a
+// plain storefront and a narrow walnut room. It is the default now; the magical
+// rotunda (shop.glb, build_shop.py, shop-magic, shop-sky) is all still here and comes
+// back with ?scene=v1. The choice is remembered on this browser (?scene=v2 to return)
+const MODEL_V2 = `${BASE}/models/shop-v2.glb`;
+// the same, with its light baked in by Cycles (tools/blender/bake_shop_v2.py); ?bake=0 for the live lights
+const MODEL_V2_LIT = `${BASE}/models/shop-v2-lit.glb`;
+function sceneVariant() {
+  const q = new URLSearchParams(window.location.search).get("scene");
+  try {
+    if (q === "v1" || q === "v2") localStorage.setItem("shopScene", q);
+    return localStorage.getItem("shopScene") !== "v1";
+  } catch {
+    return q !== "v1";
+  }
+}
 const DRACO = `${BASE}/draco/gltf/`; // decoder for the compressed model
 
 // when each camera is reached, as a share of the scroll
@@ -399,6 +418,22 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     inkPass.enabled = new URLSearchParams(window.location.search).get("ink") === "1";
     composer.addPass(inkPass);
     composer.addPass(new OutputPass());
+    // v2's street, graded like the pitch: a little greyer, the blacks lifted to a soft
+    // olive-grey, so the night reads painted rather than inky (off indoors)
+    const grade = new ShaderPass({
+      uniforms: { tDiffuse: { value: null }, uAmt: { value: 0 } },
+      vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: `uniform sampler2D tDiffuse; uniform float uAmt; varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(tDiffuse, vUv);
+          float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+          c.rgb = mix(vec3(l), c.rgb, 1.0 - 0.28 * uAmt);
+          c.rgb = c.rgb * (1.0 - 0.07 * uAmt) + vec3(0.036, 0.04, 0.034) * uAmt;
+          gl_FragColor = c;
+        }`,
+    });
+    grade.enabled = false;
+    composer.addPass(grade);
     const ramp = new THREE.DataTexture(new Uint8Array([60, 105, 160, 205, 235, 255]), 6, 1, THREE.RedFormat);
     ramp.minFilter = ramp.magFilter = THREE.LinearFilter;
     ramp.needsUpdate = true;
@@ -426,11 +461,12 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         roughness: 0.04,
         metalness: 0,
         ior: 1.5,
-        clearcoat: 1,
+        // v2's shop windows are seen in daylight-ish dusk: a studio's white in them greys out the display
+        clearcoat: pane && v2 ? 0.15 : 1,
         clearcoatRoughness: 0.03,
         specularIntensity: 1,
         envMap: glassEnv,
-        envMapIntensity: pane ? 0.35 : 0.9,
+        envMapIntensity: pane ? (v2 ? 0.05 : 0.35) : v2 ? 1.8 : 0.9, // v2: the shop is dark, so the glass needs its highlights to read as glass
         side: THREE.FrontSide,
       });
       if (bend && !pane) {
@@ -442,7 +478,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
       } else {
         g.transparent = true;
-        g.opacity = old.name.startsWith("m_pane") ? 0.06 : pane ? 0.12 : clear ? 0.22 : 0.5;
+        g.opacity = old.name.startsWith("m_pane") ? 0.06 : pane ? (v2 ? 0.035 : 0.12) : clear ? 0.22 : 0.5;
         g.depthWrite = false;
       }
       glassMade.set(old, g);
@@ -451,18 +487,66 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     };
 
     // outside is cold and ordinary; inside is another world (see `inside` in tick)
-    const OUT = {
-      bg: new THREE.Color("#060a16"),
-      fog: new THREE.Color("#0a1022"),
-      sky: new THREE.Color("#2a3a66"),
-      ground: new THREE.Color("#1a1410"),
+    const v2 = sceneVariant();
+    const baked = v2 && new URLSearchParams(window.location.search).get("bake") !== "0";
+    // v2 with live lights casts real shadows: the dusk sky from above the street, the spots inside
+    if (v2 && !baked) {
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      moon.castShadow = true;
+      moon.position.set(-4, 20, 5); // high overhead and a little left: an overcast sky, the awning shading the windows
+      moon.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048);
+      Object.assign(moon.shadow.camera, { left: -9, right: 9, top: 9, bottom: -3, near: 1, far: 40 });
+      moon.shadow.camera.updateProjectionMatrix();
+      moon.shadow.bias = -0.0004;
+      moon.shadow.normalBias = 0.03;
+      moon.shadow.radius = 4;
+    }
+    // v2's street is the pitch video's: blue-hour dusk rather than deep night
+    const OUT = v2
+      ? {
+          bg: new THREE.Color("#353d48"),
+          fog: new THREE.Color("#454d56"),
+          sky: new THREE.Color("#9aa6ae"),
+          ground: new THREE.Color("#4a443a"),
+        }
+      : {
+          bg: new THREE.Color("#060a16"),
+          fog: new THREE.Color("#0a1022"),
+          sky: new THREE.Color("#2a3a66"),
+          ground: new THREE.Color("#1a1410"),
+        };
+    // v2: each shelf as a box to point at (it lights up its label, and a tap or click
+    // on it opens it), taken from the model before its meshes are merged
+    const shelfBoxes: { name: string; box: THREE.Box3 }[] = [];
+    const boxHit = new THREE.Vector3();
+    const pickShelf = (r: THREE.Ray) => {
+      let best = "";
+      let near = Infinity;
+      for (const s of shelfBoxes) {
+        if (!r.intersectBox(s.box, boxHit)) continue;
+        const d = boxHit.distanceToSquared(r.origin);
+        if (d < near) {
+          near = d;
+          best = s.name;
+        }
+      }
+      return best;
     };
-    const IN = {
-      bg: new THREE.Color("#12082e"),
-      fog: new THREE.Color("#1a0b3d"),
-      sky: new THREE.Color("#6a3fc0"),
-      ground: new THREE.Color("#3a1030"),
-    };
+    // v2 is an ordinary shop inside, warm and amber, not another world
+    const IN = v2
+      ? {
+          bg: new THREE.Color("#0e0a07"),
+          fog: new THREE.Color("#1a120b"),
+          sky: new THREE.Color("#6e6050"),
+          ground: new THREE.Color("#3a2818"),
+        }
+      : {
+          bg: new THREE.Color("#12082e"),
+          fog: new THREE.Color("#1a0b3d"),
+          sky: new THREE.Color("#6a3fc0"),
+          ground: new THREE.Color("#3a1030"),
+        };
 
     // the camera rails, filled in once the model has loaded
     let pos: THREE.CatmullRomCurve3 | null = null;
@@ -477,6 +561,9 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     let cull: ReturnType<typeof optimiseScene> | null = null;
     let surfaces: ReturnType<typeof applyTextures> | null = null;
     let roomEnv: THREE.Texture | null = null;
+    // v2: the pendants and the plaque's light are real spotlights (pools on the counter
+    // and the floor), up only inside; spot_* empties in the model, each with extras.aim
+    const spots: { light: THREE.SpotLight; base: number }[] = [];
     let tableMirror: { update(c: THREE.Camera): void; setSize(w: number, h: number): void; dispose(): void } | null = null;
     let snapRoom: (() => void) | null = null; // takes the room's reflection, the first time you are inside
     let baseFov = 60;
@@ -494,7 +581,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const draco = new DRACOLoader().setDecoderPath(DRACO);
     const loader = new GLTFLoader().setDRACOLoader(draco);
     loader.load(
-      MODEL,
+      v2 ? (baked ? MODEL_V2_LIT : MODEL_V2) : MODEL,
       (gltf) => {
         if (cancelled) return;
         const root = gltf.scene;
@@ -553,16 +640,61 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         aim = new THREE.CatmullRomCurve3(targets, false, "centripetal");
         door = root.getObjectByName("door_leaf") ?? null;
         if (door) doorOpen.copy(door.quaternion);
+        // baked: the lamps' light is in the model already
+        if (baked) {
+          const lamps: THREE.Object3D[] = [];
+          root.traverse((o) => void (o.name.startsWith("lamp_") && lamps.push(o)));
+          lamps.forEach((o) => o.removeFromParent());
+        }
         world = createWorld(root, scene, lite ? 8 : 16);
-        magic = createMagic(root, scene, new Set(categories.map((c) => c.slug)));
-        sky = createSky(root, scene, lite);
+        // the rotunda's dome, cases and floating things: v2 has none of them
+        if (!v2) {
+          magic = createMagic(root, scene, new Set(categories.map((c) => c.slug)));
+          sky = createSky(root, scene, lite);
+        }
+        // the middle of the room: under the rotunda's dome, or v2's floor
+        const room = root.getObjectByName("dome") ?? root.getObjectByName("room_v2") ?? root;
+        if (v2) {
+          root.traverse((o) => {
+            // a shelf with several materials comes in as a group of meshes: take the
+            // node named after its category (its parts are named bay_x_1, ...)
+            const m = /^(bay|cubby)_(.+)$/.exec(o.name);
+            if (m && root.getObjectByName("hot_" + m[2])) shelfBoxes.push({ name: "hot_" + m[2], box: new THREE.Box3().setFromObject(o) });
+          });
+        }
         // marble, plaster, wood, brass and velvet on the inside's surfaces (?tex=0 for plain colours)
         if (new URLSearchParams(window.location.search).get("tex") !== "0") surfaces = applyTextures(root, renderer, lite);
+        if (baked) {
+          const bake = applyBake(root);
+          if (stats) console.info("[shop] baked light on", bake?.meshes, "meshes");
+        } else if (v2) {
+          // warm light on the stock from the strips under every shelf (shop-glow.ts; ?glow=0 without)
+          if (new URLSearchParams(window.location.search).get("glow") !== "0") createShelfGlow(root, 1.2);
+          moon.color.set("#c4ccd2"); // an overcast dusk, grey rather than blue
+          root.traverse((o) => {
+            const aim = o.userData.aim as number[] | undefined;
+            if (!/^spot_/.test(o.name) || !aim) return;
+            const plaque = o.userData.kind === "plaque";
+            // a phone gets the counter's three and the plaque's: the aisle's two are extra pixels' work
+            if (lite && !plaque && aim[1] < 5) return;
+            const l = new THREE.SpotLight("#ffcf8f", 0, plaque ? 3.4 : 3.2, plaque ? 0.38 : 0.6, 0.7, 2);
+            l.position.copy(o.getWorldPosition(new THREE.Vector3()));
+            l.target.position.set(aim[0], aim[2], -aim[1]); // Blender (x, y, z) is three (x, z, -y)
+            l.castShadow = true;
+            l.shadow.mapSize.set(lite ? 512 : 1024, lite ? 512 : 1024);
+            l.shadow.bias = -0.0006;
+            l.shadow.normalBias = 0.02;
+            l.shadow.radius = 3;
+            l.shadow.camera.near = 0.1;
+            scene.add(l, l.target);
+            spots.push({ light: l, base: plaque ? 38 : o.userData.kind === "downlight" ? 14 : 28 });
+          });
+        }
         // what the polished surfaces reflect: the room itself, taken from the middle at table
         // height once you are inside with its lights up (on the street it is dark and hidden),
         // and once more a little later, for textures that came in slowly
         if (surfaces) {
-          const at = new THREE.Box3().setFromObject(root.getObjectByName("dome") ?? root).getCenter(new THREE.Vector3()).setY(1.2);
+          const at = new THREE.Box3().setFromObject(room).getCenter(new THREE.Vector3()).setY(1.2);
           const snap = () => {
             if (cancelled || !surfaces) return;
             const cubeRt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
@@ -590,7 +722,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         // merge what never moves and zone it either side of the door (?merge=0 to compare)
         if (new URLSearchParams(window.location.search).get("merge") !== "0") {
-          const domeAt = new THREE.Box3().setFromObject(root.getObjectByName("dome") ?? root).getCenter(new THREE.Vector3());
+          const domeAt = new THREE.Box3().setFromObject(room).getCenter(new THREE.Vector3());
           cull = optimiseScene(root, domeAt);
           if (stats) console.info("[shop] meshes merged", cull.before, "->", cull.after);
         }
@@ -598,7 +730,13 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         scene.traverse((o) => {
           if (!(o instanceof THREE.Mesh)) return;
           const ms = Array.isArray(o.material) ? o.material : [o.material];
-          if (ms.some((m) => m.transparent || (m as THREE.MeshPhysicalMaterial).transmission > 0)) seeThrough.push(o);
+          const clear = ms.some((m) => m.transparent || (m as THREE.MeshPhysicalMaterial).transmission > 0);
+          if (clear) seeThrough.push(o);
+          // v2: everything solid takes shadows and casts them; glass lets the light through
+          if (v2) {
+            o.receiveShadow = true;
+            o.castShadow = !clear && !ms.some((m) => (m as THREE.MeshStandardMaterial).emissiveIntensity > 0.5);
+          }
         });
         const have = new Set(categories.map((c) => c.slug));
         root.traverse((o) => {
@@ -675,11 +813,15 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const qPitch = new THREE.Quaternion();
     const qRoll = new THREE.Quaternion();
     const qBias = new THREE.Quaternion();
+    const vSide = new THREE.Vector3();
+    const vFwd = new THREE.Vector3();
     const qSway = new THREE.Quaternion();
     let mx = 0; // pointer, -0.5..0.5 across the stage, eased
     let my = 0;
     let tx = 0;
     let ty = 0;
+    // the phone's tilt on the landing, -0.5..0.5 like the pointer (see onOrient)
+    const phoneTilt = { on: false, x: 0, y: 0, x0: 0, y0: 0 };
     let settled = 0; // how long the camera has been at rest at the end
     let canLook = false;
     let ribbon = false;
@@ -721,6 +863,20 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const onOrient = (e: DeviceOrientationEvent) => {
       if (e.beta == null || e.gamma == null) return;
       g.seen = true;
+      // the landing leans with the phone, as it leans towards the pointer on a desktop:
+      // tilt measured from where the phone has been held lately, so any grip is the rest
+      const turned = screenAngle();
+      const sx = turned === 90 ? e.beta : turned === -90 || turned === 270 ? -e.beta : turned === 180 ? -e.gamma : e.gamma;
+      const sy = turned === 90 ? -e.gamma : turned === -90 || turned === 270 ? e.gamma : turned === 180 ? -e.beta : e.beta;
+      if (!phoneTilt.on) {
+        phoneTilt.x0 = sx;
+        phoneTilt.y0 = sy;
+        phoneTilt.on = true;
+      }
+      phoneTilt.x0 += (sx - phoneTilt.x0) * 0.01;
+      phoneTilt.y0 += (sy - phoneTilt.y0) * 0.01;
+      phoneTilt.x = clamp((sx - phoneTilt.x0) / 40, -0.5, 0.5);
+      phoneTilt.y = clamp((sy - phoneTilt.y0) / 40, -0.5, 0.5);
       if (!g.on) return;
       // older iPhones only have the deprecated window.orientation
       const view = facing(e, screenAngle());
@@ -754,7 +910,9 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       }
       frameStart = clock();
       raf = 0;
-      const dt = Math.min(0.05, (now - last) / 1000);
+      // never backwards: a frame queued twice can see a clock behind `last`, and a
+      // negative step makes every easing overshoot until the camera path goes to NaN
+      const dt = clamp((now - last) / 1000, 0, 0.05);
       // on a touch screen, the frame rate sets the resolution: slow frames drop it a
       // step (down to 1x), a few steady seconds at full speed raise it again
       if (lite && now - last < 200) {
@@ -789,7 +947,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
       }
       prog += (target - prog) * (still ? 1 : 1 - Math.exp(-dt * 7));
-      if (Math.abs(target - prog) < 1e-4) prog = target;
+      if (Math.abs(target - prog) < 1e-4 || !Number.isFinite(prog)) prog = target;
 
       // the view is locked until the camera has arrived and come to rest; then it frees up
       settled = prog >= 0.998 && target >= 0.998 ? settled + dt : 0;
@@ -917,15 +1075,32 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         // landing: turn the view a little left so the shop sits right of centre, under Baba's eyes
         const wide = stageEl.clientWidth / stageEl.clientHeight > 1.1;
-        if (intro && wide) {
+        if (intro && v2) {
+          // v2 is square on to the shop, as in the pitch: on a wide screen the eye slides
+          // left so the shop sits right of the words; on a tall one it steps back until
+          // the shop fits across. The rail takes over as the walk starts.
+          const k = 1 - smooth(0, 0.22, prog);
+          const halfW = 6.9 * Math.tan((camera.fov * Math.PI) / 360) * camera.aspect; // half the width seen at the shop
+          vSide.set(1, 0, 0).applyQuaternion(q);
+          vFwd.set(0, 0, -1).applyQuaternion(q);
+          if (halfW > 4.3) camera.position.addScaledVector(vSide, -clamp(halfW - 3.8, 0, 2.6) * k);
+          else {
+            // tall: back off to fit the shop and its hanging sign across, and look down a
+            // little so the shop sits in the upper half, above the words
+            camera.position.addScaledVector(vFwd, -(4.3 / (halfW / 6.9) - 6.9) * k);
+            camera.quaternion.multiply(qBias.setFromAxisAngle(xAxis, -0.17 * k));
+          }
+        } else if (intro && wide) {
           qBias.setFromAxisAngle(up, 0.22 * (1 - smooth(0, 0.22, prog)));
           camera.quaternion.premultiply(qBias);
         }
         // landing: the view drifts on its own and leans a little towards the pointer
         if (intro) {
           const sway = 1 - smooth(0, 0.15, prog);
-          mx += (tx - mx) * (1 - Math.exp(-dt * 2.5));
-          my += (ty - my) * (1 - Math.exp(-dt * 2.5));
+          const lx = phoneTilt.on && gyroDevice ? phoneTilt.x : tx; // a phone leans with its tilt
+          const ly = phoneTilt.on && gyroDevice ? phoneTilt.y : ty;
+          mx += (lx - mx) * (1 - Math.exp(-dt * 2.5));
+          my += (ly - my) * (1 - Math.exp(-dt * 2.5));
           qSway.setFromAxisAngle(up, (-mx * 0.07 + Math.sin(now / 4200) * 0.012) * sway);
           camera.quaternion.premultiply(qSway);
           qSway.setFromAxisAngle(xAxis, (my * 0.035 + Math.sin(now / 5300) * 0.006) * sway);
@@ -988,13 +1163,23 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         hemi.color.copy(OUT.sky).lerp(IN.sky, inside);
         hemi.groundColor.copy(OUT.ground).lerp(IN.ground, inside);
         // inside the room is dim, like a museum after hours: the lit cases, Baba and the sky carve it out of the dark
-        hemi.intensity = 0.55 - 0.48 * inside;
+        hemi.intensity = baked ? 0.08 : v2 ? 0.95 - 0.45 * inside : 0.55 - 0.48 * inside; // v2: a dusk sky outside; inside, the shelves and pools carry the room
+        if (v2) {
+          moon.intensity = baked ? 0 : 3.4 * (1 - inside); // the sky's light on the street, with its shadows; gone indoors
+          moon.shadow.autoUpdate = inside < 0.98; // no shadow work for a light that is off
+          for (const s of spots) {
+            s.light.intensity = s.base * inside;
+            s.light.shadow.autoUpdate = inside > 0.02;
+          }
+        }
         // and the frame closes in at the edges, like a lens
         if (vignette.current) {
           const vo = inside.toFixed(2);
           if (vignette.current.style.getPropertyValue("--inside") !== vo) vignette.current.style.setProperty("--inside", vo);
         }
-        bloom.strength = 0.1 + 0.08 * inside;
+        bloom.strength = v2 ? 0.08 - 0.03 * inside : 0.1 + 0.08 * inside;
+        grade.uniforms.uAmt.value = v2 ? 1 - inside : 0;
+        grade.enabled = v2 && inside < 0.99; // v2's shop: a soft glow on the bulbs only
         renderer.toneMappingExposure = 1.1 + 0.15 * inside;
         // crossing over is a lurch: the view rolls and the lens pulls wide, then it settles
         qRoll.setFromAxisAngle(zAxis, bump * 0.07 * Math.sin(sec * 2.3));
@@ -1096,11 +1281,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         // the shelf itself counts as much as its label: under the mouse, or, on a
         // phone, under the dot in the middle
         let shelf = "";
-        if (sky && on > 0.8) {
+        if ((sky || shelfBoxes.length) && on > 0.8) {
           const from = mouseAt && !dragging ? mouseAt : !mouseAt && !hoverable ? mid : null;
           if (from) {
             ray.setFromCamera(from, camera);
-            shelf = sky.pick(ray.ray);
+            shelf = sky ? sky.pick(ray.ray) : pickShelf(ray.ray);
           }
         }
         if (shelf && mouseAt) shelfHover = { name: shelf, until: Infinity };
@@ -1175,9 +1360,11 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       lastY = e.clientY;
       lastMove = performance.now();
       vyaw = vpitch = 0;
+      downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
       el.setPointerCapture(e.pointerId);
       setTouched(true);
     };
+    let downAt = { x: 0, y: 0, t: 0 };
     const onMove = (e: PointerEvent) => {
       if (!dragging) return;
       const now = performance.now();
@@ -1198,10 +1385,18 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       vpitch = vpitch * 0.6 + (dy / dtm) * 0.4;
       lastMove = now;
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
       dragging = false;
       // a pause before letting go means no coasting; nor with the gyro on
       if (g.on || performance.now() - lastMove > 80) vyaw = vpitch = 0;
+      // v2: a tap or click on a shelf (not a drag) opens it, through its label's link,
+      // so it walks up to the shelf first like the label does
+      if (!shelfBoxes.length || e.type !== "pointerup" || !canLook) return;
+      if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8 || performance.now() - downAt.t > 450) return;
+      const r = el.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, 1 - ((e.clientY - r.top) / r.height) * 2), camera);
+      const name = pickShelf(ray.ray);
+      if (name) spotEls.current[name]?.click();
     };
     const onKey = (e: KeyboardEvent) => {
       if (!canLook) return;

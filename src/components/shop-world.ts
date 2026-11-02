@@ -49,6 +49,13 @@ const KIND: Record<string, { color: string; intensity: number; distance: number 
   magenta: { color: "#ff3fa4", intensity: 5, distance: 6 },
   teal: { color: "#25e0d0", intensity: 4.5, distance: 6 },
   violet: { color: "#8a5cff", intensity: 10, distance: 8 },
+  // the second model's small shop (build_shop_v2.py): a soft fill down the aisle (its pendants are spotlights)
+  fill: { color: "#ffd8a8", intensity: 4, distance: 4.5 },
+  // its window displays: a warm glow in a dark walnut box, not a lightbox (the strips do the rest)
+  vwindow: { color: "#ffb066", intensity: 0.8, distance: 2.6 },
+  vcandle: { color: "#ffa850", intensity: 0.25, distance: 1.0 },
+  // its far street lamp: a wash over the pavement and the wall, as in the pitch video's dusk
+  vstreet: { color: "#ffd2a0", intensity: 60, distance: 22 },
 };
 // Point lights are the costly part, and changing how many there are stalls
 // while every shader recompiles. So there is one fixed set: it lights the
@@ -152,7 +159,7 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene, BUDGET = 1
     n++;
   }
   // if a side has more lamps than the budget, the plain shop lamps go first
-  const order = (l: Lamp) => ({ street: 0, window: 1, violet: 2, magenta: 3, teal: 4, shop: 5 })[l.kind] ?? 5;
+  const order = (l: Lamp) => ({ street: 0, vstreet: 0, window: 1, vwindow: 1, violet: 2, magenta: 3, teal: 4, shop: 5 })[l.kind] ?? 5;
   lamps.sort((a, b) => order(a) - order(b));
   const outLamps = lamps.filter((l) => l.at.z > -1.4); // the door is at z = 0, the room beyond it
   const inLamps = lamps.filter((l) => l.at.z <= -1.4);
@@ -297,7 +304,7 @@ export function createWorld(root: THREE.Object3D, scene: THREE.Scene, BUDGET = 1
         }
       }
       if (!l) return void (light.intensity = 0);
-      const flick = l.kind === "street" || l.kind === "window" ? 1 : 0.9 + 0.1 * Math.sin(t * (1.3 + hash(l.seed)) + l.seed);
+      const flick = /street|window/.test(l.kind) ? 1 : 0.9 + 0.1 * Math.sin(t * (1.3 + hash(l.seed)) + l.seed);
       light.intensity = l.base * flick * fade;
     });
 

@@ -21,7 +21,10 @@ SIZE = 1024
 # how much relief each surface gets (0 = none), and whether its dark parts are
 # the low ones (veins and grain lines are cut in; plaster's light burnished
 # patches are the high ones)
-RELIEF = {"marble_ivory": 0.6, "marble_black": 0.6, "plaster_plum": 2.4, "wood_lacquer": 1.6, "brass": 1.8, "velvet": 2.2}
+RELIEF = {"marble_ivory": 0.6, "marble_black": 0.6, "plaster_plum": 2.4, "wood_lacquer": 1.6, "brass": 1.8, "velvet": 2.2,
+          # the second model's (build_shop_v2.py), made with ChatGPT from crops of the pitch video
+          "v2_slate_mural": 1.4, "v2_awning": 1.2, "v2_pavement": 2.0, "v2_walnut": 1.4, "v2_charcoal": 1.4, "v2_floor": 0.8, "v2_rug": 2.0,
+          "v2_terracotta": 1.2, "v2_glaze": 0.8, "v2_soil": 2.4, "v2_leaf": 1.6}
 # roughness: (polished end, dull end, what drives it). "dark" = darker is duller
 # (marble veins, wood grain lines); "light" = lighter is duller (velvet's raised
 # pile catches light and is matte); "burnish" = lighter is smoother (plaster
@@ -33,7 +36,28 @@ ROUGH = {
     "wood_lacquer": (0.18, 0.5, "dark"),
     "brass": (0.22, 0.55, "streak"),
     "velvet": (0.75, 0.98, "light"),
+    "v2_slate_mural": (0.7, 0.95, "dark"),
+    "v2_awning": (0.8, 0.98, "dark"),
+    "v2_pavement": (0.75, 0.95, "dark"),
+    "v2_walnut": (0.35, 0.6, "dark"),
+    "v2_charcoal": (0.6, 0.9, "burnish"),
+    "v2_floor": (0.35, 0.6, "dark"),
+    "v2_rug": (0.8, 0.98, "light"),
+    "v2_terracotta": (0.8, 0.97, "light"),
+    "v2_glaze": (0.3, 0.55, "light"),
+    "v2_soil": (0.85, 1.0, "light"),
+    "v2_leaf": (0.4, 0.7, "light"),
 }
+
+
+def wraps(a):
+    """Whether the picture already tiles: its opposite edges differ no more than
+    neighbouring columns do. Those are left alone, since the crossfade would lay
+    a ghost of the pattern (a swirl, a brush stroke) over itself near the edges."""
+    g = a.mean(axis=2)
+    seam = (np.abs(g[:, 0] - g[:, -1]).mean() + np.abs(g[0] - g[-1]).mean()) / 2
+    inner = (np.abs(g[:, 10] - g[:, 11]).mean() + np.abs(g[10] - g[11]).mean()) / 2
+    return seam < 1.3 * inner
 
 
 def seamless(a):
@@ -94,13 +118,35 @@ def rough_map(rgb, lo, hi, how):
     return ((lo + (hi - lo) * t) * 255).astype(np.uint8)
 
 
+# pictures laid on whole, by texture coordinates, never repeated: no crossfade
+WHOLE = {"v2_leaf"}
+
+
+def keyed(a):
+    """A decal drawn on flat bright green: the green made see-through (a soft edge a
+    pixel or two wide), and the green spill pulled out of the edge colours."""
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    green = g - np.maximum(r, b)  # how much greener than anything else
+    alpha = np.clip(1 - (green - 40) / 80, 0, 1)
+    g2 = np.minimum(g, np.maximum(r, b) + 20)  # despill
+    rgb = np.stack([r, np.where(alpha < 1, g2, g), b], -1)
+    return np.concatenate([np.clip(rgb, 0, 255), (alpha * 255)[..., None]], -1).astype(np.uint8)
+
 os.makedirs(OUT, exist_ok=True)
 for f in sorted(os.listdir(SRC)):
     name, ext = os.path.splitext(f)
     if ext.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
         continue
     im = Image.open(os.path.join(SRC, f)).convert("RGB").resize((SIZE, SIZE), Image.LANCZOS)
-    a = seamless(np.asarray(im, dtype=np.float64))
+    a = np.asarray(im, dtype=np.float64)
+    if name.startswith("v2_decal_"):  # painted lettering: keyed, colour only
+        Image.fromarray(keyed(a), "RGBA").save(os.path.join(OUT, f"{name}.webp"), quality=90, method=6)
+        print(f"{name}: decal {os.path.getsize(os.path.join(OUT, f'{name}.webp')) // 1024} KB")
+        continue
+    if name in WHOLE:
+        pass  # one whole picture laid on by its own coordinates, not tiled
+    elif not (name.startswith("v2_") and wraps(a)):  # (the rotunda's textures keep their crossfade, as made)
+        a = seamless(a)
     rgb = np.clip(a, 0, 255).astype(np.uint8)
     Image.fromarray(rgb).save(os.path.join(OUT, f"{name}.webp"), quality=88, method=6)
     Image.fromarray(normal_map(a, RELIEF.get(name, 1.0))).save(os.path.join(OUT, f"{name}_n.webp"), quality=90, method=6)
