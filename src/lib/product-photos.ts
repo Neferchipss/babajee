@@ -4,6 +4,7 @@
 // Each photo is cut out (clear background), centred and scaled to fill its
 // square; it sits on the plate colour.
 import variants from "./photo-variants.json";
+import dbRaw from "./product-photos-db.json";
 import raw from "./product-photos.json";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -14,7 +15,22 @@ const PHOTOS = raw as Record<string, string[]>;
 // option asked for, or of its first option.
 const VARIANTS = variants as unknown as Record<string, [string, number[]][]>;
 
+// Photos added in the admin (scripts/db-photos.mjs writes these before each
+// build): a product that has any shows them instead of the shoot's. `all` are
+// of the product as a whole; byOption, of one option each.
+type DbPhotos = { all: string[]; byOption: Record<string, string[]> };
+const DB = dbRaw as Record<string, DbPhotos>;
+const dbFor = (slug: string | undefined) => {
+  const d = slug ? DB[slug] : undefined;
+  return d && (d.all.length || Object.keys(d.byOption).length) ? d : undefined;
+};
+
 export function photosFor(slug: string | undefined, option?: string): string[] {
+  const db = dbFor(slug);
+  if (db) {
+    if (option && db.byOption[option]?.length) return db.byOption[option];
+    return db.all.length ? db.all : Object.values(db.byOption)[0];
+  }
   const list = slug ? PHOTOS[slug] : undefined;
   if (!list) return [];
   const groups = VARIANTS[slug!];
@@ -24,15 +40,33 @@ export function photosFor(slug: string | undefined, option?: string): string[] {
 
 // true when each of the product's options has its own photos (its options
 // are then shown as pictures rather than names)
-export const hasOptionPhotos = (slug: string | undefined) => !!slug && !!VARIANTS[slug] && !!PHOTOS[slug];
+export const hasOptionPhotos = (slug: string | undefined) => {
+  const db = dbFor(slug);
+  if (db) return Object.keys(db.byOption).length > 1;
+  return !!slug && !!VARIANTS[slug] && !!PHOTOS[slug];
+};
+
+// The shoot's photos of a product as they are built into the site (ignoring any
+// added in the admin), each with the option it shows, if its photos are split
+// by option. `path` is the file under public/; `src`, its address.
+export type ShootPhoto = { src: string; path: string; option: string | null };
+export function shootPhotos(slug: string | undefined): ShootPhoto[] {
+  const list = slug ? PHOTOS[slug] : undefined;
+  if (!list) return [];
+  const groups = VARIANTS[slug!] ?? [];
+  return list.map((path, i) => ({ src: BASE + path, path, option: groups.find(([, ns]) => ns.includes(i + 1))?.[0] ?? null }));
+}
 
 // the product page's gallery follows the option chosen beside it
 export const OPTION_EVENT = "bb:option";
 
 
 // the names of a product's options that have their own photos, in order
-export const optionsWithPhotos = (slug: string | undefined): string[] =>
-  slug && PHOTOS[slug] ? (VARIANTS[slug]?.map(([label]) => label) ?? []) : [];
+export const optionsWithPhotos = (slug: string | undefined): string[] => {
+  const db = dbFor(slug);
+  if (db) return Object.keys(db.byOption);
+  return slug && PHOTOS[slug] ? (VARIANTS[slug]?.map(([label]) => label) ?? []) : [];
+};
 
 // The dot for an option on a shelf card: the colour its name gives, or none
 // (then the dot is a small round photo) for a pattern or design, where a

@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { isAdminDemo } from "@/lib/admin-api";
 import { useAuth } from "@/lib/auth";
+import { useSyncExternalStore } from "react";
 
 // The real gate is row-level security (only role = 'admin' can read a hidden
 // row or write anything). This just gives a customer or a signed-out visitor
 // a plain message instead of a confusing empty admin screen.
 export default function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { status, profile } = useAuth();
+  // a developer trying the screens with sample data (?demo=1, never in production)
+  const demo = useSyncExternalStore(() => () => {}, isAdminDemo, () => false);
+  if (demo) return <>{children}</>;
 
   if (status === "off") {
     return <p className="text-muted">Accounts are not connected yet.</p>;

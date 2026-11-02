@@ -40,8 +40,13 @@ export default function SiteHeader() {
   // the profile button (its menu holds the rest); the cart has where it is
   // delivering to and the profile button, as the shelves do on phones (wide
   // screens keep the logo at the start, as the shelves do).
-  if (pathname === "/" || pathname === "/cart") {
-    const cart = pathname === "/cart";
+  // The pages around the shop (account, orders, about, support, contact, legal,
+  // admin, a lost page) wear the cart's: where it is delivering to and the
+  // profile button, whose menu holds every page and light or dark.
+  const shelves = pathname === "/shop" || pathname.startsWith("/shop/") || pathname === "/checkout";
+  const tools = /^\/(pitch|styles)(\/|$)/.test(pathname);
+  if (pathname === "/" || (!shelves && !tools)) {
+    const cart = pathname !== "/";
     return (
       <header className={cart ? "lb lb--where" : "lb"}>
         <SceneLink

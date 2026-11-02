@@ -1,0 +1,1249 @@
+/* Admin: Products. The shop's product grid, for filling the catalogue in: cards
+   say what each product still needs, and the editor opens beside the grid
+   (over it, full screen, on a phone). Colours come from the shop's theme
+   tokens, so light and dark both work. */
+
+.ap {
+  --ap-hot: var(--bb-hot, #ff4d8d);
+  --ap-panel: var(--color-iron);
+  --ap-line: var(--color-line);
+  --ap-ink: var(--color-paper);
+  --ap-muted: var(--color-muted);
+  --ap-plate: var(--color-plate, #e7e6ec);
+  --ap-good: var(--bb-green, #7ef0c4);
+  --ap-sheet-w: min(480px, 100vw);
+  display: grid;
+  /* one track that may not grow past the page: the category strip scrolls inside it */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+/* the editor sits at the right edge; the grid gives it room on a wide screen */
+@media (min-width: 1100px) {
+  .mx-auto:has(> div > .ap--editing),
+  .mx-auto:has(> .ap--editing) {
+    max-width: none;
+  }
+  .ap--editing {
+    padding-right: calc(var(--ap-sheet-w) + 12px);
+  }
+}
+
+.ap-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ap-head h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ap-sub {
+  margin: 4px 0 0;
+  color: var(--ap-muted);
+  font-size: 0.95rem;
+}
+.ap-err {
+  color: var(--ap-hot);
+  margin: 0;
+}
+
+/* categories: the shop's bar, icon over name, the current one underlined,
+   held at the top while the grid scrolls under it */
+.acb {
+  position: sticky;
+  /* just under the site's own sticky bar (shop-bar.css .lb: 58px, 74px on a wide screen) */
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  z-index: 20;
+  min-width: 0;
+  margin-inline: -8px;
+  padding: 6px 8px 0;
+  background: var(--color-char);
+  border-bottom: 1px solid var(--ap-line);
+}
+@media (min-width: 901px) {
+  .acb {
+    top: 74px;
+  }
+}
+.acb ul {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.acb ul::-webkit-scrollbar {
+  display: none;
+}
+.acb[data-prev="true"] ul {
+  mask-image: linear-gradient(90deg, transparent, #000 56px);
+}
+.acb[data-next="true"] ul {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent);
+}
+.acb[data-prev="true"][data-next="true"] ul {
+  mask-image: linear-gradient(90deg, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+.acb li {
+  flex: none;
+}
+.acb li button {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 76px;
+  padding: 8px 12px 12px;
+  border: 0;
+  background: none;
+  color: var(--ap-muted);
+  font: 600 0.84rem/1.1 inherit;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.acb li button:hover {
+  color: var(--ap-ink);
+}
+.acb li button[aria-pressed="true"] {
+  color: var(--ap-ink);
+}
+.acb li button[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--ap-hot);
+}
+.acb li button[aria-pressed="true"] .acb-ico {
+  color: var(--ap-hot);
+}
+.acb-ico {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.acb-ico svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* a category with products still missing a photo or a price */
+.acb-dot {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f2c14e;
+}
+.acb-lbl small {
+  font-weight: 500;
+  font-size: 0.72rem;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+.acb-btn {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 50%;
+  border: 1px solid var(--ap-line);
+  background: var(--color-char);
+  color: var(--ap-ink);
+  cursor: pointer;
+}
+.acb-btn--prev {
+  left: 0;
+}
+.acb-btn--prev svg {
+  transform: scaleX(-1);
+}
+.acb-btn--next {
+  right: 0;
+}
+.acb[data-prev="true"] .acb-btn--prev,
+.acb[data-next="true"] .acb-btn--next {
+  display: grid;
+}
+@media (hover: none) {
+  .acb-btn {
+    display: none !important;
+  }
+}
+
+.ap-needs button,
+.ap-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ap-line);
+  background: transparent;
+  color: var(--ap-ink);
+  font: 600 0.88rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ap-needs small {
+  font-weight: 500;
+  color: var(--ap-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ap-needs button[aria-pressed="true"],
+.ap-chip.is-on {
+  background: var(--ap-ink);
+  border-color: var(--ap-ink);
+  color: var(--color-char);
+}
+.ap-needs button[aria-pressed="true"] small {
+  color: inherit;
+  opacity: 0.7;
+}
+.ap-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+:is(.ap, .ape) button:focus-visible,
+:is(.ap, .ape) input:focus-visible,
+:is(.ap, .ape) select:focus-visible,
+:is(.ap, .ape) textarea:focus-visible {
+  outline: 2px solid var(--ap-hot);
+  outline-offset: 2px;
+}
+
+.ap-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.ap-search {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  color: var(--ap-ink);
+  font: inherit;
+}
+.ap-needs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ap-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line);
+  font-size: 0.92rem;
+}
+.ap-bulk > span {
+  margin-right: auto;
+  color: var(--ap-muted);
+}
+.ap-link {
+  background: none;
+  border: 0;
+  color: var(--ap-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font: inherit;
+  cursor: pointer;
+  padding: 4px;
+}
+.ap-primary {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--ap-hot);
+  color: var(--bb-on-accent, #16061a);
+  font: 700 0.9rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ap-primary:disabled {
+  opacity: 0.5;
+}
+
+/* the grid of cards, as on a shelf */
+.ap-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  gap: 22px 14px;
+}
+.ap-grid > li {
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+.ap-empty {
+  grid-column: 1 / -1;
+  color: var(--ap-muted);
+  padding: 32px 0;
+}
+
+.apc {
+  position: relative;
+  width: 100%;
+}
+.apc-open,
+.apc--add {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ap-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.apc-img {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--ap-plate);
+  border: 1px solid var(--ap-line);
+  margin-bottom: 6px;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.apc-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apc-initial {
+  font-size: 4.2rem;
+  font-weight: 200;
+  color: var(--plate-ink, #b9b2c8);
+  line-height: 1;
+}
+/* the eye: where the shop's card has its heart */
+.apc-eye {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(20 16 40 / 0.55);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s;
+}
+.apc-eye:active {
+  transform: scale(0.88);
+}
+.apc-eye svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.apc-eye[aria-pressed="true"] {
+  color: var(--ap-hot);
+}
+.apc-eye:disabled {
+  opacity: 0.5;
+}
+/* a hidden product: its photo faded, so the shelf reads at a glance */
+.apc.is-hidden .apc-img > :is(img, .apc-initial) {
+  opacity: 0.38;
+}
+.apc-open:hover .apc-img {
+  transform: translateY(-2px);
+}
+.apc.is-open .apc-img,
+.apc.is-checked .apc-img,
+.apc--add.is-open .apc-img {
+  box-shadow: 0 0 0 3px var(--ap-hot);
+}
+.apc-flags {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  right: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.apc-flags i {
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgb(12 10 28 / 0.78);
+  color: #fff;
+}
+.apc-flags .is-price {
+  background: var(--ap-hot);
+  color: var(--bb-on-accent, #16061a);
+}
+.apc-flags .is-photo {
+  background: #f2c14e;
+  color: #241a00;
+}
+.apc-tick {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: rgb(12 10 28 / 0.4);
+}
+.apc-tick.is-on {
+  background: var(--ap-hot);
+  box-shadow: inset 0 0 0 4px #fff;
+}
+.apc-price {
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.apc-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.apc-meta {
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+}
+
+.apc--add .apc-img {
+  background: transparent;
+  border: 2px dashed var(--ap-line);
+}
+.apc--add .apc-img b {
+  font-size: 3rem;
+  font-weight: 300;
+  color: var(--ap-hot);
+}
+.apc--add.is-on {
+  cursor: default;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 2px dashed var(--ap-hot);
+  aspect-ratio: auto;
+}
+.apc-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ------------------------------------------------------------------ editor */
+.ape {
+  color: var(--ap-ink, var(--color-paper));
+  --ap-hot: var(--bb-hot, #ff4d8d);
+  --ap-line: var(--color-line);
+  --ap-muted: var(--color-muted);
+  --ap-panel: var(--color-iron);
+}
+.ape--sheet {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--ap-sheet-w, min(480px, 100vw));
+  display: flex;
+  flex-direction: column;
+  background: var(--color-char);
+  border-left: 1px solid var(--ap-line);
+  box-shadow: -18px 0 50px rgb(0 0 0 / 0.25);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  animation: ape-in 0.22s ease-out;
+}
+@keyframes ape-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ape--sheet {
+    animation: none;
+  }
+}
+.ape-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ap-line);
+}
+.ape-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+.ape-pos {
+  font-size: 0.85rem;
+  color: var(--ap-muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+}
+.ape-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--ap-line);
+  background: transparent;
+  color: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ape-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ape-close {
+  margin-left: 4px;
+}
+.ape-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ap-line);
+  background: transparent;
+  color: inherit;
+  font: 600 0.82rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.ape-fields .ape-chip {
+  margin: 4px 0 0;
+  justify-self: start;
+}
+.ape-status {
+  font-size: 0.8rem;
+  color: var(--ap-muted);
+  min-width: 48px;
+  text-align: right;
+}
+.ape-status--saved {
+  color: var(--bb-green, #7ef0c4);
+}
+
+.ape-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 18px 40px;
+  display: grid;
+  align-content: start;
+  gap: 22px;
+}
+.ape:not(.ape--sheet) .ape-body {
+  padding-inline: 0;
+}
+.ape-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ape-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.ape-warn,
+.ape-err {
+  margin: -8px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: color-mix(in srgb, var(--ap-hot) 14%, transparent);
+  color: var(--ap-hot);
+}
+
+/* a switch: on the shop or not */
+.ape-switch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--ap-line);
+  background: transparent;
+  color: var(--ap-muted);
+  font: 600 0.82rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ape-switch i {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--ap-line);
+  transition: background 0.15s;
+}
+.ape-switch i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.ape-switch.is-on {
+  color: var(--color-paper);
+}
+.ape-switch.is-on i {
+  background: var(--bb-green-dk, #2c9a74);
+}
+.ape-switch.is-on i::after {
+  transform: translateX(14px);
+}
+.ape-switch--sm {
+  padding: 4px;
+  border: 0;
+}
+
+.ape h3 {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ap-muted);
+}
+
+/* photos */
+.ape-photos {
+  border-radius: 16px;
+  padding: 14px;
+  margin-inline: -14px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.ape-photos.is-drag {
+  background: color-mix(in srgb, var(--ap-hot) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--ap-hot);
+}
+.ape-thumbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ape-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-plate, #e7e6ec);
+  border: 1px solid var(--ap-line);
+}
+.ape-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ape-thumb.is-shoot img {
+  opacity: 0.55;
+}
+.ape-badge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgb(12 10 28 / 0.75);
+  color: #fff;
+}
+.ape-thumb-tools {
+  position: absolute;
+  inset: auto 4px 4px 4px;
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.ape-thumb:hover .ape-thumb-tools,
+.ape-thumb:focus-within .ape-thumb-tools {
+  opacity: 1;
+}
+@media (hover: none) {
+  .ape-thumb-tools {
+    opacity: 1;
+  }
+}
+.ape-thumb-tools button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: rgb(12 10 28 / 0.78);
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ape-thumb-tools button:disabled {
+  opacity: 0.35;
+}
+.ape-thumb-tools .is-del {
+  background: #c8265d;
+}
+.ape-thumb-opt {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 30px;
+  font-size: 0.72rem;
+  padding: 3px 4px;
+  border-radius: 8px;
+  border: 0;
+  background: rgb(255 255 255 / 0.9);
+  color: #1d1638;
+}
+.ape-drop {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  border-radius: 12px;
+  border: 2px dashed var(--ap-line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  padding: 6px;
+}
+.ape-drop b {
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: var(--ap-hot);
+  line-height: 1;
+}
+.ape-drop span {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+.ape-drop small {
+  color: var(--ap-muted);
+  font-size: 0.72rem;
+}
+.ape-hint {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--ap-muted);
+}
+
+/* fields */
+.ape-fields {
+  display: grid;
+  gap: 12px;
+}
+.ape-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.ape-field > span {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.ape-field input,
+.ape-field select,
+.ape-field textarea,
+.ape-opt input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 1rem;
+}
+.ape-field textarea {
+  resize: vertical;
+}
+.ape-price {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.ape-money {
+  position: relative;
+  display: block;
+}
+.ape-money i {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  color: var(--ap-muted);
+  pointer-events: none;
+}
+.ape-money input {
+  padding-left: 30px !important;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ape-opts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ape-opt {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 64px auto 32px;
+  align-items: center;
+  gap: 6px;
+}
+.ape-opt .ape-opt-price {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+  font-size: 0.74rem;
+  color: var(--ap-muted);
+  display: none;
+}
+.ape-opt input {
+  padding: 9px 10px;
+  font-size: 0.92rem;
+}
+.ape-del {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--ap-line);
+  background: transparent;
+  color: var(--ap-muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.ape-del.is-sure {
+  width: auto;
+  padding: 0 8px;
+  border-radius: 999px;
+  border-color: #c8265d;
+  color: #fff;
+  background: #c8265d;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* a phone: two cards a row; the editor is the whole screen */
+@media (max-width: 640px) {
+  .ap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 10px;
+  }
+  .ape--sheet {
+    width: 100vw;
+    border-left: 0;
+  }
+  .ape-nav .ape-chip {
+    order: 5;
+    margin: 6px 0 0;
+  }
+  .ape-thumbs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ape-opt {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 56px;
+  }
+  .ape-opt .ape-switch,
+  .ape-opt .ape-del {
+    grid-row: 2;
+  }
+  .ape-opt .ape-switch {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .ape-opt .ape-del {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+
+/* ------------------------------------------------- edited where it is shown */
+/* A name or a price that reads as text and edits in place: a faint outline
+   on hover says it can be typed in; focused it is a proper field. */
+.ape-inline {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 6px;
+  margin-inline: -6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ape-inline:hover {
+  border-color: var(--ap-line, var(--color-line));
+}
+.ape-inline:focus {
+  outline: none;
+  border-color: var(--ap-hot, #ff4d8d);
+  background: var(--color-iron);
+}
+.ape-inline::placeholder {
+  color: var(--ap-hot, #ff4d8d);
+  opacity: 1;
+}
+.ape-inline--name {
+  overflow-wrap: anywhere;
+}
+.ape-inline-price {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.ape-inline-price > i {
+  font-style: normal;
+}
+.ape-inline-price .ape-inline {
+  width: auto;
+  min-width: 4ch;
+  margin-inline: -3px 0;
+  padding-inline: 3px;
+  font-variant-numeric: tabular-nums;
+}
+/* on the card */
+.apc .apc-price,
+.apc .apc-name {
+  margin-top: 2px;
+}
+.apc .apc-price {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.apc .apc-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.apc-price--range {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.apc-open {
+  margin-bottom: 4px;
+}
+.apc-open .apc-img {
+  margin-bottom: 0;
+}
+/* the editor's title is the name */
+.ape-title .ape-name {
+  flex: 1;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* an option's own photos, under its row */
+.ape-opt-photos {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 10px;
+  border-bottom: 1px dashed var(--ap-line);
+}
+.ape-opt-photo {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-plate, #e7e6ec);
+  border: 1px solid var(--ap-line);
+}
+.ape-opt-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ape-opt-photo button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 0;
+  background: rgb(12 10 28 / 0.75);
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ape-opt-add {
+  height: 52px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--ap-line);
+  background: transparent;
+  color: inherit;
+  font: 600 0.8rem/1.1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ape-opt-add:disabled {
+  opacity: 0.5;
+}
+
+/* ------------------------------------------------------- dragging photos */
+.ape-thumb[draggable="true"] {
+  cursor: grab;
+}
+.ape-thumb[draggable="true"]:active {
+  cursor: grabbing;
+}
+/* where a dragged photo would land: a bar before (or after) a photo */
+.ape-thumbs .is-before::before,
+.ape-thumbs .is-after::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  bottom: 6%;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--ap-hot);
+  z-index: 4;
+}
+.ape-thumbs .is-before::before {
+  left: -7px;
+}
+.ape-thumbs .is-after::after {
+  right: -7px;
+}
+.ape-thumbs > li {
+  position: relative;
+}
+.ape-thumbs.is-target {
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ap-hot) 45%, transparent);
+}
+/* a shoot photo: built into the site; faded once the shop shows the product's own instead */
+.ape-thumb.is-shoot img {
+  opacity: 1;
+}
+.ape-thumb.is-off img {
+  opacity: 0.4;
+}
+.ape-badge--shoot {
+  background: #f2c14e;
+  color: #241a00;
+}
+
+/* an option's photos: a strip of small ones */
+.ape-thumbs--sm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 2px;
+}
+.ape-thumbs--sm .ape-thumb {
+  width: 64px;
+  height: 64px;
+  aspect-ratio: auto;
+  border-radius: 10px;
+}
+.ape-thumbs--sm .ape-badge {
+  left: 3px;
+  top: 3px;
+  padding: 2px 5px;
+  font-size: 0.56rem;
+}
+.ape-thumbs--sm .ape-thumb-tools {
+  inset: auto 2px 2px 2px;
+  gap: 2px;
+}
+.ape-thumbs--sm .ape-thumb-tools button {
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+}
+.ape-thumbs--sm .ape-thumb-opt {
+  display: none;
+}
+.ape-thumbs--sm:hover .ape-thumb:hover .ape-thumb-opt,
+.ape-thumbs--sm .ape-thumb:focus-within .ape-thumb-opt {
+  display: block;
+  top: auto;
+  bottom: -30px;
+  left: 0;
+  right: auto;
+  width: 120px;
+  z-index: 5;
+}
+.ape-opt-photos {
+  display: block;
+}
+.ape-opt-photos .ape-opt-add {
+  height: 64px;
+}
+
+/* ------------------------------------------------------------ main price */
+.ape-price--main {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+.ape-price--main .ape-hint {
+  margin: 0;
+}
+.ape-main-price {
+  padding: 9px 13px;
+  border-radius: 11px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.ape-main-price .ape-inline {
+  border: 0;
+  background: none;
+  padding-block: 0;
+}
+/* an option on the main price reads quieter than one with its own */
+.ape-money.is-main input {
+  color: var(--ap-muted);
+}
+.ape-money.is-own input {
+  border-color: color-mix(in srgb, var(--ap-hot) 55%, var(--ap-line));
+  padding-right: 30px !important;
+}
+.ape-reset {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--ap-hot);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.ape-own {
+  grid-column: 1 / -1;
+  margin-top: -2px;
+  font-size: 0.74rem;
+  color: var(--ap-hot);
+}
+.apc-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.apc-own {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ap-muted);
+  font: 600 0.74rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

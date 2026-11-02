@@ -15,6 +15,19 @@ export type AdminVariant = {
   is_visible: boolean;
   sort_order: number;
 };
+// A photo uploaded from the admin, in the product-photos bucket
+// (supabase/migrations/0012_product_photo_storage.sql). variant_id ties it to
+// one option (a colour, a design); none means it shows the product as a whole.
+export type AdminImage = {
+  id: string;
+  storage_path: string;
+  url: string;
+  variant_id: string | null;
+  sort_order: number;
+  // for a photo brought in from the shoot (public/products/...), the shoot file
+  // it came from, so the shoot's copy is not offered again
+  alt_text: string;
+};
 export type AdminProduct = {
   id: string;
   slug: string;
@@ -26,7 +39,10 @@ export type AdminProduct = {
   category_slug?: string;
   category_name?: string;
   variants: AdminVariant[];
+  images: AdminImage[];
 };
+
+export const PHOTO_BUCKET = "product-photos";
 
 function db() {
   const sb = getSupabase();
@@ -83,7 +99,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, is_visible, sort_order)";
+  "id, slug, name, description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -95,7 +111,10 @@ type ProductRow = {
   category_id: string;
   categories: { slug: string; name: string } | { slug: string; name: string }[] | null;
   product_variants: AdminVariant[] | null;
+  product_images: Omit<AdminImage, "url">[] | null;
 };
+
+const photoUrl = (path: string) => db().storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 
 function toProduct(row: ProductRow): AdminProduct {
   const cat = Array.isArray(row.categories) ? row.categories[0] : row.categories;
@@ -113,6 +132,10 @@ function toProduct(row: ProductRow): AdminProduct {
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map(toVariant),
+    images: (row.product_images ?? [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((i) => ({ ...i, url: photoUrl(i.storage_path) })),
   };
 }
 
@@ -197,5 +220,72 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
 
 export async function deleteVariant(id: string) {
   const { error } = await db().from("product_variants").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// --- photos ------------------------------------------------------------------
+
+// A photo as the shop wants it: at most 1600 px on its longest side, WebP. A
+// phone photo of 4-8 MB comes out at a few hundred KB, and uploads in a moment.
+export async function preparePhoto(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/webp", 0.86));
+  if (!blob) throw new Error("This picture could not be read. Try a JPG or PNG.");
+  return blob;
+}
+
+export async function uploadProductImage(productId: string, file: File, sortOrder: number, variantId: string | null = null, altText = ""): Promise<string> {
+  const blob = await preparePhoto(file);
+  const path = `${productId}/${crypto.randomUUID()}.webp`;
+  const up = await db().storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: "image/webp", cacheControl: "31536000" });
+  if (up.error) throw up.error;
+  const { data, error } = await db()
+    .from("product_images")
+    .insert({ product_id: productId, storage_path: path, variant_id: variantId, sort_order: sortOrder, alt_text: altText })
+    .select("id")
+    .single();
+  if (error) {
+    await db().storage.from(PHOTO_BUCKET).remove([path]); // no orphan file
+    throw error;
+  }
+  return data.id as string;
+}
+
+// A shoot photo (built into the site) made into one of the product's own, so it
+// can be moved, reordered or removed like any other.
+export async function importShootPhoto(productId: string, src: string, path: string, sortOrder: number, variantId: string | null) {
+  const res = await fetch(src);
+  if (!res.ok) throw new Error(`The shoot photo ${path} could not be read.`);
+  const blob = await res.blob();
+  const file = new File([blob], path.split("/").pop() ?? "photo.webp", { type: blob.type || "image/webp" });
+  return uploadProductImage(productId, file, sortOrder, variantId, path);
+}
+
+export async function deleteProductImage(image: AdminImage) {
+  const { error } = await db().from("product_images").delete().eq("id", image.id);
+  if (error) throw error;
+  await db().storage.from(PHOTO_BUCKET).remove([image.storage_path]);
+}
+
+// the photos in this order: the first is the one on the shelf
+export async function reorderProductImages(ids: string[]) {
+  await Promise.all(
+    ids.map(async (id, i) => {
+      const { error } = await db().from("product_images").update({ sort_order: i }).eq("id", id);
+      if (error) throw error;
+    }),
+  );
+}
+
+export async function setImageVariant(id: string, variantId: string | null) {
+  const { error } = await db().from("product_images").update({ variant_id: variantId }).eq("id", id);
   if (error) throw error;
 }

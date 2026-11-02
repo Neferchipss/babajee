@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node --env-file-if-exists=.env.local scripts/db-photos.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

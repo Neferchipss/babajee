@@ -101,3 +101,9 @@ html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] :is(.
     radial-gradient(circle at 50% 48%, rgb(217 50 113 / 0.1) 0%, rgb(160 120 240 / 0.07) 34%, transparent 66%),
     #ffffff;
 }
+
+/* the footer in daylight: a hairline, not the night's hard black poster edge */
+html[data-mode="light"] #site[data-scope="shop"] .ftr {
+  border-top-color: var(--color-line);
+  box-shadow: none;
+}
