@@ -1,5 +1,8 @@
 "use client";
 
+import { useLiveCatalog } from "@/lib/useLiveCatalog";
+import { photosFor } from "@/lib/product-photos";
+import { toneAt } from "@/lib/tone";
 import SceneLink from "@/components/SceneLink";
 import { byGroup } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
@@ -69,7 +72,7 @@ const VALUES = [
 
 // The same page in every theme. The theme CSS moves the pieces around:
 // a sidebar or a row of tabs, a banner or a title block, tiles or cards.
-export default function CategoryView({ category, products, categories }: Props) {
+export default function CategoryView({ category, products: snapshot, categories: initialCategories }: Props) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
   // phones and tablets: the search field opens from the title bar
@@ -78,6 +81,16 @@ export default function CategoryView({ category, products, categories }: Props) 
   // the search page and the all-products shelf list every product, under
   // their category; the search page takes its query from the address
   const everything = category.slug === "all" || category.slug === "search";
+  const catalog = useLiveCatalog();
+  const categories = catalog ? initialCategories.map((c) => ({
+    ...c, count: catalog.filter((p) => p.categorySlug === c.slug).length,
+  })) : initialCategories;
+  const products: CardProduct[] = catalog ? catalog.filter((p) => everything || p.categorySlug === category.slug).map((p) => ({
+    href: `/shop/${p.categorySlug}?p=${encodeURIComponent(p.slug)}`, slug: p.slug, name: p.name,
+    options: Math.max(0, p.variantCount - 1), price: p.minPrice, variants: p.variants,
+    images: photosFor(p.slug), tone: toneAt(Math.max(0, categories.findIndex((c) => c.slug === p.categorySlug))),
+    group: everything ? p.categoryName : undefined,
+  })) : snapshot;
   const searching = category.slug === "search";
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the query in the address, once
@@ -115,6 +128,7 @@ export default function CategoryView({ category, products, categories }: Props) 
           sort={sort}
           onSort={setSort}
           hints={hints}
+          catalog={catalog}
           {...(searching ? { query, onQuery: setQuery } : {})}
         />
         {/* phones and tablets: the masthead is a compact title bar */}
@@ -215,7 +229,7 @@ export default function CategoryView({ category, products, categories }: Props) 
                     product={p}
                     onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
                     onAdd={
-                      p.slug && p.variants?.length === 1 && p.variants[0].stockQty > 0
+                      p.slug && p.variants?.length === 1
                         ? (from) => {
                             const v = p.variants![0];
                             addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });

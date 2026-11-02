@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { addToCart, tossIntoJar, useCart } from "@/lib/cart";
+import { useLiveCatalog } from "@/lib/useLiveCatalog";
 import ProductCard, { type CardProduct } from "./ProductCard";
 
 export type RecGroup = { title: string; products: CardProduct[] };
@@ -13,8 +14,15 @@ export type RecGroup = { title: string; products: CardProduct[] };
 export default function CartRecs({ groups }: { groups: RecGroup[] }) {
   const cart = useCart();
   const inCart = new Set(cart.map((l) => l.slug));
+  const catalog = useLiveCatalog();
+  const visible = catalog && new Map(catalog.map((p) => [p.slug, p]));
   const tabs = groups
-    .map((g) => ({ ...g, products: g.products.filter((p) => p.slug && !inCart.has(p.slug)).slice(0, 10) }))
+    .map((g) => ({ ...g, products: g.products.flatMap((p) => {
+      if (!p.slug || inCart.has(p.slug)) return [];
+      if (!visible) return [p];
+      const live = visible.get(p.slug);
+      return live ? [{ ...p, name: live.name, price: live.minPrice, variants: live.variants, options: live.variantCount - 1 }] : [];
+    }).slice(0, 10) }))
     .filter((g) => g.products.length > 0);
   const [pick, setPick] = useState(0);
   const [dir, setDir] = useState<"next" | "prev" | "">("");

@@ -4,7 +4,7 @@
 //
 // This is a plain server-side client (no browser session), so it only ever
 // sees what row-level security lets an anonymous visitor see: is_visible
-// rows. A hidden or unpriced product simply does not appear here.
+// rows. A hidden product simply does not appear here.
 import { createClient } from "@supabase/supabase-js";
 import { CATEGORIES, type CatalogProduct } from "./catalog-data";
 import { toNumber } from "./currency";
@@ -18,12 +18,12 @@ function client() {
   // Where the stock sheet can stand in (useLocal, below), an unreachable
   // database should give up at once rather than retry for 1 + 2 + 4 seconds:
   // with the project offline, that wait made every dev page take 7 seconds.
-  return createClient(URL, KEY, { auth: { persistSession: false }, db: { retry: !useLocal } });
+  return createClient(URL, KEY, { auth: { persistSession: false, detectSessionInUrl: false, autoRefreshToken: false }, db: { retry: typeof window === "undefined" && !useLocal } });
 }
 
 // Price is unset for local stand-in products (see useLocal below) and for
 // database options not priced yet (still ₹0); it then renders as the
-// "₹420.00" placeholder.
+// "xx.xx" placeholder.
 export type DbVariant = { id: string; label: string; price?: number; stockQty: number };
 export type DbCardProduct = {
   slug: string;
@@ -74,21 +74,11 @@ function localProductDetail(categorySlug: string, productSlug: string) {
 function normalizeVariants(
   rows: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number }[] | null,
 ): DbVariant[] {
-  return (rows ?? [])
-    .slice()
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((v) => {
-      const price = toNumber(v.price);
-      // Until the client's prices and stock are loaded, an option still at
-      // the seed's ₹0 is "not priced yet": it shows the ₹420 stand-in and
-      // counts as in stock. Setting a real price in the admin switches that
-      // option to its real price and stock.
-      if (!(price > 0)) return { id: v.id, label: v.label, price: undefined, stockQty: PLACEHOLDER_STOCK };
-      return { id: v.id, label: v.label, price, stockQty: toNumber(v.stock_qty) };
-    });
+  if (!rows?.length) return [{ id: "default", label: "Default", stockQty: 0 }];
+  return rows.slice().sort((a, b) => a.sort_order - b.sort_order).map((v) => ({
+    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: toNumber(v.stock_qty),
+  }));
 }
-
-const PLACEHOLDER_STOCK = 1;
 
 function minPriced(variants: DbVariant[]) {
   const priced = variants.map((v) => v.price).filter((p): p is number => p !== undefined);
@@ -142,13 +132,10 @@ async function liveCategoriesWithCounts(): Promise<(DbCategory & { count: number
   if (!sb) return [];
   const [{ data: cats }, { data: prods }] = await Promise.all([
     sb.from("categories").select("id, slug, name").order("sort_order"),
-    sb.from("products").select("category_id, product_variants(id)"),
+    sb.from("products").select("category_id"),
   ]);
   const counts = new Map<string, number>();
-  // Same rule as everywhere else: a product with no visible variant does not
-  // count as something a visitor can actually see or buy.
   for (const p of prods ?? []) {
-    if ((p.product_variants ?? []).length === 0) continue;
     counts.set(p.category_id, (counts.get(p.category_id) ?? 0) + 1);
   }
   return (cats ?? []).map((c) => ({ slug: c.slug, name: c.name, count: counts.get(c.id) ?? 0 }));
@@ -178,10 +165,7 @@ async function liveCategoryDetail(slug: string) {
     .order("sort_order");
   return {
     category: { slug: category.slug, name: category.name },
-    // A product shows here only once it has a visible variant. A product
-    // marked visible with no visible option isn't actually buyable, so it
-    // must not appear as if it were.
-    products: (products ?? []).map(toCard).filter((p) => p.variantCount > 0),
+    products: (products ?? []).map(toCard),
   };
 }
 
@@ -202,9 +186,7 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
     .eq("slug", productSlug)
     .maybeSingle();
   const variants = normalizeVariants(product?.product_variants ?? null);
-  // Same rule as the category grid: no visible variant means not actually
-  // buyable, so the page does not exist yet, same as any other 404.
-  if (!product || variants.length === 0) return null;
+  if (!product) return null;
   const { data: moreRows } = await sb
     .from("products")
     .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, sort_order)")
@@ -220,16 +202,11 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
       description: product.description,
       variants,
     },
-    more: (moreRows ?? []).map(toCard).filter((p) => p.variantCount > 0).slice(0, 4),
+    more: (moreRows ?? []).map(toCard).slice(0, 4),
   };
 }
 
-// Every visible product, for generateStaticParams. A product that is hidden
-// or has no priced variant simply will not appear here, so its page is not
-// built until an admin prices and unhides it. Static export requires at
-// least one route for a dynamic page, so when nothing is priced yet this
-// returns one placeholder pair that matches no real category — visiting it
-// correctly 404s (see the page component).
+// Preserve old product URLs in the static export.
 export async function getStaticProductParams(): Promise<{ category: string; product: string }[]> {
   const sb = client();
   const data = sb ? (await sb.from("products").select("slug, categories!inner(slug)")).data : null;
@@ -246,24 +223,25 @@ export type DbSearchProduct = DbCardProduct & { categorySlug: string; categoryNa
 
 export async function getSearchCatalog(): Promise<DbSearchProduct[]> {
   const live = await liveSearchCatalog();
-  if (live.length || !useLocal) return live;
+  if (live !== null || !useLocal) return live ?? [];
   return CATEGORIES.flatMap((c) =>
     c.products.map((p) => ({ ...localCard(p), categorySlug: c.slug, categoryName: c.name })),
   );
 }
 
-async function liveSearchCatalog(): Promise<DbSearchProduct[]> {
+export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   const sb = client();
-  if (!sb) return [];
-  const { data } = await sb
+  if (!sb) return null;
+  const { data, error } = await sb
     .from("products")
-    .select("slug, name, product_variants(id, label, price, stock_qty, sort_order), categories!inner(slug, name)");
+    .select("slug, name, product_variants(id, label, price, stock_qty, sort_order), categories!inner(slug, name)")
+    .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
+  if (error) return null;
   return (data ?? [])
     .map((row) => {
       const cat = row.categories as unknown as { slug: string; name: string };
       return { ...toCard(row), categorySlug: cat.slug, categoryName: cat.name };
-    })
-    .filter((p) => p.variantCount > 0);
+    });
 }
 
 // A few products from each category that have photos, for the 3D shop: they

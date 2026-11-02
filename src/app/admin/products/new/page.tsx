@@ -84,8 +84,7 @@ function NewProduct() {
         </button>
       </form>
       <p className="mt-4 text-sm text-muted">
-        A hidden &ldquo;Default&rdquo; option is added automatically. Set its price and stock, then make it visible, on
-        the next screen.
+        New products appear on the shop immediately. You can edit the default option or hide the product on the next screen.
       </p>
     </div>
   );

@@ -75,7 +75,7 @@ export default function ProductCard({
       navigator.vibrate?.(6);
     } catch {}
   };
-  const deal = dealFor(product.slug, product.price, product.mrp);
+  const deal = dealFor(product.price, product.mrp);
   const count = photos.length || (demo ? 3 : 1);
   // which photo is in view, from how far the strip has scrolled
   const onSlide = (e: UIEvent<HTMLDivElement>) => {

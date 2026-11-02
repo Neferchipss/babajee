@@ -20,6 +20,7 @@ export type SheetProduct = {
   name: string;
   tone: string;
   variants: BuyVariant[];
+  mrp?: number;
   unit?: string;
   // its category, on the all-products and search shelves
   group?: string;
@@ -66,9 +67,8 @@ export default function ProductSheet({
   const v =
     choice.slug === p.slug ? choice.v : Math.max(0, p.variants.findIndex((x) => x.label === shelfPicks.get(p.slug)));
   const variant = p.variants[v] ?? { label: "Standard", stockQty: 1 };
-  const inStock = variant.stockQty > 0;
   const showOptions = p.variants.length > 1;
-  const deal = dealFor(p.slug, variant.price);
+  const deal = dealFor(variant.price, p.mrp);
 
   // lock the page behind, hide the floating third eye, Escape closes
   useEffect(() => {
@@ -365,7 +365,6 @@ export default function ProductSheet({
                         <Price className="ps-opt-price" value={o.price} />
                       </>
                     )}
-                    {o.stockQty <= 0 && <span className="ps-opt-out">Sold out</span>}
                   </button>
                 ))}
               </div>
@@ -385,8 +384,8 @@ export default function ProductSheet({
               <Price className="ps-bar-price" value={variant.price} />
             )}
             </div>
-            <button type="button" className="ps-add" data-added={added === p.slug} disabled={!inStock} onClick={add}>
-              {!inStock ? "Sold out" : added === p.slug ? "Added" : "Add"}
+            <button type="button" className="ps-add" data-added={added === p.slug} onClick={add}>
+              {added === p.slug ? "Added" : "Add"}
             </button>
           </footer>
         </section>
@@ -475,7 +474,7 @@ function GhostCard({ p, category, side }: { p: SheetProduct; category: string; s
   const photo = photosFor(p.slug)[0];
   const swatches = hasOptionPhotos(p.slug);
   const first = p.variants[0] ?? { label: "Standard", stockQty: 1 };
-  const deal = dealFor(p.slug, first.price);
+  const deal = dealFor(first.price, p.mrp);
   return (
     <div className="ps-card ps-ghost" data-side={side} aria-hidden="true">
       <div className="ps-pull">

@@ -22,7 +22,6 @@ export default function ProductBuy({
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const variant = variants[selected];
-  const inStock = variant.stockQty > 0;
   const swatches = hasOptionPhotos(item.slug);
   const choose = (i: number) => {
     setSelected(i);
@@ -73,20 +72,14 @@ export default function ProductBuy({
       )}
 
       <div className="pd-actions">
-        {inStock ? (
-          <>
-            <QtyStepper value={qty} onChange={setQty} />
-            <button type="button" className="btn btn-primary pd-add" data-added={added} onClick={add}>
-              {added ? "Added" : "Add to cart"}
-            </button>
-            {added && (
-              <Link href="/cart" className="pd-view-cart">
-                View cart
-              </Link>
-            )}
-          </>
-        ) : (
-          <p className="pd-oos">Out of stock</p>
+        <QtyStepper value={qty} onChange={setQty} />
+        <button type="button" className="btn btn-primary pd-add" data-added={added} onClick={add}>
+          {added ? "Added" : "Add to cart"}
+        </button>
+        {added && (
+          <Link href="/cart" className="pd-view-cart">
+            View cart
+          </Link>
         )}
       </div>
     </div>

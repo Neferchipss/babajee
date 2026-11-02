@@ -3,7 +3,7 @@
 import Link from "next/link";
 import SceneLink from "@/components/SceneLink";
 import { useEffect, useRef, useState } from "react";
-import { type CartLine, cartSums, clearCart, lineUnit, removeLine, restoreLine, setQty, useCart } from "@/lib/cart";
+import { type CartLine, cartSums, clearCart, lineTotal, removeLine, restoreLine, setQty, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { toggleSaved } from "@/lib/wishlist";
 import CartRecs, { type RecGroup } from "./CartRecs";
@@ -13,7 +13,7 @@ import "./cart.css";
 
 export type { RecGroup };
 
-const rs = (n: number) => formatPrice(n, { paise: true });
+const rs = (n: number | undefined) => formatPrice(n, { paise: true });
 const buzz = (p: number | number[]) => {
   try {
     navigator.vibrate?.(p);
@@ -147,7 +147,7 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
           </div>
           <ul className="cv-lines">
             {cart.map((line) => {
-              const u = lineUnit(line);
+
               const meta = [line.variant !== "Standard" ? line.variant : null, line.unit].filter(Boolean).join(" · ");
               return (
                 <li key={line.key} className="cv-line">
@@ -192,9 +192,8 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
                         <span aria-hidden="true">+</span>
                       </button>
                     </div>
-                    <p className="cv-price" data-deal={u.mrp !== undefined}>
-                      {u.mrp !== undefined && <s>{rs(u.mrp * line.qty)}</s>}
-                      <span>{rs(u.price * line.qty)}</span>
+                    <p className="cv-price">
+                      <span>{rs(lineTotal(line))}</span>
                     </p>
                   </div>
                 </li>
@@ -212,15 +211,10 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
           <div>
             <dt>Items total</dt>
             <dd>
-              {sums.saved > 0 && <s>{rs(sums.full)}</s>} {rs(sums.total)}
+              {rs(sums.total)}
             </dd>
           </div>
-          {sums.saved > 0 && (
-            <div className="cv-saved">
-              <dt>Deals</dt>
-              <dd>&minus;{rs(sums.saved)}</dd>
-            </div>
-          )}
+
           <div>
             <dt>Delivery</dt>
             <dd className="cv-muted">At checkout</dd>
@@ -273,17 +267,12 @@ export function CheckoutItems() {
                 {line.variant !== "Standard" && <span className="text-muted"> · {line.variant}</span>}{" "}
                 <span className="text-muted">x {line.qty}</span>
               </span>
-              <span className="tabular-nums">{rs(lineUnit(line).price * line.qty)}</span>
+              <span className="tabular-nums">{rs(lineTotal(line))}</span>
             </li>
           ))}
         </ul>
       )}
-      {sums.saved > 0 && (
-        <div className="mt-4 flex justify-between text-sm" style={{ color: "var(--bb-green, #45c470)" }}>
-          <span>Deals</span>
-          <span className="tabular-nums">&minus;{rs(sums.saved)}</span>
-        </div>
-      )}
+
       <div className="mt-5 flex justify-between border-t border-line pt-4 text-lg font-semibold">
         <span>Total</span>
         <span className="tabular-nums">{rs(sums.total)}</span>

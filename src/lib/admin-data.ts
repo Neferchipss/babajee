@@ -154,11 +154,11 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
 }
 
 export async function createProduct(input: { category_id: string; slug: string; name: string; description: string }) {
-  const { data, error } = await db().from("products").insert(input).select("id").single();
+  const { data, error } = await db().from("products").insert({ ...input, is_visible: true }).select("id").single();
   if (error) throw error;
   const { error: variantError } = await db()
     .from("product_variants")
-    .insert({ product_id: data.id, label: "Default", price: 0, stock_qty: 0, is_visible: false, sort_order: 0 });
+    .insert({ product_id: data.id, label: "Default", price: 0, stock_qty: 0, is_visible: true, sort_order: 0 });
   if (variantError) throw variantError;
   return data.id as string;
 }
@@ -211,7 +211,7 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
         label: variant.label ?? "Option",
         price: variant.price ?? 0,
         stock_qty: variant.stock_qty ?? 0,
-        is_visible: variant.is_visible ?? false,
+        is_visible: variant.is_visible ?? true,
         sort_order: variant.sort_order ?? 0,
       });
     if (error) throw error;

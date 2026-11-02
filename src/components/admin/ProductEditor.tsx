@@ -193,7 +193,6 @@ export default function ProductEditor({
 
   const many = product.variants.length > 1;
   const single = product.variants[0];
-  const sellable = product.variants.some((v) => v.is_visible && v.price > 0);
 
   // The photos are in groups: the product's own, then one per option (with no
   // options, just the one). A photo's group is the option it shows.
@@ -292,9 +291,6 @@ export default function ProductEditor({
             {product.is_visible ? "On the shop" : "Hidden"}
           </button>
         </div>
-        {product.is_visible && !sellable && (
-          <p className="ape-warn">Shown, but nothing can be bought yet: give an option a price and switch it on.</p>
-        )}
         {err && <p className="ape-err">{err}</p>}
 
         {/* photos: drag any of them to reorder, or onto an option below */}
@@ -422,7 +418,7 @@ export default function ProductEditor({
             className="ape-chip"
             onClick={() =>
               run(() =>
-                api.upsertVariant(product.id, { label: many ? "New option" : "Option 2", price: mainPrice(product), stock_qty: 0, is_visible: false, sort_order: product.variants.length }),
+                api.upsertVariant(product.id, { label: many ? "New option" : "Option 2", price: mainPrice(product), stock_qty: 0, is_visible: true, sort_order: product.variants.length }),
               )
             }
           >

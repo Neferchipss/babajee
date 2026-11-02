@@ -83,11 +83,11 @@ function makeDemo(): Api {
         {
           id,
           ...input,
-          is_visible: false,
+          is_visible: true,
           sort_order: -1,
           category_slug: cat.slug,
           category_name: cat.name,
-          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, is_visible: false, sort_order: 0 }],
+          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, is_visible: true, sort_order: 0 }],
           images: [],
         },
         ...products,
@@ -114,7 +114,7 @@ function makeDemo(): Api {
     async upsertVariant(productId, variant) {
       const p = find(productId);
       if (variant.id) Object.assign(p.variants.find((v) => v.id === variant.id)!, variant);
-      else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, is_visible: false, sort_order: p.variants.length, ...variant } as AdminVariant);
+      else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
     },
     async deleteVariant(id) {
       for (const p of products) p.variants = p.variants.filter((v) => v.id !== id);

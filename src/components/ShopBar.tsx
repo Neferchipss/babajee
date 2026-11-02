@@ -50,6 +50,7 @@ const centre = (list: HTMLElement, el: HTMLElement) => el.offsetLeft - (list.cli
 // delivering to and the profile button, then the search bar and the strip
 // of categories. Scrolled down, the search bar and the strip stay.
 export default function ShopBar({
+  catalog,
   current,
   categories,
   sort,
@@ -58,6 +59,7 @@ export default function ShopBar({
   query: shared,
   onQuery,
 }: {
+  catalog?: import("@/lib/catalog-db").DbSearchProduct[] | null;
   current: string;
   categories: { slug: string; name: string }[];
   sort: Sort;
@@ -77,7 +79,7 @@ export default function ShopBar({
   const setQuery = live ? onQuery : setOwn;
   const [open, setOpen] = useState(false);
   const [pick, setPick] = useState(-1);
-  const found = live || !open ? [] : suggest(query);
+  const found = live || !open ? [] : suggest(query, 8, catalog);
   const go = (href: string) => {
     setOpen(false);
     // the product's own shelf opens it in the sheet; when that is this

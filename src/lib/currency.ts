@@ -11,6 +11,7 @@ const INR = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 0, maximumFr
 const INR2 = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 // paise: true always shows them (₹42.00)
 export function formatPrice(value: unknown, { paise = false } = {}): string {
+  if (value == null) return "xx.xx";
   const n = toNumber(value);
   if (paise) return `₹${INR2.format(n)}`;
   const s = INR.format(n);

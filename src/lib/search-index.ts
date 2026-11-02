@@ -30,7 +30,7 @@ const all = () =>
 // The products every word of the query is found in, best first: those where
 // each word starts a word of the name ("raw tr" -> RAW Rolling TRay before
 // RAW DrawsTRing bag), then names that start with the whole query.
-export function suggest(query: string, limit = 8): Suggestion[] {
+export function suggest(query: string, limit = 8, catalog?: import("./catalog-db").DbSearchProduct[] | null): Suggestion[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const words = q.split(/\s+/);
@@ -40,7 +40,11 @@ export function suggest(query: string, limit = 8): Suggestion[] {
     const misses = words.filter((w) => !parts.some((t) => t.startsWith(w))).length;
     return misses * 2 + (name.startsWith(q) ? 0 : 1);
   };
-  return all()
+  const source = catalog?.map((p) => ({
+    slug: p.slug, name: p.name, category: p.categoryName, categorySlug: p.categorySlug,
+    photo: photosFor(p.slug)[0], words: `${p.name} ${brandOf(p.name).brand ?? ""} ${p.categoryName}`.toLowerCase(),
+  })) ?? all();
+  return source
     .filter((s) => words.every((w) => s.words.includes(w)))
     .map((s, i) => [score(s), i, s] as const)
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])

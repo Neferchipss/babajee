@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { unitPrice } from "./deal";
+
 
 // The cart (Baba's jar). It lives in this browser's localStorage until there
 // is an account to keep it on; every jar, count and cart page on the site
@@ -73,20 +73,18 @@ export function useCart() {
 
 export const cartCount = (cart: CartLine[]) => cart.reduce((n, l) => n + l.qty, 0);
 
-// one line's unit price for display (stand-ins until real prices arrive)
-export const lineUnit = (l: CartLine) => unitPrice(l.slug, l.price);
+export function lineTotal(line: CartLine) {
+  return line.price === undefined ? undefined : line.price * line.qty;
+}
 
-// what the jar adds up to: the total to pay, what it would have cost at the
-// struck-through prices, and the difference
 export function cartSums(cart: CartLine[]) {
   let total = 0;
-  let full = 0;
-  for (const l of cart) {
-    const u = lineUnit(l);
-    total += u.price * l.qty;
-    full += (u.mrp ?? u.price) * l.qty;
+  for (const line of cart) {
+    const amount = lineTotal(line);
+    if (amount === undefined) return { count: cartCount(cart), total: undefined };
+    total += amount;
   }
-  return { count: cartCount(cart), total, full, saved: full - total };
+  return { count: cartCount(cart), total };
 }
 export const cartTotal = (cart: CartLine[]) => cartSums(cart).total;
 
