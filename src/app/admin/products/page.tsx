@@ -335,9 +335,7 @@ function Card({
       )}
       <EditableName className="apc-name" value={p.name} onSave={(name) => onSave(() => api.updateProduct(p.id, { name }))} />
       <span className="apc-meta">
-        {p.variants.length > 1 ? `${p.variants.length} options · ` : ""}
-        {p.images.length ? `${p.images.length} photo${p.images.length === 1 ? "" : "s"}` : photo ? "Shoot photos" : "No photos"}
-        {!p.is_visible && " · Hidden"}
+        {[p.variants.length > 1 && `${p.variants.length} options`, !p.is_visible && "Hidden"].filter(Boolean).join(" · ")}
       </span>
     </div>
   );

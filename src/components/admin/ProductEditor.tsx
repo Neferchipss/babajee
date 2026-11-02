@@ -340,15 +340,6 @@ export default function ProductEditor({
               e.target.value = "";
             }}
           />
-          <p className="ape-hint">
-            {shoot.length && live
-              ? "“Shoot” photos are built into the site and on the shop now. Drag, reorder or add to them and they become this product's own, all of them, in their places."
-              : shoot.length
-                ? "Faded “shoot” photos are no longer on the shop, now that it has its own. Drag one into place to use it."
-                : many
-                  ? "The first is the one on the shelf. Drag photos to reorder them, or onto an option below for its own."
-                  : "The first photo is the one on the shelf. Drag photos to reorder them."}
-          </p>
         </section>
 
         {/* details */}
@@ -516,8 +507,6 @@ function PhotoGroup({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={it.src} alt="" draggable={false} />
-          {!small && i === 0 && !it.shoot && <b className="ape-badge">On the shelf</b>}
-          {it.shoot && <b className="ape-badge ape-badge--shoot">{live && !small && i === 0 ? "Shoot · on the shelf" : "Shoot"}</b>}
           <div className="ape-thumb-tools">
             <button type="button" onClick={() => onPlace(it.ref, group, i - 1)} disabled={i === 0} aria-label="Move earlier">
               ‹

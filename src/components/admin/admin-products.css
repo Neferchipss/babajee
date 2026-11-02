@@ -715,19 +715,6 @@
 .ape-thumb.is-shoot img {
   opacity: 0.55;
 }
-.ape-badge {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: rgb(12 10 28 / 0.75);
-  color: #fff;
-}
 .ape-thumb-tools {
   position: absolute;
   inset: auto 4px 4px 4px;
@@ -1125,10 +1112,6 @@
 .ape-thumb.is-off img {
   opacity: 0.4;
 }
-.ape-badge--shoot {
-  background: #f2c14e;
-  color: #241a00;
-}
 
 /* an option's photos: a strip of small ones */
 .ape-thumbs--sm {
@@ -1144,12 +1127,6 @@
   height: 64px;
   aspect-ratio: auto;
   border-radius: 10px;
-}
-.ape-thumbs--sm .ape-badge {
-  left: 3px;
-  top: 3px;
-  padding: 2px 5px;
-  font-size: 0.56rem;
 }
 .ape-thumbs--sm .ape-thumb-tools {
   inset: auto 2px 2px 2px;
