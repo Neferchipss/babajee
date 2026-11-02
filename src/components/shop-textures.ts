@@ -40,18 +40,19 @@ const SURFACES: Record<string, Surface> = {
   m_runner: { tex: "velvet", size: 0.9, rough: 1, bump: 0.6 },
   // the second model (build_shop_v2.py): made with ChatGPT from crops of the pitch video
   // (tools/textures/refs_v2); size = metres one tile covers
-  m_v2_slate: { tex: "v2_slate_mural", tint: "#e8eedc", size: 5.5, rough: 1, bump: 0.4 }, // slate plaster with sage swirls; a green lean so the grey dusk reads grey-green, as in the pitch
+  m_v2_slate: { tex: "v2_slate_mural", tint: "#c8cebc", size: 5.5, rough: 1, bump: 0.4 }, // slate plaster with sage swirls; a green lean so the grey dusk reads grey-green, as in the pitch
   m_v2_slate_dark: { tex: "v2_slate_mural", tint: "#7a7468", size: 5.5, rough: 1, bump: 0.4 },
-  m_v2_awning: { tex: "v2_awning", gain: 1.3, size: 1.8, rough: 1, bump: 0.5 },
-  m_v2_pave: { tex: "v2_pavement", size: 4.4, rough: 1, bump: 0.6 }, // 4 x 4 slabs of 1.1 m
-  m_v2_kerb: { tex: "v2_pavement", tint: "#b8b4ac", size: 4.4, rough: 1, bump: 0.6 },
-  m_v2_walnut: { tex: "v2_walnut", size: 1.0, rough: 1, bump: 0.35, refl: 0.12 },
-  m_v2_walnut_dark: { tex: "v2_walnut", tint: "#8a7a6a", size: 1.0, rough: 1, bump: 0.35 },
-  m_v2_wall_in: { tex: "v2_charcoal", gain: 1.4, size: 2.6, rough: 1, bump: 0.4 },
+  m_v2_awning: { tex: "v2_awning", tint: "#b4b8aa", size: 1.8, rough: 1, bump: 0.5 },
+  m_v2_pave: { tex: "v2_pavement", tint: "#7a7874", sat: 0.5, size: 4.4, rough: 1, bump: 0.6 }, // 4 x 4 slabs of 1.1 m; cool and darker than the facade, as in the pitch
+  m_v2_kerb: { tex: "v2_pavement", tint: "#a09c96", sat: 0.5, size: 4.4, rough: 1, bump: 0.6 },
+  // the pitch's wood is an olive, greyish brown, not a red walnut: less colour, a green lean
+  m_v2_walnut: { tex: "v2_walnut", tint: "#ccccbc", gain: 1.45, sat: 0.45, size: 1.0, rough: 1, bump: 0.35, refl: 0.12 },
+  m_v2_walnut_dark: { tex: "v2_walnut", tint: "#9a9a8a", sat: 0.45, size: 1.0, rough: 1, bump: 0.35 },
+  m_v2_wall_in: { tex: "v2_charcoal", tint: "#c4c4b8", sat: 0.6, gain: 0.85, size: 2.6, rough: 1, bump: 0.4 },
   m_v2_ceiling: { tex: "v2_walnut", tint: "#6e5e50", size: 1.4, rough: 1, bump: 0.3 }, // dark boards overhead
-  m_v2_floor: { tex: "v2_floor", tint: "#b4b4b0", sat: 0.35, size: 2.4, rough: 1, bump: 0.2, refl: 0.12 }, // 2 x 2 tiles of 1.2 m
-  m_v2_backdrop: { tex: "v2_charcoal", tint: "#a4aca2", gain: 1.5, sat: 0.6, size: 7, rough: 1, bump: 0.3 }, // the plain wall the shop stands out from
-  m_v2_oak: { tex: "v2_walnut", tint: "#e8c8a0", gain: 1.25, size: 1.0, rough: 1, bump: 0.35 }, // lighter uprights against dark shelves
+  m_v2_floor: { tex: "v2_floor", tint: "#7c7a74", sat: 0.35, size: 2.4, rough: 1, bump: 0.2, refl: 0.12 }, // 2 x 2 tiles of 1.2 m
+  m_v2_backdrop: { tex: "plaster_plum", tint: "#a6ac9c", gain: 1.1, sat: 0.08, size: 8, rough: 1, bump: 0.3 }, // the plain wall the shop stands out from
+  m_v2_oak: { tex: "v2_walnut", tint: "#dcd8c4", gain: 1.7, sat: 0.45, size: 1.0, rough: 1, bump: 0.35 }, // lighter uprights against dark shelves
   m_v2_rug: { tex: "v2_rug", tint: "#b0a8b4", sat: 0.45, size: 1.3, rough: 1, bump: 0.6 }, // a muted grey-plum, as in the pitch
   m_v2_pot: { tex: "v2_terracotta", tint: "#e6d2c4", size: 0.45, rough: 1, bump: 0.5 }, // planters, wheel lines running round
   m_v2_pot_glaze: { tex: "v2_glaze", size: 0.45, rough: 1, bump: 0.3, refl: 0.2 },
@@ -70,6 +71,8 @@ const LAID: Record<string, Laid> = {
   m_decal_good: { tex: "v2_decal_good", cut: true },
   m_decal_roll: { tex: "v2_decal_roll", cut: true },
   m_decal_lit: { tex: "v2_decal_lit", cut: true },
+  m_decal_swirl: { tex: "v2_decal_swirl", cut: true },
+  m_decal_logo: { tex: "v2_decal_logo", cut: true },
 };
 
 const VERT_PARS = /* glsl */ `

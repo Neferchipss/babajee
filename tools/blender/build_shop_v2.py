@@ -115,10 +115,13 @@ M = dict(
     decal_good=mat("decal_good", "#efe4cf", 0.8),
     decal_roll=mat("decal_roll", "#efe4cf", 0.8),
     decal_lit=mat("decal_lit", "#efe4cf", 0.8),
+    decal_swirl=mat("decal_swirl", "#8fa48c", 0.85),
+    decal_logo=mat("decal_logo", "#efe4cf", 0.8),
+    door_glass=mat("v2_door_glass", "#2e2a24", 0.15, 0.0, 1.0, 0.45),  # dark glass with the shop's warm light behind it, not a hole
 )
 LEAVES = [M["leaf"], M["leaf2"], M["leaf3"]]
 PACKS = [mat(f"v2_pack_{n}", c, 0.7) for n, c in enumerate(["#8c3a34", "#b08c46", "#4a7a52", "#d2c8b2", "#3e5f84", "#5e4682", "#9a6038"])]
-GLASSES = [M["glass"], M["g_amber"], M["g_green"], M["g_blue"], M["g_purple"]]
+GLASSES = [M["glass"], M["g_amber"], M["g_green"], M["g_blue"], M["g_purple"], M["g_green"], M["g_amber"], M["g_blue"]]
 TINS = [M["steel"], M["purple"], M["sign_green"], M["box_red"], M["black"], M["brass"]]
 FONT = font("COOPBL.TTF", "BAUHS93.TTF", "impact.ttf")  # the signs: round, chunky, hand-painted
 FONT2 = font("arialbd.ttf", "ARLRDBD.TTF")  # (Segoe UI Bold's S fills wrong in Blender: it shows as a colon)  # small print: labels, window lettering
@@ -339,9 +342,10 @@ def roundel(b, at, r, lines, face="y-", size=0.17, m=None, txt=None):
 rng = random.Random(11)
 b = B("v2_street", "Exterior")
 # one slab of pavement: its slabs and joints are the texture (v2_pavement, 1.1 m slabs)
-b.box(-17.6, 15.4, -4.4, 1.65, -0.3, 0.0, M["pave"])  # back to the backdrop wall
-b.box(-18, 16, -4.75, -4.4, -0.3, 0.12, M["kerb"], bev=0.03)
-b.box(-18, 16, -14, -4.75, -0.4, -0.06, M["road"])
+# a shallow pavement, as in the pitch: a strip in front of the shop, the kerb, then the road
+b.box(-17.6, 15.4, -2.3, 1.65, -0.3, 0.0, M["pave"])  # back to the backdrop wall
+b.box(-18, 16, -2.6, -2.3, -0.3, 0.0, M["kerb"], bev=0.03)
+b.box(-18, 16, -14, -2.6, -0.4, -0.16, M["road"])
 b.build()
 
 # the wall the shop stands out from: tall, plain and dark, set well back so the shop reads
@@ -353,13 +357,13 @@ b.box(3.4, 16, WY, WY + 0.4, 0.0, 11.0, M["backdrop"])
 b.box(-3.4, 3.4, WY, WY + 0.4, 5.6, 11.0, M["backdrop"])  # above the shop
 b.box(-18, -3.4, WY - 0.05, WY, 0.0, 0.3, M["slate_dk"])  # a plinth line along the foot
 b.box(3.4, 16, WY - 0.05, WY, 0.0, 0.3, M["slate_dk"])
-mural(b, ("y", WY, -1), (-8.6, -3.5, 0.5, 5.2), 7, random.Random(17), M["swirl_dk"], r=0.06, scale=(0.45, 0.85))
 b.lathe([(0, 0), (0.15, 0), (0.15, 0.02), (0, 0.02)], (-4.6, WY - 0.02, 1.05), M["swirl"], 20, rot=(PI / 2, 0, 0))  # a little smiley
 for sx in (-0.05, 0.05):
     b.ball(-4.6 + sx, WY - 0.04, 1.09, 0.015, M["slate_dk"], u=6, v=4)
 b.tube([(-4.68, WY - 0.04, 1.01), (-4.6, WY - 0.04, 0.98), (-4.52, WY - 0.04, 1.01)], 0.01, M["slate_dk"], 5)
 b.build()
-decal("lit", M["decal_lit"], -4.85, WY - 0.006, 2.45, 1.5, 1.5)  # KEEP IT LIT, painted on
+decal("swirl", M["decal_swirl"], -6.4, WY - 0.004, 2.0, 6.4, 3.2)  # loose painted swirls, low and drifting left
+decal("lit", M["decal_lit"], -4.75, WY - 0.008, 2.0, 1.45, 1.45)  # KEEP IT LIT, painted on
 
 # =============================================================================================
 # the shop front: 6.8 m wide, stepped out from the wall; door just right of centre
@@ -386,7 +390,7 @@ for x0, x1 in ((FX0, FX0 + 0.25), (FX1 - 0.25, FX1)):
 # cornice, parapet and its pale cap
 b.box(FX0 - 0.08, FX1 + 0.08, -0.12, WY, 5.2, 5.36, M["slate_dk"], bev=0.02)
 b.box(FX0 - 0.03, FX1 + 0.03, -0.05, WY, 5.36, 5.5, M["slate"], bev=0.015)
-b.box(FX0 - 0.1, FX1 + 0.1, -0.16, WY, 5.5, 5.62, M["cap"], bev=0.02)
+b.box(FX0 - 0.22, FX1 + 0.22, -0.4, WY, 5.5, 5.74, M["cap"], bev=0.025)  # a heavy roof slab, overhanging
 # a step at the door
 b.box(DX0 - 0.15, DX1 + 0.15, -0.35, 0.25, 0.0, 0.12, M["kerb"], bev=0.02)
 # (the swirls are painted on: the v2_slate_mural texture)
@@ -396,7 +400,7 @@ b.box(2.85, 3.2, -0.04, 0.0, 4.75, 5.05, M["frame"], bev=0.01)
 for k in range(5):
     b.box(2.88, 3.17, -0.07, -0.03, 4.79 + k * 0.05, 4.81 + k * 0.05, M["slate_dk"])
 b.build()
-decal("good", M["decal_good"], -2.15, -0.006, 4.15, 1.75, 1.75)
+decal("good", M["decal_good"], -2.45, -0.006, 4.25, 1.4, 1.4)
 decal("roll", M["decal_roll"], 1.95, -0.006, 4.2, 1.5, 1.5)
 
 # window and door frames, glass, lettering
@@ -492,10 +496,11 @@ b.tube([(FX0, -0.05, 4.95), (SX - 0.4, -0.35, 4.95)], 0.02, M["frame"], 6)
 b.tube([(FX0, -0.05, 4.55), (SX - 0.1, -0.35, 4.95)], 0.012, M["frame"], 6)
 for xx in (SX - 0.3, SX + 0.3):
     b.tube([(xx, -0.35, 4.95), (xx, -0.35, 4.86)], 0.008, M["frame"], 5)
-b.box(SX - 0.38, SX + 0.38, -0.39, -0.31, 3.75, 4.87, M["ink"], bev=0.01)
-b.box(SX - 0.33, SX + 0.33, -0.405, -0.3, 3.8, 4.82, M["purple"], bev=0.01)
-pts = [(SX + 0.09 * math.sin(t * 4.2), -0.42, 3.92 + 0.8 * t) for t in [i / 16 for i in range(17)]]
-b.tube(pts, [0.035 - 0.026 * (i / 16) for i in range(17)], M["cream_lit"], 6)
+b.box(SX - 0.44, SX + 0.44, -0.39, -0.31, 3.5, 4.87, M["ink"], bev=0.01)
+b.box(SX - 0.39, SX + 0.39, -0.405, -0.3, 3.55, 4.82, M["purple"], bev=0.01)
+for k, (ox, amp, ph) in enumerate(((0.0, 0.11, 0.0), (-0.09, 0.07, 1.4), (0.09, 0.06, 2.6))):  # a flame of smoke, three strands
+    pts = [(SX + ox * (1 - t) + amp * math.sin(t * 4.6 + ph) * (1 - t * 0.4), -0.42, 3.7 + (0.95 - k * 0.15) * t) for t in [i / 18 for i in range(19)]]
+    b.tube(pts, [(0.05 - k * 0.012) * (1 - t * 0.85) for t in [i / 18 for i in range(19)]], M["cream_lit"], 6)
 b.build()
 
 # the door: dark metal frame round a big pane, "OPEN" hanging, a purple roundel on the glass
@@ -503,7 +508,7 @@ d = B("door_leaf", "Exterior")
 W, H = DX1 - DX0, 2.28
 for x0, x1, z0, z1 in [(0, 0.07, 0, H), (W - 0.07, W, 0, H), (0, W, 0, 0.12), (0, W, H - 0.07, H)]:
     d.box(x0, x1, -0.03, 0.03, z0, z1, M["frame"], bev=0.008)
-d.box(0.07, W - 0.07, -0.008, 0.008, 0.12, H - 0.07, M["glass_flat"])
+d.box(0.07, W - 0.07, -0.008, 0.008, 0.12, H - 0.07, M["door_glass"])
 d.tube([(0.1, -0.06, 0.95), (0.1, -0.06, 1.25)], 0.012, M["steel"], 6)
 d.tube([(0.24, -0.02, 1.95), (W / 2, -0.02, 2.12), (W - 0.24, -0.02, 1.95)], 0.004, M["ink"], 4)
 d.box(0.27, W - 0.27, -0.035, -0.02, 1.7, 1.95, M["sign_green"], bev=0.008)
@@ -615,7 +620,7 @@ class Fit:
 
 # --- shelving bays along both side walls ----------------------------------------------------
 DEPTH = 0.42
-SHELF_Z = [0.82, 1.2, 1.58, 1.96, 2.34]  # above a low cupboard; the last is under the crown
+SHELF_Z = [0.82, 1.3, 1.78, 2.26]  # above a low cupboard; four, tall, as in the pitch
 CROWN = 2.7  # plain walnut above, up to the ceiling (the site's labels name the shelves)
 
 
@@ -628,7 +633,13 @@ def bay(name, side, y0, y1, slug, label, kind, rng):
     b = B(name, "Fixtures")
     b.box(xa, xb, y0, y1, 0.0, 0.08, M["walnut_dk"])  # plinth
     b.box(xa, xb, y0, y1, 0.08, 0.78, M["walnut"], bev=0.01)  # cupboard
-    b.box(min(inner, inner - side * 0.012), max(inner, inner - side * 0.012), (y0 + y1) / 2 - 0.006, (y0 + y1) / 2 + 0.006, 0.14, 0.72, M["walnut_dk"])  # the gap between its doors
+    # two drawers across the front, each with a steel pull
+    for zd0, zd1 in ((0.12, 0.43), (0.47, 0.74)):
+        b.box(min(inner, inner - side * 0.015), max(inner, inner - side * 0.015), y0 + 0.06, y1 - 0.06, zd0, zd1, M["walnut_dk"], bev=0.006)
+        zm = (zd0 + zd1) / 2
+        b.tube([(inner - side * 0.035, (y0 + y1) / 2 - 0.08, zm), (inner - side * 0.035, (y0 + y1) / 2 + 0.08, zm)], 0.007, M["steel"], 6)
+        for yy_ in ((y0 + y1) / 2 - 0.08, (y0 + y1) / 2 + 0.08):
+            b.tube([(inner - side * 0.035, yy_, zm), (inner - side * 0.012, yy_, zm)], 0.006, M["steel"], 5)
     for yy in (y0, y1 - 0.045):  # uprights, lighter than the shelves, as in the pitch
         b.box(xa, xb, yy, yy + 0.045, 0.0, CROWN, M["oak"], bev=0.006)
     b.box(xa, xb, y0, y1, CROWN, RZ, M["walnut_dk"])  # crown up to the ceiling
@@ -666,7 +677,7 @@ def bay(name, side, y0, y1, slug, label, kind, rng):
         ys = [y0 + 0.1 + (y1 - y0 - 0.2) * (k + 0.5) / n_per for k in range(n_per)]
         cx = wall - side * DEPTH * 0.5
         # as in the pitch: glass at eye level whatever the bay holds, dark storage jars up top
-        role = kind if (si <= 1 or kind == "glass") else ("glass" if si in (2, 3) else "top")
+        role = "glass" if si in (1, 2) or kind == "glass" else (kind if si == 0 else "top")
         for k, yy in enumerate(ys):
             fit.start()
             if plant_at == (si, k):
@@ -678,7 +689,7 @@ def bay(name, side, y0, y1, slug, label, kind, rng):
                 continue
             if role == "glass":
                 if k % 2 == 0:  # every other place: a beaker is 20 cm across
-                    bong(b, cx, yy, z, rng, h=min(rng.uniform(0.22, 0.34), room(si) - 0.02))
+                    bong(b, cx, yy, z, rng, h=min(rng.uniform(0.28, 0.4), room(si) - 0.02))
                 else:  # small jars and bottles between them, front and back
                     jar(b, rows[1], yy, z, 0.034, min(rng.uniform(0.09, 0.14), room(si)), rng.choice(GLASSES), rng.choice(TINS))
                     h = min(rng.uniform(0.14, 0.22), room(si))
@@ -765,8 +776,8 @@ for side, row in ((-1, LEFT), (1, RIGHT)):
 HEAD = {"accessory": "MERCH & LIFESTYLE", "bong": "GLASS", "storage": "STORAGE", "cleaning-accessory": "CLEANING"}
 BACK = [  # x0, x1, slug, label, kind
     (-2.1, -1.42, "accessory", "Accessories", "merch"),
-    (-1.38, -0.72, "bong", "Bongs", "glass"),
-    (0.82, 1.52, "storage", "Storage", "jars"),
+    (-1.38, -0.98, "bong", "Bongs", "glass"),
+    (1.08, 1.52, "storage", "Storage", "jars"),
     (1.56, 2.2, "cleaning-accessory", "Cleaning", "bottles"),
 ]
 for x0, x1, slug, label, kind in BACK:
@@ -800,7 +811,7 @@ for x0, x1, slug, label, kind in BACK:
         under_ = zs[i + 1] - 0.03 if i + 1 < len(zs) else CROWN
         fit.board(x0 + 0.045, x1 - 0.045, y0, y0 + 0.02, under_ - 0.05, under_)
     fit.board(x0, x1, y0, y1, CROWN, CROWN + 0.08)
-    n = max(2, int((x1 - x0 - 0.1) / (0.22 if kind == "glass" else 0.16)))
+    n = max(1, int((x1 - x0 - 0.1) / (0.22 if kind == "glass" else 0.16)))  # (a narrow unit holds one beaker a shelf)
     xs = [x0 + 0.08 + (x1 - x0 - 0.16) * (k + 0.5) / n for k in range(n)]
     ry = (y1 - DEPTH * 0.3, y1 - DEPTH * 0.7)  # back and front rows
     for zi, z in enumerate(zs):
@@ -851,23 +862,24 @@ for x0, x1, slug, label, kind in BACK:
 # the plaque: "baBa jEE" in white on a black, dripping board, small framed sayings either side
 b = B("v2_plaque", "Interior")
 PX, PZ = (-0.65 + 0.75) / 2, 2.25
-b.box(PX - 0.5, PX + 0.5, RY1 - 0.05, RY1, PZ - 0.42, PZ + 0.5, M["plaque"], bev=0.02)
+PZ = 2.2
+b.box(PX - 0.62, PX + 0.62, RY1 - 0.05, RY1, PZ - 0.48, PZ + 0.55, M["plaque"], bev=0.02)
 rd = random.Random(71)
-for k in range(7):  # drips off the bottom edge
-    x = PX - 0.43 + k * 0.143 + rd.uniform(-0.025, 0.025)
+for k in range(9):  # drips off the bottom edge
+    x = PX - 0.55 + k * 0.1375 + rd.uniform(-0.025, 0.025)
     ln = rd.uniform(0.06, 0.22)
-    b.tube([(x, RY1 - 0.03, PZ - 0.4), (x, RY1 - 0.03, PZ - 0.42 - ln)], [0.035, 0.03], M["plaque"], 8)
-    b.ball(x, RY1 - 0.03, PZ - 0.42 - ln, 0.035, M["plaque"], u=8, v=6)
-b.text("baBa", (PX, RY1 - 0.06, PZ + 0.22), 0.33, M["cream_lit"], extrude=0.012, fnt=FONT)
-b.text("jEE", (PX, RY1 - 0.06, PZ - 0.15), 0.33, M["cream_lit"], extrude=0.012, fnt=FONT)
+    b.tube([(x, RY1 - 0.03, PZ - 0.46), (x, RY1 - 0.03, PZ - 0.48 - ln)], [0.035, 0.03], M["plaque"], 8)
+    b.ball(x, RY1 - 0.03, PZ - 0.48 - ln, 0.035, M["plaque"], u=8, v=6)
+# (the lettering is a hand-drawn picture: see the decal after this)
 # the framed sayings: one left of the plaque, two stacked on its right
-for fx, fz, lines in ((PX - 0.64, 2.38, ["ROLL IT", "LIGHT IT", "LOVE IT"]), (PX + 0.64, 2.52, ["KEEP", "IT", "CHILL"]),
-                      (PX + 0.64, 2.06, ["SMOKE MORE", "WORRY", "LESS"])):
-    b.box(fx - 0.11, fx + 0.11, RY1 - 0.03, RY1, fz - 0.16, fz + 0.16, M["walnut_dk"], bev=0.006)
-    b.box(fx - 0.09, fx + 0.09, RY1 - 0.035, RY1 - 0.03, fz - 0.14, fz + 0.14, M["cream"])
+for fx, fz, lines in ((PX - 0.825, 2.4, ["ROLL IT", "LIGHT IT", "LOVE IT"]), (PX + 0.825, 2.5, ["KEEP", "IT", "CHILL"]),
+                      (PX + 0.825, 1.98, ["SMOKE MORE", "WORRY", "LESS"])):
+    b.box(fx - 0.17, fx + 0.17, RY1 - 0.03, RY1, fz - 0.23, fz + 0.23, M["walnut_dk"], bev=0.008)
+    b.box(fx - 0.145, fx + 0.145, RY1 - 0.035, RY1 - 0.03, fz - 0.205, fz + 0.205, M["cream"])
     for i, ln in enumerate(lines):
-        b.text(ln, (fx, RY1 - 0.037, fz + 0.075 - i * 0.075), 0.045 if len(ln) < 9 else 0.034, M["ink"], extrude=0.002, fnt=FONT)
+        b.text(ln, (fx, RY1 - 0.037, fz + 0.11 - i * 0.11), 0.068 if len(ln) < 9 else 0.05, M["ink"], extrude=0.002, fnt=FONT)
 b.build()
+decal("logo", M["decal_logo"], PX, RY1 - 0.056, PZ + 0.04, 1.12, 0.93)
 
 # the counter at the back, the cubbies in front of it, the till and two boxes on top
 CY0, CY1 = 5.95, 6.45  # its front and back
@@ -954,12 +966,13 @@ for x0, x1, z0, z1, slug, label, fill in CUBBY:
 
 # pendant lamps over the counter, and one more in the aisle
 b = B("v2_pendants", "Interior")
-for x, y in ((-0.38, 6.15), (0.05, 6.15), (0.48, 6.15), (CX, 2.7), (CX, 4.4)):  # three over the plaque, as in the pitch
+for x, y in ((-0.38, 6.15), (0.05, 6.15), (0.48, 6.15), (CX, 2.7)):  # (none hangs between you and the counter)  # three over the plaque, as in the pitch
     # over the counter they hang higher: from the aisle, lower shades sit across the plaque
-    hz = 2.78 if y > 6 else 2.47
+    hz = 3.04 if y > 6 else 2.5  # over the counter, up out of the plaque's way
     b.tube([(x, y, RZ), (x, y, hz + 0.15)], 0.006, M["ink"], 4)
-    b.lathe([(0.0, 0.0), (0.03, 0.0), (0.035, 0.03), (0.12, 0.15), (0.125, 0.16), (0.0, 0.16)], (x, y, hz), M["ink"], 24, rot=(PI, 0, 0))
-    b.lathe([(0.0, 0.004), (0.028, 0.004), (0.033, 0.032), (0.115, 0.152), (0.0, 0.152)], (x, y, hz - 0.005), M["shade_in"], 24, rot=(PI, 0, 0))
+    # a black dome, wide and low, its inside lit warm
+    b.lathe([(0.0, 0.0), (0.04, 0.0), (0.09, 0.03), (0.15, 0.1), (0.18, 0.2), (0.185, 0.21), (0.0, 0.21)], (x, y, hz), M["ink"], 32, rot=(PI, 0, 0))
+    b.lathe([(0.0, 0.004), (0.038, 0.004), (0.087, 0.033), (0.146, 0.102), (0.175, 0.2), (0.0, 0.2)], (x, y, hz - 0.006), M["shade_in"], 32, rot=(PI, 0, 0))
     b.ball(x, y, hz, 0.04, M["bulb"], u=10, v=6)
     SPOTS.append((f"spot_{len(SPOTS)}", (x, y, hz - 0.05), (x, y, 0.0), "pendant"))  # straight down: a pool on the counter or the floor
 b.build()
@@ -977,20 +990,13 @@ for px, py, side in ((RX0 + DEPTH + 0.3, 2.55, -1), (RX1 - DEPTH - 0.3, 3.6, 1))
 b.build()
 
 # the ceiling: three beams across, between the pendants, and six downlights washing the shelves
-b = B("v2_ceiling", "Interior")
-for by in (2.2, 3.95, 5.65):
-    b.box(RX0 + DEPTH, RX1 - DEPTH, by - 0.07, by + 0.07, RZ - 0.16, RZ, M["walnut_dk"], bev=0.008)
+# the ceiling is plain, as in the pitch: these spots light the shelves with no fitting to see
 for side in (-1, 1):
     x = CX + side * 1.05
     for y in (1.75, 3.15, 4.8):
-        b.cyl(x, y, RZ - 0.02, 0.07, 0.07, 0.04, M["frame"], seg=24)
-        b.cyl(x, y, RZ - 0.042, 0.05, 0.05, 0.004, M["downlight"], seg=24)
-        SPOTS.append((f"spot_{len(SPOTS)}", (x, y, RZ - 0.05), (x + side * 0.55, y, 0.9), "downlight"))
+        SPOTS.append((f"spot_{len(SPOTS)}", (x, y, RZ - 0.05), (x + side * 0.55, y, 0.9), "downlight"))  # light only: no fitting shows
 for x in (-1.6, 1.7):  # and two over the counter, washing the back units
-    b.cyl(x, 6.3, RZ - 0.02, 0.07, 0.07, 0.04, M["frame"], seg=24)
-    b.cyl(x, 6.3, RZ - 0.042, 0.05, 0.05, 0.004, M["downlight"], seg=24)
     SPOTS.append((f"spot_{len(SPOTS)}", (x, 6.3, RZ - 0.05), (x, RY1, 1.4), "downlight"))
-b.build()
 
 # a spot from the ceiling onto the plaque, so the logo stands out of the dark wall
 SPOTS.append(("spot_plaque", (PX, RY1 - 1.3, RZ - 0.05), (PX, RY1, PZ), "plaque"))
@@ -1030,12 +1036,12 @@ DOOR_X = (DX0 + DX1) / 2
 # the landing, as the pitch: square on, the shop's full height filling most of the frame (the
 # site shifts the view sideways on a wide screen so the shop sits right, and backs off on a
 # tall one so it fits across)
-camera("cam_00", (0.05, -6.9, 2.5), (0.05, 0.0, 2.5))
-camera("cam_01", (0.05, -5.0, 2.05), (0.05, 0.0, 1.95))
+camera("cam_00", (-2.6, -6.6, 1.35), (0.0, 0.0, 2.55))  # chest height, a little left, looking up: the pitch's view
+camera("cam_01", (-1.2, -4.8, 1.5), (0.1, 0.0, 2.05))
 camera("cam_02", (DOOR_X - 0.1, -3.0, 1.7), (DOOR_X, 0.0, 1.8))  # square on, the awning above
 camera("cam_03", (DOOR_X, -0.7, 1.6), (DOOR_X, 4.0, 1.6))  # on the step
-camera("cam_04", (DOOR_X, 1.7, 1.6), (CX, RY1, 1.6))
-camera("cam_05", (CX, 3.35, 1.6), (CX, RY1, 1.6))  # the middle of the aisle, level, the plaque ahead
+camera("cam_04", (DOOR_X, 1.35, 1.6), (CX, RY1, 1.65))
+camera("cam_05", (CX, 2.6, 1.55), (CX, RY1, 1.72))  # back down the aisle, the whole back wall and counter ahead
 scene.render.resolution_x, scene.render.resolution_y = 1920, 1080
 
 # --- export ---------------------------------------------------------------------------------

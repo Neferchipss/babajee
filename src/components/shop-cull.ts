@@ -20,7 +20,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const MOVES = /^(eye_|eyeball_|float_|planet_|flybook_|car_|ped_|curtain_|door_leaf|rose$|dome$|book_|bslot_|step_|ladder$|roll_|portrait_|grind_top|lflame_|chalk_board)/;
 
-const STREET = /^(v2_backwall|decal_lit)/;
+const STREET = /^(v2_backwall|decal_lit|decal_swirl)/;
 
 type Zone = "street" | "inside" | "both";
 

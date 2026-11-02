@@ -95,11 +95,22 @@ for ob in list(scene.objects):
 # the room's light bouncing off its ceiling and walls, more than a few bounces find
 fill = bpy.data.lights.new("ceiling_bake", "AREA")
 fill.shape, fill.size, fill.size_y = "RECTANGLE", 4.0, 5.6
-fill.energy = float(arg("--fill", "0"))  # off: the downlights and strips light the room, the ceiling gets their bounce
+fill.energy = float(arg("--fill", "200"))  # the room's soft bounce: the pitch's shadows never go black
 fill.color = (1.0, 0.86, 0.68)
 fo = bpy.data.objects.new("ceiling_bake", fill)
 fo.location = (0.05, 4.0, 3.0)  # just under the ceiling, facing down
 scene.collection.objects.link(fo)
+
+# the street's haze: a broad soft light high on the left, washing down the backdrop wall
+# and the facade, as the glow in the pitch's top-left corner
+haze = bpy.data.lights.new("haze_bake", "AREA")
+haze.shape, haze.size, haze.size_y = "RECTANGLE", 8.0, 4.0
+haze.energy = float(arg("--haze", "4200"))
+haze.color = (0.86, 0.88, 0.8)
+ho = bpy.data.objects.new("haze_bake", haze)
+ho.location = (-9.0, -3.0, 10.0)
+ho.rotation_euler = (Vector((-5.0, 1.6, 4.0)) - Vector(ho.location)).to_track_quat("-Z", "Y").to_euler()  # mostly onto the wall
+scene.collection.objects.link(ho)
 
 # the strips and the bulbs light the shop for real now
 for m in bpy.data.materials:
@@ -109,7 +120,7 @@ for m in bpy.data.materials:
     if p is None:
         continue
     # emission strengths for the bake: what lights the shop, not how bright it looks on the site
-    strength = {"v2_led": float(arg("--led", "170")), "v2_led_back": float(arg("--led-back", "40")), "v2_bulb": 30.0,
+    strength = {"v2_led": float(arg("--led", "240")), "v2_led_back": float(arg("--led-back", "40")), "v2_bulb": 30.0,
                 "v2_shade_in": 3.0, "v2_downlight": 20.0}.get(m.name)
     if strength is not None:
         p.inputs["Emission Strength"].default_value = strength
@@ -154,8 +165,8 @@ def seen(c, n):
     if n.z < -0.5 and c.z < 0.1:
         return False  # resting on the ground
     x0, x1, y0, y1, z0, z1 = ROOM
-    if c.y > 0.6:  # the room's side of the shopfront
-        return x0 <= c.x <= x1 and y0 <= c.y <= y1 and z0 <= c.z <= z1
+    if c.y > 0.6:  # the room's side of the shopfront, and the backdrop wall's face behind the shop
+        return (x0 <= c.x <= x1 and y0 <= c.y <= y1 and z0 <= c.z <= z1) or (n.y < -0.5 and c.y < 1.7 and c.z < 8.0)
     return not (n.y > 0.5 and c.y > 0.3)  # facing away from the street, behind the shopfront
 
 
@@ -172,7 +183,8 @@ def grid(o):
             c = mw @ f.calc_center_median()
             if not seen(c, (nm @ f.normal).normalized()):
                 continue
-            cell = 0.12 if c.y > 0.6 else 0.25  # finer in the room, where the pools are
+            room = ROOM[0] <= c.x <= ROOM[1] and c.y > 0.6
+            cell = 0.12 if room else 0.3  # finer in the room, where the pools are
             for e in f.edges:
                 n = math.ceil((mw @ e.verts[0].co - mw @ e.verts[1].co).length / cell) - 1
                 if n > 0:
@@ -254,6 +266,7 @@ for o in decals:
     ca.data.foreach_set("color_srgb", np.concatenate([enc, np.ones((len(enc), 1), np.float32)], axis=1).ravel())
     me.color_attributes.active_color = ca
     me.color_attributes.render_color_index = me.color_attributes.active_color_index
+for o in decals:  # only now: a decal in front of another must see the wall, not the other decal
     o.hide_set(False)
     o.hide_render = False
 print("DECALS lit", len(decals))

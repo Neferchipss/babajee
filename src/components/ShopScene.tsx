@@ -56,19 +56,18 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const MODEL = `${BASE}/models/shop.glb`;
 // the second model, after the pitch video's shop (tools/blender/build_shop_v2.py): a
 // plain storefront and a narrow walnut room. It is the default now; the magical
-// rotunda (shop.glb, build_shop.py, shop-magic, shop-sky) is all still here and comes
-// back with ?scene=v1. The choice is remembered on this browser (?scene=v2 to return)
+// rotunda (shop.glb, build_shop.py, shop-magic, shop-sky) is all still here and shows
+// with ?scene=v1 on the address (not remembered)
 const MODEL_V2 = `${BASE}/models/shop-v2.glb`;
 // the same, with its light baked in by Cycles (tools/blender/bake_shop_v2.py); ?bake=0 for the live lights
 const MODEL_V2_LIT = `${BASE}/models/shop-v2-lit.glb`;
 function sceneVariant() {
-  const q = new URLSearchParams(window.location.search).get("scene");
+  // the new shop always, unless this very address asks for the rotunda: no choice is
+  // remembered (an old remembered one is cleared, so it cannot pin anyone to the rotunda)
   try {
-    if (q === "v1" || q === "v2") localStorage.setItem("shopScene", q);
-    return localStorage.getItem("shopScene") !== "v1";
-  } catch {
-    return q !== "v1";
-  }
+    localStorage.removeItem("shopScene");
+  } catch {}
+  return new URLSearchParams(window.location.search).get("scene") !== "v1";
 }
 const DRACO = `${BASE}/draco/gltf/`; // decoder for the compressed model
 
@@ -418,17 +417,21 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     inkPass.enabled = new URLSearchParams(window.location.search).get("ink") === "1";
     composer.addPass(inkPass);
     composer.addPass(new OutputPass());
-    // v2's street, graded like the pitch: a little greyer, the blacks lifted to a soft
-    // olive-grey, so the night reads painted rather than inky (off indoors)
+    // v2 graded like the pitch: on the street a little greyer, the blacks lifted to a soft
+    // olive-grey, so the night reads painted rather than inky; inside, the middle tones
+    // lifted (the pitch's shadows never go black) with a little warmth in them
     const grade = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uAmt: { value: 0 } },
+      uniforms: { tDiffuse: { value: null }, uAmt: { value: 0 }, uIn: { value: 0 } },
       vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `uniform sampler2D tDiffuse; uniform float uAmt; varying vec2 vUv;
+      fragmentShader: `uniform sampler2D tDiffuse; uniform float uAmt; uniform float uIn; varying vec2 vUv;
         void main() {
           vec4 c = texture2D(tDiffuse, vUv);
           float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
           c.rgb = mix(vec3(l), c.rgb, 1.0 - 0.28 * uAmt);
           c.rgb = c.rgb * (1.0 - 0.07 * uAmt) + vec3(0.036, 0.04, 0.034) * uAmt;
+          c.rgb = pow(max(c.rgb, 0.0), vec3(1.0 - 0.3 * uIn));
+          c.rgb += vec3(0.026, 0.024, 0.021) * uIn * (1.0 - c.rgb);
+          c.rgb = mix(vec3(dot(c.rgb, vec3(0.299, 0.587, 0.114))), c.rgb, 1.0 - 0.18 * uIn); // the pitch's interior is a muted one
           gl_FragColor = c;
         }`,
     });
@@ -813,7 +816,6 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const qPitch = new THREE.Quaternion();
     const qRoll = new THREE.Quaternion();
     const qBias = new THREE.Quaternion();
-    const vSide = new THREE.Vector3();
     const vFwd = new THREE.Vector3();
     const qSway = new THREE.Quaternion();
     let mx = 0; // pointer, -0.5..0.5 across the stage, eased
@@ -1076,15 +1078,18 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         // landing: turn the view a little left so the shop sits right of centre, under Baba's eyes
         const wide = stageEl.clientWidth / stageEl.clientHeight > 1.1;
         if (intro && v2) {
-          // v2 is square on to the shop, as in the pitch: on a wide screen the eye slides
-          // left so the shop sits right of the words; on a tall one it steps back until
-          // the shop fits across. The rail takes over as the walk starts.
+          // v2's landing, as the pitch: from chest height a little left, the camera aimed
+          // at the shop. On a wide screen it turns so the shop sits right of the words; on
+          // a tall one it steps back until the shop fits across. The rail takes over as
+          // the walk starts.
           const k = 1 - smooth(0, 0.22, prog);
           const halfW = 6.9 * Math.tan((camera.fov * Math.PI) / 360) * camera.aspect; // half the width seen at the shop
-          vSide.set(1, 0, 0).applyQuaternion(q);
           vFwd.set(0, 0, -1).applyQuaternion(q);
-          if (halfW > 4.3) camera.position.addScaledVector(vSide, -clamp(halfW - 3.8, 0, 2.6) * k);
-          else {
+          if (halfW > 4.3) {
+            // turn left so the shop sits right of the words, its centre a third of the way in
+            const half = Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect);
+            camera.quaternion.premultiply(qBias.setFromAxisAngle(up, Math.atan(0.33 * Math.tan(half)) * k));
+          } else {
             // tall: back off to fit the shop and its hanging sign across, and look down a
             // little so the shop sits in the upper half, above the words
             camera.position.addScaledVector(vFwd, -(4.3 / (halfW / 6.9) - 6.9) * k);
@@ -1179,7 +1184,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         bloom.strength = v2 ? 0.08 - 0.03 * inside : 0.1 + 0.08 * inside;
         grade.uniforms.uAmt.value = v2 ? 1 - inside : 0;
-        grade.enabled = v2 && inside < 0.99; // v2's shop: a soft glow on the bulbs only
+        grade.uniforms.uIn.value = v2 ? inside : 0;
+        grade.enabled = v2; // v2's shop: a soft glow on the bulbs only
         renderer.toneMappingExposure = 1.1 + 0.15 * inside;
         // crossing over is a lurch: the view rolls and the lens pulls wide, then it settles
         qRoll.setFromAxisAngle(zAxis, bump * 0.07 * Math.sin(sec * 2.3));
