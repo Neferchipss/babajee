@@ -12,11 +12,16 @@ export default function AdminCategoryBar({
   categories,
   current,
   onPick,
+  onAdd,
 }: {
-  categories: { id: string; slug: string; name: string; count: number; todo: number }[];
+  categories: { id: string; slug: string; name: string; count: number; todo: number; hidden?: boolean }[];
   current: string;
   onPick: (id: string) => void;
+  // a new category, named here; the bar then shows it
+  onAdd?: (name: string) => Promise<void>;
 }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
   const listRef = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ prev: false, next: false });
 
@@ -62,7 +67,7 @@ export default function AdminCategoryBar({
       <ul ref={listRef} onScroll={measure}>
         {categories.map((c) => (
           <li key={c.id || "all"}>
-            <button type="button" aria-pressed={current === c.id} onClick={() => onPick(c.id)} title={c.todo ? `${c.todo} still need a photo or price` : undefined}>
+            <button type="button" className={c.hidden ? "is-hidden" : ""} aria-pressed={current === c.id} onClick={() => onPick(c.id)} title={c.hidden ? "Hidden from the shop" : c.todo ? `${c.todo} still need a photo or price` : undefined}>
               <span className="acb-ico">
                 <CategoryIcon slug={c.slug} />
                 {c.todo > 0 && <i className="acb-dot" aria-hidden="true" />}
@@ -73,6 +78,30 @@ export default function AdminCategoryBar({
             </button>
           </li>
         ))}
+        {onAdd && (
+          <li className="acb-new">
+            {adding ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!name.trim()) return;
+                  await onAdd(name.trim());
+                  setName("");
+                  setAdding(false);
+                }}
+              >
+                <input autoFocus value={name} placeholder="New category" aria-label="New category name" onChange={(e) => setName(e.target.value)} onBlur={() => !name.trim() && setAdding(false)} onKeyDown={(e) => e.key === "Escape" && setAdding(false)} />
+              </form>
+            ) : (
+              <button type="button" onClick={() => setAdding(true)}>
+                <span className="acb-ico" aria-hidden="true">
+                  +
+                </span>
+                <span className="acb-lbl">New</span>
+              </button>
+            )}
+          </li>
+        )}
       </ul>
       <button type="button" className="acb-btn acb-btn--next" aria-hidden="true" tabIndex={-1} onClick={() => nudge(1)}>
         <Chevron />

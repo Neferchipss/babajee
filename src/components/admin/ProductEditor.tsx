@@ -4,6 +4,7 @@ import { type ReactNode, type RefObject, useEffect, useRef, useState } from "rea
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/currency";
+import { type GstRules, unitProfit } from "@/lib/gst";
 import { photosFor, shootPhotos } from "@/lib/product-photos";
 
 type Api = ReturnType<typeof adminApi>;
@@ -193,6 +194,8 @@ export default function ProductEditor({
 
   const many = product.variants.length > 1;
   const single = product.variants[0];
+  // stock is tracked for the product as a whole: every option, or none
+  const tracked = product.variants.some((v) => v.track_stock);
 
   // The photos are in groups: the product's own, then one per option (with no
   // options, just the one). A photo's group is the option it shows.
@@ -384,6 +387,7 @@ export default function ProductEditor({
                 <OptionRow
                   key={v.id}
                   variant={v}
+                  tracked={tracked}
                   main={mainPrice(product)}
                   photos={
                     <PhotoGroup
@@ -402,19 +406,42 @@ export default function ProductEditor({
             </ul>
             </>
           ) : (
-            single && <SinglePrice key={single.id} variant={single} onSave={(patch) => run(() => api.upsertVariant(product.id, { ...single, ...patch }))} />
+            single && <SinglePrice key={single.id} variant={single} tracked={tracked} onSave={(patch) => run(() => api.upsertVariant(product.id, { ...single, ...patch }))} />
           )}
           <button
             type="button"
             className="ape-chip"
             onClick={() =>
               run(() =>
-                api.upsertVariant(product.id, { label: many ? "New option" : "Option 2", price: mainPrice(product), stock_qty: 0, is_visible: true, sort_order: product.variants.length }),
+                api.upsertVariant(product.id, { label: many ? "New option" : "Option 2", price: mainPrice(product), stock_qty: 0, track_stock: tracked, is_visible: true, sort_order: product.variants.length }),
               )
             }
           >
             + Add an option (a colour, size or design)
           </button>
+        </section>
+
+        {/* what each option costs the shop, and what it makes */}
+        <CostAndProfit variants={product.variants} />
+
+        {/* stock: counted down by each order when tracked, with its history */}
+        <section className="ape-fields">
+          <h3>Stock</h3>
+          <button
+            type="button"
+            className={`ape-switch ${tracked ? "is-on" : ""}`}
+            aria-pressed={tracked}
+            onClick={() => run(() => Promise.all(product.variants.map((v) => api.upsertVariant(product.id, { id: v.id, track_stock: !tracked }))))}
+          >
+            <i aria-hidden="true" />
+            {tracked ? "Tracking stock" : "Not tracking stock"}
+          </button>
+          <p className="ape-hint">
+            {tracked
+              ? `Each order takes its items off the ${many ? "counts" : "count"} above, and at 0 ${many ? "an option" : "it"} can't be ordered.`
+              : "Always orderable. Turn this on to count stock down with each order and stop orders at 0."}
+          </p>
+          {tracked && <StockHistory variants={product.variants} />}
         </section>
       </div>
     </div>
@@ -562,7 +589,7 @@ function AddPhotos({ label, busy, onFiles }: { label: string; busy: boolean; onF
   );
 }
 
-function SinglePrice({ variant, onSave }: { variant: AdminVariant; onSave: (patch: Partial<AdminVariant>) => void }) {
+function SinglePrice({ variant, tracked, onSave }: { variant: AdminVariant; tracked: boolean; onSave: (patch: Partial<AdminVariant>) => void }) {
   const [price, setPrice] = useState(variant.price ? String(variant.price) : "");
   const [stock, setStock] = useState(String(variant.stock_qty));
   return (
@@ -582,28 +609,32 @@ function SinglePrice({ variant, onSave }: { variant: AdminVariant; onSave: (patc
           />
         </div>
       </label>
-      <label className="ape-field">
-        <span>In stock</span>
-        <input
-          inputMode="numeric"
-          value={stock}
-          onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          onBlur={() => Number(stock) !== variant.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
-        />
-      </label>
+      {tracked && (
+        <label className="ape-field">
+          <span>In stock</span>
+          <input
+            inputMode="numeric"
+            value={stock}
+            onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            onBlur={() => Number(stock) !== variant.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
+          />
+        </label>
+      )}
     </div>
   );
 }
 
 function OptionRow({
   variant,
+  tracked,
   main,
   photos,
   onSave,
   onDelete,
 }: {
   variant: AdminVariant;
+  tracked: boolean;
   main: number;
   photos: ReactNode;
   onSave: (patch: Partial<AdminVariant>) => void;
@@ -639,15 +670,22 @@ function OptionRow({
           onBlur={() => Number(price) !== variant.price && onSave({ price: Number(price) || 0 })}
         />
       </div>
-      <input
-        className="ape-opt-stock"
-        aria-label={`${variant.label} stock`}
-        inputMode="numeric"
-        value={stock}
-        onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        onBlur={() => Number(stock) !== variant.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
-      />
+      {tracked ? (
+        <input
+          className="ape-opt-stock"
+          aria-label={`${variant.label} stock`}
+          title="In stock"
+          inputMode="numeric"
+          value={stock}
+          onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          onBlur={() => Number(stock) !== variant.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
+        />
+      ) : (
+        <span className="ape-opt-stock is-off" title="Stock not tracked">
+          –
+        </span>
+      )}
       <button type="button" className={`ape-switch ape-switch--sm ${variant.is_visible ? "is-on" : ""}`} aria-pressed={variant.is_visible} onClick={() => onSave({ is_visible: !variant.is_visible })}>
         <i aria-hidden="true" />
         <span className="sr-only">{variant.is_visible ? "On sale" : "Off"}</span>
@@ -665,6 +703,136 @@ function OptionRow({
       {own && <small className="ape-own">Own price · main is {formatPrice(main)}</small>}
       {/* this option's own photos: what the shop shows when it is picked */}
       <div className="ape-opt-photos">{photos}</div>
+    </li>
+  );
+}
+
+// The last stock changes for this product's options: sales, cancelled orders put
+// back, refunds restocked, and counts edited by hand.
+const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", manual: "Edited" } as const;
+type Move = Awaited<ReturnType<typeof import("@/lib/orders-db").stockHistory>>[number];
+function StockHistory({ variants }: { variants: AdminVariant[] }) {
+  const [moves, setMoves] = useState<Move[] | null>(null);
+  // read again whenever a count changes
+  const counts = variants.map((v) => `${v.id}:${v.stock_qty}`).join(",");
+  useEffect(() => {
+    let live = true;
+    import("@/lib/orders-db")
+      .then((m) => m.stockHistory(counts.split(",").map((x) => x.split(":")[0])))
+      .then((r) => live && setMoves(r.slice(0, 12)))
+      .catch(() => live && setMoves([]));
+    return () => {
+      live = false;
+    };
+  }, [counts]);
+  if (!moves?.length) return <p className="ape-hint">No stock changes yet.</p>;
+  const many = variants.length > 1;
+  return (
+    <ol className="ape-history">
+      {moves.map((m) => (
+        <li key={m.id}>
+          <span>
+            {REASON[m.reason]}
+            {m.order_number && ` · ${m.order_number}`}
+            {many && m.label && <small> · {m.label}</small>}
+          </span>
+          <b className={m.delta < 0 ? "is-down" : "is-up"}>{m.delta > 0 ? `+${m.delta}` : m.delta}</b>
+          <small>{m.qty_after} left</small>
+          <time dateTime={m.created_at}>{new Date(m.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</time>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// Cost price per option, with the profit and margin it leaves at today's price
+// and GST rule (Settings). Costs are kept in an admin-only table, apart from
+// the options customers can read. Empty means not known yet.
+function CostAndProfit({ variants }: { variants: AdminVariant[] }) {
+  const ids = variants.map((v) => v.id).join(",");
+  const [costs, setCosts] = useState<Map<string, number> | null>(null);
+  const [rules, setRules] = useState<GstRules | null>(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    const list = ids ? ids.split(",") : [];
+    import("@/lib/orders-db")
+      .then((m) => Promise.all([m.getCosts(list), m.getSettings()]))
+      .then(([c, s]) => {
+        setCosts(c);
+        setRules({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit });
+      })
+      .catch(() => setCosts(null));
+  }, [ids]);
+
+  if (!costs || !rules) return null;
+  const many = variants.length > 1;
+
+  async function save(id: string, cost: number | null) {
+    setErr("");
+    try {
+      const m = await import("@/lib/orders-db");
+      await m.setCost(id, cost);
+      setCosts((m) => {
+        const n = new Map(m);
+        if (cost == null) n.delete(id);
+        else n.set(id, cost);
+        return n;
+      });
+    } catch (e) {
+      setErr(e && typeof e === "object" && "message" in e ? String(e.message) : "Could not save the cost.");
+    }
+  }
+
+  return (
+    <section className="ape-fields">
+      <h3>Cost and profit</h3>
+      <p className="ape-hint">
+        What the shop pays the supplier for one{rules.credit ? ", as on the bill (with GST)" : ""}. Only admins see it. Profit is after {rules.rate}% GST
+        {rules.inclusive ? " (inside the price)" : " (added at checkout, so not taken from the price)"}
+        {rules.credit ? ", with the supplier's GST claimed back" : ""}.
+      </p>
+      <ul className="ape-costs">
+        {variants.map((v) => (
+          <CostRow key={v.id} label={many ? v.label : "Cost price"} price={v.price} cost={costs.get(v.id)} rules={rules} onSave={(c) => save(v.id, c)} />
+        ))}
+      </ul>
+      {err && <p className="ape-err">{err}</p>}
+    </section>
+  );
+}
+
+function CostRow({ label, price, cost, rules, onSave }: { label: string; price: number; cost: number | undefined; rules: GstRules; onSave: (cost: number | null) => void }) {
+  const [text, setText] = useState(cost === undefined ? "" : String(cost));
+  const n = text.trim() === "" ? null : Number(text);
+  const u = n != null && price > 0 ? unitProfit(price, n, rules) : null;
+  return (
+    <li className="ape-cost">
+      <span className="ape-cost-name">
+        {label}
+        <small>{price > 0 ? `sells at ${formatPrice(price)}` : "no price yet"}</small>
+      </span>
+      <label className="ape-money">
+        <i aria-hidden>₹</i>
+        <input
+          inputMode="decimal"
+          aria-label={`${label} cost price`}
+          placeholder="Cost"
+          value={text}
+          onChange={(e) => setText(e.target.value.replace(/[^\d.]/g, ""))}
+          onBlur={() => n !== (cost ?? null) && onSave(n)}
+        />
+      </label>
+      <span className={`ape-cost-profit ${u ? (u.profit < 0 ? "is-neg" : "is-pos") : ""}`}>
+        {u ? (
+          <>
+            {formatPrice(u.profit, { paise: true })} profit
+            <small>{u.margin.toFixed(1)}% margin</small>
+          </>
+        ) : (
+          <small>{n == null ? "Add a cost to see profit" : "Add a price to see profit"}</small>
+        )}
+      </span>
     </li>
   );
 }

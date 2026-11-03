@@ -5,6 +5,7 @@ import MediaGuard from "@/components/MediaGuard";
 import SiteFooter from "@/components/SiteFooter";
 import SiteFrame from "@/components/SiteFrame";
 import SiteHeader from "@/components/SiteHeader";
+import SiteTracker from "@/components/SiteTracker";
 import { AuthProvider } from "@/lib/auth";
 import { AGE_STORAGE_KEY } from "@/lib/config";
 import { modeBootScript } from "@/lib/mode-boot";
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <AgeGate />
           <MediaGuard />
+          <SiteTracker />
           <SiteFrame>
             <SiteHeader />
             <main className="flex-1">{children}</main>

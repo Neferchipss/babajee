@@ -11,7 +11,13 @@ import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
 
-type Need = "all" | "photo" | "price" | "hidden";
+type Need = "all" | "photo" | "price" | "hidden" | "low" | "out";
+
+// stock, for products that track it: none left, or 3 or fewer of some option
+const stockOf = (p: AdminProduct) => {
+  const t = p.variants.filter((v) => v.track_stock && v.is_visible);
+  return { out: t.length > 0 && t.some((v) => v.stock_qty === 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= 3) };
+};
 
 // The catalogue as the shop shows it: a grid of cards, by category. Each card
 // says what the product still needs (a photo, a price, to be shown); open one
@@ -32,7 +38,7 @@ function ProductsAdmin() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [cat, setCat] = useState(params.get("category") ?? "");
-  const [need, setNeed] = useState<Need>("all");
+  const [need, setNeed] = useState<Need>((params.get("need") as Need | null) ?? "all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(params.get("product"));
   const [selecting, setSelecting] = useState(false);
@@ -62,26 +68,31 @@ function ProductsAdmin() {
     else q.delete("category");
     if (openId) q.set("product", openId);
     else q.delete("product");
+    if (need !== "all") q.set("need", need);
+    else q.delete("need");
     const next = `${window.location.pathname}${q.size ? `?${q}` : ""}`;
     if (next !== window.location.pathname + window.location.search) {
       window.history.replaceState(null, "", next + window.location.hash);
     }
-  }, [cat, openId]);
+  }, [cat, openId, need]);
 
   const inCat = useMemo(() => (cat ? rows.filter((p) => p.category_id === cat) : rows), [rows, cat]);
   const counts = useMemo(() => {
-    const c = { photo: 0, price: 0, hidden: 0 };
+    const c = { photo: 0, price: 0, hidden: 0, low: 0, out: 0 };
     for (const p of inCat) {
       const n = needsOf(p);
+      const s = stockOf(p);
       if (n.photo) c.photo++;
       if (n.price) c.price++;
       if (n.hidden) c.hidden++;
+      if (s.low) c.low++;
+      if (s.out) c.out++;
     }
     return c;
   }, [inCat]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return inCat.filter((p) => (!q || p.name.toLowerCase().includes(q)) && (need === "all" || needsOf(p)[need]));
+    return inCat.filter((p) => (!q || p.name.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
   }, [inCat, query, need]);
 
   const open = openId ? rows.find((p) => p.id === openId) : undefined;
@@ -121,19 +132,7 @@ function ProductsAdmin() {
 
   return (
     <div className={`ap ${open ? "ap--editing" : ""}`}>
-      <header className="ap-head">
-        <div>
-          <h1>Products</h1>
-          <p className="ap-sub">
-            {loading
-              ? "Loading the catalogue"
-              : `${inCat.length} product${inCat.length === 1 ? "" : "s"}${counts.photo ? ` · ${counts.photo} need a photo` : ""}${counts.price ? ` · ${counts.price} need a price` : ""}`}
-          </p>
-        </div>
-        <button type="button" className={`ap-chip ${selecting ? "is-on" : ""}`} onClick={() => (setSelecting((s) => !s), setSelected(new Set()))}>
-          {selecting ? "Done selecting" : "Select"}
-        </button>
-      </header>
+      <h1 className="sr-only">Products</h1>
       {err && <p className="ap-err">{err}</p>}
 
       <AdminCategoryBar
@@ -142,14 +141,50 @@ function ProductsAdmin() {
           setCat(id);
           window.scrollTo({ top: 0, behavior: "instant" });
         }}
-        categories={[{ id: "", slug: "all", name: "All" }, ...categories].map((c) => {
+        categories={[{ id: "", slug: "all", name: "All", is_visible: true }, ...categories].map((c) => {
           const list = c.id ? rows.filter((p) => p.category_id === c.id) : rows;
-          return { id: c.id, slug: c.slug, name: c.name, count: list.length, todo: list.filter((p) => needsOf(p).photo || needsOf(p).price).length };
+          return { id: c.id, slug: c.slug, name: c.name, hidden: !c.is_visible, count: list.length, todo: list.filter((p) => needsOf(p).photo || needsOf(p).price).length };
         })}
+        onAdd={async (name) => {
+          let slug = slugify(name);
+          for (let n = 2; categories.some((c) => c.slug === slug); n++) slug = `${slugify(name)}-${n}`;
+          try {
+            await api.createCategory({ slug, name, sort_order: categories.length });
+            const cats = await api.listCategories();
+            setCategories(cats);
+            const made = cats.find((c) => c.slug === slug);
+            if (made) setCat(made.id);
+          } catch (e) {
+            setErr(e instanceof Error ? e.message : String(e));
+          }
+        }}
       />
+      {cat && categories.some((c) => c.id === cat) && (
+        <CategoryTools
+          key={cat}
+          category={categories.find((c) => c.id === cat)!}
+          first={categories[0]?.id === cat}
+          last={categories[categories.length - 1]?.id === cat}
+          onChange={async (work) => {
+            try {
+              await work();
+              setCategories(await api.listCategories());
+            } catch (e) {
+              setErr(e instanceof Error ? e.message : String(e));
+            }
+          }}
+          api={api}
+          all={categories}
+        />
+      )}
 
       <div className="ap-tools">
-        <input className="ap-search" type="search" placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
+        <div className="ap-searchrow">
+          <input className="ap-search" type="search" placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
+          <button type="button" className={`ap-chip ${selecting ? "is-on" : ""}`} onClick={() => (setSelecting((s) => !s), setSelected(new Set()))}>
+            {selecting ? "Done selecting" : "Select"}
+          </button>
+        </div>
         <div className="ap-needs" role="group" aria-label="Show">
           {(
             [
@@ -157,6 +192,8 @@ function ProductsAdmin() {
               ["photo", "No photo", counts.photo],
               ["price", "No price", counts.price],
               ["hidden", "Hidden", counts.hidden],
+              ["low", "Low stock", counts.low],
+              ["out", "Out of stock", counts.out],
             ] as const
           ).map(([id, label, n]) => (
             <button key={id} type="button" aria-pressed={need === id} onClick={() => setNeed(id)}>
@@ -273,6 +310,7 @@ function Card({
 }) {
   const [busy, setBusy] = useState(false);
   const n = needsOf(p);
+  const st = stockOf(p);
   const photo = p.images[0]?.url ?? photosFor(p.slug)[0];
   const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
   const lo = prices.length ? Math.min(...prices) : 0;
@@ -315,6 +353,8 @@ function Card({
         <span className="apc-flags">
           {n.price && <i className="is-price">No price</i>}
           {n.photo && <i className="is-photo">No photo</i>}
+          {st.out && <i className="is-out">Out of stock</i>}
+          {!st.out && st.low && <i className="is-low">Low stock</i>}
         </span>
         {selecting && <span className={`apc-tick ${checked ? "is-on" : ""}`} aria-hidden="true" />}
       </span>
@@ -404,5 +444,46 @@ function QuickAdd({ categories, cat, onAdd }: { categories: AdminCategory[]; cat
         </button>
       </div>
     </form>
+  );
+}
+
+// The open category's own settings, where its products are: its name, whether
+// the shop shows it, and its place in the bar.
+function CategoryTools({
+  category: c,
+  all,
+  first,
+  last,
+  api,
+  onChange,
+}: {
+  category: AdminCategory;
+  all: AdminCategory[];
+  first: boolean;
+  last: boolean;
+  api: ReturnType<typeof adminApi>;
+  onChange: (work: () => Promise<unknown>) => Promise<void>;
+}) {
+  const [name, setName] = useState(c.name);
+  return (
+    <div className="ap-cat" role="group" aria-label={`${c.name} category`}>
+      <input
+        className="ap-cat-name"
+        value={name}
+        aria-label="Category name"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+        onBlur={() => name.trim() && name.trim() !== c.name && onChange(() => api.updateCategory(c.id, { name: name.trim() }))}
+      />
+      <button type="button" className={`ap-chip ${c.is_visible ? "" : "is-on"}`} onClick={() => onChange(() => api.updateCategory(c.id, { is_visible: !c.is_visible }))}>
+        {c.is_visible ? "On the shop" : "Hidden from the shop"}
+      </button>
+      <button type="button" className="ap-chip" disabled={first} aria-label={`Move ${c.name} left`} onClick={() => onChange(() => api.moveCategory(all, c.id, -1))}>
+        ← Move
+      </button>
+      <button type="button" className="ap-chip" disabled={last} aria-label={`Move ${c.name} right`} onClick={() => onChange(() => api.moveCategory(all, c.id, 1))}>
+        Move →
+      </button>
+    </div>
   );
 }

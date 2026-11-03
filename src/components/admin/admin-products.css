@@ -20,7 +20,8 @@
 /* the editor sits at the right edge; the grid gives it room on a wide screen */
 @media (min-width: 1100px) {
   .mx-auto:has(> div > .ap--editing),
-  .mx-auto:has(> .ap--editing) {
+  .mx-auto:has(> .ap--editing),
+  .mx-auto:has(> .adm .ap--editing) {
     max-width: none;
   }
   .ap--editing {
@@ -1223,4 +1224,163 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* stock: an untracked option's count, and the product's stock history */
+.ape-opt-stock.is-off {
+  text-align: center;
+  color: var(--ap-muted);
+}
+.ape-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.ape-history li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ap-line);
+}
+.ape-history li:last-child {
+  border-bottom: 0;
+}
+.ape-history small,
+.ape-history time {
+  color: var(--ap-muted);
+}
+.ape-history .is-down {
+  color: var(--ap-hot);
+}
+.ape-history .is-up {
+  color: var(--ap-good);
+}
+.apc-flags .is-out {
+  background: #e5484d;
+  color: #fff;
+}
+.apc-flags .is-low {
+  background: #f2c14e;
+  color: #241a00;
+}
+
+/* categories, managed where their products are: a hidden one dimmed in the bar,
+   "+ New" at its end, and the open one's name, visibility and place under it */
+.acb li button.is-hidden {
+  opacity: 0.45;
+}
+.acb-new .acb-ico {
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.acb-new form {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 6px;
+}
+.acb-new input {
+  width: 150px;
+  padding: 8px 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ap-ink);
+  font: inherit;
+}
+.ap-cat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ap-cat-name {
+  flex: 1 1 200px;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ap-ink);
+  font: inherit;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ cost and profit */
+.ape-costs {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.ape-cost {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 12px;
+}
+.ape-cost-name,
+.ape-cost-profit {
+  display: grid;
+  gap: 2px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  min-width: 0;
+}
+.ape-cost small {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--ap-muted);
+}
+.ape-cost input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 11px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.ape-cost-profit {
+  font-variant-numeric: tabular-nums;
+}
+.ape-cost-profit.is-pos {
+  color: var(--color-green-soft);
+}
+.ape-cost-profit.is-neg {
+  color: var(--color-red-soft);
+}
+@media (max-width: 520px) {
+  .ape-cost {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .ape-cost-name {
+    grid-column: 1 / -1;
+  }
+}
+
+/* search and the Select button share a row */
+.ap-searchrow {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ap-searchrow .ap-search {
+  flex: 1 1 auto;
+}
+.ap-searchrow .ap-chip {
+  flex: none;
 }

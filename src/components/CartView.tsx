@@ -5,6 +5,8 @@ import SceneLink from "@/components/SceneLink";
 import { useEffect, useRef, useState } from "react";
 import { type CartLine, cartSums, clearCart, lineTotal, removeLine, restoreLine, setQty, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import { bill } from "@/lib/gst";
+import type { StoreSettings } from "@/lib/orders-db";
 import { toggleSaved } from "@/lib/wishlist";
 import CartRecs, { type RecGroup } from "./CartRecs";
 import { JarArt } from "./CartJar";
@@ -245,6 +247,46 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
 }
 
 // The short list beside the checkout form.
+// The bill under the items: delivery and GST from the shop's Settings, worked
+// out the same way place_order() will (lib/gst.ts). Until the rules load, or
+// if they can't, it shows the plain item total.
+function CheckoutBill({ sub }: { sub: number | undefined }) {
+  const [rules, setRules] = useState<StoreSettings | null>(null);
+  useEffect(() => {
+    import("@/lib/orders-db")
+      .then((m) => m.getSettings())
+      .then(setRules)
+      .catch(() => {});
+  }, []);
+  const b = sub !== undefined && rules ? bill(sub, rules.free_shipping_over != null && sub >= rules.free_shipping_over ? 0 : rules.shipping, { rate: rules.gst_rate, inclusive: rules.gst_inclusive }) : null;
+  return (
+    <>
+      {b && (
+        <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-muted">Items</dt>
+            <dd className="tabular-nums">{rs(b.sub)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted">Delivery</dt>
+            <dd className="tabular-nums">{b.ship ? rs(b.ship) : "Free"}</dd>
+          </div>
+          {rules!.gst_rate > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-muted">{rules!.gst_inclusive ? `Includes GST (${rules!.gst_rate}%)` : `GST (${rules!.gst_rate}%)`}</dt>
+              <dd className="tabular-nums">{rs(b.tax)}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      <div className={`${b ? "mt-3" : "mt-5"} flex justify-between border-t border-line pt-4 text-lg font-semibold`}>
+        <span>Total</span>
+        <span className="tabular-nums">{rs(b ? b.total : sub)}</span>
+      </div>
+    </>
+  );
+}
+
 export function CheckoutItems() {
   const cart = useCart();
   const sums = cartSums(cart);
@@ -273,10 +315,7 @@ export function CheckoutItems() {
         </ul>
       )}
 
-      <div className="mt-5 flex justify-between border-t border-line pt-4 text-lg font-semibold">
-        <span>Total</span>
-        <span className="tabular-nums">{rs(sums.total)}</span>
-      </div>
+      <CheckoutBill sub={sums.total} />
     </aside>
   );
 }

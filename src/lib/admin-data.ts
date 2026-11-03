@@ -12,6 +12,8 @@ export type AdminVariant = {
   label: string;
   price: number;
   stock_qty: number;
+  // on: checkout refuses more than stock_qty and counts it down (supabase/migrations/0013)
+  track_stock: boolean;
   is_visible: boolean;
   sort_order: number;
 };
@@ -55,10 +57,11 @@ function toVariant(row: {
   label: string;
   price: unknown;
   stock_qty: unknown;
+  track_stock?: boolean;
   is_visible: boolean;
   sort_order: number;
 }): AdminVariant {
-  return { ...row, price: toNumber(row.price), stock_qty: toNumber(row.stock_qty) };
+  return { ...row, price: toNumber(row.price), stock_qty: toNumber(row.stock_qty), track_stock: row.track_stock ?? false };
 }
 
 export async function listCategories(): Promise<AdminCategory[]> {
@@ -99,7 +102,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -211,6 +214,7 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
         label: variant.label ?? "Option",
         price: variant.price ?? 0,
         stock_qty: variant.stock_qty ?? 0,
+        track_stock: variant.track_stock ?? false,
         is_visible: variant.is_visible ?? true,
         sort_order: variant.sort_order ?? 0,
       });

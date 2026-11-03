@@ -14,6 +14,9 @@ export const isAdminDemo = () =>
 type Api = Pick<
   typeof real,
   | "listCategories"
+  | "createCategory"
+  | "updateCategory"
+  | "moveCategory"
   | "listProducts"
   | "getProduct"
   | "createProduct"
@@ -55,6 +58,7 @@ function makeDemo(): Api {
         label: v.label,
         price: i % 4 === 1 ? 0 : 420,
         stock_qty: 12,
+        track_stock: i % 3 === 0,
         is_visible: i % 5 !== 3,
         sort_order: j,
       })),
@@ -67,6 +71,19 @@ function makeDemo(): Api {
   const api: Api = {
     async listCategories() {
       return copy(cats);
+    },
+    async createCategory(input) {
+      cats.push({ id: input.slug, ...input, is_visible: true });
+    },
+    async updateCategory(id, patch) {
+      Object.assign(cats.find((c) => c.id === id)!, patch);
+    },
+    async moveCategory(_rows, id, direction) {
+      const i = cats.findIndex((c) => c.id === id);
+      const j = i + direction;
+      if (i < 0 || j < 0 || j >= cats.length) return;
+      [cats[i], cats[j]] = [cats[j], cats[i]];
+      cats.forEach((c, k) => (c.sort_order = k));
     },
     async listProducts(categoryId?: string) {
       await wait();
@@ -87,7 +104,7 @@ function makeDemo(): Api {
           sort_order: -1,
           category_slug: cat.slug,
           category_name: cat.name,
-          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, is_visible: true, sort_order: 0 }],
+          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: 0 }],
           images: [],
         },
         ...products,
@@ -114,7 +131,7 @@ function makeDemo(): Api {
     async upsertVariant(productId, variant) {
       const p = find(productId);
       if (variant.id) Object.assign(p.variants.find((v) => v.id === variant.id)!, variant);
-      else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
+      else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
     },
     async deleteVariant(id) {
       for (const p of products) p.variants = p.variants.filter((v) => v.id !== id);
