@@ -107,3 +107,41 @@ html[data-mode="light"] #site[data-scope="shop"] .ftr {
   border-top-color: var(--color-line);
   box-shadow: none;
 }
+
+/* Earthy carries the walnut and brass of the entrance onto the shelf. */
+:root[data-mode="earthy"],
+html[data-theme="baba-poster"][data-mode="earthy"] #site[data-scope="shop"] {
+  color-scheme: dark;
+  --color-char: #1c1916;
+  --color-iron: #292521;
+  --color-ash: #302b26;
+  --color-line: #443d35;
+  --color-paper: #f1e9dc;
+  --color-muted: #b9ac9c;
+  --color-plate: #292521;
+  --color-ink: #1c1916;
+  --color-rasta-gold: #d3ab70;
+  --plate-ink: #d3ab70;
+  --bb-ink: #f1e9dc;
+  --bb-maroon: #d3ab70;
+  --bb-maroon-dk: #e1c191;
+  --bb-rose: #d3ab70;
+  --bb-blush: #302b26;
+  --bb-green: #c3c9a5;
+  --bb-green-dk: #79815e;
+  --bb-hot: #d3ab70;
+  --bb-on-accent: #1c1916;
+  --bb-hdr-bg: rgb(28 25 22 / 0.94);
+  --bb-swirl: none;
+  --bb-tex: none;
+  --bbn-edge: #443d35;
+  --bbn-glow: 211 171 112;
+  --bbn-halo: transparent;
+  --bbn-deep: #292521;
+  --bbn-foot: #191613;
+  --bbn-scrim: 28 25 22;
+  --bb-fg: 241 233 220;
+  --bb-bg: 28 25 22;
+  --bb-sheet: #292521;
+  --bb-scrim: rgb(20 17 14 / 0.65);
+}
