@@ -10,7 +10,7 @@ import { refundsOf, type EditAddress, type EditContact, type EditLine, type Orde
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (s: string) => (s.trim() === "" ? 0 : Number(s));
 
-function Stepper({ value, max, onChange, label }: { value: number; max: number; onChange: (n: number) => void; label: string }) {
+export function Stepper({ value, max, onChange, label }: { value: number; max: number; onChange: (n: number) => void; label: string }) {
   return (
     <span className="ofm-step" role="group" aria-label={label}>
       <button type="button" aria-label="Fewer" disabled={value <= 0} onClick={() => onChange(value - 1)}>
@@ -37,12 +37,15 @@ export function RefundForm({
   busy,
   onCancel,
   onSubmit,
+  onEdit,
 }: {
   order: Order;
   mode: "refund" | "return";
   busy: boolean;
   onCancel: () => void;
   onSubmit: (r: RefundInput) => void;
+  // offered when part of the order was never paid and it can still be edited
+  onEdit?: () => void;
 }) {
   const done = refundsOf(o);
   const paid = o.paid_total ?? o.total;
@@ -59,7 +62,12 @@ export function RefundForm({
   const itemsValue = items.reduce((n, i) => n + (qty[i.id] ?? 0) * i.unit_price, 0);
   const picked = items.some((i) => (qty[i.id] ?? 0) > 0);
   const withGst = o.gst_inclusive ? itemsValue : itemsValue * (1 + o.gst_rate / 100);
-  const auto = Math.min(r2(withGst + num(ship)), left);
+  const full = r2(withGst + num(ship));
+  // a refund only sends back money that came in: never more than is left of what was paid
+  const auto = Math.min(full, left);
+  const capped = full > left;
+  // an edit after payment can leave part of the order never paid for
+  const unpaid = r2(o.total - paid);
   const amount = typed == null ? auto : num(typed);
 
   const problem =
@@ -106,6 +114,22 @@ export function RefundForm({
           Select everything
         </button>
       </div>
+
+      {unpaid > 0 && (
+        <div className="ofm-diff owe">
+          {money(unpaid)} of this order was never paid: it was added by an edit and not collected yet. A refund only sends back money that came in.
+          {onEdit ? (
+            <>
+              {" "}To take that item off, edit the order instead.{" "}
+              <button type="button" className="adm-link" onClick={onEdit}>
+                Edit order
+              </button>
+            </>
+          ) : (
+            " It can no longer be edited, so mark the balance as settled or refund what was paid."
+          )}
+        </div>
+      )}
 
       {items.length > 0 ? (
         <ul className="ofm-lines">
@@ -154,7 +178,10 @@ export function RefundForm({
             </>
           ) : (
             <>
-              {money(left)} left to refund of {money(paid)} paid.{!o.gst_inclusive && picked ? ` Includes ${o.gst_rate}% GST on the items.` : ""}
+              {capped
+                ? `These come to ${money(full)}, but only ${money(left)} of what was paid is left to refund, so the refund stops there.`
+                : `${money(left)} left to refund of ${money(paid)} paid.`}
+              {!o.gst_inclusive && picked ? ` Includes ${o.gst_rate}% GST on the items.` : ""}
             </>
           )}
         </span>
@@ -190,13 +217,79 @@ export function RefundForm({
   );
 }
 
+// ---------------------------------------------------------------- product picker
+
+export type Pick = { variant: string; name: string; label: string; price: number; stock: number | null };
+
+let catalogue: Promise<AdminProduct[]> | null = null;
+
+// Type a name, pick an option. The catalogue loads once, on first typing.
+// Unpriced options are offered only when the caller can take a typed price.
+export function ProductPicker({ onPick, unpriced = false, placeholder = "Add a product: type its name" }: { onPick: (p: Pick) => void; unpriced?: boolean; placeholder?: string }) {
+  const [find, setFind] = useState("");
+  const [products, setProducts] = useState<AdminProduct[] | null>(null);
+
+  useEffect(() => {
+    if (!find || products) return;
+    catalogue ??= listProducts();
+    catalogue.then(setProducts).catch(() => (catalogue = null));
+  }, [find, products]);
+
+  const options = useMemo(() => {
+    const w = find.trim().toLowerCase();
+    if (!w || !products) return [];
+    const out: Pick[] = [];
+    for (const p of products) {
+      if (!p.name.toLowerCase().includes(w)) continue;
+      for (const v of p.variants)
+        if (v.price > 0 || unpriced) out.push({ variant: v.id, name: p.name, label: v.label === "Default" ? "" : v.label, price: v.price, stock: v.track_stock ? v.stock_qty : null });
+      if (out.length >= 8) break;
+    }
+    return out.slice(0, 8);
+  }, [find, products, unpriced]);
+
+  return (
+    <div className="ofm-find">
+      <input className="adm-input" type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder={placeholder} aria-label="Add a product" />
+      {find.trim() && (
+        <ul>
+          {!products ? (
+            <li className="adm-muted adm-small">Loading products…</li>
+          ) : options.length === 0 ? (
+            <li className="adm-muted adm-small">{unpriced ? "No product matches." : "No priced product matches."}</li>
+          ) : (
+            options.map((x) => (
+              <li key={x.variant}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(x);
+                    setFind("");
+                  }}
+                >
+                  <span>
+                    {x.name}
+                    {x.label && <span className="adm-muted"> · {x.label}</span>}
+                  </span>
+                  <span className="adm-muted adm-small">
+                    {x.price > 0 ? money(x.price) : "No price"}
+                    {x.stock != null && ` · ${x.stock} in stock`}
+                  </span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- edit
 
 export type EditInput = { lines: EditLine[]; shipping: number | null; contact: EditContact | null; address: EditAddress | null };
 
 type Row = { key: string; item?: string; variant?: string; name: string; label: string; price: number; qty: number; was: number };
-
-let catalogue: Promise<AdminProduct[]> | null = null;
 
 // Before it ships: change quantities, take items off, add items at today's
 // price, change delivery, contact or address. The new total shows as you go,
@@ -216,40 +309,17 @@ export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order;
     state: o.address_state,
     pincode: o.address_pincode,
   });
-  const [find, setFind] = useState("");
-  const [products, setProducts] = useState<AdminProduct[] | null>(null);
-
-  useEffect(() => {
-    if (!find || products) return;
-    catalogue ??= listProducts();
-    catalogue.then(setProducts).catch(() => (catalogue = null));
-  }, [find, products]);
-
-  const options = useMemo(() => {
-    const w = find.trim().toLowerCase();
-    if (!w || !products) return [];
-    const out: { variant: string; name: string; label: string; price: number; stock: number | null }[] = [];
-    for (const p of products) {
-      if (!p.name.toLowerCase().includes(w)) continue;
-      for (const v of p.variants)
-        if (v.price > 0) out.push({ variant: v.id, name: p.name, label: v.label === "Default" ? "" : v.label, price: v.price, stock: v.track_stock ? v.stock_qty : null });
-      if (out.length >= 8) break;
-    }
-    return out.slice(0, 8);
-  }, [find, products]);
-
   const sub = rows.reduce((n, r) => n + r.qty * r.price, 0);
   const now = bill(sub, num(ship), { rate: o.gst_rate, inclusive: o.gst_inclusive });
   const diff = o.paid_total == null ? 0 : r2(now.total - o.paid_total);
   const set = (key: string, qty: number) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, qty } : r)));
 
-  function add(x: (typeof options)[number]) {
+  function add(x: Pick) {
     setRows((rs) => {
       const same = rs.find((r) => r.variant === x.variant);
       if (same) return rs.map((r) => (r === same ? { ...r, qty: Math.min(99, r.qty + 1) } : r));
       return [...rs, { key: `n${x.variant}`, variant: x.variant, name: x.name, label: x.label, price: x.price, qty: 1, was: 0 }];
     });
-    setFind("");
   }
 
   const empty = !rows.some((r) => r.qty > 0);
@@ -288,33 +358,7 @@ export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order;
         ))}
       </ul>
 
-      <div className="ofm-find">
-        <input className="adm-input" type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder="Add a product: type its name" aria-label="Add a product" />
-        {find.trim() && (
-          <ul>
-            {!products ? (
-              <li className="adm-muted adm-small">Loading products…</li>
-            ) : options.length === 0 ? (
-              <li className="adm-muted adm-small">No priced product matches.</li>
-            ) : (
-              options.map((x) => (
-                <li key={x.variant}>
-                  <button type="button" onClick={() => add(x)}>
-                    <span>
-                      {x.name}
-                      {x.label && <span className="adm-muted"> · {x.label}</span>}
-                    </span>
-                    <span className="adm-muted adm-small">
-                      {money(x.price)}
-                      {x.stock != null && ` · ${x.stock} in stock`}
-                    </span>
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-      </div>
+      <ProductPicker onPick={add} />
 
       <label className="adm-label">
         Delivery (₹)

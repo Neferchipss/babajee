@@ -175,6 +175,13 @@ export async function editOrder(id: string, e: { lines: EditLine[]; shipping: nu
   if (error) throw error;
 }
 
+// Take back a refund recorded by mistake (0019): restocked items come off
+// the shelf again and a fully refunded order reopens where it was.
+export async function undoRefund(refundId: string) {
+  const { error } = await db().rpc("admin_undo_refund", { p_refund: refundId });
+  if (error) throw error;
+}
+
 // The difference an edit made to a paid order was collected or paid back.
 export async function settleBalance(id: string) {
   const { error } = await db().rpc("admin_settle_balance", { p_order: id });
@@ -319,7 +326,7 @@ export type StockMove = {
   variant_id: string;
   delta: number;
   qty_after: number;
-  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "manual";
+  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "undo" | "manual";
   order_id: string | null;
   created_at: string;
   product_name: string;
@@ -448,4 +455,42 @@ export async function report(kind: ReportKind, from: string, to: string): Promis
   const { data, error } = await db().rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
+}
+
+// ---------------------------------------------------------------- admin: new order
+
+export type NewOrder = {
+  customer: string | null;
+  contact: { name: string; phone: string; email: string };
+  address: { line1: string; line2: string; landmark: string; city: string; state: string; pincode: string; latitude: number | null; longitude: number | null };
+  lines: { variant: string; qty: number; price?: number }[];
+  shipping: number | null;
+  notes: string;
+  paid: boolean;
+};
+
+// An order taken by the shop (phone, WhatsApp, counter); see 0018.
+export async function createOrder(n: NewOrder): Promise<{ id: string; number: string }> {
+  const { data, error } = await db().rpc("admin_create_order", {
+    p_customer: n.customer,
+    p_contact: n.contact,
+    p_address: n.address,
+    p_lines: n.lines,
+    p_shipping: n.shipping,
+    p_notes: n.notes,
+    p_paid: n.paid,
+  });
+  if (error) throw error;
+  const row = (data as { order_id: string; order_number: string }[])[0];
+  return { id: row.order_id, number: row.order_number };
+}
+
+export async function customerAddresses(id: string): Promise<CustomerAddress[]> {
+  const { data, error } = await db()
+    .from("addresses")
+    .select("id, label, recipient_name, phone, line1, line2, landmark, city, state, pincode, latitude, longitude, is_default")
+    .eq("profile_id", id)
+    .order("is_default", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as CustomerAddress[];
 }

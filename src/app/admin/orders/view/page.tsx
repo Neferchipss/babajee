@@ -22,7 +22,9 @@ import {
   settleBalance,
   soldCosts,
   updateOrder,
+  undoRefund,
   type Order,
+  type Refund,
 } from "@/lib/orders-db";
 
 // One order: what to do next at the top, then the items, the money, the
@@ -43,6 +45,7 @@ function OrderView() {
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState<OrderAction | null>(null);
   const [form, setForm] = useState<"refund" | "return" | "edit" | null>(null);
+  const [undoing, setUndoing] = useState<Refund | null>(null);
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -81,10 +84,12 @@ function OrderView() {
     try {
       await f();
       setForm(null);
+      setUndoing(null);
       await load();
     } catch (e) {
       setErr(errText(e));
       setForm(null);
+      setUndoing(null);
     }
     setBusy(false);
   }
@@ -126,93 +131,152 @@ function OrderView() {
   const canReturn = ["shipped", "delivered"].includes(o.status) && left > 0 && items.some((i) => i.quantity > (refunds.byItem.get(i.id) ?? 0));
   const balance = paid == null || o.status === "cancelled" || o.status === "refunded" ? 0 : Math.round((o.total - paid) * 100) / 100;
 
+  const placed = when(o.created_at).toLowerCase();
+  const closedAt = (o.order_events ?? []).find((e) => e.status === o.status)?.created_at;
+  const primary = actions.filter((a) => a.primary);
+  const quiet = actions.filter((a) => !a.primary);
+  const phone = o.contact_phone.replace(/\D/g, "");
+  const wa = phone.length === 10 ? `91${phone}` : phone.length === 12 && phone.startsWith("91") ? phone : "";
+  // status changes already sit on the road; activity keeps everything else
+  const activity = (o.order_events ?? []).filter(
+    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
+  );
+
+  const next =
+    o.status === "pending"
+      ? `Waiting for ${money(o.total)}. Mark it paid when the money arrives.`
+      : o.status === "paid"
+        ? `Paid. Pack the ${count} item${count === 1 ? "" : "s"} next.`
+        : o.status === "packed"
+          ? "Packed. Hand it to the courier, then mark it shipped."
+          : o.status === "shipped"
+            ? `On its way${ship?.carrier ? ` with ${ship.carrier}` : ""}. Mark it delivered when it arrives.`
+            : o.status === "delivered"
+              ? `Delivered${ship?.delivered_at ? ` ${when(ship.delivered_at).toLowerCase()}` : ""}. Nothing left to do.`
+              : o.status === "cancelled"
+                ? `Cancelled${closedAt ? ` ${when(closedAt).toLowerCase()}` : ""}.`
+                : `Refunded in full: ${money(refunds.amount)} sent back.`;
+
   return (
-    <div>
+    <div className="ov">
       <Link href="/admin/orders" className="adm-back">
         ← Orders
       </Link>
-      <header className="adm-head">
-        <div className="grow">
-          <h1 style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
-            {o.order_number} <StatusPill status={o.status} />
-            {refunds.amount > 0 && o.status !== "refunded" && <span className="adm-pill off">Partly refunded</span>}
-          </h1>
-          <p className="adm-sub">
-            Placed {when(o.created_at).toLowerCase()} · {count} item{count === 1 ? "" : "s"} · {money(o.total)}
-            {o.is_test && " · test order"}
-          </p>
-        </div>
-        <div className="adm-actions">
-          {actions.map((a) => (
-            <button
-              key={a.to}
-              type="button"
-              className={`adm-btn ${a.primary ? "pri" : ""} ${a.danger ? "bad" : ""}`}
-              disabled={busy}
-              onClick={() => (a.to === "shipped" || a.to === "cancelled" ? setAsking(a) : run(a))}
-            >
-              {a.label}
-            </button>
-          ))}
-          {canEdit && (
-            <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("edit")}>
-              Edit
-            </button>
-          )}
-          {canReturn && (
-            <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("return")}>
-              Return
-            </button>
-          )}
-          {canRefund && (
-            <button type="button" className="adm-btn bad" disabled={busy} onClick={() => setForm("refund")}>
-              Refund
-            </button>
-          )}
-        </div>
-      </header>
-      {err && <p className="adm-err">{err}</p>}
 
-      <Roadmap order={o} />
+      <section className={`adm-card ov-hero is-${o.status}`}>
+        <div className="ov-top">
+          <div className="ov-title">
+            <h1>
+              {o.order_number}
+              <StatusPill status={o.status} />
+              {refunds.amount > 0 && o.status !== "refunded" && <span className="adm-pill off">Partly refunded</span>}
+              {o.is_test && <span className="adm-pill off">Test</span>}
+            </h1>
+            <p className="ov-next">{next}</p>
+            <p className="adm-muted adm-small ov-meta">
+              Placed {placed} · {count} item{count === 1 ? "" : "s"} · {o.contact_name}, {o.address_city}
+            </p>
+          </div>
+          <div className="ov-total">
+            <span>Total</span>
+            <b>{money(o.total)}</b>
+            <small>
+              {paid == null
+                ? "Not paid yet"
+                : refunds.amount > 0
+                  ? `${money(paid - refunds.amount)} kept after refunds`
+                  : paid === o.total
+                    ? "Paid"
+                    : `${money(paid)} paid`}
+            </small>
+          </div>
+        </div>
+
+        <Roadmap order={o} />
+
+        {(actions.length > 0 || canEdit || canReturn || canRefund) && (
+          <div className="ov-actions">
+            {primary.map((a) => (
+              <button key={a.to} type="button" className="adm-btn pri ov-go" disabled={busy} onClick={() => (a.to === "shipped" ? setAsking(a) : run(a))}>
+                {a.label}
+              </button>
+            ))}
+            <span className="ov-gap" />
+            {quiet
+              .filter((a) => !a.danger)
+              .map((a) => (
+                <button key={a.to} type="button" className="adm-btn" disabled={busy} onClick={() => (a.to === "shipped" ? setAsking(a) : run(a))}>
+                  {a.label}
+                </button>
+              ))}
+            {canEdit && (
+              <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("edit")}>
+                Edit order
+              </button>
+            )}
+            {canReturn && (
+              <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("return")}>
+                Return items
+              </button>
+            )}
+            {canRefund && (
+              <button type="button" className="adm-btn bad" disabled={busy} onClick={() => setForm("refund")}>
+                Refund
+              </button>
+            )}
+            {quiet
+              .filter((a) => a.danger)
+              .map((a) => (
+                <button key={a.to} type="button" className="adm-btn bad" disabled={busy} onClick={() => setAsking(a)}>
+                  {a.label}
+                </button>
+              ))}
+          </div>
+        )}
+      </section>
+
+      {err && <p className="adm-err">{err}</p>}
+      {balance !== 0 && (
+        <div className={`adm-balance ov-balance ${balance > 0 ? "owe" : "back"}`}>
+          <span>
+            <b>{balance > 0 ? `${money(balance)} to collect` : `${money(-balance)} to pay back`}</b>
+            {balance > 0 ? " · the order was edited after it was paid." : " · the order was edited after it was paid."}
+          </span>
+          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id))}>
+            {balance > 0 ? "Mark as collected" : "Mark as paid back"}
+          </button>
+        </div>
+      )}
 
       <div className="adm-two">
         <div className="adm-stack">
           <section className="adm-card">
-            <h2>Items</h2>
-            <table className="adm-table">
-              <tbody>
-                {items.map((i) => (
-                  <tr key={i.id}>
-                    <td>
+            <h2>
+              {count} item{count === 1 ? "" : "s"}
+            </h2>
+            <ul className="ov-items">
+              {items.map((i) => {
+                const back = refunds.byItem.get(i.id) ?? 0;
+                return (
+                  <li key={i.id} className={back === i.quantity ? "is-back" : ""}>
+                    <span className="ov-qty">{i.quantity}×</span>
+                    <span className="ov-name">
                       <strong>{i.product_name}</strong>
                       {i.variant_label && <span className="adm-muted"> · {i.variant_label}</span>}
-                      {i.sku && <div className="adm-muted adm-small">SKU {i.sku}</div>}
-                      {(refunds.byItem.get(i.id) ?? 0) > 0 && (
-                        <div className="adm-small adm-refunded">
-                          {refunds.byItem.get(i.id) === i.quantity ? "Refunded" : `${refunds.byItem.get(i.id)} of ${i.quantity} refunded`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="r adm-muted">
-                      {money(i.unit_price)} × {i.quantity}
-                    </td>
-                    <td className="r">
-                      <strong>{money(i.unit_price * i.quantity)}</strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-
-          <section className="adm-card">
-            <h2>Payment</h2>
-            <div className="adm-kv">
-              <span>
-                Subtotal · {count} item{count === 1 ? "" : "s"}
-              </span>
+                      <span className="adm-muted adm-small ov-sub">
+                        {money(i.unit_price)} each{i.sku ? ` · SKU ${i.sku}` : ""}
+                        {back > 0 && <span className="adm-refunded"> · {back === i.quantity ? "refunded" : `${back} refunded`}</span>}
+                      </span>
+                    </span>
+                    <strong className="ov-line">{money(i.unit_price * i.quantity)}</strong>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="adm-kv ov-sum">
+              <span>Subtotal</span>
               <span>{money(o.subtotal)}</span>
-              <span>Shipping</span>
+              <span>Delivery</span>
               <span>{o.shipping ? money(o.shipping) : "Free"}</span>
               {o.tax > 0 && (
                 <>
@@ -229,6 +293,14 @@ function OrderView() {
                   <span className="adm-muted">
                     {r.returned ? "Returned" : "Refunded"} {when(r.created_at).toLowerCase()}
                     {r.reason && <span className="adm-small"> · {r.reason}</span>}
+                    {o.status !== "cancelled" && (
+                      <>
+                        {" · "}
+                        <button type="button" className="adm-link" disabled={busy} onClick={() => setUndoing(r)}>
+                          Undo
+                        </button>
+                      </>
+                    )}
                   </span>
                   <span className="adm-refunded">−{money(r.amount)}</span>
                 </Fragment>
@@ -244,79 +316,80 @@ function OrderView() {
                 </>
               )}
             </div>
-            {balance !== 0 && (
-              <div className={`adm-balance ${balance > 0 ? "owe" : "back"}`}>
-                <span>{balance > 0 ? `${money(balance)} more to collect, since the order was edited.` : `${money(-balance)} to pay back, since the order was edited.`}</span>
-                <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id))}>
-                  {balance > 0 ? "Mark as collected" : "Mark as paid back"}
-                </button>
-              </div>
-            )}
           </section>
 
           <OrderProfit order={o} />
 
-          {ship && (
-            <section className="adm-card">
-              <h2>Shipping</h2>
-              <div className="adm-kv">
-                <span>Courier</span>
-                <span>{ship.carrier || "–"}</span>
-                <span>Tracking number</span>
-                <span>{ship.tracking_number || "–"}</span>
-                <span>Shipped</span>
-                <span>{ship.shipped_at ? when(ship.shipped_at) : "–"}</span>
-                <span>Delivered</span>
-                <span>{ship.delivered_at ? when(ship.delivered_at) : "Not yet"}</span>
-              </div>
-            </section>
-          )}
-
           <section className="adm-card">
-            <h2>Timeline</h2>
-            <form onSubmit={postComment} style={{ display: "flex", gap: 8 }}>
+            <h2>Comments and changes</h2>
+            <form onSubmit={postComment} className="ov-comment">
               <input className="adm-input" placeholder="Leave a comment for staff (the customer never sees it)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" />
               <button className="adm-btn" disabled={busy || !comment.trim()}>
                 Post
               </button>
             </form>
-            <ol className="adm-tl">
-              {(o.order_events ?? []).map((e) => (
-                <li key={e.id} className={e.status === "comment" ? "comment" : ""}>
-                  <span>{eventText(e.status, e.note)}</span>
-                  <time dateTime={e.created_at}>{when(e.created_at)}</time>
-                </li>
-              ))}
-            </ol>
+            {activity.length > 0 ? (
+              <ol className="adm-tl">
+                {activity.map((e) => (
+                  <li key={e.id} className={e.status === "comment" ? "comment" : ""}>
+                    <span>{eventText(e.status, e.note)}</span>
+                    <time dateTime={e.created_at}>{when(e.created_at)}</time>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>
+                Nothing yet. Edits, refunds and comments show here; status changes are on the road above.
+              </p>
+            )}
           </section>
         </div>
 
         <div className="adm-stack">
           <section className="adm-card">
             <h2>Customer</h2>
-            {o.profile_id ? (
-              <Link href={`/admin/customers/view?id=${o.profile_id}`} style={{ fontWeight: 700 }}>
-                {o.contact_name}
-              </Link>
-            ) : (
-              <strong>{o.contact_name}</strong>
-            )}
-            <p className="adm-small" style={{ margin: "10px 0 0" }}>
-              <a href={`tel:${o.contact_phone.replace(/\s/g, "")}`}>{o.contact_phone}</a>
-              <br />
-              <span className="adm-muted">{o.contact_email}</span>
-            </p>
-            <h2 style={{ margin: "16px 0 6px" }}>Deliver to</h2>
-            <p className="adm-small adm-muted" style={{ margin: 0 }}>
+            <div className="ov-who">
+              {o.profile_id ? (
+                <Link href={`/admin/customers/view?id=${o.profile_id}`} className="ov-name-link">
+                  {o.contact_name}
+                </Link>
+              ) : (
+                <strong>{o.contact_name}</strong>
+              )}
+              <span className="adm-muted adm-small">{o.contact_email}</span>
+            </div>
+            <div className="ov-reach">
+              <a className="adm-btn" href={`tel:${o.contact_phone.replace(/\s/g, "")}`}>
+                Call {o.contact_phone}
+              </a>
+              {wa && (
+                <a className="adm-btn" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">
+                  WhatsApp
+                </a>
+              )}
+            </div>
+            <h3 className="ov-h3">Deliver to</h3>
+            <p className="adm-small ov-addr">
               {[o.address_line1, o.address_line2, o.address_landmark && `Near ${o.address_landmark}`, `${o.address_city}, ${o.address_state} ${o.address_pincode}`]
                 .filter(Boolean)
                 .map((l) => (
-                  <span key={String(l)} style={{ display: "block" }}>
-                    {l}
-                  </span>
+                  <span key={String(l)}>{l}</span>
                 ))}
             </p>
             <AddressMap lat={o.address_latitude} lng={o.address_longitude} label={`${o.contact_name}, ${o.address_line1}`} />
+            {ship && (
+              <>
+                <h3 className="ov-h3">Courier</h3>
+                <p className="adm-small ov-addr">
+                  <span>{ship.carrier || "Courier not noted"}</span>
+                  {ship.tracking_number && (
+                    <span>
+                      Tracking <b className="ov-track">{ship.tracking_number}</b>
+                    </span>
+                  )}
+                </p>
+              </>
+            )}
           </section>
 
           <section className="adm-card">
@@ -344,9 +417,53 @@ function OrderView() {
       <Dialog open={asking !== null} onClose={() => setAsking(null)}>
         {asking && <Confirm action={asking} order={o} busy={busy} onCancel={() => setAsking(null)} onConfirm={(opts) => run(asking, opts)} />}
       </Dialog>
+      <Dialog open={undoing !== null} onClose={() => setUndoing(null)}>
+        {undoing && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void act(() => undoRefund(undoing.id));
+            }}
+          >
+            <h2>Undo this {money(undoing.amount)} refund?</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              {(undoing.order_refund_items?.length ?? 0) > 0
+                ? `It covered ${undoing.order_refund_items!
+                    .map((ri) => {
+                      const it = items.find((i) => i.id === ri.order_item_id);
+                      return `${it?.product_name ?? "an item"}${ri.quantity > 1 ? ` ×${ri.quantity}` : ""}`;
+                    })
+                    .join(", ")}.`
+                : "It was an amount on its own, with no items."}{" "}
+              {undoing.restocked && "Those items come back off the shelf. "}
+              {o.status === "refunded" && "The order reopens where it was before. "}
+              Then you can record the right refund. The activity keeps a note of this.
+            </p>
+            <p className="adm-muted adm-small" style={{ margin: 0 }}>
+              If the money really went out, keep the refund. Undo is for a refund recorded by mistake.
+            </p>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" onClick={() => setUndoing(null)}>
+                Keep it
+              </button>
+              <button className="adm-btn bad" disabled={busy}>
+                {busy ? "Undoing" : "Undo refund"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
       <Dialog open={form !== null} onClose={() => setForm(null)} wide={form === "edit"}>
         {(form === "refund" || form === "return") && (
-          <RefundForm order={o} mode={form} busy={busy} onCancel={() => setForm(null)} onSubmit={(r: RefundInput) => act(() => refundOrder(o.id, r))} />
+          <RefundForm
+            order={o}
+            mode={form}
+            busy={busy}
+            onCancel={() => setForm(null)}
+            onSubmit={(r: RefundInput) => act(() => refundOrder(o.id, r))}
+            onEdit={canEdit ? () => setForm("edit") : undefined}
+          />
         )}
         {form === "edit" && <EditForm order={o} busy={busy} onCancel={() => setForm(null)} onSubmit={(e: EditInput) => act(() => editOrder(o.id, e))} />}
       </Dialog>

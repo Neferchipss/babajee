@@ -116,6 +116,9 @@ function Orders() {
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
         </button>
+        <Link href="/admin/orders/new" className="adm-btn pri">
+          Create order
+        </Link>
       </div>
 
       <Dialog open={exporting} onClose={() => setExporting(false)}>

@@ -16,6 +16,7 @@ type Hit = { key: string; group: string; href: string; title: string; meta?: str
 const PAGES: { title: string; href: string; words: string }[] = [
   { title: "Home", href: "/admin", words: "home today dashboard" },
   { title: "Orders", href: "/admin/orders", words: "orders unpaid pack ship" },
+  { title: "Create an order", href: "/admin/orders/new", words: "new order create phone whatsapp counter manual draft" },
   { title: "Products", href: "/admin/products", words: "products catalogue inventory stock categories" },
   { title: "Add a product", href: "/admin/products/new", words: "new product add create" },
   { title: "Customers", href: "/admin/customers", words: "customers people buyers" },

@@ -709,7 +709,7 @@ function OptionRow({
 
 // The last stock changes for this product's options: sales, cancelled orders put
 // back, refunds restocked, and counts edited by hand.
-const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", manual: "Edited" } as const;
+const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund undone", manual: "Edited" } as const;
 type Move = Awaited<ReturnType<typeof import("@/lib/orders-db").stockHistory>>[number];
 function StockHistory({ variants }: { variants: AdminVariant[] }) {
   const [moves, setMoves] = useState<Move[] | null>(null);
