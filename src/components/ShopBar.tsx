@@ -222,7 +222,7 @@ export default function ShopBar({
       <div className="sb-top">
         {/* wide screens: the logo first, as the site header had it */}
         <Link href="/" className="sb-logo" aria-label="Babajee home">
-          <Logo className="w-[150px]" priority />
+          <Logo className="w-[52px]" priority />
         </Link>
         <DeliverTo />
         <ProfileMenu />

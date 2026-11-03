@@ -160,7 +160,7 @@ function Demo({ id }: { id: string }) {
       )}
 
       <div className={s.hero}>
-        <Logo className="w-44" />
+        <Logo className="w-24" />
         <p className={s.heroLine}>Papers, trays, glass and more.</p>
         <div className={s.actions}>
           <button type="button" className={`${s.btn} ${s.primary}`}>

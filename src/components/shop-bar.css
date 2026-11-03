@@ -518,7 +518,7 @@
   }
 }
 .lb-logo-img {
-  width: 120px;
+  width: 46px;
 }
 .lb .sb-profile {
   display: grid;
@@ -536,7 +536,7 @@
     padding-inline: max(40px, calc((100vw - 1360px) / 2));
   }
   .lb-logo-img {
-    width: 150px;
+    width: 54px;
   }
   /* Profile as on the shop's wide bar: an icon over its label */
   .lb .sb-profile {

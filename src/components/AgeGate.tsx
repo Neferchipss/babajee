@@ -26,7 +26,7 @@ export default function AgeGate() {
       aria-labelledby="age-gate-title"
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-12 overflow-y-auto bg-char px-6 py-10 text-center"
     >
-      <Logo priority className="w-[min(78vw,24rem)]" />
+      <Logo priority className="w-[min(48vw,14rem)]" />
 
       {denied ? (
         <div className="max-w-[38ch]">

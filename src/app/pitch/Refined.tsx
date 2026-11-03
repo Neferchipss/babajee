@@ -15,7 +15,7 @@ export default function Refined() {
     <div className={s.wrap}>
       <header className={s.rfHeader}>
         <Image src={b_sun} alt="" className={s.rfSunArt} priority />
-        <Logo className="w-48" priority />
+        <Logo className="w-28" priority />
         <nav aria-label="Main" className={s.rfNav}>
           {NAV.map((n) => (
             <a key={n} href="#refined" aria-current={n === "Shop" ? "page" : undefined}>

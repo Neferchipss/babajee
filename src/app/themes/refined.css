@@ -127,7 +127,7 @@ html[data-theme="refined"] #site[data-scope="shop"] {
       z-index: 2;
     }
     & .hdr-logo-img {
-      width: 11.5rem;
+      width: 3.5rem;
     }
     & .hdr-nav {
       gap: 30px;

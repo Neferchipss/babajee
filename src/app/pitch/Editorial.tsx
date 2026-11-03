@@ -34,7 +34,7 @@ export default function Editorial() {
   return (
     <div className={s.wrap}>
       <header className={s.edHeader}>
-        <Logo className="w-48" priority />
+        <Logo className="w-28" priority />
         <nav aria-label="Main" className={s.edNav}>
           {NAV.map((n) => (
             <a key={n} href="#editorial" aria-current={n === "Shop" ? "page" : undefined}>
@@ -194,7 +194,7 @@ export default function Editorial() {
       </div>
 
       <footer className={s.edFooter}>
-        <Logo className="w-36" />
+        <Logo className="w-20" />
         <nav aria-label="Footer">
           {NAV.map((n) => (
             <a key={n} href="#editorial">

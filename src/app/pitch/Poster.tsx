@@ -23,7 +23,7 @@ export default function Poster() {
 
       <header className={s.poHead}>
         <div className={s.poLogoCell}>
-          <Logo className="w-44" priority />
+          <Logo className="w-24" priority />
           <p>
             Good
             <br />
@@ -177,7 +177,7 @@ export default function Poster() {
       </div>
 
       <footer className={s.poFooter}>
-        <Logo className="w-40" />
+        <Logo className="w-24" />
         <p>
           <i className={s.poDashR} aria-hidden="true" /> Peace in the everyday{" "}
           <i className={s.poDashG} aria-hidden="true" />

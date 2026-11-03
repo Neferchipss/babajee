@@ -18,6 +18,7 @@ import { createMagic } from "./shop-magic";
 import { createShopMusic, soundPref, type ShopMusic } from "./shop-music";
 import { optimiseScene } from "./shop-cull";
 import { clearShopNote, peekShopNote, TO_STREET } from "./scene-note";
+import { EntryFilm, FILM_FRAMES } from "./shop-film";
 import { createShelfGlow } from "./shop-glow";
 import { applyBake } from "./shop-bake";
 import { createSky } from "./shop-sky";
@@ -74,6 +75,18 @@ const DRACO = `${BASE}/draco/gltf/`; // decoder for the compressed model
 // when each camera is reached, as a share of the scroll
 const STOPS = [0, 0.2, 0.38, 0.55, 0.76, 1];
 const LOOK_FROM = 0.93; // the labels come in over the last stretch
+// The landing's entry (v2): the pitch video scrubs from the street to the open door
+// over the first FILM_END of the scroll, cross-fading into the 3D shop over its last
+// FILM_FADE, while the door frame sweeps past. HAND is the video's camera at the
+// cut (frame FILM_CUT), solved from landmarks (the plaque's logo, the counter, the
+// door's jambs) against the model: where it stands, which way it looks (radians)
+// and its lens (degrees tall, for the full 16:9 frame). The 3D view holds that,
+// creeping `lead` metres forward through the fade as the video does, then lets go
+// onto the rail (from rail progress `rail`) over `settle` of the scroll.
+const FILM_END = 0.7;
+const FILM_FADE = 0.04;
+const FILM_CUT = 250; // of 256 frames: the last one shown
+const HAND = { x: -0.1, y: 1.8, z: -1.6, yaw: -0.068, pitch: -0.08, fov: 62, lead: 0.4, rail: 0.78, settle: 0.16 };
 const SETTLE = 0.7; // seconds at the very end before the view may be turned
 const GYRO_EASE = 1.2; // seconds for the view to hand over from the default camera to the phone
 const LABEL_H = 23; // px a label needs to itself, so crowded ones can be pushed apart
@@ -187,6 +200,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
   const track = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const filmEl = useRef<HTMLCanvasElement>(null);
   const landing = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const dot = useRef<HTMLSpanElement>(null);
@@ -492,6 +506,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     // outside is cold and ordinary; inside is another world (see `inside` in tick)
     const v2 = sceneVariant();
     const baked = v2 && new URLSearchParams(window.location.search).get("bake") !== "0";
+    // the landing's entry: the pitch video up to the door, then this scene (?film=0 for the 3D street)
+    const film = intro && v2 && filmEl.current && new URLSearchParams(window.location.search).get("film") !== "0" ? new EntryFilm(filmEl.current, BASE) : null;
+    if (film) film.onFirst = () => kick();
+    else filmEl.current?.remove();
+    let lastFilmFx = "";
+    let lastSceneFx = "";
+    let warmed = false; // the 3D scene drawn once, so its shaders are ready before the hand-over
+    // dev only: window.__shop.hand is HAND, live, for lining the 3D view up with the video
+    const hand = { ...HAND };
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __shop: unknown }).__shop = { hand, kick: () => kick(), scene, camera, THREE };
     // v2 with live lights casts real shadows: the dusk sky from above the street, the spots inside
     if (v2 && !baked) {
       renderer.shadowMap.enabled = true;
@@ -642,6 +666,14 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         pos = new THREE.CatmullRomCurve3(eyes, false, "centripetal");
         aim = new THREE.CatmullRomCurve3(targets, false, "centripetal");
         door = root.getObjectByName("door_leaf") ?? null;
+        // the plaque's logo as big as the pitch video has it (and the film hands over onto it)
+        const plaqueLogo = root.getObjectByName("decal_logo") as THREE.Mesh | undefined;
+        if (plaqueLogo?.isMesh) {
+          const g = plaqueLogo.geometry;
+          g.computeBoundingBox();
+          const c = g.boundingBox!.getCenter(new THREE.Vector3());
+          g.translate(-c.x, -c.y, -c.z).scale(1.3, 1.3, 1).translate(c.x, c.y, c.z);
+        }
         if (door) doorOpen.copy(door.quaternion);
         // baked: the lamps' light is in the model already
         if (baked) {
@@ -816,6 +848,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
     const qPitch = new THREE.Quaternion();
     const qRoll = new THREE.Quaternion();
     const qBias = new THREE.Quaternion();
+    const vHand = new THREE.Vector3();
+    const eHand = new THREE.Euler();
     const vFwd = new THREE.Vector3();
     const qSway = new THREE.Quaternion();
     let mx = 0; // pointer, -0.5..0.5 across the stage, eased
@@ -950,6 +984,32 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       }
       prog += (target - prog) * (still ? 1 : 1 - Math.exp(-dt * 7));
       if (Math.abs(target - prog) < 1e-4 || !Number.isFinite(prog)) prog = target;
+      // with the film: the first FILM_END of the scroll is the video; the 3D camera
+      // waits at the door (creeping the last bit while the two cross-fade), then walks
+      // the rest of the rail over the rest of the scroll
+      let rp = prog;
+      let filmCover = 0; // how much of the view is the video
+      let handW = 0; // how much of the hand-over nudge is on
+      let lensW = 0; // and of the video's lens: held through the walk, widening only as it ends
+      if (film) {
+        filmCover = 1 - smooth(FILM_END - FILM_FADE, FILM_END, prog);
+        film.resize();
+        if (filmCover > 0) film.draw((clamp(prog / FILM_END) * FILM_CUT) / (FILM_FRAMES - 1));
+        const fe = filmEl.current!;
+        const fo = filmCover.toFixed(3);
+        if (fe.style.opacity !== fo) fe.style.opacity = fo;
+        rp = prog < FILM_END ? hand.rail : hand.rail + ((1 - hand.rail) * (prog - FILM_END)) / (1 - FILM_END);
+        handW = 1 - smooth(FILM_END, FILM_END + hand.settle, prog);
+        lensW = 1 - smooth(0.9, 1, prog);
+        // through the cross-fade both go a little soft, so neither's detail gives the
+        // swap away, and the 3D room starts warmer and brighter, like the video's, then
+        // eases into its own look
+        const soft = filmCover > 0 && filmCover < 1 ? Math.sin(Math.PI * filmCover) * 2.5 : 0;
+        const ff = soft ? `blur(${soft.toFixed(2)}px)` : "";
+        if (ff !== lastFilmFx) fe.style.filter = lastFilmFx = ff;
+        const cf = handW > 0.001 ? `${soft ? `blur(${soft.toFixed(2)}px) ` : ""}brightness(${(1 + 0.18 * handW).toFixed(3)}) sepia(${(0.14 * handW).toFixed(3)}) saturate(${(1 + 0.2 * handW).toFixed(3)})` : "";
+        if (cf !== lastSceneFx) el.style.filter = lastSceneFx = cf;
+      }
 
       // the view is locked until the camera has arrived and come to rest; then it frees up
       settled = prog >= 0.998 && target >= 0.998 ? settled + dt : 0;
@@ -1054,8 +1114,8 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       if (ready && pos && aim) {
         // where on the rails: the stops are not evenly spaced in scroll
         let i = 0;
-        while (i < STOPS.length - 2 && prog > STOPS[i + 1]) i++;
-        const u = (i + clamp((prog - STOPS[i]) / (STOPS[i + 1] - STOPS[i]))) / (STOPS.length - 1);
+        while (i < STOPS.length - 2 && rp > STOPS[i + 1]) i++;
+        const u = (i + clamp((rp - STOPS[i]) / (STOPS[i + 1] - STOPS[i]))) / (STOPS.length - 1);
         pos.getPoint(u, camera.position);
         aim.getPoint(u, v);
         m4.lookAt(camera.position, v, up);
@@ -1077,7 +1137,16 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         // landing: turn the view a little left so the shop sits right of centre, under Baba's eyes
         const wide = stageEl.clientWidth / stageEl.clientHeight > 1.1;
-        if (intro && v2) {
+        // the hand-over: the video's camera, letting go onto the rail
+        if (handW > 0) {
+          vHand.set(hand.x, hand.y, hand.z + hand.lead * filmCover);
+          camera.position.lerp(vHand, handW);
+          qTo.setFromEuler(eHand.set(hand.pitch, hand.yaw, 0, "YXZ"));
+          camera.quaternion.slerp(qTo, handW);
+        }
+        if (film) {
+          // the video is the landing: none of the 3D street's framing
+        } else if (intro && v2) {
           // v2's landing, as the pitch: from chest height a little left, the camera aimed
           // at the shop. On a wide screen it turns so the shop sits right of the words; on
           // a tall one it steps back until the shop fits across. The rail takes over as
@@ -1100,7 +1169,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           camera.quaternion.premultiply(qBias);
         }
         // landing: the view drifts on its own and leans a little towards the pointer
-        if (intro) {
+        if (intro && !film) {
           const sway = 1 - smooth(0, 0.15, prog);
           const lx = phoneTilt.on && gyroDevice ? phoneTilt.x : tx; // a phone leans with its tilt
           const ly = phoneTilt.on && gyroDevice ? phoneTilt.y : ty;
@@ -1160,7 +1229,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         }
         // how far into the other world: the entry is the doorstep, the vault is all the way in
         const inside = smooth(0.4, -3.2, camera.position.z);
-        const bump = Math.sin(Math.PI * inside); // the moment of crossing
+        const bump = film ? 0 : Math.sin(Math.PI * inside); // the moment of crossing (the video has its own)
         const sec = now / 1000;
         scene.background = (scene.background as THREE.Color).copy(OUT.bg).lerp(IN.bg, inside);
         (scene.fog as THREE.FogExp2).color.copy(OUT.fog).lerp(IN.fog, inside);
@@ -1190,18 +1259,20 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         // crossing over is a lurch: the view rolls and the lens pulls wide, then it settles
         qRoll.setFromAxisAngle(zAxis, bump * 0.07 * Math.sin(sec * 2.3));
         camera.quaternion.multiply(qRoll);
-        const fov = baseFov + bump * 9 - enterZoom;
+        // the video's lens as it shows on this screen: cropped top and bottom on one wider than 16:9
+        const handFov = (2 * Math.atan(Math.tan((hand.fov * Math.PI) / 360) * Math.min(1, 16 / 9 / camera.aspect)) * 180) / Math.PI;
+        const fov = baseFov + (handFov - baseFov) * lensW + bump * 9 - enterZoom;
         if (Math.abs(camera.fov - fov) > 0.01) {
           camera.fov = fov;
           camera.updateProjectionMatrix();
         }
         // the door swings open for you, and slams behind you
         if (door) {
-          const swing = smooth(0.3, 0.52, prog) * (1 - Math.pow(smooth(0.78, 0.86, prog), 2));
+          const swing = smooth(0.3, 0.52, rp) * (1 - Math.pow(smooth(0.78, 0.86, rp), 2));
           door.quaternion.slerpQuaternions(doorShut, doorOpen, swing);
         }
         // with the door shut, only the side you are on can be seen
-        cull?.show(prog < 0.3 ? "street" : prog > 0.9 ? "inside" : "all");
+        cull?.show(rp < 0.3 ? "street" : rp > 0.9 ? "inside" : "all");
         // the music comes up as you cross the door, and goes as you leave
         tune.want(soundRef.current && !leaving ? smooth(0.35, 0.9, inside) : 0);
         const blocked = tune.blocked();
@@ -1214,8 +1285,12 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
         sky?.update(sec, dt, inside, focusName);
         if (stats) renderer.info.reset();
         if (tableMirror && inside > 0.6) tableMirror.update(camera);
-        if (fxOff) renderer.render(scene, camera);
-        else composer.render();
+        // under the video the 3D shop is not drawn, save once to have it ready
+        if (filmCover < 0.999 || !warmed) {
+          warmed = true;
+          if (fxOff) renderer.render(scene, camera);
+          else composer.render();
+        }
         if (stats) {
           // ?stats=1: what each frame costs, for measuring (read from the console or a test)
           const gl = renderer.getContext();
@@ -1536,6 +1611,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
       glassEnv.dispose();
       for (const g of glassMade.values()) g.dispose();
       ramp.dispose();
+      film?.dispose();
       composer.dispose();
       renderer.dispose();
     };
@@ -1551,6 +1627,7 @@ export default function ShopScene({ categories, intro, shelves = {} }: { categor
           role="img"
           aria-label="A 3D walk from the street into the Babajee shop. Scroll to walk in; at the end, drag or use the arrow keys to look around."
         />
+        {intro && <canvas ref={filmEl} className="scene-film" aria-hidden="true" />}
 
         <div className="scene-vignette" ref={vignette} aria-hidden="true" />
 

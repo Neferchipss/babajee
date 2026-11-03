@@ -30,7 +30,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] {
   & :is(h1,h2) { font-family: var(--dd-display); font-weight: 400; }
   & .hdr { background: #faf6ecf5; }
   & .hdr-inner { max-width: 1480px; padding: 20px 48px; }
-  & .hdr-logo-img { width: 146px; }
+  & .hdr-logo-img { width: 54px; }
   & .hdr-stripe { height: 1px; background: #181916; margin-inline: 48px; }
   & .hdr-stripe span { display: none; }
   & .hdr-nav { gap: 30px; }
@@ -167,7 +167,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] {
   }
   @media (max-width: 760px) {
     & .hdr-inner { padding: 14px 20px; }
-    & .hdr-logo-img { width: 110px; }
+    & .hdr-logo-img { width: 44px; }
     & .hdr-stripe { margin-inline: 20px; }
     & :is(.cp,.si) { display: block; padding: 28px 20px 45px; }
     & :is(.cp-hero,.si-hero) { position: relative; top: auto; padding-right: 34%; min-height: 230px; margin-bottom: 28px; }

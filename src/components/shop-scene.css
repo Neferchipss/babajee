@@ -121,7 +121,7 @@ body:has(.scene[data-intro="true"]) .ftr {
   padding-top: 4vh;
 }
 .scene-logo {
-  width: min(74vw, 27rem);
+  width: min(44vw, 15rem);
 }
 .scene-tag {
   max-width: 30ch;
@@ -577,7 +577,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
     padding: 0 26px 104px;
   }
   .scene-logo {
-    width: min(70vw, 18rem);
+    width: min(42vw, 10rem);
   }
   .scene-tag {
     margin-top: 18px;
@@ -904,4 +904,14 @@ body:has(.scene) .theme-toggle {
   .scene-sound[data-wait="true"] {
     animation: none;
   }
+}
+
+/* the pitch video's walk to the door, over the 3D shop until the hand-over (shop-film.ts) */
+.scene-film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: #0d0f14;
 }
