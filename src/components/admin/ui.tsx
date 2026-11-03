@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/lib/currency";
 import { STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/order-status";
 import { homeCounts } from "@/lib/orders-db";
@@ -38,6 +38,65 @@ export function AdminNav() {
       <span className="gap" />
       <Link href="/shop">View shop</Link>
     </nav>
+  );
+}
+
+// ---------------------------------------------------------------- sortable tables
+
+// Click a column head to sort by it: numbers and dates biggest / newest
+// first, words A to Z; click again to flip, a third time to go back to the
+// list's own order.
+type SortKey<T> = { get: (r: T) => string | number | null | undefined; text?: boolean };
+export function useSort<T>(rows: T[], keys: Record<string, SortKey<T>>) {
+  const [sort, setSort] = useState<{ key: string; desc: boolean } | null>(null);
+  const sorted = useMemo(() => {
+    const k = sort && keys[sort.key];
+    if (!k) return rows;
+    return [...rows].sort((a, b) => {
+      const x = k.get(a);
+      const y = k.get(b);
+      if (x == null || x === "") return 1;
+      if (y == null || y === "") return -1;
+      const d = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "en-IN", { numeric: true, sensitivity: "base" });
+      return sort.desc ? -d : d;
+    });
+    // keys is a fresh object each render; sorting follows the rows and the choice
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, sort]);
+  const toggle = (key: string) =>
+    setSort((s) => {
+      const first = !keys[key]?.text; // numbers start high, words start at A
+      if (!s || s.key !== key) return { key, desc: first };
+      if (s.desc === first) return { key, desc: !first };
+      return null;
+    });
+  return { sorted, sort, toggle };
+}
+
+export function SortTh({
+  k,
+  label,
+  sort,
+  onSort,
+  right = false,
+}: {
+  k: string;
+  label: string;
+  sort: { key: string; desc: boolean } | null;
+  onSort: (k: string) => void;
+  right?: boolean;
+}) {
+  const on = sort?.key === k;
+  return (
+    <th className={right ? "r" : undefined} aria-sort={on ? (sort!.desc ? "descending" : "ascending") : undefined}>
+      <button type="button" className={`adm-sort ${on ? "is-on" : ""}`} onClick={() => onSort(k)}>
+        {label}
+        <svg viewBox="0 0 12 12" aria-hidden="true">
+          <path className="up" d="M3 5 6 2l3 3" />
+          <path className="down" d="M3 7l3 3 3-3" />
+        </svg>
+      </button>
+    </th>
   );
 }
 
@@ -118,7 +177,8 @@ export function LineChart({
     return () => ro.disconnect();
   }, []);
 
-  const H = height,
+  // on a narrow screen the chart keeps a landscape shape instead of its full desktop height
+  const H = W && W < 520 ? Math.max(150, Math.min(height, Math.round(W * 0.55))) : height,
     T = 8,
     B = 26;
   const all = [...cur, ...(prev ?? [])];

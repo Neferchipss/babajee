@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { Dialog, money, StatusPill, when } from "@/components/admin/ui";
+import { Dialog, money, SortTh, StatusPill, useSort, when } from "@/components/admin/ui";
 import { isoDay } from "@/lib/dates";
 import { download, itemsCsv, ordersCsv } from "@/lib/orders-csv";
-import type { OrderStatus } from "@/lib/order-status";
+import { STATUSES, type OrderStatus } from "@/lib/order-status";
 import { errText, listOrders, updateOrder, type Order } from "@/lib/orders-db";
 
 // The order list: one tab per kind of work (unpaid, to pack, to ship, ...),
@@ -69,6 +69,15 @@ function Orders() {
     );
   }, [rows, tab, q]);
 
+  const { sorted, sort, toggle: sortBy } = useSort(shown, {
+    order: { get: (o) => Number(o.order_number.replace(/\D/g, "")) || o.order_number },
+    date: { get: (o) => o.created_at },
+    customer: { get: (o) => o.contact_name, text: true },
+    status: { get: (o) => STATUSES.indexOf(o.status), text: true },
+    items: { get: (o) => o.order_items?.reduce((n, i) => n + i.quantity, 0) ?? 0 },
+    total: { get: (o) => o.total },
+  });
+
   const bulkTo = BULK[tab];
   async function bulk() {
     if (!bulkTo) return;
@@ -116,8 +125,11 @@ function Orders() {
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
         </button>
-        <Link href="/admin/orders/new" className="adm-btn pri">
-          Create order
+        <Link href="/admin/orders/new" className="adm-btn pri ord-new" aria-label="Create order">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 4v12M4 10h12" />
+          </svg>
+          <span>Create order</span>
         </Link>
       </div>
 
@@ -137,20 +149,20 @@ function Orders() {
         {rows && shown.length === 0 ? (
           <p className="adm-empty">{rows.length === 0 ? "No orders yet. They appear here the moment a customer checks out." : "No orders match."}</p>
         ) : (
-          <table className="adm-table">
+          <table className="adm-table ord-table">
             <thead>
               <tr>
                 {bulkTo && <th aria-label="Select" />}
-                <th>Order</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Items</th>
-                <th className="r">Total</th>
+                <SortTh k="order" label="Order" sort={sort} onSort={sortBy} />
+                <SortTh k="date" label="Date" sort={sort} onSort={sortBy} />
+                <SortTh k="customer" label="Customer" sort={sort} onSort={sortBy} />
+                <SortTh k="status" label="Status" sort={sort} onSort={sortBy} />
+                <SortTh k="items" label="Items" sort={sort} onSort={sortBy} />
+                <SortTh k="total" label="Total" sort={sort} onSort={sortBy} right />
               </tr>
             </thead>
             <tbody>
-              {shown.map((o) => {
+              {sorted.map((o) => {
                 const items = o.order_items?.reduce((n, i) => n + i.quantity, 0) ?? 0;
                 const href = `/admin/orders/view?id=${o.id}`;
                 return (
@@ -160,25 +172,25 @@ function Orders() {
                         <input type="checkbox" aria-label={`Select ${o.order_number}`} checked={picked.has(o.id)} onChange={() => toggle(o.id)} />
                       </td>
                     )}
-                    <td>
+                    <td className="c-num">
                       <Link href={href} className="row-link">
                         {o.order_number}
                       </Link>
                       {o.is_test && <span className="adm-muted adm-small"> · test</span>}
                     </td>
-                    <td className="adm-muted">{when(o.created_at)}</td>
-                    <td>
+                    <td className="adm-muted c-date">{when(o.created_at)}</td>
+                    <td className="c-who">
                       {o.contact_name}
                       <div className="adm-muted adm-small">{o.address_city}</div>
                     </td>
-                    <td>
+                    <td className="c-status">
                       <StatusPill status={o.status} />
                       {o.status !== "refunded" && (o.order_refunds?.length ?? 0) > 0 && <div className="adm-small adm-refunded">Partly refunded</div>}
                     </td>
                     <td className="adm-muted" data-hide-sm>
                       {items} item{items === 1 ? "" : "s"}
                     </td>
-                    <td className="r">
+                    <td className="r c-total">
                       <strong>{money(o.total)}</strong>
                     </td>
                   </tr>

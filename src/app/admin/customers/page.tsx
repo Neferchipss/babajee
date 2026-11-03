@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { money, when } from "@/components/admin/ui";
+import { money, SortTh, useSort, when } from "@/components/admin/ui";
 import { errText, listCustomers, type Customer } from "@/lib/orders-db";
 
 // Everyone with an account, with what they have bought. The tabs are saved
@@ -36,6 +36,13 @@ export default function CustomersPage() {
     const t = q.trim().toLowerCase();
     return (rows ?? []).filter((c) => s.match(c) && (!t || c.full_name.toLowerCase().includes(t) || c.email.toLowerCase().includes(t) || c.phone.replace(/\D/g, "").includes(t.replace(/\D/g, "") || "§")));
   }, [rows, seg, q]);
+  const { sorted, sort, toggle } = useSort(shown, {
+    customer: { get: (c) => c.full_name || c.email, text: true },
+    joined: { get: (c) => c.joined },
+    last: { get: (c) => c.last_order },
+    orders: { get: (c) => c.orders },
+    spent: { get: (c) => c.spent },
+  });
 
 
   return (
@@ -65,15 +72,15 @@ export default function CustomersPage() {
           <table className="adm-table">
             <thead>
               <tr>
-                <th>Customer</th>
-                <th>Joined</th>
-                <th>Last order</th>
-                <th className="r">Orders</th>
-                <th className="r">Spent</th>
+                <SortTh k="customer" label="Customer" sort={sort} onSort={toggle} />
+                <SortTh k="joined" label="Joined" sort={sort} onSort={toggle} />
+                <SortTh k="last" label="Last order" sort={sort} onSort={toggle} />
+                <SortTh k="orders" label="Orders" sort={sort} onSort={toggle} right />
+                <SortTh k="spent" label="Spent" sort={sort} onSort={toggle} right />
               </tr>
             </thead>
             <tbody>
-              {shown.map((c) => {
+              {sorted.map((c) => {
                 const href = `/admin/customers/view?id=${c.id}`;
                 return (
                   <tr key={c.id} data-href className={c.role === "admin" ? "is-admin" : ""} onClick={(e) => !(e.target as HTMLElement).closest("a") && router.push(href)}>

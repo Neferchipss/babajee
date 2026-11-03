@@ -27,6 +27,8 @@ export type OrderItem = {
   sku: string | null;
   unit_price: number;
   quantity: number;
+  // the product's slug, for its photo (customer list only; null if it was removed or hidden)
+  slug?: string | null;
 };
 export type OrderEvent = { id: string; status: string; note: string; actor_id: string | null; created_at: string };
 export type Shipment = { id: string; carrier: string | null; tracking_number: string | null; shipped_at: string | null; delivered_at: string | null };
@@ -70,6 +72,7 @@ export type Order = {
   notes: string;
   is_test: boolean;
   created_at: string;
+  updated_at?: string;
   order_items?: OrderItem[];
   order_events?: OrderEvent[];
   shipments?: Shipment[];
@@ -85,7 +88,11 @@ function toOrder(row: Record<string, unknown>): Order {
     tax: toNumber(o.tax),
     gst_rate: toNumber(o.gst_rate),
     total: toNumber(o.total),
-    order_items: o.order_items?.map((i) => ({ ...i, unit_price: toNumber(i.unit_price) })),
+    order_items: o.order_items?.map((i) => {
+      const raw = i as OrderItem & { product_variants?: { products?: { slug?: string } | null } | null };
+      const { product_variants: pv, ...rest } = raw;
+      return { ...rest, unit_price: toNumber(i.unit_price), ...(pv !== undefined ? { slug: pv?.products?.slug ?? null } : {}) };
+    }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
     order_refunds: o.order_refunds
@@ -96,7 +103,7 @@ function toOrder(row: Record<string, unknown>): Order {
 
 // the list carries enough for the spreadsheet export (items, address, refunds)
 const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax)";
-const FULL = "*, order_items(*), order_events(*), shipments(*), order_refunds(*, order_refund_items(*))";
+const FULL = "*, order_items(*, product_variants(label, products(slug))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*))";
 
 // ---------------------------------------------------------------- customer
 
@@ -115,8 +122,12 @@ export async function placeOrder(lines: CheckoutLine[], address: CheckoutAddress
 
 // RLS keeps this to the signed-in customer's own orders (an admin would see
 // every order, so it filters by profile too)
+// the customer's list: each item's product slug for its photo, delivery and refund dates
+const MINE =
+  "*, order_items(id, product_name, variant_label, unit_price, quantity, product_variants(label, products(slug))), shipments(delivered_at, shipped_at, carrier), order_refunds(id, amount, subtotal, shipping, tax, returned, created_at)";
+
 export async function listMyOrders(profileId: string): Promise<Order[]> {
-  const { data, error } = await db().from("orders").select(LIST).eq("profile_id", profileId).order("created_at", { ascending: false });
+  const { data, error } = await db().from("orders").select(MINE).eq("profile_id", profileId).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(toOrder);
 }
@@ -143,6 +154,19 @@ export async function updateOrder(id: string, to: OrderStatus, opts: { note?: st
     p_carrier: opts.carrier ?? null,
     p_tracking: opts.tracking ?? null,
     p_restock: opts.restock ?? false,
+  });
+  if (error) throw error;
+}
+
+// Move an order to any step of the road, forward or back (0021). Going
+// back undoes what the later steps recorded (courier, delivery date, payment).
+export async function setStep(id: string, to: OrderStatus, opts: { note?: string; carrier?: string; tracking?: string } = {}) {
+  const { error } = await db().rpc("admin_set_step", {
+    p_order: id,
+    p_status: to,
+    p_note: opts.note ?? "",
+    p_carrier: opts.carrier ?? null,
+    p_tracking: opts.tracking ?? null,
   });
   if (error) throw error;
 }

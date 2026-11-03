@@ -19,6 +19,7 @@ import {
   refundOrder,
   refundsOf,
   setOrderNotes,
+  setStep,
   settleBalance,
   soldCosts,
   updateOrder,
@@ -46,6 +47,7 @@ function OrderView() {
   const [asking, setAsking] = useState<OrderAction | null>(null);
   const [form, setForm] = useState<"refund" | "return" | "edit" | null>(null);
   const [undoing, setUndoing] = useState<Refund | null>(null);
+  const [stepping, setStepping] = useState<OrderStatus | null>(null);
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -85,11 +87,13 @@ function OrderView() {
       await f();
       setForm(null);
       setUndoing(null);
+      setStepping(null);
       await load();
     } catch (e) {
       setErr(errText(e));
       setForm(null);
       setUndoing(null);
+      setStepping(null);
     }
     setBusy(false);
   }
@@ -133,8 +137,15 @@ function OrderView() {
 
   const placed = when(o.created_at).toLowerCase();
   const closedAt = (o.order_events ?? []).find((e) => e.status === o.status)?.created_at;
-  const primary = actions.filter((a) => a.primary);
-  const quiet = actions.filter((a) => !a.primary);
+  const cancel = actions.find((a) => a.to === "cancelled");
+  // a click on the road: forward steps that need nothing go straight
+  // through; shipping asks for the courier; going back asks first
+  function pickStep(to: OrderStatus) {
+    if (!o || to === o.status) return;
+    const forward = STEPS.indexOf(to) > STEPS.indexOf(o.status);
+    if (!forward || to === "shipped" || (to === "delivered" && !ship)) setStepping(to);
+    else void act(() => setStep(o.id, to));
+  }
   const phone = o.contact_phone.replace(/\D/g, "");
   const wa = phone.length === 10 ? `91${phone}` : phone.length === 12 && phone.startsWith("91") ? phone : "";
   // status changes already sit on the road; activity keeps everything else
@@ -144,13 +155,13 @@ function OrderView() {
 
   const next =
     o.status === "pending"
-      ? `Waiting for ${money(o.total)}. Mark it paid when the money arrives.`
+      ? `Waiting for ${money(o.total)}. Tap Paid below when the money arrives.`
       : o.status === "paid"
         ? `Paid. Pack the ${count} item${count === 1 ? "" : "s"} next.`
         : o.status === "packed"
-          ? "Packed. Hand it to the courier, then mark it shipped."
+          ? "Packed. Tap Shipped once it's with the courier."
           : o.status === "shipped"
-            ? `On its way${ship?.carrier ? ` with ${ship.carrier}` : ""}. Mark it delivered when it arrives.`
+            ? `On its way${ship?.carrier ? ` with ${ship.carrier}` : ""}. Tap Delivered when it arrives.`
             : o.status === "delivered"
               ? `Delivered${ship?.delivered_at ? ` ${when(ship.delivered_at).toLowerCase()}` : ""}. Nothing left to do.`
               : o.status === "cancelled"
@@ -192,23 +203,12 @@ function OrderView() {
           </div>
         </div>
 
-        <Roadmap order={o} />
+        <Roadmap order={o} busy={busy} onStep={pickStep} />
 
-        {(actions.length > 0 || canEdit || canReturn || canRefund) && (
+        {(cancel || canEdit || canReturn || canRefund) && (
           <div className="ov-actions">
-            {primary.map((a) => (
-              <button key={a.to} type="button" className="adm-btn pri ov-go" disabled={busy} onClick={() => (a.to === "shipped" ? setAsking(a) : run(a))}>
-                {a.label}
-              </button>
-            ))}
+            {STEPS.includes(o.status) && <span className="adm-muted adm-small">Tap a step on the road to move the order, forward or back.</span>}
             <span className="ov-gap" />
-            {quiet
-              .filter((a) => !a.danger)
-              .map((a) => (
-                <button key={a.to} type="button" className="adm-btn" disabled={busy} onClick={() => (a.to === "shipped" ? setAsking(a) : run(a))}>
-                  {a.label}
-                </button>
-              ))}
             {canEdit && (
               <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("edit")}>
                 Edit order
@@ -224,13 +224,11 @@ function OrderView() {
                 Refund
               </button>
             )}
-            {quiet
-              .filter((a) => a.danger)
-              .map((a) => (
-                <button key={a.to} type="button" className="adm-btn bad" disabled={busy} onClick={() => setAsking(a)}>
-                  {a.label}
-                </button>
-              ))}
+            {cancel && (
+              <button type="button" className="adm-btn bad" disabled={busy} onClick={() => setAsking(cancel)}>
+                {cancel.label}
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -417,6 +415,17 @@ function OrderView() {
       <Dialog open={asking !== null} onClose={() => setAsking(null)}>
         {asking && <Confirm action={asking} order={o} busy={busy} onCancel={() => setAsking(null)} onConfirm={(opts) => run(asking, opts)} />}
       </Dialog>
+      <Dialog open={stepping !== null} onClose={() => setStepping(null)}>
+        {stepping && (
+          <StepForm
+            order={o}
+            to={stepping}
+            busy={busy}
+            onCancel={() => setStepping(null)}
+            onConfirm={(opts) => act(() => setStep(o.id, stepping, opts))}
+          />
+        )}
+      </Dialog>
       <Dialog open={undoing !== null} onClose={() => setUndoing(null)}>
         {undoing && (
           <form
@@ -533,47 +542,157 @@ function Confirm({
 }
 
 // Where the order has got to, as a road: placed, paid, packed, shipped,
-// delivered, each with when it happened. A step the shop jumped past is shown as
-// skipped; a cancelled or refunded order ends the road where it stopped.
+// delivered, each with when it happened. Every step is a button: tap one
+// ahead to move the order on, one behind to take it back. A step the shop
+// jumped past shows as skipped; a cancelled or refunded order ends the road
+// where it stopped and can no longer be moved.
 const STEP_LABEL: Record<string, string> = { pending: "Placed", paid: "Paid", packed: "Packed", shipped: "Shipped", delivered: "Delivered" };
-function Roadmap({ order: o }: { order: Order }) {
+const STEP_DO: Record<string, string> = { pending: "unpaid", paid: "paid", packed: "packed", shipped: "shipped", delivered: "delivered" };
+function Roadmap({ order: o, busy, onStep }: { order: Order; busy: boolean; onStep: (s: OrderStatus) => void }) {
   const events = (o.order_events ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const at = (s: string) => events.find((e) => e.status === s)?.created_at;
+  // the latest time the order arrived at a step (it may have been moved back and on again)
+  const at = (s: string) => events.filter((e) => e.status === s).at(-1)?.created_at;
   const closed = o.status === "cancelled" || o.status === "refunded";
   // the furthest step reached: for a closed order, the last step before it closed
   const reached = closed
     ? Math.max(0, ...STEPS.map((s, i) => (at(s) ? i : -1)))
     : STEPS.indexOf(o.status as OrderStatus);
   const ship = o.shipments?.[0];
-  const steps = STEPS.map((s, i) => {
-    const when = s === "pending" ? o.created_at : at(s);
-    const state = i < reached ? (when ? "done" : "skipped") : i === reached ? (closed ? "done" : "now") : closed ? "off" : "next";
-    let note = when ? when : "";
-    if (s === "shipped" && ship?.carrier) note = note ? `${note}|${ship.carrier}${ship.tracking_number ? ` · ${ship.tracking_number}` : ""}` : note;
-    return { s, label: STEP_LABEL[s], state, when, extra: note.includes("|") ? note.split("|")[1] : "" };
-  });
+  const live = !closed && !busy;
   return (
-    <ol className="adm-road" aria-label="Order progress">
-      {steps.map((st) => (
-        <li key={st.s} className={`is-${st.state}`} aria-current={st.state === "now" ? "step" : undefined}>
-          <i aria-hidden="true">{st.state === "done" ? "✓" : st.state === "skipped" ? "–" : ""}</i>
-          <span>
-            <b>{st.label}</b>
-            <small>{st.when ? when(st.when) : st.state === "skipped" ? "Skipped" : st.state === "now" ? "Now" : st.state === "off" ? "" : "Not yet"}</small>
-            {st.extra && <small>{st.extra}</small>}
-          </span>
-        </li>
-      ))}
+    <ol className={`adm-road ${closed ? "" : "is-live"}`} aria-label="Order progress">
+      {STEPS.map((s, i) => {
+        const t = i <= reached ? (s === "pending" ? o.created_at : at(s)) : undefined;
+        const state = i < reached ? (t ? "done" : "skipped") : i === reached ? (closed ? "done" : "now") : closed ? "off" : i === reached + 1 ? "up" : "next";
+        const extra = s === "shipped" && i <= reached && ship?.carrier ? `${ship.carrier}${ship.tracking_number ? ` · ${ship.tracking_number}` : ""}` : "";
+        const sub = t ? when(t) : state === "skipped" ? "Skipped" : state === "up" ? `Mark ${STEP_DO[s]}` : state === "off" ? "" : "Not yet";
+        const body = (
+          <>
+            <i aria-hidden="true">{state === "done" ? "✓" : state === "skipped" ? "–" : ""}</i>
+            <span>
+              <b>{STEP_LABEL[s]}</b>
+              <small>{sub}</small>
+              {extra && <small>{extra}</small>}
+            </span>
+          </>
+        );
+        return (
+          <li key={s} className={`is-${state}`} aria-current={state === "now" ? "step" : undefined}>
+            {live && i !== reached ? (
+              <button
+                type="button"
+                className="adm-road-step"
+                onClick={() => onStep(s)}
+                title={i > reached ? `Mark as ${STEP_DO[s]}` : `Move back to ${STEP_LABEL[s].toLowerCase()}`}
+                aria-label={i > reached ? `Mark as ${STEP_DO[s]}` : `Move back to ${STEP_LABEL[s].toLowerCase()}`}
+              >
+                {body}
+              </button>
+            ) : (
+              <div className="adm-road-step">{body}</div>
+            )}
+          </li>
+        );
+      })}
       {closed && (
         <li className="is-stop" aria-current="step">
-          <i aria-hidden="true">×</i>
-          <span>
-            <b>{o.status === "cancelled" ? "Cancelled" : "Refunded"}</b>
-            <small>{at(o.status) ? when(at(o.status)!) : ""}</small>
-          </span>
+          <div className="adm-road-step">
+            <i aria-hidden="true">×</i>
+            <span>
+              <b>{o.status === "cancelled" ? "Cancelled" : "Refunded"}</b>
+              <small>{at(o.status) ? when(at(o.status)!) : ""}</small>
+            </span>
+          </div>
         </li>
       )}
     </ol>
+  );
+}
+
+// Confirming a step: shipping asks for the courier; going back says what
+// will be undone.
+function StepForm({
+  order: o,
+  to,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  order: Order;
+  to: OrderStatus;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (opts: { note?: string; carrier?: string; tracking?: string }) => void;
+}) {
+  const [carrier, setCarrier] = useState("");
+  const [tracking, setTracking] = useState("");
+  const [note, setNote] = useState("");
+  const from = STEPS.indexOf(o.status);
+  const at = STEPS.indexOf(to);
+  const back = at < from;
+  const ship = o.shipments?.[0];
+  const refunded = (o.order_refunds ?? []).length > 0;
+  const undone: string[] = [];
+  if (back) {
+    if (from >= 3 && at < 3 && ship) undone.push(`The courier details${ship.carrier ? ` (${[ship.carrier, ship.tracking_number].filter(Boolean).join(" · ")})` : ""} are removed.`);
+    if (from === 4 && at === 3) undone.push("The delivery date is cleared.");
+    if (to === "pending") undone.push("The payment is cleared, so the order shows as unpaid again.");
+  }
+  const blocked = back && to === "pending" && refunded;
+
+  return (
+    <form
+      method="dialog"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!blocked) onConfirm(back ? { note } : { carrier, tracking });
+      }}
+    >
+      {back ? (
+        <>
+          <h2>
+            Move {o.order_number} back to {STEP_LABEL[to].toLowerCase()}?
+          </h2>
+          <p className="adm-muted" style={{ margin: 0 }}>
+            {blocked
+              ? "This order has a refund on it, so it can't go back to unpaid. Undo the refund first if it was a mistake."
+              : [`It goes from ${STEP_LABEL[o.status].toLowerCase()} back to ${STEP_LABEL[to].toLowerCase()}.`, ...undone, "Stock doesn't change."].join(" ")}
+          </p>
+          {!blocked && (
+            <label className="adm-label">
+              Why (for the activity, optional)
+              <input className="adm-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Tapped by mistake, courier didn't collect…" autoFocus />
+            </label>
+          )}
+        </>
+      ) : (
+        <>
+          <h2>
+            {to === "delivered" ? "Mark" : "Ship"} {o.order_number}
+            {to === "delivered" ? " as delivered" : ""}
+          </h2>
+          {to === "delivered" && <p className="adm-muted" style={{ margin: 0 }}>It never went through Shipped. Add the courier if you have it, or leave it blank.</p>}
+          <label className="adm-label">
+            Courier
+            <input className="adm-input" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Delhivery, DTDC, India Post…" autoFocus />
+          </label>
+          <label className="adm-label">
+            Tracking number
+            <input className="adm-input" value={tracking} onChange={(e) => setTracking(e.target.value)} />
+          </label>
+        </>
+      )}
+      <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+        <button type="button" className="adm-btn" onClick={onCancel}>
+          {blocked ? "Close" : "Back"}
+        </button>
+        {!blocked && (
+          <button className={`adm-btn ${back ? "bad" : "pri"}`} disabled={busy}>
+            {busy ? "Saving" : back ? `Move back to ${STEP_LABEL[to].toLowerCase()}` : to === "delivered" ? "Mark as delivered" : "Mark as shipped"}
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 

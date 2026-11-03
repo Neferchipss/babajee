@@ -499,8 +499,12 @@ textarea.adm-input {
   min-width: 2.2ch;
   font-variant-numeric: tabular-nums;
 }
-.adm-task span {
+.adm-task > span:first-child {
   flex: 1;
+  min-width: 0;
+}
+.adm-task > .adm-pill {
+  flex: none;
 }
 .adm-task::after {
   content: "›";
@@ -881,27 +885,31 @@ textarea.adm-input {
   font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
-/* a phone: the road runs down the page */
+/* a phone: the road stays across (its steps are buttons), smaller, with only
+   the step names; the dates are on the timeline and the order page head */
 @media (max-width: 640px) {
-  .adm-road {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    gap: 14px;
-  }
-  .adm-road li {
-    grid-template-columns: 30px minmax(0, 1fr);
-    justify-items: start;
-    align-items: start;
-    text-align: left;
-    gap: 12px;
+  .adm-road i {
+    width: 26px;
+    height: 26px;
   }
   .adm-road li + li::before {
-    top: auto;
-    bottom: calc(100% - 2px);
-    left: 13.5px;
-    right: auto;
-    width: 3px;
-    height: 16px;
+    top: 12px;
+    right: calc(50% + 15px);
+    width: calc(100% - 30px);
+  }
+  .adm-road b {
+    font-size: 0.76rem;
+  }
+  .adm-road small {
+    display: none;
+  }
+  .adm-road .is-up small {
+    display: block;
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }
+  .adm-road-step {
+    align-content: start;
   }
 }
 
@@ -2051,4 +2059,293 @@ textarea.adm-input {
 
 a.adm-btn {
   text-decoration: none;
+}
+
+/* road steps as buttons: tap ahead to move on, behind to go back */
+.adm-road-step {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  border-radius: 12px;
+  padding: 2px 2px 6px;
+}
+button.adm-road-step {
+  cursor: pointer;
+}
+button.adm-road-step:focus-visible {
+  outline: 2px solid var(--adm-gold);
+  outline-offset: 2px;
+}
+button.adm-road-step i {
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+button.adm-road-step:hover i {
+  transform: scale(1.12);
+  border-color: var(--adm-ink);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--adm-ink) 12%, transparent);
+}
+button.adm-road-step:hover b {
+  color: var(--adm-ink);
+}
+.adm-road .is-up i {
+  border: 2px dashed var(--adm-gold);
+}
+.adm-road .is-up small {
+  color: var(--adm-gold);
+  font-weight: 600;
+}
+.adm-road .is-up button.adm-road-step:hover i {
+  border-style: solid;
+  border-color: var(--adm-gold);
+  background: color-mix(in srgb, var(--adm-gold) 25%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--adm-gold) 20%, transparent);
+}
+
+/* sortable column heads */
+.adm-table th .adm-sort {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.adm-table th.r .adm-sort {
+  flex-direction: row-reverse;
+}
+.adm-sort svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.35;
+}
+.adm-sort:hover {
+  color: var(--adm-ink);
+}
+.adm-sort:hover svg {
+  opacity: 0.8;
+}
+.adm-sort.is-on {
+  color: var(--adm-ink);
+}
+.adm-sort.is-on svg {
+  opacity: 1;
+}
+th[aria-sort="descending"] .adm-sort .up,
+th[aria-sort="ascending"] .adm-sort .down {
+  opacity: 0.2;
+}
+.adm-sort:focus-visible {
+  outline: 2px solid var(--adm-gold);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ phone */
+@media (max-width: 999px) {
+  /* search folds into an icon at the start of the section tabs; tap it and
+     it opens across the row */
+  .adm-side {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--adm-line);
+    padding-bottom: 10px;
+  }
+  .adm-side .adm-nav {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+  .adm-side .asr {
+    flex: none;
+    margin: 0;
+  }
+  .adm-side .asr:not(:focus-within) .asr-field {
+    position: relative;
+    width: 44px;
+    min-height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .adm-side .asr:not(:focus-within) .asr-field input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .adm-side .asr:not(:focus-within) .asr-field kbd {
+    display: none;
+  }
+  .adm-side .asr:focus-within {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+  }
+  .adm-side .asr:focus-within .asr-field {
+    min-height: 40px;
+    background: var(--adm-panel);
+  }
+  .adm-side .asr-pop {
+    width: auto;
+    right: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  /* tables: whole-row tap feedback, not patchy cells */
+  .adm-table tbody tr[data-href]:hover td {
+    background: none;
+  }
+  .adm-table tbody tr[data-href]:active {
+    background: color-mix(in srgb, var(--adm-ink) 6%, transparent);
+  }
+
+  /* an order on a phone:
+       BJ-1078 · test                ₹4,620
+       Taha Shaikh, Mumbai       [Delivered]
+       Today 1:55 am         Partly refunded */
+  .ord-table tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "num total"
+      "who status"
+      "date status";
+    align-items: center;
+    gap: 4px 12px;
+    padding: 14px 16px;
+  }
+  .ord-table .c-num {
+    grid-area: num;
+  }
+  .ord-table .c-total {
+    grid-area: total;
+    font-size: 1.05rem;
+  }
+  .ord-table .c-who {
+    grid-area: who;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 6px;
+    min-width: 0;
+  }
+  .ord-table .c-who > div {
+    font-size: inherit;
+  }
+  .ord-table .c-who > div::before {
+    content: "· ";
+  }
+  .ord-table .c-date {
+    grid-area: date;
+    font-size: 0.85rem;
+  }
+  .ord-table .c-status {
+    grid-area: status;
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+    text-align: right;
+  }
+
+  /* toolbar: search and Export on one row; Create order floats */
+  .adm-toolbar {
+    flex-wrap: nowrap;
+  }
+  .adm-toolbar .adm-input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .ord-new {
+    position: fixed;
+    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 30;
+    width: 56px;
+    height: 56px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.45);
+  }
+  .ord-new span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+.ord-new svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+@media (min-width: 721px) {
+  .ord-new svg {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .ord-new svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* the site's own focus ring would draw a box inside the search field */
+.asr .asr-field input:focus,
+.asr .asr-field input:focus-visible {
+  outline: none !important;
+}
+
+/* phone: an odd one out at the end of a two-column grid takes the whole row */
+@media (max-width: 759px) {
+  .anx-stat:last-child:nth-child(odd),
+  .adm-metrics.five > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* phone: on a new order the Create button stays at the bottom of the screen */
+@media (max-width: 720px) {
+  .no-new .ov-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--adm-line);
+    background: var(--adm-panel);
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.35);
+  }
+  .no-new .ov-actions .ov-go {
+    flex: 1;
+  }
+  .no-new .ov-actions > .adm-muted {
+    display: none;
+  }
+  .ov:has(.no-new) {
+    padding-bottom: 96px;
+  }
 }

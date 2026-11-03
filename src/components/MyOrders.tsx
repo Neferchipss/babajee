@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatPrice } from "@/lib/currency";
 import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
 import type { Order } from "@/lib/orders-db";
+import { photosFor } from "@/lib/product-photos";
 import "./my-orders.css";
 
 const DATE = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -29,14 +30,6 @@ const TONE: Record<OrderStatus, Tone> = {
 const OPEN = (s: OrderStatus) => s !== "delivered" && s !== "cancelled" && s !== "refunded";
 const refunded = (o: Order) => (o.order_refunds ?? []).reduce((n, r) => n + r.amount, 0);
 
-// "Alien Grinder · Silver and 2 more"
-function summary(o: Order) {
-  const items = o.order_items ?? [];
-  if (!items.length) return "";
-  const first = `${items[0].product_name}${items[0].variant_label ? ` · ${items[0].variant_label}` : ""}`;
-  return items.length > 1 ? `${first} and ${items.length - 1} more` : first;
-}
-
 function SignedOut() {
   return (
     <div className="mo-empty">
@@ -48,34 +41,47 @@ function SignedOut() {
   );
 }
 
-function Chip({ status }: { status: OrderStatus }) {
-  return (
-    <span className={`mo-chip is-${TONE[status]}`}>
-      <i aria-hidden="true" />
-      {CUSTOMER_LABEL[status]}
-    </span>
-  );
-}
-
-// a five-step bar, filled up to where the order is
-function Bar({ status }: { status: OrderStatus }) {
-  const at = STEPS.indexOf(status);
-  return (
-    <span className="mo-bar" aria-hidden="true">
-      {STEPS.map((s, i) => (
-        <i key={s} className={i <= at ? "on" : ""} />
-      ))}
-    </span>
-  );
-}
-
 // ---------------------------------------------------------------- list
 
-// The signed-in customer's orders: the ones still on their way first, then the rest.
+// what the row says in bold, in the order's own words
+function headline(o: Order): string {
+  const ship = o.shipments?.[0];
+  const day = (iso?: string | null) => (iso ? DATE.format(new Date(iso)) : "");
+  switch (o.status) {
+    case "pending":
+      return "Order placed";
+    case "paid":
+      return "Payment received";
+    case "packed":
+      return "Packed, ready to ship";
+    case "shipped":
+      return ship?.carrier ? `On its way with ${ship.carrier}` : "On its way";
+    case "delivered":
+      return ship?.delivered_at ? `Delivered on ${day(ship.delivered_at)}` : "Delivered";
+    case "cancelled":
+      return `Cancelled on ${day(o.updated_at ?? o.created_at)}`;
+    case "refunded":
+      return "Refund completed";
+  }
+}
+
+// the mini road on a list card: one word per step
+const SHORT: Record<string, string> = { pending: "Placed", paid: "Paid", packed: "Packed", shipped: "Shipped", delivered: "Delivered" };
+
+const FILTERS: { id: string; label: string; match: (o: Order) => boolean }[] = [
+  { id: "all", label: "All", match: () => true },
+  { id: "open", label: "On the way", match: (o) => OPEN(o.status) },
+  { id: "done", label: "Delivered", match: (o) => o.status === "delivered" },
+  { id: "closed", label: "Cancelled", match: (o) => o.status === "cancelled" || o.status === "refunded" },
+];
+
+// The signed-in customer's orders, newest first: a photo, where it is, what it is.
 export function MyOrderList() {
   const { status, user } = useAuth();
   const [rows, setRows] = useState<Order[] | null>(null);
   const [err, setErr] = useState("");
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState("all");
   useEffect(() => {
     if (!user) return;
     db()
@@ -84,14 +90,8 @@ export function MyOrderList() {
       .catch(() => setErr("We could not load your orders. Try again in a moment."));
   }, [user]);
 
-  const head = (
-    <header className="mo-head">
-      <h1>Your orders</h1>
-      <Link href="/shop" className="mo-link">
-        Back to the shop
-      </Link>
-    </header>
-  );
+  // no visible title: the page starts straight at the search (screen readers still get one)
+  const head = <h1 className="sr-only">Your orders</h1>;
 
   if (status === "loading") return head;
   if (status !== "in")
@@ -128,56 +128,141 @@ export function MyOrderList() {
       </>
     );
 
-  const open = rows.filter((o) => OPEN(o.status));
-  const past = rows.filter((o) => !OPEN(o.status));
+  const words = q.trim().toLowerCase();
+  const f = FILTERS.find((x) => x.id === filter) ?? FILTERS[0];
+  const shown = rows.filter(
+    (o) =>
+      f.match(o) &&
+      (!words ||
+        o.order_number.toLowerCase().includes(words) ||
+        (o.order_items ?? []).some((i) => `${i.product_name} ${i.variant_label}`.toLowerCase().includes(words))),
+  );
+
   return (
     <>
       {head}
-      {open.length > 0 && (
-        <section className="mo-group">
-          <h2>On the way to you</h2>
-          <ul className="mo-cards">
-            {open.map((o) => (
-              <OrderCard key={o.id} o={o} />
-            ))}
-          </ul>
-        </section>
-      )}
-      {past.length > 0 && (
-        <section className="mo-group">
-          <h2>Past orders</h2>
-          <ul className="mo-cards">
-            {past.map((o) => (
-              <OrderCard key={o.id} o={o} />
-            ))}
-          </ul>
-        </section>
+      <div className="mo-tools">
+        <label className="mo-search">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="8.5" cy="8.5" r="5.5" />
+            <path d="m13 13 4 4" />
+          </svg>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search your orders" aria-label="Search your orders" />
+        </label>
+        <div className="mo-filters" role="group" aria-label="Show">
+          {FILTERS.map((x) => (
+            <button key={x.id} type="button" className={filter === x.id ? "is-on" : ""} aria-pressed={filter === x.id} onClick={() => setFilter(x.id)}>
+              {x.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {shown.length === 0 ? (
+        <p className="mo-muted mo-none">No orders match.</p>
+      ) : (
+        <ul className="mo-cards">
+          {shown.map((o) => (
+            <OrderRow key={o.id} o={o} />
+          ))}
+        </ul>
       )}
     </>
   );
 }
 
-function OrderCard({ o }: { o: Order }) {
+const photoOf = (i: { slug?: string | null; variant_label: string }) => (i.slug ? photosFor(i.slug, i.variant_label || undefined)[0] : undefined);
+
+function ItemPhoto({ src, size }: { src?: string; size: "s" | "l" }) {
+  return (
+    <span className={`mo-thumb ${size === "s" ? "is-s" : "is-l"}`} aria-hidden="true">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" loading="lazy" />
+      ) : (
+        <svg viewBox="0 0 24 24">
+          <path d="M6 8h12l-1 12H7L6 8Z" />
+          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+function Thumb({ o }: { o: Order }) {
+  const items = o.order_items ?? [];
+  // the first item that has a photo
+  let src: string | undefined;
+  for (const i of items) {
+    src = i.slug ? photosFor(i.slug, i.variant_label || undefined)[0] : undefined;
+    if (src) break;
+  }
+  return (
+    <span className="mo-thumb" aria-hidden="true">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" loading="lazy" />
+      ) : (
+        <svg viewBox="0 0 24 24">
+          <path d="M6 8h12l-1 12H7L6 8Z" />
+          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        </svg>
+      )}
+      {items.length > 1 && <b>+{items.length - 1}</b>}
+    </span>
+  );
+}
+
+function OrderRow({ o }: { o: Order }) {
+  const items = o.order_items ?? [];
+  const count = items.reduce((n, i) => n + i.quantity, 0);
+  const what = items.length
+    ? `${items[0].product_name}${items[0].variant_label ? ` · ${items[0].variant_label}` : ""}${items.length > 1 ? ` and ${items.length - 1} more` : ""}`
+    : "";
+  const refunds = o.order_refunds ?? [];
   const back = refunded(o);
-  const count = (o.order_items ?? []).reduce((n, i) => n + i.quantity, 0);
+  const lastRefund = refunds.at(-1);
+  const at = STEPS.indexOf(o.status);
   return (
     <li>
       <Link href={`/orders/view?id=${o.id}`} className={`mo-card is-${TONE[o.status]}`}>
-        <span className="mo-card-top">
-          <Chip status={o.status} />
-          <b className="mo-amt">{money(o.total)}</b>
-        </span>
-        <span className="mo-what">{summary(o)}</span>
-        {OPEN(o.status) && <Bar status={o.status} />}
-        <span className="mo-card-foot">
-          <span>
-            {o.order_number} · {DATE.format(new Date(o.created_at))} · {count} item{count === 1 ? "" : "s"}
-            {back > 0 && o.status !== "refunded" && <span className="mo-back"> · {money(back)} refunded</span>}
+        <span className="mo-row">
+          <Thumb o={o} />
+          <span className="mo-row-text">
+            <b>{headline(o)}</b>
+            <span className="mo-row-what">{what}</span>
+            <span className="mo-row-meta">
+              {o.order_number} · {DATE.format(new Date(o.created_at))} · {count} item{count === 1 ? "" : "s"}
+            </span>
           </span>
-          <span className="mo-arrow" aria-hidden="true">
-            →
+          <span className="mo-row-amt">{money(o.total)}</span>
+          <span className="mo-chev" aria-hidden="true">
+            <svg viewBox="0 0 20 20">
+              <path d="m8 5 5 5-5 5" />
+            </svg>
           </span>
         </span>
+        {OPEN(o.status) && (
+          <span className="mo-mini" aria-label={`${CUSTOMER_LABEL[o.status]}: step ${at + 1} of ${STEPS.length}`}>
+            {STEPS.map((s, i) => (
+              <span key={s} className={i < at ? "is-done" : i === at ? "is-now" : ""}>
+                <i aria-hidden="true">{i < at ? "✓" : ""}</i>
+                <small>{SHORT[s]}</small>
+              </span>
+            ))}
+          </span>
+        )}
+        {back > 0 && (
+          <span className="mo-refund">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="m6.8 10.2 2.2 2.2 4.2-4.6" />
+            </svg>
+            <span>
+              Refund of <b>{money(back)}</b>
+              {lastRefund?.created_at ? ` completed on ${DATE.format(new Date(lastRefund.created_at))}` : " completed"}
+            </span>
+          </span>
+        )}
       </Link>
     </li>
   );
@@ -216,13 +301,16 @@ export function MyOrder() {
 
   const closed = o.status === "cancelled" || o.status === "refunded";
   const events = (o.order_events ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const at = (s: string) => (s === "pending" ? o.created_at : events.find((e) => e.status === s)?.created_at);
+  // the latest time it arrived at a step: the shop can move an order back and on again
+  const at = (s: string) => (s === "pending" ? o.created_at : events.filter((e) => e.status === s).at(-1)?.created_at);
   const reached = closed ? Math.max(0, ...STEPS.map((s, i) => (at(s) ? i : -1))) : STEPS.indexOf(o.status);
   const ship = o.shipments?.[0];
   const back = refunded(o);
   const items = o.order_items ?? [];
   const count = items.reduce((n, i) => n + i.quantity, 0);
   const placedOn = DATE.format(new Date(o.created_at));
+  const cover = items.map(photoOf).find(Boolean);
+  const lastRefund = (o.order_refunds ?? []).at(-1);
 
   const headline: Record<OrderStatus, string> = {
     pending: "Order received",
@@ -253,27 +341,39 @@ export function MyOrder() {
 
   return (
     <div className="mo">
-      <Link href="/orders" className="mo-link mo-back">
-        ← All your orders
-      </Link>
-
       {placed && <p className="mo-thanks">Thank you. Your order is in.</p>}
 
       <section className={`mo-hero is-${TONE[o.status]}`}>
         <div className="mo-hero-top">
-          <div>
+          <span className="mo-hero-photo">
+            <ItemPhoto src={cover} size="l" />
+            {items.length > 1 && <b>+{items.length - 1}</b>}
+          </span>
+          <div className="mo-hero-text">
             <p className="mo-kicker">
-              Order {o.order_number} · placed {placedOn}
+              <Link href="/orders">Your orders</Link> / {o.order_number} · placed {placedOn}
             </p>
             <h1>{headline[o.status]}</h1>
             <p className="mo-lede">{lede[o.status]}</p>
           </div>
           <div className="mo-total">
-            <span>{back > 0 ? "Paid" : "Total"}</span>
+            <span>Total</span>
             <b>{money(o.total)}</b>
-            {back > 0 && <small>{money(back)} refunded</small>}
           </div>
         </div>
+
+        {back > 0 && (
+          <div className="mo-refund">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="m6.8 10.2 2.2 2.2 4.2-4.6" />
+            </svg>
+            <span>
+              Refund of <b>{money(back)}</b>
+              {lastRefund?.created_at ? ` completed on ${DATE.format(new Date(lastRefund.created_at))}` : " completed"}. It goes back the way you paid.
+            </span>
+          </div>
+        )}
 
         {o.status === "shipped" && ship?.tracking_number && (
           <div className="mo-track">
@@ -289,7 +389,7 @@ export function MyOrder() {
 
         <ol className={`mo-road ${closed ? "is-closed" : ""}`} aria-label="Order progress">
           {STEPS.map((s, i) => {
-            const t = at(s);
+            const t = i <= reached ? at(s) : undefined;
             const state = i < reached ? (t ? "done" : "skip") : i === reached ? (closed ? "done" : "now") : "next";
             return (
               <li key={s} className={`is-${state}`} aria-current={state === "now" ? "step" : undefined}>
@@ -323,11 +423,13 @@ export function MyOrder() {
               const out = (o.order_refunds ?? []).reduce((n, r) => n + (r.order_refund_items ?? []).filter((x) => x.order_item_id === i.id).reduce((m, x) => m + x.quantity, 0), 0);
               return (
                 <li key={i.id} className={out === i.quantity ? "is-back" : ""}>
-                  <span className="mo-qty">{i.quantity}×</span>
+                  <ItemPhoto src={photoOf(i)} size="s" />
                   <span className="mo-name">
                     {i.product_name}
-                    {i.variant_label && <small>{i.variant_label}</small>}
-                    {out > 0 && <small className="mo-back">{out === i.quantity ? "Refunded" : `${out} refunded`}</small>}
+                    <small>
+                      {[i.variant_label, `${i.quantity} × ${money(i.unit_price)}`].filter(Boolean).join(" · ")}
+                    </small>
+                    {out > 0 && <em className="mo-tag">{out === i.quantity ? "Refunded" : `${out} refunded`}</em>}
                   </span>
                   <span className="mo-price">{money(i.unit_price * i.quantity)}</span>
                 </li>
@@ -355,7 +457,7 @@ export function MyOrder() {
 
         <div className="mo-side">
           <section className="mo-panel">
-            <h2>Delivering to</h2>
+            <h2>{o.status === "delivered" ? "Delivered to" : "Delivering to"}</h2>
             <address className="mo-addr">
               <b>{o.contact_name}</b>
               <span>{o.address_line1}</span>
@@ -366,11 +468,8 @@ export function MyOrder() {
               </span>
               <span className="mo-muted">{o.contact_phone}</span>
             </address>
-          </section>
-          <section className="mo-panel mo-help">
-            <h2>Need help?</h2>
-            <p>
-              Get in touch and quote <b>{o.order_number}</b>.
+            <p className="mo-help">
+              Need help? Get in touch and quote <b>{o.order_number}</b>.
             </p>
           </section>
         </div>
