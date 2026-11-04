@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, SortTh, StatusPill, useSort, when } from "@/components/admin/ui";
 import { isoDay } from "@/lib/dates";
 import { download, itemsCsv, ordersCsv } from "@/lib/orders-csv";
@@ -11,14 +12,16 @@ import { errText, listOrders, updateOrder, type Order } from "@/lib/orders-db";
 
 // The order list: one tab per kind of work (unpaid, to pack, to ship, ...),
 // a search box, bulk "mark as" for ticked orders, and export to a spreadsheet.
-const TABS: { id: string; label: string; match: (s: OrderStatus) => boolean }[] = [
+const openRequest = (o: Order) => (o.order_requests ?? []).find((r) => r.status === "open");
+const TABS: { id: string; label: string; match: (o: Order) => boolean }[] = [
   { id: "all", label: "All", match: () => true },
-  { id: "pending", label: "Unpaid", match: (s) => s === "pending" },
-  { id: "paid", label: "To pack", match: (s) => s === "paid" },
-  { id: "packed", label: "To ship", match: (s) => s === "packed" },
-  { id: "shipped", label: "Shipped", match: (s) => s === "shipped" },
-  { id: "delivered", label: "Delivered", match: (s) => s === "delivered" },
-  { id: "closed", label: "Cancelled / refunded", match: (s) => s === "cancelled" || s === "refunded" },
+  { id: "requests", label: "Customer requests", match: (o) => !!openRequest(o) },
+  { id: "pending", label: "Unpaid", match: (o) => o.status === "pending" },
+  { id: "paid", label: "To pack", match: (o) => o.status === "paid" },
+  { id: "packed", label: "To ship", match: (o) => o.status === "packed" },
+  { id: "shipped", label: "Shipped", match: (o) => o.status === "shipped" },
+  { id: "delivered", label: "Delivered", match: (o) => o.status === "delivered" },
+  { id: "closed", label: "Cancelled / refunded", match: (o) => o.status === "cancelled" || o.status === "refunded" },
 ];
 
 // what a ticked group can be moved to, given the tab they are in
@@ -58,13 +61,13 @@ function Orders() {
     window.history.replaceState(null, "", `${window.location.pathname}${u.size ? `?${u}` : ""}`);
   }, [tab]);
 
-  const counts = useMemo(() => Object.fromEntries(TABS.map((t) => [t.id, rows?.filter((o) => t.match(o.status)).length ?? 0])), [rows]);
+  const counts = useMemo(() => Object.fromEntries(TABS.map((t) => [t.id, rows?.filter((o) => t.match(o)).length ?? 0])), [rows]);
   const shown = useMemo(() => {
     const t = TABS.find((x) => x.id === tab) ?? TABS[0];
     const s = q.trim().toLowerCase();
     return (rows ?? []).filter(
       (o) =>
-        t.match(o.status) &&
+        t.match(o) &&
         (!s || o.order_number.toLowerCase().includes(s) || o.contact_name.toLowerCase().includes(s) || o.contact_phone.replace(/\D/g, "").includes(s.replace(/\D/g, "") || "§") || o.contact_email.toLowerCase().includes(s)),
     );
   }, [rows, tab, q]);
@@ -84,11 +87,14 @@ function Orders() {
     setBusy(true);
     setErr("");
     try {
+      const n = picked.size;
       for (const id of picked) await updateOrder(id, bulkTo);
       setPicked(new Set());
       await load();
+      toast(`${n} order${n === 1 ? "" : "s"} marked as ${bulkTo}`);
     } catch (e) {
       setErr(errText(e));
+      toastError(e);
     }
     setBusy(false);
   }
@@ -186,6 +192,7 @@ function Orders() {
                     <td className="c-status">
                       <StatusPill status={o.status} />
                       {o.status !== "refunded" && (o.order_refunds?.length ?? 0) > 0 && <div className="adm-small adm-refunded">Partly refunded</div>}
+                      {openRequest(o) && <div className="adm-small adm-asked">{openRequest(o)!.kind === "cancel" ? "Asks to cancel" : "Asks to return"}</div>}
                     </td>
                     <td className="adm-muted" data-hide-sm>
                       {items} item{items === 1 ? "" : "s"}
@@ -215,6 +222,7 @@ function ExportForm({ shown, picked, tab, searching, onClose }: { shown: Order[]
       onSubmit={(e) => {
         e.preventDefault();
         download(`babajee-${rows === "items" ? "order-items" : "orders"}-${isoDay(0)}.csv`, rows === "items" ? itemsCsv(list) : ordersCsv(list));
+        toast(`Exported ${list.length} order${list.length === 1 ? "" : "s"}`);
         onClose();
       }}
     >

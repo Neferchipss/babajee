@@ -33,6 +33,7 @@ export default function AdminHome() {
 
   const tasks: [number | undefined, string, string][] = counts
     ? [
+        [counts.requests, "customers asking to cancel or return", "/admin/orders?tab=requests"],
         [counts.unpaid, "orders waiting for payment", "/admin/orders?tab=pending"],
         [counts.to_pack, "paid orders to pack", "/admin/orders?tab=paid"],
         [counts.to_ship, "packed orders to ship", "/admin/orders?tab=packed"],

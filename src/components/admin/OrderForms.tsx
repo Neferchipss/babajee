@@ -38,6 +38,7 @@ export function RefundForm({
   onCancel,
   onSubmit,
   onEdit,
+  preset,
 }: {
   order: Order;
   mode: "refund" | "return";
@@ -46,6 +47,8 @@ export function RefundForm({
   onSubmit: (r: RefundInput) => void;
   // offered when part of the order was never paid and it can still be edited
   onEdit?: () => void;
+  // filled in from a customer's request: items (or everything), restock
+  preset?: { qty?: Record<string, number>; everything?: boolean; restock?: boolean; note?: string };
 }) {
   const done = refundsOf(o);
   const paid = o.paid_total ?? o.total;
@@ -53,11 +56,13 @@ export function RefundForm({
   const shipLeft = r2(o.shipping - done.shipping);
   const items = (o.order_items ?? []).map((i) => ({ ...i, open: i.quantity - (done.byItem.get(i.id) ?? 0) })).filter((i) => i.open > 0);
 
-  const [qty, setQty] = useState<Record<string, number>>({});
-  const [ship, setShip] = useState("");
+  const [qty, setQty] = useState<Record<string, number>>(() =>
+    preset?.everything ? Object.fromEntries(items.map((i) => [i.id, i.open])) : Object.fromEntries(Object.entries(preset?.qty ?? {}).map(([k, v]) => [k, Math.min(v, items.find((i) => i.id === k)?.open ?? 0)])),
+  );
+  const [ship, setShip] = useState(preset?.everything && shipLeft > 0 ? String(shipLeft) : "");
   const [typed, setTyped] = useState<string | null>(null);
-  const [restock, setRestock] = useState(mode === "return");
-  const [reason, setReason] = useState("");
+  const [restock, setRestock] = useState(preset?.restock ?? mode === "return");
+  const [reason, setReason] = useState(preset?.note ?? "");
 
   const itemsValue = items.reduce((n, i) => n + (qty[i.id] ?? 0) * i.unit_price, 0);
   const picked = items.some((i) => (qty[i.id] ?? 0) > 0);

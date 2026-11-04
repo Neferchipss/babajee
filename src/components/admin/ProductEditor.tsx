@@ -3,6 +3,8 @@
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
+import { BRAND_NAMES, brandOf } from "@/lib/brand";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
 import { type GstRules, unitProfit } from "@/lib/gst";
 import { photosFor, shootPhotos } from "@/lib/product-photos";
@@ -127,6 +129,8 @@ export default function ProductEditor({
   const [status, setStatus] = useState<"" | "saving" | "saved">("");
   const [err, setErr] = useState("");
   const [description, setDescription] = useState(product.description);
+  const [brand, setBrand] = useState(product.brand);
+  const [ptype, setPtype] = useState(product.product_type);
   const [uploading, setUploading] = useState<{ done: number; of: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -142,9 +146,12 @@ export default function ProductEditor({
       setStatus("saved");
       clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setStatus(""), 1800);
+      return true;
     } catch (e) {
       setStatus("");
       setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
+      return false;
     }
   }
 
@@ -152,7 +159,7 @@ export default function ProductEditor({
     const pics = files.filter((f) => f.type.startsWith("image/"));
     if (!pics.length) return;
     setUploading({ done: 0, of: pics.length });
-    await run(async () => {
+    const ok = await run(async () => {
       let n = product.images.length;
       // the shop shows the shoot's photos until the product has its own: bring
       // them in with the new ones, so none of them disappears from the shop
@@ -166,6 +173,7 @@ export default function ProductEditor({
       }
     });
     setUploading(null);
+    if (ok) toast(`${pics.length} photo${pics.length === 1 ? "" : "s"} added to ${product.name}`);
   }
 
   // a photo pasted anywhere while the product is open lands in it
@@ -368,6 +376,40 @@ export default function ProductEditor({
               onBlur={() => description !== product.description && run(() => api.updateProduct(product.id, { description: description.trim() }))}
             />
           </label>
+          <label className="ape-field">
+            <span>Brand</span>
+            <input
+              list="ape-brands"
+              value={brand}
+              placeholder={brandOf(product.name).brand ?? "No brand"}
+              onChange={(e) => setBrand(e.target.value)}
+              onBlur={() => brand.trim() !== product.brand && run(() => api.updateProduct(product.id, { brand: brand.trim() }))}
+            />
+            <datalist id="ape-brands">
+              {BRAND_NAMES.map((b) => (
+                <option key={b} value={b} />
+              ))}
+            </datalist>
+          </label>
+          <label className="ape-field">
+            <span>Type</span>
+            <input
+              list="ape-types"
+              value={ptype}
+              placeholder="Cones, papers, tray…"
+              onChange={(e) => setPtype(e.target.value)}
+              onBlur={() => ptype.trim() !== product.product_type && run(() => api.updateProduct(product.id, { product_type: ptype.trim() }))}
+            />
+            <datalist id="ape-types">
+              {TYPE_HINTS.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          </label>
+          <div className="ape-field ape-field--wide">
+            <span id="ape-tags-label">Tags</span>
+            <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
+          </div>
         </section>
 
         {/* price and options */}
@@ -834,5 +876,50 @@ function CostRow({ label, price, cost, rules, onSave }: { label: string; price: 
         )}
       </span>
     </li>
+  );
+}
+
+// Shopify-style product types the shop is likely to use; anything can be typed
+const TYPE_HINTS = ["Rolling papers", "Cones", "Filter tips", "Rolling tray", "Grinder", "Lighter", "Ashtray", "Storage", "Bong", "Pipe", "Cigar", "Tobacco", "Accessory", "Merch"];
+
+// Tags as chips: type and press Enter or a comma to add, × to take one off.
+// For grouping and finding products ("gift", "under 500", "new in").
+function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [draft, setDraft] = useState("");
+  function add(raw: string) {
+    const fresh = raw
+      .split(",")
+      .map((t) => t.trim().replace(/\s+/g, " "))
+      .filter(Boolean)
+      .filter((t, i, all) => !tags.some((x) => x.toLowerCase() === t.toLowerCase()) && all.findIndex((y) => y.toLowerCase() === t.toLowerCase()) === i);
+    setDraft("");
+    if (fresh.length) onChange([...tags, ...fresh].slice(0, 30));
+  }
+  return (
+    <div className="ape-tags">
+      {tags.map((t) => (
+        <span key={t} className="ape-tag">
+          {t}
+          <button type="button" aria-label={`Remove tag ${t}`} onClick={() => onChange(tags.filter((x) => x !== t))}>
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        aria-labelledby="ape-tags-label"
+        value={draft}
+        placeholder={tags.length ? "Add another" : "gift, under 500, new in…"}
+        onChange={(e) => (e.target.value.includes(",") ? add(e.target.value) : setDraft(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add(draft);
+          } else if (e.key === "Backspace" && !draft && tags.length) {
+            onChange(tags.slice(0, -1));
+          }
+        }}
+        onBlur={() => draft.trim() && add(draft)}
+      />
+    </div>
   );
 }

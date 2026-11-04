@@ -53,6 +53,7 @@ export function eventText(status: string, note: string) {
     edited: "Order edited",
     balance: "Balance settled",
     refund_undone: "Refund undone",
+    request: "Customer request",
   };
   const head = said[status] ?? status;
   return note && note !== head ? `${head} · ${note}` : head;

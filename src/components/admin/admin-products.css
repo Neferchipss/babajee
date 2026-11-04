@@ -1384,3 +1384,686 @@
 .ap-searchrow .ap-chip {
   flex: none;
 }
+
+/* tags: chips inside one field-looking box */
+.ape-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+}
+.ape-tags:focus-within {
+  border-color: var(--color-rasta-gold);
+}
+.ape-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-paper) 12%, transparent);
+  font-size: 0.88rem;
+}
+.ape-tag button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.ape-tag button:hover {
+  background: color-mix(in srgb, var(--color-paper) 18%, transparent);
+}
+.ape-field .ape-tags input {
+  flex: 1 1 120px;
+  width: auto;
+  min-width: 120px;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+
+/* the filter as one box on a phone, as buttons on a wider screen */
+.ap-need-select {
+  display: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 46%;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+  background: var(--ap-panel);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.92rem;
+  color-scheme: dark;
+}
+.ap-searchrow .ap-search {
+  min-width: 0;
+}
+.ap-gear {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+}
+.ap-gear svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+/* the category's settings, unfolded */
+.ap-tools + .ap-cat,
+.ap-cat {
+  padding: 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 14px;
+}
+@media (max-width: 720px) {
+  .ap-searchrow {
+    flex-wrap: wrap;
+  }
+  .ap-searchrow .ap-search {
+    flex: 1 1 100%;
+  }
+  .ap-need-select {
+    display: block;
+    flex: 1 1 auto;
+    max-width: none;
+  }
+  .ap-needs {
+    display: none;
+  }
+  .ap-searchrow .ap-chip {
+    height: 44px;
+    padding: 0 12px;
+  }
+}
+
+/* ---------- cards or table ---------- */
+.ap-view {
+  flex: none;
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+}
+.ap-view button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ap-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ap-view button[aria-pressed="true"] {
+  background: var(--ap-ink);
+  color: var(--color-char, #111);
+}
+.ap-view svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+@media (max-width: 720px) {
+  .ap-view span {
+    display: none;
+  }
+  .ap-view button {
+    height: 36px;
+    padding: 0 9px;
+  }
+}
+
+/* the sheet */
+.apt-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--ap-line);
+  border-radius: 16px;
+  background: var(--ap-panel);
+}
+.apt {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.apt th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  color: var(--ap-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+.apt th.r {
+  text-align: right;
+}
+.apt th .adm-sort {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.apt th.r .adm-sort {
+  flex-direction: row-reverse;
+}
+.apt td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--ap-line);
+  vertical-align: middle;
+}
+.apt tbody tr:last-child td {
+  border-bottom: 0;
+}
+.apt tbody tr:hover td {
+  background: color-mix(in srgb, var(--ap-ink) 4%, transparent);
+}
+.apt tr.is-open td {
+  background: color-mix(in srgb, var(--color-rasta-gold) 10%, transparent);
+}
+.apt tr.is-hidden .apt-photo,
+.apt tr.is-hidden .apt-name .apt-in {
+  opacity: 0.55;
+}
+.apt td.r {
+  text-align: right;
+}
+.apt-photo {
+  width: 52px;
+}
+.apt-photo img,
+.apt-photo span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--ap-plate);
+  object-fit: contain;
+  color: var(--color-char, #111);
+  font-weight: 700;
+}
+/* a cell reads as text until you click into it */
+.apt-in {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ap-ink);
+  font: inherit;
+  font-size: 0.92rem;
+}
+select.apt-in {
+  color-scheme: dark;
+  cursor: pointer;
+}
+.apt-in:hover {
+  border-color: var(--ap-line);
+}
+.apt-in:focus {
+  outline: none;
+  border-color: var(--color-rasta-gold);
+  background: color-mix(in srgb, var(--ap-ink) 6%, transparent);
+}
+.apt-in::placeholder {
+  color: var(--ap-muted);
+}
+.apt-in.is-num {
+  width: 96px;
+  text-align: right;
+}
+.apt-name {
+  min-width: 240px;
+}
+.apt-name .apt-in {
+  font-weight: 600;
+}
+.apt-needs {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 4px;
+}
+.apt-needs i {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-rasta-gold) 18%, transparent);
+  color: var(--color-rasta-gold);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 700;
+}
+.apt-sub {
+  display: block;
+  padding-right: 8px;
+  color: var(--ap-muted);
+  font-size: 0.72rem;
+}
+.apt-static {
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.apt-muted {
+  color: var(--ap-muted);
+  font-size: 0.82rem;
+}
+.apt-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ap-line);
+  cursor: pointer;
+}
+.apt-switch i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ap-ink);
+  transition: transform 0.15s;
+}
+.apt-switch.is-on {
+  background: var(--ap-good);
+}
+.apt-switch.is-on i {
+  transform: translateX(18px);
+  background: var(--color-char, #111);
+}
+.apt-open {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ap-ink);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.apt-open:hover {
+  border-color: var(--ap-ink);
+}
+
+/* the add row at the top of the sheet */
+.apt-wrap {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.apt-add {
+  padding: 8px 10px;
+  border: 1px dashed var(--ap-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-rasta-gold) 5%, transparent);
+}
+.apt-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.apt-add-plus {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px dashed var(--ap-muted);
+  border-radius: 8px;
+  color: var(--color-rasta-gold);
+  font-size: 1.3rem;
+}
+.apt-add-form .apt-add-name {
+  flex: 1 1 240px;
+  border-color: var(--ap-line);
+}
+.apt-add-form .apt-add-cat {
+  flex: 0 1 200px;
+  border-color: var(--ap-line);
+}
+.apt-add-go {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-rasta-gold);
+  color: var(--color-ink, #111);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.apt-add-go:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.apt-add-err {
+  flex-basis: 100%;
+  color: var(--color-red-soft);
+  font-size: 0.85rem;
+}
+
+/* the sheet on a phone: each product a two-line row instead of a wide table
+     [photo] name ...................... [→]
+     [photo] price   stock          [on shop] */
+@media (max-width: 720px) {
+  .apt-scroll {
+    overflow: visible;
+  }
+  .apt {
+    min-width: 0;
+  }
+  .apt thead {
+    display: none;
+  }
+  .apt,
+  .apt tbody {
+    display: block;
+  }
+  .apt tbody tr {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "ph name name open"
+      "ph price stock shop";
+    align-items: center;
+    gap: 2px 8px;
+    padding: 10px 10px 10px 8px;
+    border-bottom: 1px solid var(--ap-line);
+  }
+  .apt td {
+    padding: 0;
+    border: 0;
+  }
+  .apt tbody tr:hover td {
+    background: none;
+  }
+  .apt .c-ph { grid-area: ph; align-self: start; }
+  .apt .c-name { grid-area: name; min-width: 0; }
+  .apt .c-open { grid-area: open; }
+  .apt .c-price { grid-area: price; justify-self: start; text-align: left; display: flex; align-items: center; gap: 6px; }
+  .apt .c-stock { grid-area: stock; justify-self: end; }
+  .apt .c-shop { grid-area: shop; justify-self: end; }
+  .apt .c-sel { grid-area: open; }
+  .apt .c-cat,
+  .apt .c-brand,
+  .apt .c-type {
+    display: none;
+  }
+  .apt .c-price .apt-in.is-num {
+    width: 110px;
+    text-align: left;
+  }
+  .apt .c-price .apt-in.is-num::before {
+    content: "₹";
+  }
+  .apt-sub {
+    padding: 0;
+  }
+  .apt .c-stock .apt-in.is-num {
+    width: 64px;
+  }
+  .apt-add-form .apt-add-name,
+  .apt-add-form .apt-add-cat {
+    flex: 1 1 100%;
+  }
+  .apt-add-plus {
+    display: none;
+  }
+  .apt-add-go {
+    flex: 1;
+    height: 40px;
+  }
+}
+
+/* ---------- options inside the sheet ---------- */
+.apt-opts {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 8px 0 0;
+  padding: 2px 8px;
+  border: 1px solid var(--ap-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ap-ink);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.apt-opts[aria-expanded="true"] {
+  border-color: var(--color-rasta-gold);
+  color: var(--color-rasta-gold);
+}
+.apt tr.is-expanded td {
+  border-bottom-color: transparent;
+}
+.apt tr.apt-opt td {
+  background: color-mix(in srgb, var(--ap-ink) 3%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--ap-line) 60%, transparent);
+}
+.apt tr.apt-opt.is-hidden .c-name .apt-in,
+.apt tr.apt-opt.is-hidden .c-price .apt-in {
+  opacity: 0.55;
+}
+.apt-branch {
+  color: var(--ap-muted);
+  text-align: center;
+  font-size: 1rem;
+}
+.apt-opt .c-name .apt-in {
+  font-weight: 500;
+}
+.apt-opt-note {
+  padding-left: 8px;
+  font-size: 0.78rem;
+}
+.apt-opt-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+}
+.apt-opt-form .apt-in {
+  flex: 1 1 200px;
+  border-color: var(--ap-line);
+}
+.apt-opt-form .apt-in.is-num {
+  flex: 0 0 110px;
+}
+.apt-opt-form .apt-branch {
+  width: 30px;
+}
+.apt-count {
+  padding: 4px 8px;
+  border: 1px dashed var(--ap-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ap-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.apt-count:hover {
+  border-color: var(--ap-ink);
+  color: var(--ap-ink);
+}
+.apt-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.apt-stock .apt-in.is-num {
+  width: 72px;
+}
+.apt-uncount {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ap-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  opacity: 0;
+}
+.apt-stock:hover .apt-uncount,
+.apt-uncount:focus-visible {
+  opacity: 1;
+}
+@media (max-width: 720px) {
+  .apt tbody tr.apt-opt {
+    padding-left: 20px;
+  }
+  .apt tbody tr.apt-opt-add {
+    display: block;
+  }
+  .apt tbody tr.apt-opt-add td {
+    display: block;
+  }
+  .apt-opt-form {
+    padding-left: 0;
+  }
+  .apt-opt-form .apt-in,
+  .apt-opt-form .apt-in.is-num {
+    flex: 1 1 100%;
+  }
+  .apt-uncount {
+    opacity: 1;
+  }
+  .apt .c-price {
+    flex-wrap: wrap;
+  }
+}
+
+/* option rows on a phone: one tint for the whole row, not a box per cell */
+@media (max-width: 720px) {
+  .apt tr.apt-opt {
+    background: color-mix(in srgb, var(--ap-ink) 3%, transparent);
+  }
+  .apt tr.apt-opt td {
+    background: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .ap-searchrow .ap-need-select {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .ap-searchrow .ap-chip {
+    padding: 0 10px;
+  }
+}
+
+/* ---------- the sheet's empty first row, for a new product ---------- */
+.apt tr.apt-new td {
+  background: color-mix(in srgb, var(--color-rasta-gold) 6%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-rasta-gold) 30%, var(--ap-line));
+}
+.apt-new-plus {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px dashed var(--ap-muted);
+  border-radius: 8px;
+  color: var(--color-rasta-gold);
+  font-size: 1.3rem;
+}
+/* empty cells show their outline, so it reads as a row to fill in */
+.apt-in.apt-new-in {
+  border-color: var(--ap-line);
+  background: color-mix(in srgb, var(--ap-panel) 70%, transparent);
+}
+.apt-in.apt-new-in:focus {
+  border-color: var(--color-rasta-gold);
+}
+.apt-create {
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-rasta-gold);
+  color: var(--color-ink, #111);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.apt-create:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.apt tr.apt-new-err td {
+  padding: 6px 12px;
+  color: var(--color-red-soft);
+  font-size: 0.85rem;
+}
+@media (max-width: 720px) {
+  .apt tbody tr.apt-new {
+    grid-template-areas:
+      "ph name name open"
+      "ph price stock shop"
+      "ph cat cat cat";
+    background: color-mix(in srgb, var(--color-rasta-gold) 6%, transparent);
+  }
+  .apt tbody tr.apt-new td {
+    background: none;
+    border: 0;
+  }
+  .apt tbody tr.apt-new .c-cat {
+    display: block;
+    grid-area: cat;
+  }
+  .apt tr.apt-new .c-price .apt-in.is-num,
+  .apt tr.apt-new .c-stock .apt-in.is-num {
+    width: 100%;
+  }
+  .apt tbody tr.apt-new .c-price,
+  .apt tbody tr.apt-new .c-stock {
+    justify-self: stretch;
+  }
+  .apt tbody tr.apt-new-err {
+    display: block;
+  }
+}

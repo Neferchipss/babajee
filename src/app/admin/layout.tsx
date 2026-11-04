@@ -1,5 +1,6 @@
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import RequireAdmin from "@/components/admin/RequireAdmin";
+import { Toaster } from "@/components/admin/Toaster";
 import { AdminNav } from "@/components/admin/ui";
 import "@/components/admin/admin.css";
 
@@ -13,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminNav />
           </div>
           <div className="adm-main">{children}</div>
+          <Toaster />
         </div>
       </RequireAdmin>
     </div>

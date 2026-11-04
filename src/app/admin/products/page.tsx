@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
+import ProductTable, { type NewRow } from "@/components/admin/ProductTable";
+import { toast, toastError } from "@/components/admin/Toaster";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
 import "@/components/admin/admin-products.css";
 import { adminApi } from "@/lib/admin-api";
@@ -42,6 +44,22 @@ function ProductsAdmin() {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(params.get("product"));
   const [selecting, setSelecting] = useState(false);
+  // the category's own settings (name, on the shop, order) stay folded away until asked for
+  const [editCat, setEditCat] = useState(false);
+  // cards (the shop's look) or a sheet (rows and columns); remembered on this device
+  const [view, setView] = useState<"cards" | "sheet">(() => {
+    try {
+      return localStorage.getItem("ap-view") === "sheet" ? "sheet" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+  const pickView = (v: "cards" | "sheet") => {
+    setView(v);
+    try {
+      localStorage.setItem("ap-view", v);
+    } catch {}
+  };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
 
@@ -52,6 +70,7 @@ function ProductsAdmin() {
       setRows(prods);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
     }
     setLoading(false);
   }
@@ -90,9 +109,17 @@ function ProductsAdmin() {
     }
     return c;
   }, [inCat]);
+  const needList = [
+    ["all", "Everything", inCat.length],
+    ["photo", "No photo", counts.photo],
+    ["price", "No price", counts.price],
+    ["hidden", "Hidden", counts.hidden],
+    ["low", "Low stock", counts.low],
+    ["out", "Out of stock", counts.out],
+  ] as const;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return inCat.filter((p) => (!q || p.name.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
+    return inCat.filter((p) => (!q || `${p.name} ${p.brand} ${p.product_type} ${p.tags.join(" ")}`.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
   }, [inCat, query, need]);
 
   const open = openId ? rows.find((p) => p.id === openId) : undefined;
@@ -115,16 +142,39 @@ function ProductsAdmin() {
     setNeed("all");
     setQuery("");
     setOpenId(id);
+    toast(`${name} added`);
+  }
+
+  // a product made on the sheet's empty row, with what was typed into it
+  async function tableAdd(d: NewRow) {
+    let slug = slugify(d.name);
+    for (let n = 2; rows.some((r) => r.slug === slug); n++) slug = `${slugify(d.name)}-${n}`;
+    const id = await api.createProduct({ category_id: d.categoryId, slug, name: d.name, description: "" });
+    const made = await api.getProduct(id);
+    const v = made?.variants[0];
+    await Promise.all([
+      d.brand || d.type || !d.visible ? api.updateProduct(id, { brand: d.brand, product_type: d.type, is_visible: d.visible }) : null,
+      v && (d.price || d.stock != null || !d.visible)
+        ? api.upsertVariant(id, { ...v, price: d.price, stock_qty: d.stock ?? 0, track_stock: d.stock != null, is_visible: d.visible })
+        : null,
+    ]);
+    const fresh = await api.getProduct(id);
+    if (fresh) setRows((rs) => [fresh, ...rs]);
+    setNeed("all");
+    setQuery("");
+    toast(`${d.name} added${d.visible ? "" : ", hidden from the shop"}`);
   }
 
   async function bulk(visible: boolean) {
     setBulkBusy(true);
     try {
       await api.bulkSetVisibility(rows, [...selected], visible);
+      toast(`${selected.size} product${selected.size === 1 ? "" : "s"} ${visible ? "shown on the shop" : "hidden from the shop"}`);
       setSelected(new Set());
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
     }
     setBulkBusy(false);
   }
@@ -150,16 +200,75 @@ function ProductsAdmin() {
           for (let n = 2; categories.some((c) => c.slug === slug); n++) slug = `${slugify(name)}-${n}`;
           try {
             await api.createCategory({ slug, name, sort_order: categories.length });
+            toast(`Category ${name} added`);
             const cats = await api.listCategories();
             setCategories(cats);
             const made = cats.find((c) => c.slug === slug);
             if (made) setCat(made.id);
           } catch (e) {
             setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
           }
         }}
       />
-      {cat && categories.some((c) => c.id === cat) && (
+      <div className="ap-tools">
+        <div className="ap-searchrow">
+          <input className="ap-search" type="search" placeholder="Search by name, brand, type or tag" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
+          {/* on a phone the filter buttons fold into this one box */}
+          <select className="ap-need-select" value={need} onChange={(e) => setNeed(e.target.value as Need)} aria-label="Show">
+            {needList.map(([id, label, n]) => (
+              <option key={id} value={id}>
+                {label} ({n})
+              </option>
+            ))}
+          </select>
+          <button type="button" className={`ap-chip ${selecting ? "is-on" : ""}`} onClick={() => (setSelecting((s) => !s), setSelected(new Set()))}>
+            {selecting ? "Done" : "Select"}
+          </button>
+          <span className="ap-view" role="group" aria-label="View">
+            <button type="button" aria-pressed={view === "cards"} title="Cards, as on the shop" onClick={() => pickView("cards")}>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <rect x="3" y="3" width="6" height="6" rx="1.5" />
+                <rect x="11" y="3" width="6" height="6" rx="1.5" />
+                <rect x="3" y="11" width="6" height="6" rx="1.5" />
+                <rect x="11" y="11" width="6" height="6" rx="1.5" />
+              </svg>
+              <span>Cards</span>
+            </button>
+            <button type="button" aria-pressed={view === "sheet"} title="A table, like a spreadsheet" onClick={() => pickView("sheet")}>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <rect x="3" y="3.5" width="14" height="13" rx="1.5" />
+                <path d="M3 8h14M3 12.3h14M8 3.5v13" />
+              </svg>
+              <span>Table</span>
+            </button>
+          </span>
+          {cat && (
+            <button
+              type="button"
+              className={`ap-chip ap-gear ${editCat ? "is-on" : ""}`}
+              aria-expanded={editCat}
+              aria-label="Category settings: name, show on the shop, order"
+              title="Category settings"
+              onClick={() => setEditCat((v) => !v)}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="10" r="2.6" />
+                <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="ap-needs" role="group" aria-label="Show">
+          {needList.map(([id, label, n]) => (
+            <button key={id} type="button" aria-pressed={need === id} onClick={() => setNeed(id)}>
+              {label} <small>{n}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {editCat && cat && categories.some((c) => c.id === cat) && (
         <CategoryTools
           key={cat}
           category={categories.find((c) => c.id === cat)!}
@@ -169,39 +278,16 @@ function ProductsAdmin() {
             try {
               await work();
               setCategories(await api.listCategories());
+              toast("Category saved");
             } catch (e) {
               setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
             }
           }}
           api={api}
           all={categories}
         />
       )}
-
-      <div className="ap-tools">
-        <div className="ap-searchrow">
-          <input className="ap-search" type="search" placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
-          <button type="button" className={`ap-chip ${selecting ? "is-on" : ""}`} onClick={() => (setSelecting((s) => !s), setSelected(new Set()))}>
-            {selecting ? "Done selecting" : "Select"}
-          </button>
-        </div>
-        <div className="ap-needs" role="group" aria-label="Show">
-          {(
-            [
-              ["all", "Everything", inCat.length],
-              ["photo", "No photo", counts.photo],
-              ["price", "No price", counts.price],
-              ["hidden", "Hidden", counts.hidden],
-              ["low", "Low stock", counts.low],
-              ["out", "Out of stock", counts.out],
-            ] as const
-          ).map(([id, label, n]) => (
-            <button key={id} type="button" aria-pressed={need === id} onClick={() => setNeed(id)}>
-              {label} <small>{n}</small>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {selecting && (
         <div className="ap-bulk" role="region" aria-label="Selected products">
@@ -218,7 +304,39 @@ function ProductsAdmin() {
         </div>
       )}
 
-      <div className="ap-split">
+      <div className={`ap-split ${view === "sheet" ? "is-sheet" : ""}`}>
+        {view === "sheet" ? (
+          <ProductTable
+            products={shown}
+            categories={categories}
+            api={api}
+            selecting={selecting}
+            selected={selected}
+            openId={openId}
+            onToggle={(id) =>
+              setSelected((s) => {
+                const n = new Set(s);
+                if (n.has(id)) n.delete(id);
+                else n.add(id);
+                return n;
+              })
+            }
+            onOpen={(id) => setOpenId(id === openId ? null : id)}
+            onCreate={tableAdd}
+            category={cat}
+            onSave={async (id, work, msg) => {
+              try {
+                await work();
+                const fresh = await api.getProduct(id);
+                if (fresh) replace(fresh);
+                toast(msg ?? `Saved · ${fresh?.name ?? "product"}`);
+              } catch (e) {
+                setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
+              }
+            }}
+          />
+        ) : (
         <ul className="ap-grid">
           {!selecting && (
             <li>
@@ -238,17 +356,21 @@ function ProductsAdmin() {
                     await work();
                     const fresh = await api.getProduct(p.id);
                     if (fresh) replace(fresh);
+                    toast(`Saved · ${fresh?.name ?? p.name}`);
                   } catch (e) {
                     setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
                   }
                 }}
                 onToggleVisible={async () => {
                   try {
                     await api.setProductVisibility(p, !p.is_visible);
+                    toast(`${p.name} ${p.is_visible ? "hidden from the shop" : "shown on the shop"}`);
                     const fresh = await api.getProduct(p.id);
                     if (fresh) replace(fresh);
                   } catch (e) {
                     setErr(e instanceof Error ? e.message : String(e));
+      toastError(e);
                   }
                 }}
                 onClick={() => {
@@ -265,6 +387,7 @@ function ProductsAdmin() {
           ))}
           {!loading && shown.length === 0 && <li className="ap-empty">Nothing here{need !== "all" ? ": everything in view has it" : ""}.</li>}
         </ul>
+        )}
 
         {open && (
           <ProductEditor

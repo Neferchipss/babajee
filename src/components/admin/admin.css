@@ -2349,3 +2349,135 @@ th[aria-sort="ascending"] .adm-sort .down {
     padding-bottom: 96px;
   }
 }
+
+/* a customer asking to cancel or return, at the top of the order */
+.ov-request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--adm-gold) 45%, var(--adm-line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--adm-gold) 12%, transparent);
+}
+.ov-request > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ov-request span {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+.ov-request-do {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.adm-asked {
+  color: var(--adm-gold);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ notices */
+.adm-toasts {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.adm-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 10px 12px 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 14px;
+  background: var(--adm-panel);
+  color: var(--adm-ink);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 0.45);
+  pointer-events: auto;
+  animation: adm-toast-in 0.22s ease-out;
+}
+.adm-toast-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--adm-good);
+  color: var(--color-ink, #111);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.adm-toast.is-bad {
+  border-color: color-mix(in srgb, var(--adm-bad) 60%, var(--adm-line));
+}
+.adm-toast.is-bad .adm-toast-icon {
+  background: var(--adm-bad);
+}
+.adm-toast.is-info .adm-toast-icon {
+  background: var(--adm-gold);
+}
+.adm-toast-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.adm-toast-link {
+  flex: none;
+  color: var(--adm-gold);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.adm-toast-link:hover {
+  text-decoration: underline;
+}
+.adm-toast-x {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--adm-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.adm-toast-x:hover {
+  color: var(--adm-ink);
+  background: color-mix(in srgb, var(--adm-ink) 8%, transparent);
+}
+@keyframes adm-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .adm-toast {
+    animation: none;
+  }
+}
+/* phone: centred, and clear of the floating + button */
+@media (max-width: 720px) {
+  .adm-toasts {
+    left: 16px;
+    right: 16px;
+    width: auto;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    justify-items: stretch;
+  }
+}

@@ -29,6 +29,18 @@ export type OrderItem = {
   quantity: number;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
   slug?: string | null;
+  // the product as it is in the shop today, for "Buy again" (customer order page)
+  live?: { slug: string; category: string; label: string; price: number; ok: boolean } | null;
+};
+export type OrderRequest = {
+  id: string;
+  kind: "cancel" | "return";
+  status: "open" | "accepted" | "declined" | "withdrawn";
+  reason: string;
+  items: { item: string; qty: number }[];
+  reply: string;
+  created_at: string;
+  resolved_at: string | null;
 };
 export type OrderEvent = { id: string; status: string; note: string; actor_id: string | null; created_at: string };
 export type Shipment = { id: string; carrier: string | null; tracking_number: string | null; shipped_at: string | null; delivered_at: string | null };
@@ -77,6 +89,7 @@ export type Order = {
   order_events?: OrderEvent[];
   shipments?: Shipment[];
   order_refunds?: Refund[];
+  order_requests?: OrderRequest[];
 };
 
 function toOrder(row: Record<string, unknown>): Order {
@@ -89,9 +102,20 @@ function toOrder(row: Record<string, unknown>): Order {
     gst_rate: toNumber(o.gst_rate),
     total: toNumber(o.total),
     order_items: o.order_items?.map((i) => {
-      const raw = i as OrderItem & { product_variants?: { products?: { slug?: string } | null } | null };
+      type PV = {
+        label?: string;
+        price?: number | string;
+        is_visible?: boolean;
+        products?: { slug?: string; is_visible?: boolean; categories?: { slug?: string } | null } | null;
+      } | null;
+      const raw = i as OrderItem & { product_variants?: PV };
       const { product_variants: pv, ...rest } = raw;
-      return { ...rest, unit_price: toNumber(i.unit_price), ...(pv !== undefined ? { slug: pv?.products?.slug ?? null } : {}) };
+      const p = pv?.products;
+      const live =
+        pv && p?.slug && pv.label !== undefined && pv.price !== undefined
+          ? { slug: p.slug, category: p.categories?.slug ?? "", label: pv.label, price: toNumber(pv.price), ok: !!(pv.is_visible && p.is_visible && toNumber(pv.price) > 0) }
+          : null;
+      return { ...rest, unit_price: toNumber(i.unit_price), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
     }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
@@ -102,8 +126,9 @@ function toOrder(row: Record<string, unknown>): Order {
 }
 
 // the list carries enough for the spreadsheet export (items, address, refunds)
-const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax)";
-const FULL = "*, order_items(*, product_variants(label, products(slug))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*))";
+const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax), order_requests(id, kind, status)";
+const FULL =
+  "*, order_items(*, product_variants(label, price, is_visible, products(slug, is_visible, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
 
 // ---------------------------------------------------------------- customer
 
@@ -124,7 +149,7 @@ export async function placeOrder(lines: CheckoutLine[], address: CheckoutAddress
 // every order, so it filters by profile too)
 // the customer's list: each item's product slug for its photo, delivery and refund dates
 const MINE =
-  "*, order_items(id, product_name, variant_label, unit_price, quantity, product_variants(label, products(slug))), shipments(delivered_at, shipped_at, carrier), order_refunds(id, amount, subtotal, shipping, tax, returned, created_at)";
+  "*, order_items(id, product_name, variant_label, unit_price, quantity, product_variants(label, products(slug))), shipments(delivered_at, shipped_at, carrier), order_refunds(id, amount, subtotal, shipping, tax, returned, created_at), order_requests(id, kind, status, reply)";
 
 export async function listMyOrders(profileId: string): Promise<Order[]> {
   const { data, error } = await db().from("orders").select(MINE).eq("profile_id", profileId).order("created_at", { ascending: false });
@@ -236,7 +261,7 @@ export async function setOrderNotes(id: string, notes: string) {
 
 // ---------------------------------------------------------------- admin: home + analytics
 
-export type HomeCounts = Record<"unpaid" | "to_pack" | "to_ship" | "in_transit" | "out_of_stock" | "low_stock" | "unpriced", number>;
+export type HomeCounts = Record<"requests" | "unpaid" | "to_pack" | "to_ship" | "in_transit" | "out_of_stock" | "low_stock" | "unpriced", number>;
 
 export async function homeCounts(): Promise<HomeCounts> {
   const { data, error } = await db().rpc("admin_home_counts");
@@ -388,11 +413,13 @@ export type StoreSettings = {
   gst_inclusive: boolean;
   gst_input_credit: boolean;
   store_state: string;
+  // days after delivery a customer can ask for a return; 0 = no returns (0022)
+  return_days: number;
 };
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -401,6 +428,7 @@ export async function getSettings(): Promise<StoreSettings> {
     gst_inclusive: data.gst_inclusive,
     gst_input_credit: data.gst_input_credit,
     store_state: data.store_state ?? "",
+    return_days: data.return_days ?? 7,
   };
 }
 
@@ -479,6 +507,32 @@ export async function report(kind: ReportKind, from: string, to: string): Promis
   const { data, error } = await db().rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
+}
+
+// ---------------------------------------------------------------- requests (0022)
+
+// The customer's cancel button: an unpaid order cancels at once ("cancelled");
+// a paid one asks the shop ("requested").
+export async function cancelMyOrder(id: string, reason: string): Promise<"cancelled" | "requested"> {
+  const { data, error } = await db().rpc("customer_cancel_order", { p_order: id, p_reason: reason });
+  if (error) throw error;
+  return data as "cancelled" | "requested";
+}
+
+export async function requestReturn(id: string, items: { item: string; qty: number }[], reason: string) {
+  const { error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason });
+  if (error) throw error;
+}
+
+export async function withdrawRequest(id: string) {
+  const { error } = await db().rpc("customer_withdraw_request", { p_request: id });
+  if (error) throw error;
+}
+
+// the shop's answer; accept after the refund or cancellation is recorded
+export async function resolveRequest(id: string, accept: boolean, reply: string) {
+  const { error } = await db().rpc("admin_resolve_request", { p_request: id, p_accept: accept, p_reply: reply });
+  if (error) throw error;
 }
 
 // ---------------------------------------------------------------- admin: new order

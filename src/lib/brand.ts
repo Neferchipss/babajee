@@ -47,6 +47,9 @@ const BRANDS: [brand: string, ...prefixes: string[]][] = [
   ["Babajee", "babajee"],
 ];
 
+// the brands the shop carries, for suggestions in the admin
+export const BRAND_NAMES = BRANDS.map(([b]) => b).sort((a, b) => a.localeCompare(b));
+
 const PREFIXES = BRANDS.flatMap(([brand, ...ps]) => ps.map((p) => [p, brand] as const)).sort(
   (a, b) => b[0].length - a[0].length,
 );

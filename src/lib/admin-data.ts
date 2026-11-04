@@ -35,6 +35,10 @@ export type AdminProduct = {
   slug: string;
   name: string;
   description: string;
+  // what Shopify calls vendor, product type and tags (0022)
+  brand: string;
+  product_type: string;
+  tags: string[];
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -102,13 +106,16 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
   slug: string;
   name: string;
   description: string;
+  brand: string | null;
+  product_type: string | null;
+  tags: string[] | null;
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -126,6 +133,9 @@ function toProduct(row: ProductRow): AdminProduct {
     slug: row.slug,
     name: row.name,
     description: row.description,
+    brand: row.brand ?? "",
+    product_type: row.product_type ?? "",
+    tags: row.tags ?? [],
     is_visible: row.is_visible,
     sort_order: row.sort_order,
     category_id: row.category_id,
@@ -168,7 +178,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "is_visible" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "is_visible" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;

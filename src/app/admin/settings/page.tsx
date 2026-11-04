@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, unitProfit } from "@/lib/gst";
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const [inclusive, setInclusive] = useState(true);
   const [credit, setCredit] = useState(false);
   const [home, setHome] = useState("");
+  const [returnDays, setReturnDays] = useState("7");
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -29,6 +31,7 @@ export default function SettingsPage() {
         setInclusive(s.gst_inclusive);
         setCredit(s.gst_input_credit);
         setHome(s.store_state);
+        setReturnDays(String(s.return_days));
         setLoaded(true);
       })
       .catch((e) => setErr(errText(e)));
@@ -38,6 +41,11 @@ export default function SettingsPage() {
     e.preventDefault();
     setErr("");
     setMsg("");
+    const days = Math.round(Number(returnDays) || 0);
+    if (days < 0 || days > 90) {
+      setErr("Returns can be open for 0 to 90 days.");
+      return;
+    }
     const r = Number(rate);
     if (!(r >= 0 && r <= 40)) {
       setErr("GST rate must be between 0 and 40%.");
@@ -51,10 +59,13 @@ export default function SettingsPage() {
         gst_inclusive: inclusive,
         gst_input_credit: credit,
         store_state: home,
+        return_days: days,
       });
       setMsg("Saved. New orders use these from now on.");
+      toast("Settings saved");
     } catch (x) {
       setErr(errText(x));
+      toastError(x);
     }
   }
 
@@ -127,6 +138,20 @@ export default function SettingsPage() {
               Example: an item sold at {money(1000)} that cost {money(600)} makes {money(u.profit)} ({u.margin.toFixed(1)}% margin).
             </span>
           </div>
+        </section>
+
+        <section className="adm-card" style={{ display: "grid", gap: 16 }}>
+          <h2 style={{ margin: 0 }}>Cancellations and returns</h2>
+          <label className="adm-label">
+            Days after delivery a customer can ask for a return
+            <input className="adm-input" inputMode="numeric" value={returnDays} disabled={!loaded} onChange={(e) => setReturnDays(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">
+              {Number(returnDays) > 0
+                ? `Customers see "Ask for a return" on a delivered order for ${Number(returnDays)} day${Number(returnDays) === 1 ? "" : "s"}. You accept or decline each request.`
+                : "0 means no returns: the button doesn't show."}{" "}
+              Unpaid orders can always be cancelled by the customer; a paid one sends you a cancellation request.
+            </span>
+          </label>
         </section>
 
         <div className="adm-actions">

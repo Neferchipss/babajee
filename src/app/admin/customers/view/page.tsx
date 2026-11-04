@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import AddressMap from "@/components/admin/AddressMap";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
 import { addCustomerNote, customerDetail, errText, listCustomers, type Customer, type CustomerAddress, type CustomerNote, type Order } from "@/lib/orders-db";
@@ -125,7 +126,8 @@ function CustomerView() {
                 addCustomerNote(c.id, user.id, note.trim())
                   .then(() => setNote(""))
                   .then(load)
-                  .catch((x) => setErr(errText(x)));
+                  .then(() => toast("Note added"))
+                  .catch((x) => (setErr(errText(x)), toastError(x)));
               }}
             >
               <input className="adm-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Private note about this customer" aria-label="Note" />

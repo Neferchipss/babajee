@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
-import type { Order } from "@/lib/orders-db";
+import type { Order, OrderRequest } from "@/lib/orders-db";
+import { categoryTone } from "@/lib/tone";
 import { photosFor } from "@/lib/product-photos";
 import "./my-orders.css";
 
@@ -232,6 +234,9 @@ function OrderRow({ o }: { o: Order }) {
             <span className="mo-row-what">{what}</span>
             <span className="mo-row-meta">
               {o.order_number} · {DATE.format(new Date(o.created_at))} · {count} item{count === 1 ? "" : "s"}
+              {(o.order_requests ?? []).some((r) => r.status === "open") && (
+                <span className="mo-asked"> · {(o.order_requests ?? []).find((r) => r.status === "open")!.kind === "cancel" ? "Cancellation asked" : "Return asked"}</span>
+              )}
             </span>
           </span>
           <span className="mo-row-amt">{money(o.total)}</span>
@@ -279,13 +284,21 @@ export function MyOrder() {
   const { status, user } = useAuth();
   const [o, setO] = useState<Order | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
+  const [returnDays, setReturnDays] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!user) return;
     db()
       .then((m) => m.getOrder(id))
       .then(setO)
       .catch(() => setO(null));
-  }, [user, id]);
+  }, [user, id, tick]);
+  useEffect(() => {
+    db()
+      .then((m) => m.getSettings())
+      .then((s) => setReturnDays(s.return_days))
+      .catch(() => setReturnDays(0));
+  }, []);
 
   if (status === "loading" || (status === "in" && o === undefined)) return <p className="mo-muted">Loading your order.</p>;
   if (status !== "in") return <SignedOut />;
@@ -411,6 +424,8 @@ export function MyOrder() {
             </li>
           )}
         </ol>
+
+        <OrderActions o={o} returnDays={returnDays} deliveredAt={ship?.delivered_at ?? at("delivered") ?? null} onChanged={() => setTick((t) => t + 1)} />
       </section>
 
       <div className="mo-grid">
@@ -484,5 +499,232 @@ function FragmentRow({ label, value }: { label: string; value: string }) {
       <dt className="mo-back">{label}</dt>
       <dd className="mo-back">{value}</dd>
     </>
+  );
+}
+
+// ---------------------------------------------------------------- what the customer can do
+
+const DAY_MS = 864e5;
+
+// Buy again, cancel, ask for a return, and where any request stands.
+function OrderActions({ o, returnDays, deliveredAt, onChanged }: { o: Order; returnDays: number | null; deliveredAt: string | null; onChanged: () => void }) {
+  const [open, setOpen] = useState<"cancel" | "return" | null>(null);
+  const [reason, setReason] = useState("");
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
+
+  const items = o.order_items ?? [];
+  const reqs = (o.order_requests ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const last: OrderRequest | undefined = reqs.at(-1);
+  const pending = last?.status === "open" ? last : undefined;
+  const refundedQty = (id: string) =>
+    (o.order_refunds ?? []).reduce((n, r) => n + (r.order_refund_items ?? []).filter((x) => x.order_item_id === id).reduce((m, x) => m + x.quantity, 0), 0);
+  const returnable = items.map((i) => ({ ...i, left: i.quantity - refundedQty(i.id) })).filter((i) => i.left > 0);
+
+  const canCancel = !pending && ["pending", "paid", "packed"].includes(o.status);
+  const until = deliveredAt && returnDays ? new Date(new Date(deliveredAt).getTime() + returnDays * DAY_MS) : null;
+  // the return window is a plain date check, done once per render
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const canReturn = !pending && o.status === "delivered" && !!returnDays && returnable.length > 0 && (!until || until.getTime() > now);
+  const buyable = items.filter((i) => i.live?.ok);
+
+  function buyAgain() {
+    for (const i of buyable) {
+      const l = i.live!;
+      addToCart(
+        { slug: l.slug, href: `/shop/${l.category}?p=${encodeURIComponent(l.slug)}`, name: i.product_name, tone: categoryTone(l.category), variant: l.label, price: l.price },
+        i.quantity,
+      );
+    }
+    const missing = items.length - buyable.length;
+    setNote(
+      `Added ${buyable.reduce((n, i) => n + i.quantity, 0)} item${buyable.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"} to your cart at today's prices.` +
+        (missing ? ` ${missing === 1 ? "One item isn't" : `${missing} items aren't`} available any more, so ${missing === 1 ? "it was" : "they were"} left out.` : ""),
+    );
+  }
+
+  async function send() {
+    setBusy(true);
+    setErr("");
+    try {
+      const m = await db();
+      if (open === "cancel") {
+        const r = await m.cancelMyOrder(o.id, reason.trim());
+        setNote(r === "cancelled" ? "Your order is cancelled." : "We've asked the shop to cancel it. You'll see their answer here.");
+      } else if (open === "return") {
+        await m.requestReturn(
+          o.id,
+          returnable.filter((i) => (qty[i.id] ?? 0) > 0).map((i) => ({ item: i.id, qty: qty[i.id] })),
+          reason.trim(),
+        );
+        setNote("We've sent your return request. The shop will tell you here what happens next.");
+      }
+      setOpen(null);
+      setReason("");
+      setQty({});
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "That didn't go through. Try again.");
+    }
+    setBusy(false);
+  }
+
+  async function withdraw(r: OrderRequest) {
+    setBusy(true);
+    setErr("");
+    try {
+      await (await db()).withdrawRequest(r.id);
+      setNote("Request withdrawn.");
+      onChanged();
+    } catch (e) {
+      setErr((e as { message?: string })?.message ?? "That didn't go through. Try again.");
+    }
+    setBusy(false);
+  }
+
+  const what = (r: OrderRequest) => (r.kind === "cancel" ? "cancel this order" : "return " + r.items.map((x) => {
+    const it = items.find((i) => i.id === x.item);
+    return `${it?.product_name ?? "an item"}${x.qty > 1 ? ` ×${x.qty}` : ""}`;
+  }).join(", "));
+  const picked = returnable.some((i) => (qty[i.id] ?? 0) > 0);
+  const paidCancel = o.status !== "pending";
+
+  return (
+    <div className="mo-do">
+      {last && last.status !== "withdrawn" && (
+        <div className={`mo-req is-${last.status}`}>
+          {last.status === "open" ? (
+            <>
+              <span>
+                You asked to {what(last)} on {DATE.format(new Date(last.created_at))}. The shop will get back to you here.
+              </span>
+              <button type="button" className="mo-textbtn" disabled={busy} onClick={() => withdraw(last)}>
+                Withdraw
+              </button>
+            </>
+          ) : last.status === "accepted" ? (
+            <span>
+              The shop accepted your request to {what(last)}.{last.reply ? ` “${last.reply}”` : ""} Any refund shows on this page once it&apos;s sent.
+            </span>
+          ) : (
+            <span>
+              The shop couldn&apos;t {last.kind === "cancel" ? "cancel this order" : "take this return"}.{last.reply ? ` “${last.reply}”` : ""}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mo-do-row">
+        {buyable.length > 0 && (
+          <button type="button" className="btn btn-primary" onClick={buyAgain}>
+            Buy again
+          </button>
+        )}
+        {canReturn && (
+          <button type="button" className="btn btn-ghost" aria-expanded={open === "return"} onClick={() => (setOpen(open === "return" ? null : "return"), setErr(""))}>
+            Ask for a return
+          </button>
+        )}
+        {canCancel && (
+          <button type="button" className="btn btn-ghost mo-danger" aria-expanded={open === "cancel"} onClick={() => (setOpen(open === "cancel" ? null : "cancel"), setErr(""))}>
+            {paidCancel ? "Ask to cancel" : "Cancel order"}
+          </button>
+        )}
+        {o.status === "delivered" && until && !canReturn && !pending && !!returnDays && until.getTime() <= now && (
+          <span className="mo-muted mo-small">Returns closed on {DATE.format(until)}.</span>
+        )}
+        {o.status === "delivered" && until && canReturn && <span className="mo-muted mo-small">Returns open until {DATE.format(until)}.</span>}
+        {buyable.length === 0 && items.length > 0 && <span className="mo-muted mo-small">{items.length === 1 ? "This item isn't" : "These items aren't"} on sale right now, so they can&apos;t be bought again.</span>}
+      </div>
+
+      {note && (
+        <p className="mo-note" role="status">
+          {note}
+          {note.startsWith("Added") && (
+            <>
+              {" "}
+              <Link href="/cart">Go to your cart</Link>
+            </>
+          )}
+        </p>
+      )}
+
+      {open === "cancel" && (
+        <form
+          className="mo-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send();
+          }}
+        >
+          <b>{paidCancel ? "Ask the shop to cancel this order?" : "Cancel this order?"}</b>
+          <p className="mo-muted">
+            {paidCancel
+              ? "You've already paid, so the shop will cancel it and send your money back. If it's already being packed, they'll tell you here."
+              : "It hasn't been paid for, so it's cancelled straight away."}
+          </p>
+          <label>
+            <span>Why? (optional)</span>
+            <textarea id="mo-cancel-why" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ordered by mistake, changed my mind…" />
+          </label>
+          {err && <p className="mo-err">{err}</p>}
+          <div className="mo-do-row">
+            <button className="btn btn-primary" disabled={busy}>
+              {busy ? "Sending" : paidCancel ? "Ask to cancel" : "Cancel order"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(null)}>
+              Keep the order
+            </button>
+          </div>
+        </form>
+      )}
+
+      {open === "return" && (
+        <form
+          className="mo-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send();
+          }}
+        >
+          <b>What would you like to return?</b>
+          <ul className="mo-pick">
+            {returnable.map((i) => (
+              <li key={i.id}>
+                <span>
+                  {i.product_name}
+                  {i.variant_label && <small>{i.variant_label}</small>}
+                </span>
+                <span className="mo-step" role="group" aria-label={`How many ${i.product_name}`}>
+                  <button type="button" aria-label="Fewer" disabled={(qty[i.id] ?? 0) <= 0} onClick={() => setQty({ ...qty, [i.id]: (qty[i.id] ?? 0) - 1 })}>
+                    −
+                  </button>
+                  <output>{qty[i.id] ?? 0}</output>
+                  <button type="button" aria-label="More" disabled={(qty[i.id] ?? 0) >= i.left} onClick={() => setQty({ ...qty, [i.id]: (qty[i.id] ?? 0) + 1 })}>
+                    +
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <label>
+            <span>What&apos;s wrong?</span>
+            <textarea id="mo-return-why" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Arrived broken, wrong item, not as described…" />
+          </label>
+          {err && <p className="mo-err">{err}</p>}
+          <div className="mo-do-row">
+            <button className="btn btn-primary" disabled={busy || !picked || !reason.trim()}>
+              {busy ? "Sending" : "Send return request"}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(null)}>
+              Not now
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }

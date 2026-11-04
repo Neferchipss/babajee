@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useCallback, useEffect, useState } from "react";
 import AddressMap from "@/components/admin/AddressMap";
 import { EditForm, RefundForm, type EditInput, type RefundInput } from "@/components/admin/OrderForms";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
 import { actionsFor, eventText, STEPS, type OrderAction, type OrderStatus } from "@/lib/order-status";
@@ -18,6 +19,7 @@ import {
   getSettings,
   refundOrder,
   refundsOf,
+  resolveRequest,
   setOrderNotes,
   setStep,
   settleBalance,
@@ -25,6 +27,7 @@ import {
   updateOrder,
   undoRefund,
   type Order,
+  type OrderRequest,
   type Refund,
 } from "@/lib/orders-db";
 
@@ -48,6 +51,10 @@ function OrderView() {
   const [form, setForm] = useState<"refund" | "return" | "edit" | null>(null);
   const [undoing, setUndoing] = useState<Refund | null>(null);
   const [stepping, setStepping] = useState<OrderStatus | null>(null);
+  // a customer request being answered: accepting opens the refund form filled in
+  const [answering, setAnswering] = useState<OrderRequest | null>(null);
+  const [declining, setDeclining] = useState<OrderRequest | null>(null);
+  const [reply, setReply] = useState("");
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -73,24 +80,30 @@ function OrderView() {
       await updateOrder(o.id, a.to, opts);
       setAsking(null);
       await load();
+      toast(`${o.order_number} ${a.to === "cancelled" ? "cancelled" : `marked as ${STEP_DO[a.to] ?? a.to}`}`);
     } catch (e) {
       setErr(errText(e));
+      toastError(e);
     }
     setBusy(false);
   }
 
   // refund / return / edit / settle: same busy + reload as a status change
-  async function act(f: () => Promise<void>) {
+  async function act(f: () => Promise<void>, done?: string) {
     setBusy(true);
     setErr("");
     try {
       await f();
+      if (done) toast(done);
       setForm(null);
       setUndoing(null);
       setStepping(null);
+      setAnswering(null);
+      setDeclining(null);
       await load();
     } catch (e) {
       setErr(errText(e));
+      toastError(e);
       setForm(null);
       setUndoing(null);
       setStepping(null);
@@ -106,8 +119,10 @@ function OrderView() {
       await addOrderComment(o.id, user.id, comment.trim());
       setComment("");
       await load();
+      toast("Comment posted");
     } catch (e) {
       setErr(errText(e));
+      toastError(e);
     }
     setBusy(false);
   }
@@ -130,6 +145,7 @@ function OrderView() {
   const refunds = refundsOf(o);
   const paid = o.paid_total;
   const left = (paid ?? 0) - refunds.amount;
+  const openReq = (o.order_requests ?? []).find((r) => r.status === "open");
   const canEdit = ["pending", "paid", "packed"].includes(o.status) && refunds.amount === 0;
   const canRefund = ["paid", "packed", "shipped", "delivered"].includes(o.status) && left > 0;
   const canReturn = ["shipped", "delivered"].includes(o.status) && left > 0 && items.some((i) => i.quantity > (refunds.byItem.get(i.id) ?? 0));
@@ -144,13 +160,13 @@ function OrderView() {
     if (!o || to === o.status) return;
     const forward = STEPS.indexOf(to) > STEPS.indexOf(o.status);
     if (!forward || to === "shipped" || (to === "delivered" && !ship)) setStepping(to);
-    else void act(() => setStep(o.id, to));
+    else void act(() => setStep(o.id, to), `${o.order_number} marked as ${STEP_DO[to]}`);
   }
   const phone = o.contact_phone.replace(/\D/g, "");
   const wa = phone.length === 10 ? `91${phone}` : phone.length === 12 && phone.startsWith("91") ? phone : "";
   // status changes already sit on the road; activity keeps everything else
   const activity = (o.order_events ?? []).filter(
-    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
+    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone", "request"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
   );
 
   const next =
@@ -234,13 +250,47 @@ function OrderView() {
       </section>
 
       {err && <p className="adm-err">{err}</p>}
+      {openReq && (
+        <div className="ov-request">
+          <div>
+            <b>{openReq.kind === "cancel" ? "The customer asks to cancel this order" : "The customer asks to return items"}</b>
+            <span>
+              {openReq.kind === "return" &&
+                openReq.items
+                  .map((x) => {
+                    const it = items.find((i) => i.id === x.item);
+                    return `${it?.product_name ?? "An item"}${x.qty > 1 ? ` ×${x.qty}` : ""}`;
+                  })
+                  .join(", ") + " · "}
+              {openReq.reason ? `“${openReq.reason}”` : "No reason given"} · {when(openReq.created_at)}
+            </span>
+          </div>
+          <div className="ov-request-do">
+            <button
+              type="button"
+              className="adm-btn pri"
+              disabled={busy || !canRefund}
+              title={canRefund ? undefined : "Nothing left to refund on this order"}
+              onClick={() => {
+                setAnswering(openReq);
+                setForm(openReq.kind === "cancel" ? "refund" : "return");
+              }}
+            >
+              {openReq.kind === "cancel" ? "Accept and refund everything" : "Accept and refund"}
+            </button>
+            <button type="button" className="adm-btn" disabled={busy} onClick={() => (setReply(""), setDeclining(openReq))}>
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
       {balance !== 0 && (
         <div className={`adm-balance ov-balance ${balance > 0 ? "owe" : "back"}`}>
           <span>
             <b>{balance > 0 ? `${money(balance)} to collect` : `${money(-balance)} to pay back`}</b>
             {balance > 0 ? " · the order was edited after it was paid." : " · the order was edited after it was paid."}
           </span>
-          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id))}>
+          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as collected` : `${money(-balance)} marked as paid back`)}>
             {balance > 0 ? "Mark as collected" : "Mark as paid back"}
           </button>
         </div>
@@ -402,7 +452,8 @@ function OrderView() {
                 onClick={() =>
                   setOrderNotes(o.id, notes)
                     .then(load)
-                    .catch((e) => setErr(errText(e)))
+                    .then(() => toast("Notes saved"))
+                    .catch((e) => (setErr(errText(e)), toastError(e)))
                 }
               >
                 Save notes
@@ -422,7 +473,12 @@ function OrderView() {
             to={stepping}
             busy={busy}
             onCancel={() => setStepping(null)}
-            onConfirm={(opts) => act(() => setStep(o.id, stepping, opts))}
+            onConfirm={(opts) =>
+              act(
+                () => setStep(o.id, stepping, opts),
+                STEPS.indexOf(stepping) < STEPS.indexOf(o.status) ? `${o.order_number} moved back to ${STEP_LABEL[stepping].toLowerCase()}` : `${o.order_number} marked as ${STEP_DO[stepping]}`,
+              )
+            }
           />
         )}
       </Dialog>
@@ -432,7 +488,7 @@ function OrderView() {
             method="dialog"
             onSubmit={(e) => {
               e.preventDefault();
-              void act(() => undoRefund(undoing.id));
+              void act(() => undoRefund(undoing.id), `Refund of ${money(undoing.amount)} undone`);
             }}
           >
             <h2>Undo this {money(undoing.amount)} refund?</h2>
@@ -463,18 +519,70 @@ function OrderView() {
           </form>
         )}
       </Dialog>
-      <Dialog open={form !== null} onClose={() => setForm(null)} wide={form === "edit"}>
+      <Dialog open={declining !== null} onClose={() => setDeclining(null)}>
+        {declining && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (reply.trim()) void act(() => resolveRequest(declining.id, false, reply.trim()), `${declining.kind === "cancel" ? "Cancellation" : "Return"} request declined`);
+            }}
+          >
+            <h2>Decline the {declining.kind === "cancel" ? "cancellation" : "return"}?</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              The customer sees your reply on their order page, so say what happens next.
+            </p>
+            <label className="adm-label">
+              Reply to the customer
+              <textarea
+                id="ov-decline-reply"
+                className="adm-input"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder={declining.kind === "cancel" ? "It's already with the courier. You can return it once it arrives." : "Returns need the item unopened. Get in touch and we'll sort it out."}
+                autoFocus
+              />
+            </label>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" onClick={() => setDeclining(null)}>
+                Back
+              </button>
+              <button className="adm-btn bad" disabled={busy || !reply.trim()}>
+                {busy ? "Saving" : "Decline"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+      <Dialog open={form !== null} onClose={() => (setForm(null), setAnswering(null))} wide={form === "edit"}>
         {(form === "refund" || form === "return") && (
           <RefundForm
             order={o}
             mode={form}
             busy={busy}
-            onCancel={() => setForm(null)}
-            onSubmit={(r: RefundInput) => act(() => refundOrder(o.id, r))}
-            onEdit={canEdit ? () => setForm("edit") : undefined}
+            onCancel={() => (setForm(null), setAnswering(null))}
+            onSubmit={(r: RefundInput) =>
+              act(
+                async () => {
+                  await refundOrder(o.id, r);
+                  if (answering) await resolveRequest(answering.id, true, "");
+                },
+                answering
+                  ? `${answering.kind === "cancel" ? "Cancellation" : "Return"} approved · ${money(r.amount)} refunded`
+                  : `${r.returned ? "Return recorded" : "Refunded"} · ${money(r.amount)} on ${o.order_number}`,
+              )
+            }
+            onEdit={canEdit && !answering ? () => setForm("edit") : undefined}
+            preset={
+              answering
+                ? answering.kind === "cancel"
+                  ? { everything: true, restock: true, note: `Cancelled at the customer's request${answering.reason ? `: ${answering.reason}` : ""}` }
+                  : { qty: Object.fromEntries(answering.items.map((x) => [x.item, x.qty])), restock: true, note: answering.reason }
+                : undefined
+            }
           />
         )}
-        {form === "edit" && <EditForm order={o} busy={busy} onCancel={() => setForm(null)} onSubmit={(e: EditInput) => act(() => editOrder(o.id, e))} />}
+        {form === "edit" && <EditForm order={o} busy={busy} onCancel={() => setForm(null)} onSubmit={(e: EditInput) => act(() => editOrder(o.id, e), `${o.order_number} updated`)} />}
       </Dialog>
     </div>
   );

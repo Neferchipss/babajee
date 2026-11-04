@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ProductPicker, Stepper, type Pick } from "@/components/admin/OrderForms";
+import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill } from "@/lib/gst";
@@ -119,9 +120,11 @@ export default function NewOrderPage() {
         notes,
         paid,
       });
+      toast(`Order ${o.number} created${paid ? " as paid" : ""}`);
       router.push(`/admin/orders/view?id=${o.id}`);
     } catch (e) {
       setErr(errText(e));
+      toastError(e);
       setBusy(false);
     }
   }

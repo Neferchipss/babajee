@@ -64,7 +64,7 @@ function search(q: string, d: Data | null): Hit[] {
     hits.push({ key: `o${o.id}`, group: "Orders", href: `/admin/orders/view?id=${o.id}`, title: `${o.order_number} · ${o.contact_name}`, meta: `${money(o.total)} · ${when(o.created_at)}`, order: o });
 
   const products = d.products.filter((p) =>
-    matches(words, `${p.name} ${p.slug} ${p.category_name ?? ""} ${p.variants.map((v) => v.label).join(" ")}`),
+    matches(words, `${p.name} ${p.slug} ${p.brand} ${p.product_type} ${p.tags.join(" ")} ${p.category_name ?? ""} ${p.variants.map((v) => v.label).join(" ")}`),
   );
   for (const p of products.slice(0, 6)) {
     const prices = p.variants.map((v) => v.price).filter((x) => x > 0);
@@ -74,7 +74,7 @@ function search(q: string, d: Data | null): Hit[] {
       group: "Products",
       href: `/admin/products/edit?id=${p.id}`,
       title: p.name,
-      meta: [p.category_name, prices.length ? money(Math.min(...prices)) : "No price", opts, p.is_visible ? "" : "Hidden"].filter(Boolean).join(" · "),
+      meta: [p.brand, p.category_name, prices.length ? money(Math.min(...prices)) : "No price", opts, p.is_visible ? "" : "Hidden"].filter(Boolean).join(" · "),
     });
   }
 
