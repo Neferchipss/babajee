@@ -2067,3 +2067,75 @@ select.apt-in {
     display: block;
   }
 }
+
+/* ------------------------------------------------------------------ delete */
+.ap-chip.ap-chip-bad {
+  color: #c2334d;
+  border-color: rgb(194 51 77 / 0.45);
+}
+/* the bin on a card: top-left, opposite the eye; shown on hover, always on touch */
+.apc-bin {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(20 16 40 / 0.5);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.apc:hover .apc-bin,
+.apc-bin:focus-visible {
+  opacity: 1;
+}
+.apc-bin:hover {
+  color: #c2334d;
+}
+@media (hover: none) {
+  .apc-bin {
+    opacity: 0.7;
+  }
+}
+.apt .c-open {
+  white-space: nowrap;
+}
+.apt-open.apt-bin {
+  display: inline-grid;
+  place-items: center;
+  margin-right: 6px;
+  color: var(--ap-muted, currentColor);
+  vertical-align: middle;
+}
+.apt-open.apt-bin:hover {
+  color: #c2334d;
+  border-color: #c2334d;
+}
+.ape-danger {
+  padding-top: 14px;
+  border-top: 1px solid var(--ap-line);
+}
+.ape-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  padding: 9px 14px;
+  border: 1px solid rgb(194 51 77 / 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: #c2334d;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ape-delete:hover {
+  background: rgb(194 51 77 / 0.08);
+}

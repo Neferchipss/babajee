@@ -2481,3 +2481,372 @@ th[aria-sort="ascending"] .adm-sort .down {
     justify-items: stretch;
   }
 }
+
+/* ------------------------------------------------------------------ traffic */
+/* a lower number is the good direction (bounce rate): swap the delta colours */
+.anx .trf-invert .adm-delta.up {
+  color: var(--adm-bad);
+  background: color-mix(in srgb, var(--adm-bad) 16%, transparent);
+}
+.anx .trf-invert .adm-delta.down {
+  color: var(--adm-good);
+  background: color-mix(in srgb, var(--adm-good) 16%, transparent);
+}
+.trf-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trf-insights li {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 16px 18px;
+  line-height: 1.45;
+}
+.trf-sub {
+  margin: -6px 0 14px;
+}
+.trf-heat {
+  display: grid;
+  gap: 3px;
+}
+.trf-heat-row {
+  display: grid;
+  grid-template-columns: 34px repeat(24, minmax(0, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+.trf-heat-row i {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--adm-chart);
+}
+.trf-heat-day {
+  color: var(--adm-muted);
+  font-size: 0.72rem;
+}
+.trf-heat-axis span {
+  color: var(--adm-muted);
+  font-size: 0.66rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+.trf-name {
+  display: block;
+}
+.trf-meter {
+  display: block;
+  width: 120px;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-muted) 18%, transparent);
+  overflow: hidden;
+}
+.trf-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--adm-chart);
+}
+/* the Test tag: like Admin, but quiet */
+.adm-role.is-test {
+  background: color-mix(in srgb, var(--adm-gold) 22%, transparent);
+  color: var(--adm-gold);
+  border: 1px solid color-mix(in srgb, var(--adm-gold) 55%, transparent);
+}
+
+/* ------------------------------------------------------------------ customer map */
+.geo {
+  display: grid;
+  gap: 16px;
+}
+.geo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 20px;
+}
+.geo-head h2 {
+  margin: 0 0 4px;
+}
+.geo-head p {
+  margin: 0;
+}
+.geo-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.geo-mapbox {
+  position: relative;
+  display: grid;
+  height: 480px;
+}
+.geo-map {
+  position: relative;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #1b1b1b;
+  border: 1px solid var(--adm-line);
+}
+/* Leaflet's own light-grey background showed through the hairline gaps
+   between tiles at in-between zooms; match it to the tiles instead */
+.geo-map.leaflet-container {
+  background: #262626;
+}
+/* dim the base with a layer above the tiles (a CSS filter on the tiles shows their seams) */
+.geo-map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  background: rgb(8 8 8 / 0.38);
+}
+.geo-map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 700;
+  pointer-events: none;
+  box-shadow: inset 0 0 70px 14px rgb(0 0 0 / 0.6);
+  border-radius: inherit;
+}
+/* a city: a soft glow that adds up where cities crowd, and a bright core */
+.geo-map .leaflet-marker-icon.geo-light {
+  display: grid;
+  place-items: center;
+  /* only the core takes the pointer, so a big glow never hides a small town */
+  pointer-events: none !important;
+}
+.geo-light > i {
+  grid-area: 1 / 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.geo-glow {
+  /* white-hot in the middle, falling off smoothly into the green */
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--adm-chart) 55%, #fff) 0%,
+    color-mix(in srgb, var(--adm-chart) 78%, transparent) 12%,
+    color-mix(in srgb, var(--adm-chart) 42%, transparent) 28%,
+    color-mix(in srgb, var(--adm-chart) 18%, transparent) 46%,
+    color-mix(in srgb, var(--adm-chart) 6%, transparent) 60%,
+    transparent 71%
+  );
+  mix-blend-mode: screen;
+  transition: transform 0.25s, filter 0.25s;
+}
+.geo-light > i {
+  animation: geo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms) both;
+}
+@keyframes geo-in {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+.geo-light:hover .geo-glow {
+  transform: scale(1.12);
+  filter: brightness(1.35);
+}
+.geo-core {
+  pointer-events: auto !important;
+  background: radial-gradient(circle at 40% 35%, #f4fff8 0%, color-mix(in srgb, var(--adm-chart) 85%, #fff) 45%, var(--adm-chart) 100%);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--adm-chart) 80%, transparent);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.geo-light:hover .geo-core {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.55), 0 0 0 4.5px color-mix(in srgb, var(--adm-chart) 70%, #fff), 0 0 14px 3px var(--adm-chart);
+}
+/* the biggest place breathes */
+.geo-light.is-top::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--adm-chart);
+  animation: geo-pulse 2.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes geo-pulse {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(4.5);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-light.is-top::after {
+    animation: none;
+    display: none;
+  }
+}
+.geo-map .geo-tip {
+  display: grid;
+  gap: 1px;
+  padding: 8px 12px;
+  background: var(--adm-panel);
+  color: var(--adm-ink);
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.geo-map .geo-tip::before {
+  display: none;
+}
+.geo-map .leaflet-control-zoom {
+  margin: 0 10px 22px 0;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: none;
+}
+.geo-map.leaflet-container .leaflet-control-zoom a {
+  width: 30px;
+  height: 30px;
+  line-height: 28px;
+  background: rgb(20 20 20 / 0.85);
+  color: var(--adm-ink);
+  border-bottom-color: var(--adm-line);
+  font-weight: 400;
+}
+.geo-map .leaflet-control-zoom a:hover {
+  background: var(--adm-panel);
+}
+.geo-map.leaflet-container .leaflet-control-attribution {
+  background: transparent;
+  color: rgb(255 255 255 / 0.35);
+  font-size: 0.58rem;
+  padding: 0 6px;
+}
+.geo-side {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  align-content: start;
+}
+.geo-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.geo-stats > div {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+}
+.geo-stats b {
+  font-size: 1.35rem;
+}
+.geo-sub {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--adm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 900px) {
+  .geo-body {
+    grid-template-columns: 1fr;
+  }
+  .geo-mapbox {
+    height: 380px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-light > i {
+    animation: none;
+  }
+}
+/* the key, bottom-left over the map */
+.geo-key {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgb(12 12 12 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(4px);
+  color: var(--adm-ink);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.geo-key-lights {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.geo-key-lights i {
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f4fff8 0%, var(--adm-chart) 70%);
+  box-shadow: 0 0 10px 3px color-mix(in srgb, var(--adm-chart) 55%, transparent);
+}
+.geo-tip b {
+  font-size: 0.92rem;
+}
+.geo-tip span {
+  color: var(--adm-muted);
+  font-size: 0.72rem;
+}
+.geo-tip em {
+  margin-top: 4px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+/* the side list: one list, switched between cities and states */
+.geo-list-head {
+  display: flex;
+  margin-top: 2px;
+}
+.adm-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--adm-line);
+}
+.adm-seg button {
+  all: unset;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: var(--adm-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.adm-seg button.is-on {
+  background: var(--adm-ink);
+  color: var(--adm-panel);
+}
+.adm-seg button:focus-visible {
+  outline: 2px solid var(--adm-ink);
+  outline-offset: 2px;
+}

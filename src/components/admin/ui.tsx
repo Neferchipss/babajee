@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/lib/currency";
 import { STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/order-status";
 import { homeCounts } from "@/lib/orders-db";
@@ -124,9 +124,14 @@ export function when(iso: string) {
 export const shortDay = (iso: string) => DAY.format(new Date(iso));
 export const money = (n: number) => formatPrice(n, { paise: n % 1 !== 0 });
 
+// Off for "All time": there is no period before it, so no ↑↓ pills and no
+// "before" line on the charts inside.
+export const CompareOff = createContext(false);
+
 export function Delta({ now, before, pct = true }: { now: number; before: number; pct?: boolean }) {
+  const off = useContext(CompareOff);
   // shown as a small pill; colour plus arrow, never colour alone
-  if (!before && !now) return null;
+  if (off || (!before && !now)) return null;
   if (!before) return <span className="adm-delta flat">new</span>;
   const d = pct ? ((now - before) / before) * 100 : now - before;
   const r = Math.round(d * 10) / 10;
@@ -168,6 +173,7 @@ export function LineChart({
   const [W, setW] = useState(0);
   const box = useRef<HTMLDivElement>(null);
   const gid = useId().replace(/:/g, "");
+  if (useContext(CompareOff)) prev = undefined;
 
   useEffect(() => {
     const el = box.current;
@@ -413,5 +419,14 @@ export function Dialog({ open, onClose, children, wide = false }: { open: boolea
     <dialog id={id} className={`adm-dialog ${wide ? "wide" : ""}`} onClose={onClose}>
       {open && children}
     </dialog>
+  );
+}
+
+// a bin, for delete buttons
+export function Bin({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" />
+    </svg>
   );
 }

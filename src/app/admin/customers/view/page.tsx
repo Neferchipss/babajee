@@ -65,6 +65,7 @@ function CustomerView() {
           <h1 className={c.role === "admin" ? "is-admin" : ""}>
             {c.full_name || c.email}
             {c.role === "admin" && <span className="adm-role">Admin</span>}
+            {c.is_test && <span className="adm-role is-test" title="A seeded test account: it can't sign in">Test</span>}
           </h1>
           <p className="adm-sub">Customer since {when(c.joined).toLowerCase()}</p>
         </div>

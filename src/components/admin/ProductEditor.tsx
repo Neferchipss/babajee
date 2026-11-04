@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { Bin } from "@/components/admin/ui";
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
@@ -114,6 +115,7 @@ export default function ProductEditor({
   api,
   onChanged,
   onClose,
+  onDelete,
   nav,
   sheet = true,
 }: {
@@ -123,6 +125,8 @@ export default function ProductEditor({
   // the product after a change, re-read from the database
   onChanged: (p: AdminProduct) => void;
   onClose?: () => void;
+  // asks before deleting the product; the page holds the confirm
+  onDelete?: () => void;
   nav?: { at: number; of: number; prev?: () => void; next?: () => void; nextNeeds?: () => void };
   sheet?: boolean;
 }) {
@@ -485,6 +489,15 @@ export default function ProductEditor({
           </p>
           {tracked && <StockHistory variants={product.variants} />}
         </section>
+
+        {onDelete && (
+          <section className="ape-fields ape-danger">
+            <button type="button" className="ape-delete" onClick={onDelete}>
+              <Bin /> Delete this product
+            </button>
+            <p className="ape-hint">For good, with its options and photos. If it has been ordered it stays: hide it instead.</p>
+          </section>
+        )}
       </div>
     </div>
   );

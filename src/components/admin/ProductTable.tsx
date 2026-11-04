@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { mainPrice, needsOf, setMainPrice } from "@/components/admin/ProductEditor";
-import { SortTh, useSort } from "@/components/admin/ui";
+import { Bin, SortTh, useSort } from "@/components/admin/ui";
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
 import { BRAND_NAMES } from "@/lib/brand";
@@ -29,6 +29,7 @@ export default function ProductTable({
   onOpen,
   onSave,
   onCreate,
+  onDelete,
   category,
 }: {
   products: AdminProduct[];
@@ -43,6 +44,8 @@ export default function ProductTable({
   onSave: (id: string, work: () => Promise<unknown>, msg?: string) => Promise<void>;
   // a new product, filled in on the sheet's empty first row
   onCreate: (d: NewRow) => Promise<void>;
+  // asks before deleting; the page holds the confirm
+  onDelete: (p: AdminProduct) => void;
   // the category in view, which a new product goes into by default
   category: string;
 }) {
@@ -170,6 +173,9 @@ export default function ProductTable({
                       <Switch on={p.is_visible} label={p.name} onFlip={() => save(() => api.setProductVisibility(p, !p.is_visible), `${p.name} ${p.is_visible ? "hidden from the shop" : "shown on the shop"}`)} />
                     </td>
                     <td className="c-open">
+                      <button type="button" className="apt-open apt-bin" onClick={() => onDelete(p)} aria-label={`Delete ${p.name}`} title="Delete">
+                        <Bin />
+                      </button>
                       <button type="button" className="apt-open" onClick={() => onOpen(p.id)} aria-label={`Open ${p.name}`} title="Open the full editor">
                         →
                       </button>

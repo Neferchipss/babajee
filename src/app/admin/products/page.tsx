@@ -8,7 +8,8 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
 import "@/components/admin/admin-products.css";
 import { adminApi } from "@/lib/admin-api";
-import type { AdminCategory, AdminProduct } from "@/lib/admin-data";
+import { Bin, Dialog } from "@/components/admin/ui";
+import { ProductOrdered, type AdminCategory, type AdminProduct } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
@@ -165,6 +166,35 @@ function ProductsAdmin() {
     toast(`${d.name} added${d.visible ? "" : ", hidden from the shop"}`);
   }
 
+  // delete these products; ordered ones can't go and are reported instead
+  const [deleting, setDeleting] = useState<AdminProduct[] | null>(null);
+  const [delBusy, setDelBusy] = useState(false);
+  async function deleteNow(list: AdminProduct[]) {
+    setDelBusy(true);
+    const gone: string[] = [];
+    const kept: string[] = [];
+    for (const p of list) {
+      try {
+        await api.deleteProduct(p);
+        gone.push(p.id);
+      } catch (e) {
+        if (e instanceof ProductOrdered) kept.push(p.name);
+        else {
+          toastError(e);
+          break;
+        }
+      }
+    }
+    setRows((rs) => rs.filter((r) => !gone.includes(r.id)));
+    setSelected((s) => new Set([...s].filter((id) => !gone.includes(id))));
+    if (openId && gone.includes(openId)) setOpenId(null);
+    if (gone.length) toast(gone.length === 1 ? `${list.find((p) => p.id === gone[0])!.name} deleted` : `${gone.length} products deleted`);
+    if (kept.length)
+      toast(kept.length === 1 ? `${kept[0]} has been ordered, so it stays. Hide it instead.` : `${kept.length} have been ordered, so they stay. Hide them instead.`, { tone: "info" });
+    setDelBusy(false);
+    setDeleting(null);
+  }
+
   async function bulk(visible: boolean) {
     setBulkBusy(true);
     try {
@@ -298,6 +328,9 @@ function ProductsAdmin() {
           <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk(false)}>
             Hide
           </button>
+          <button type="button" className="ap-chip ap-chip-bad" disabled={!selected.size || bulkBusy} onClick={() => setDeleting(rows.filter((r) => selected.has(r.id)))}>
+            Delete
+          </button>
           <button type="button" className="ap-link" onClick={() => setSelected(new Set(shown.map((p) => p.id)))}>
             Select all {shown.length}
           </button>
@@ -323,6 +356,7 @@ function ProductsAdmin() {
             }
             onOpen={(id) => setOpenId(id === openId ? null : id)}
             onCreate={tableAdd}
+            onDelete={(p) => setDeleting([p])}
             category={cat}
             onSave={async (id, work, msg) => {
               try {
@@ -351,6 +385,7 @@ function ProductsAdmin() {
                 selecting={selecting}
                 checked={selected.has(p.id)}
                 api={api}
+                onDelete={() => setDeleting([p])}
                 onSave={async (work) => {
                   try {
                     await work();
@@ -397,6 +432,7 @@ function ProductsAdmin() {
             api={api}
             onChanged={replace}
             onClose={() => setOpenId(null)}
+            onDelete={() => setDeleting([open])}
             nav={{
               at: at + 1,
               of: shown.length,
@@ -407,6 +443,34 @@ function ProductsAdmin() {
           />
         )}
       </div>
+
+      <Dialog open={deleting !== null} onClose={() => !delBusy && setDeleting(null)}>
+        {deleting && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void deleteNow(deleting);
+            }}
+          >
+            <h2>{deleting.length === 1 ? `Delete ${deleting[0].name}?` : `Delete ${deleting.length} products?`}</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              {deleting.length === 1 ? "It goes" : "They go"} for good, with {deleting.length === 1 ? "its" : "their"} options and photos. This can&apos;t be undone.
+            </p>
+            <p className="adm-muted adm-small" style={{ margin: 0 }}>
+              Anything that has been ordered stays, for those orders. To just take it off the shop, hide it.
+            </p>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" disabled={delBusy} onClick={() => setDeleting(null)}>
+                Keep
+              </button>
+              <button className="adm-btn bad" disabled={delBusy}>
+                {delBusy ? "Deleting" : "Delete"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
     </div>
   );
 }
@@ -415,6 +479,7 @@ function Card({
   product: p,
   open,
   selecting,
+  onDelete,
   checked,
   onClick,
   onToggleVisible,
@@ -425,6 +490,7 @@ function Card({
   product: AdminProduct;
   open: boolean;
   selecting: boolean;
+  onDelete: () => void;
   checked: boolean;
   onClick: () => void;
   onToggleVisible: () => Promise<void>;
@@ -460,6 +526,11 @@ function Card({
             <circle cx="12" cy="12" r="3" />
             {!p.is_visible && <path className="apc-eye-slash" d="M4 4l16 16" />}
           </svg>
+        </button>
+      )}
+      {!selecting && (
+        <button type="button" className="apc-bin" aria-label={`Delete ${p.name}`} title="Delete" onClick={onDelete}>
+          <Bin />
         </button>
       )}
       {/* the picture opens the product's editor beside the grid */}

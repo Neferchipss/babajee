@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { dayLabel, isoDay } from "@/lib/dates";
+import { firstOrderDay } from "@/lib/orders-db";
 
 // The date range shared by Analytics and Reports: a few presets plus any two
 // dates. The choice is remembered for the browser tab, so moving between the
@@ -20,6 +21,8 @@ const PRESETS = [
 
 const KEY = "adm-range";
 
+const ALL = "All time";
+
 function preset(id: string): Range {
   const p = PRESETS.find((x) => x.id === id) ?? PRESETS[3];
   return { id: p.id, from: p.from(), to: p.to() };
@@ -29,6 +32,7 @@ function preset(id: string): Range {
 export function rangeLabel(r: Range) {
   const p = PRESETS.find((x) => x.id === r.id);
   if (p) return p.label;
+  if (r.id === "all") return ALL;
   return r.from === r.to ? dayLabel(r.from) : `${dayLabel(r.from)} – ${dayLabel(r.to)}`;
 }
 
@@ -39,7 +43,8 @@ export function useRange(fallback = "30") {
     try {
       const saved = JSON.parse(sessionStorage.getItem(KEY) ?? "null") as Range | null;
       // presets are re-dated, so "Today" saved yesterday still means today
-      if (saved) return saved.id === "custom" ? saved : preset(saved.id);
+      // All time keeps its first day and runs to today
+      if (saved) return saved.id === "custom" ? saved : saved.id === "all" ? { ...saved, to: isoDay(0) } : preset(saved.id);
     } catch {}
     return preset(fallback);
   });
@@ -67,6 +72,17 @@ export function RangePicker({ value, onChange }: { value: Range; onChange: (r: R
             {p.label}
           </button>
         ))}
+        <button
+          type="button"
+          className={`adm-chip ${value.id === "all" ? "is-on" : ""}`}
+          onClick={async () => {
+            // from the first order there has ever been, to today
+            const first = await firstOrderDay().catch(() => null);
+            onChange({ id: "all", from: first ?? isoDay(-364), to: today });
+          }}
+        >
+          {ALL}
+        </button>
         <button type="button" className={`adm-chip ${custom ? "is-on" : ""}`} aria-expanded={custom} onClick={() => !custom && onChange({ ...value, id: "custom" })}>
           Custom
         </button>
@@ -89,11 +105,14 @@ export function RangePicker({ value, onChange }: { value: Range; onChange: (r: R
 }
 
 // Overview / Reports, under the Analytics nav item
-export function AnalyticsTabs({ on }: { on: "overview" | "reports" }) {
+export function AnalyticsTabs({ on }: { on: "overview" | "traffic" | "reports" }) {
   return (
     <div className="rng-tabs" role="tablist" aria-label="Analytics">
       <Link role="tab" aria-selected={on === "overview"} href="/admin/analytics">
         Overview
+      </Link>
+      <Link role="tab" aria-selected={on === "traffic"} href="/admin/analytics/traffic">
+        Traffic
       </Link>
       <Link role="tab" aria-selected={on === "reports"} href="/admin/analytics/reports">
         Reports

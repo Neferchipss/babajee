@@ -311,6 +311,67 @@ export async function analytics(from: string, to: string): Promise<Analytics> {
   return numbers(data as Analytics);
 }
 
+// ---------------------------------------------------------------- admin: traffic
+
+// Visits grouped into sessions. A bounce is a visit that saw one page and
+// went no further; "cart" and "checkout" count visits that reached them.
+export type TrafficGroup = { name: string; sessions: number; views: number; bounced: number; cart: number; checkout: number };
+export type Traffic = {
+  sessions: number;
+  views: number;
+  bounced: number;
+  engaged_secs: number;
+  cart_sessions: number;
+  checkout_sessions: number;
+  orders: number;
+  first_visit: string | null;
+  daily: { day: string; sessions: number; views: number }[];
+  sources: TrafficGroup[];
+  devices: TrafficGroup[];
+  landing: { name: string; sessions: number; bounced: number; checkout: number }[];
+  pages: { name: string; views: number; visitors: number }[];
+  hours: { dow: number; hour: number; sessions: number }[];
+  categories: { name: string; views: number; visitors: number; units: number; sales: number }[];
+};
+
+export async function traffic(from: string, to: string): Promise<Traffic> {
+  const { data, error } = await db().rpc("admin_traffic", { p_from: from, p_to: to });
+  if (error) throw error;
+  const t = numbers(data as Traffic);
+  // first_visit is a timestamp, not a number
+  return { ...t, first_visit: (data as Traffic).first_visit };
+}
+
+// the day (India time) of the first order, for the "All time" range
+export async function firstOrderDay(): Promise<string | null> {
+  const { data, error } = await db().from("orders").select("created_at").order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? new Date(data.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+}
+
+// ---------------------------------------------------------------- admin: geography
+
+// orders in a range by delivery city; lat/lng is the average map pin, when any
+export type GeoCity = { city: string; state: string; customers: number; orders: number; sales: number; lat: number | null; lng: number | null };
+
+export async function geo(from: string, to: string): Promise<{ cities: GeoCity[]; customers: number }> {
+  const { data, error } = await db().rpc("admin_geo", { p_from: from, p_to: to });
+  if (error) throw error;
+  const d = data as { cities: (Omit<GeoCity, "lat" | "lng"> & { lat: unknown; lng: unknown })[]; customers: number };
+  return {
+    customers: Number(d.customers),
+    cities: d.cities.map((c) => ({
+      city: c.city,
+      state: c.state,
+      customers: Number(c.customers),
+      orders: Number(c.orders),
+      sales: Number(c.sales),
+      lat: c.lat == null ? null : Number(c.lat),
+      lng: c.lng == null ? null : Number(c.lng),
+    })),
+  };
+}
+
 // ---------------------------------------------------------------- admin: customers
 
 export type Customer = {
@@ -323,6 +384,8 @@ export type Customer = {
   orders: number;
   spent: number;
   last_order: string | null;
+  // a seeded test account (can't sign in), tagged "Test" in the admin
+  is_test: boolean;
 };
 
 export async function listCustomers(): Promise<Customer[]> {

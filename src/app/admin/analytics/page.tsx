@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bars, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
+import Link from "next/link";
+import { useContext, useEffect, useState } from "react";
+import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
 import { analytics, errText, profit, type Analytics, type Profit } from "@/lib/orders-db";
@@ -47,12 +48,13 @@ export default function AnalyticsPage() {
   const label = rangeLabel(range);
 
   return (
+    <CompareOff.Provider value={range.id === "all"}>
     <div className="anx">
       <h1 className="sr-only">Analytics</h1>
       <AnalyticsTabs on="overview" />
       <div className="anx-bar">
         <RangePicker value={range} onChange={(r) => (setErr(""), setRange(r))} />
-        {days.length > 0 && <span className="adm-muted adm-small">vs the {days.length > 1 ? `${days.length} days` : "day"} before</span>}
+        {days.length > 0 && range.id !== "all" && <span className="adm-muted adm-small">vs the {days.length > 1 ? `${days.length} days` : "day"} before</span>}
       </div>
       {err && <p className="adm-err">{err}</p>}
 
@@ -239,10 +241,13 @@ export default function AnalyticsPage() {
               <Bars rows={a.devices.map((p) => ({ name: p.name[0].toUpperCase() + p.name.slice(1), value: p.sessions }))} fmt={count} />
             </section>
           </div>
-          <p className="adm-muted adm-small">Visitor counting started on 3 November 2026, so visits before then show as zero.</p>
+          <p className="adm-muted adm-small">
+            Where visitors and customers come from, when they visit and what they browse: <Link href="/admin/analytics/traffic">Traffic</Link>.
+          </p>
         </div>
       )}
     </div>
+    </CompareOff.Provider>
   );
 }
 
@@ -282,16 +287,19 @@ function SectionTitle({ id, children }: { id?: string; children: React.ReactNode
 }
 
 function Legend({ label, columns = false }: { label: string; columns?: boolean }) {
+  const off = useContext(CompareOff);
   return (
     <div className="adm-legend">
       <span>
         <i className={columns ? "col" : ""} />
         {label}
       </span>
-      <span>
-        <i className="prev" />
-        Before
-      </span>
+      {!off && (
+        <span>
+          <i className="prev" />
+          Before
+        </span>
+      )}
     </div>
   );
 }

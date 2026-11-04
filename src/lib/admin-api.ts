@@ -21,6 +21,7 @@ type Api = Pick<
   | "getProduct"
   | "createProduct"
   | "updateProduct"
+  | "deleteProduct"
   | "setProductVisibility"
   | "bulkSetVisibility"
   | "upsertVariant"
@@ -138,6 +139,9 @@ function makeDemo(): Api {
       const p = find(productId);
       if (variant.id) Object.assign(p.variants.find((v) => v.id === variant.id)!, variant);
       else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
+    },
+    async deleteProduct(product) {
+      products = products.filter((p) => p.id !== product.id);
     },
     async deleteVariant(id) {
       for (const p of products) p.variants = p.variants.filter((v) => v.id !== id);

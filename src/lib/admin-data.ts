@@ -232,6 +232,26 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
   }
 }
 
+// A product gone for good, with its options and photos. One that has been
+// ordered can't go (the orders keep pointing at it): that fails with
+// ProductOrdered, and hiding it is the way to take it off the shop.
+export class ProductOrdered extends Error {
+  constructor(name: string) {
+    super(`${name} has been ordered, so it stays for those orders. Hide it instead.`);
+    this.name = "ProductOrdered";
+  }
+}
+
+export async function deleteProduct(product: AdminProduct) {
+  const { error } = await db().rpc("admin_delete_product", { p_product: product.id });
+  if (error) {
+    if (error.message === "product_ordered") throw new ProductOrdered(product.name);
+    throw error;
+  }
+  const paths = product.images.map((i) => i.storage_path).filter((p) => p && p !== "demo");
+  if (paths.length) await db().storage.from(PHOTO_BUCKET).remove(paths);
+}
+
 export async function deleteVariant(id: string) {
   const { error } = await db().from("product_variants").delete().eq("id", id);
   if (error) throw error;

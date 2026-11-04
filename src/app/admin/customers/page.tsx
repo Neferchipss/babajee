@@ -12,6 +12,7 @@ const SEGMENTS: { id: string; label: string; match: (c: Customer) => boolean }[]
   { id: "all", label: "Everyone", match: () => true },
   { id: "customers", label: "Customers", match: (c) => c.role !== "admin" },
   { id: "admins", label: "Admins", match: (c) => c.role === "admin" },
+  { id: "test", label: "Test accounts", match: (c) => c.is_test },
   { id: "buyers", label: "Have ordered", match: (c) => c.orders > 0 },
   { id: "repeat", label: "Repeat buyers", match: (c) => c.orders > 1 },
   { id: "never", label: "Never ordered", match: (c) => c.orders === 0 },
@@ -89,6 +90,7 @@ export default function CustomersPage() {
                         {c.full_name || c.email}
                       </Link>
                       {c.role === "admin" && <span className="adm-role">Admin</span>}
+                      {c.is_test && <span className="adm-role is-test" title="A seeded test account: it can't sign in">Test</span>}
                       <div className="adm-muted adm-small">{c.phone || c.email}</div>
                     </td>
                     <td className="adm-muted" data-hide-sm>
