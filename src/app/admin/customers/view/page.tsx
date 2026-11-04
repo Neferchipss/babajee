@@ -7,7 +7,7 @@ import AddressMap from "@/components/admin/AddressMap";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
-import { addCustomerNote, customerDetail, errText, listCustomers, type Customer, type CustomerAddress, type CustomerNote, type Order } from "@/lib/orders-db";
+import { addCustomerNote, customerDetail, errText, listCustomers, setCustomerTags, type Customer, type CustomerAddress, type CustomerNote, type Order } from "@/lib/orders-db";
 
 // One customer: what they have spent, their orders, saved addresses and the
 // staff's private notes about them.
@@ -149,6 +149,22 @@ function CustomerView() {
 
         <div className="adm-stack">
           <section className="adm-card">
+            <h2>Tags</h2>
+            <CustomerTags
+              key={c.id + c.tags.join("|")}
+              tags={c.tags}
+              onChange={(tags) =>
+                setCustomerTags(c.id, tags)
+                  .then(load)
+                  .then(() => toast("Tags saved"))
+                  .catch((x) => (setErr(errText(x)), toastError(x)))
+              }
+            />
+            <p className="adm-muted adm-small" style={{ margin: "8px 0 0" }}>
+              For grouping customers: wholesale, regular, café owner. Only staff see them.
+            </p>
+          </section>
+          <section className="adm-card">
             <h2>Contact</h2>
             <p className="adm-small" style={{ margin: 0 }}>
               {c.phone && (
@@ -181,6 +197,51 @@ function CustomerView() {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Tags as chips: type and press Enter or a comma to add, × to take one off.
+function CustomerTags({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [list, setList] = useState(tags);
+  const [draft, setDraft] = useState("");
+  const commit = (next: string[]) => {
+    setList(next);
+    onChange(next);
+  };
+  function add(raw: string) {
+    const fresh = raw
+      .split(",")
+      .map((t) => t.trim().replace(/\s+/g, " "))
+      .filter((t, i, all) => t && !list.some((x) => x.toLowerCase() === t.toLowerCase()) && all.findIndex((y) => y.toLowerCase() === t.toLowerCase()) === i);
+    setDraft("");
+    if (fresh.length) commit([...list, ...fresh].slice(0, 20));
+  }
+  return (
+    <div className="cus-tagbox">
+      {list.map((t) => (
+        <span key={t} className="cus-tag">
+          {t}
+          <button type="button" aria-label={`Remove tag ${t}`} onClick={() => commit(list.filter((x) => x !== t))}>
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        aria-label="Add a tag"
+        value={draft}
+        placeholder={list.length ? "Add another" : "wholesale, regular…"}
+        onChange={(e) => (e.target.value.includes(",") ? add(e.target.value) : setDraft(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            add(draft);
+          } else if (e.key === "Backspace" && !draft && list.length) {
+            commit(list.slice(0, -1));
+          }
+        }}
+        onBlur={() => draft.trim() && add(draft)}
+      />
     </div>
   );
 }

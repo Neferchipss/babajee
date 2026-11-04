@@ -24,7 +24,8 @@ function client() {
 // Price is unset for local stand-in products (see useLocal below) and for
 // database options not priced yet (still ₹0); it then renders as the
 // "xx.xx" placeholder.
-export type DbVariant = { id: string; label: string; price?: number; stockQty: number };
+// compareAt: the higher "was" price, struck through on the card (0028)
+export type DbVariant = { id: string; label: string; price?: number; stockQty: number; compareAt?: number };
 export type DbCardProduct = {
   slug: string;
   name: string;
@@ -33,6 +34,10 @@ export type DbCardProduct = {
   variants: DbVariant[];
   // how it is packed, e.g. "Box of 50" (from the stock sheet, when known)
   unit?: string;
+  // its own search-engine title, when the admin wrote one
+  seoTitle?: string;
+  // the "was" price of its cheapest option, when that option is marked down
+  mrp?: number;
 };
 export type DbCategory = { slug: string; name: string };
 
@@ -72,11 +77,11 @@ function localProductDetail(categorySlug: string, productSlug: string) {
 }
 
 function normalizeVariants(
-  rows: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number }[] | null,
+  rows: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null,
 ): DbVariant[] {
   if (!rows?.length) return [{ id: "default", label: "Default", stockQty: 0 }];
   return rows.slice().sort((a, b) => a.sort_order - b.sort_order).map((v) => ({
-    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: toNumber(v.stock_qty),
+    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: toNumber(v.stock_qty), compareAt: toNumber(v.compare_at) || undefined,
   }));
 }
 
@@ -85,10 +90,16 @@ function minPriced(variants: DbVariant[]) {
   return priced.length ? Math.min(...priced) : undefined;
 }
 
+// the cheapest priced option's "was" price, when it's above what it sells for
+function markedDown(variants: DbVariant[]) {
+  const cheapest = variants.filter((v) => v.price !== undefined).sort((a, b) => a.price! - b.price!)[0];
+  return cheapest?.compareAt && cheapest.compareAt > cheapest.price! ? cheapest.compareAt : undefined;
+}
+
 function toCard(row: {
   slug: string;
   name: string;
-  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number }[] | null;
+  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null;
 }): DbCardProduct {
   const variants = normalizeVariants(row.product_variants);
   return {
@@ -97,6 +108,7 @@ function toCard(row: {
     variantCount: variants.length,
     // the lowest real price; none yet (all stand-ins) leaves it unset
     minPrice: minPriced(variants),
+    mrp: markedDown(variants),
     variants,
   };
 }
@@ -160,12 +172,12 @@ async function liveCategoryDetail(slug: string) {
   if (!category) return null;
   const { data: products } = await sb
     .from("products")
-    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, sort_order)")
+    .select("slug, name, sort_order, seo_title, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
     .eq("category_id", category.id)
     .order("sort_order");
   return {
     category: { slug: category.slug, name: category.name },
-    products: (products ?? []).map(toCard),
+    products: (products ?? []).map((p) => ({ ...toCard(p), seoTitle: (p as { seo_title?: string }).seo_title ?? "" })),
   };
 }
 
@@ -181,7 +193,7 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
   if (!category) return null;
   const { data: product } = await sb
     .from("products")
-    .select("id, slug, name, description, product_variants(id, label, price, stock_qty, sort_order)")
+    .select("id, slug, name, description, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
     .eq("category_id", category.id)
     .eq("slug", productSlug)
     .maybeSingle();
@@ -189,7 +201,7 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
   if (!product) return null;
   const { data: moreRows } = await sb
     .from("products")
-    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, sort_order)")
+    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
     .eq("category_id", category.id)
     .neq("slug", productSlug)
     .order("sort_order")
@@ -234,7 +246,7 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   if (!sb) return null;
   const { data, error } = await sb
     .from("products")
-    .select("slug, name, product_variants(id, label, price, stock_qty, sort_order), categories!inner(slug, name)")
+    .select("slug, name, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
   return (data ?? [])
@@ -261,4 +273,53 @@ export async function getShelfPicks(slugs: string[], per = 4): Promise<Record<st
     }),
   );
   return out;
+}
+
+// ---------------------------------------------------------------- search-engine listings
+
+// Everything the page titles need, for every visible product, read once per
+// build (each of the ~450 product pages asks; one query answers them all).
+export type SeoProduct = {
+  slug: string;
+  categorySlug: string;
+  categoryName: string;
+  name: string;
+  description: string;
+  brand: string;
+  seoTitle: string;
+  seoDescription: string;
+  minPrice?: number;
+};
+let seoCache: Promise<SeoProduct[]> | null = null;
+export function getSeoCatalog(): Promise<SeoProduct[]> {
+  return (seoCache ??= (async () => {
+    const sb = client();
+    const data = sb
+      ? (await sb.from("products").select("slug, name, description, brand, seo_title, seo_description, categories!inner(slug, name), product_variants(price)")).data
+      : null;
+    if (data?.length)
+      return data.map((p) => {
+        const c = p.categories as unknown as { slug: string; name: string };
+        const prices = ((p.product_variants ?? []) as { price: unknown }[]).map((v) => toNumber(v.price)).filter((x) => x > 0);
+        return {
+          slug: p.slug,
+          categorySlug: c.slug,
+          categoryName: c.name,
+          name: p.name,
+          description: p.description ?? "",
+          brand: p.brand ?? "",
+          seoTitle: p.seo_title ?? "",
+          seoDescription: p.seo_description ?? "",
+          minPrice: prices.length ? Math.min(...prices) : undefined,
+        };
+      });
+    if (!useLocal) return [];
+    return CATEGORIES.flatMap((c) =>
+      c.products.map((p) => ({ slug: p.slug, categorySlug: c.slug, categoryName: c.name, name: p.name, description: "", brand: "", seoTitle: "", seoDescription: "" })),
+    );
+  })());
+}
+
+export async function getSeoProduct(categorySlug: string, productSlug: string) {
+  return (await getSeoCatalog()).find((p) => p.categorySlug === categorySlug && p.slug === productSlug) ?? null;
 }

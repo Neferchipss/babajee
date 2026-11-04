@@ -120,7 +120,7 @@ function ProductsAdmin() {
   ] as const;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return inCat.filter((p) => (!q || `${p.name} ${p.brand} ${p.product_type} ${p.tags.join(" ")}`.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
+    return inCat.filter((p) => (!q || `${p.name} ${p.brand} ${p.product_type} ${p.tags.join(" ")} ${p.variants.map((v) => `${v.sku ?? ""} ${v.barcode ?? ""}`).join(" ")}`.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
   }, [inCat, query, need]);
 
   const open = openId ? rows.find((p) => p.id === openId) : undefined;

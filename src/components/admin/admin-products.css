@@ -816,7 +816,8 @@
 .ape-field input,
 .ape-field select,
 .ape-field textarea,
-.ape-opt input {
+.ape-opt input,
+.ape-codes-grid input {
   width: 100%;
   min-width: 0;
   padding: 11px 13px;
@@ -2138,4 +2139,367 @@ select.apt-in {
 }
 .ape-delete:hover {
   background: rgb(194 51 77 / 0.08);
+}
+
+/* ------------------------------------------------------------------ search engine listing */
+.ape-seo-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ape-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  opacity: 0.6;
+}
+.ape-count.is-over {
+  color: #c2334d;
+  opacity: 1;
+}
+/* a search result, drawn the way Google shows one */
+.ape-serp {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #202124;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.35;
+}
+.ape-serp-site {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.ape-serp-site i {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f1f3f4;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+}
+.ape-serp-site span {
+  display: grid;
+}
+.ape-serp-site small {
+  color: #4d5156;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ape-serp-title {
+  margin-top: 4px;
+  color: #1a0dab;
+  font-size: 19px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.ape-serp-desc {
+  color: #4d5156;
+  font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ape-link {
+  all: unset;
+  justify-self: start;
+  cursor: pointer;
+  color: var(--ap-muted, currentColor);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ codes and was-price */
+.ape-codes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ape-codes-head h3 {
+  margin: 0;
+}
+.ape-codes-grid {
+  display: grid;
+  grid-template-columns: 0 minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: start;
+}
+.ape-codes-grid.is-many {
+  grid-template-columns: minmax(70px, 0.7fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.ape-codes-th {
+  color: var(--ap-muted, currentColor);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ape-codes-opt {
+  align-self: center;
+  font-weight: 600;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ape-codes-grid input {
+  padding: 9px 11px;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+.ape-codes-grid > input::placeholder {
+  opacity: 0.45;
+}
+.ape-codes-was {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ape-codes-was .ape-money.is-below {
+  outline: 1px solid #c2334d;
+  border-radius: 10px;
+}
+.ape-codes-off {
+  color: var(--color-green-soft, #5fd38d);
+  font-weight: 700;
+}
+.ape-codes-warn {
+  color: #c2334d;
+  line-height: 1.3;
+}
+@media (max-width: 560px) {
+  .ape-codes-grid,
+  .ape-codes-grid.is-many {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .ape-codes-th {
+    display: none;
+  }
+  .ape-codes-grid:not(.is-many) .ape-codes-opt {
+    display: none;
+  }
+  .ape-codes-grid.is-many .ape-codes-opt {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+  }
+}
+.ape-codes-grid input::placeholder {
+  font-weight: 400;
+  opacity: 0.45;
+}
+
+/* ------------------------------------------------------------------ editor, simplified (folds) */
+/* one line under the name: price, options, stock, category, and what it needs */
+.ape-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-top: -14px;
+  color: var(--ap-muted);
+  font-size: 0.9rem;
+}
+.ape-summary b {
+  color: var(--color-paper);
+  font-size: 1.15rem;
+}
+.ape-summary span + span::before,
+.ape-summary b + span::before {
+  content: "·";
+  margin-right: 10px;
+  opacity: 0.6;
+}
+.ape-summary em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: var(--ap-hot);
+  background: color-mix(in srgb, var(--ap-hot) 14%, transparent);
+}
+/* photos as a strip: the shelf photo bigger, the rest after it */
+.ape-photos {
+  padding: 0;
+  margin-inline: 0;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) > li {
+  flex: 0 0 86px;
+  height: 86px;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) > li:first-child:not(:last-child) {
+  flex-basis: 150px;
+  height: 150px;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) {
+  align-items: flex-end;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) .ape-drop {
+  height: 86px;
+  aspect-ratio: auto;
+  width: 86px;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) .ape-thumb-tools button {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+}
+.ape-photos > .ape-thumbs:not(.ape-thumbs--sm) .ape-thumb-opt {
+  top: 4px;
+  font-size: 0.66rem;
+}
+/* folded sections */
+.ape-fold {
+  border-top: 1px solid var(--ap-line);
+}
+.ape-fold:last-of-type {
+  border-bottom: 1px solid var(--ap-line);
+}
+.ape-fold + .ape-fold {
+  margin-top: -22px;
+}
+.ape-fold > summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 15px 2px;
+  cursor: pointer;
+}
+.ape-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.ape-fold-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--color-paper);
+}
+.ape-fold-sum {
+  color: var(--ap-muted);
+  font-size: 0.84rem;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ape-fold > summary i {
+  font-style: normal;
+  color: var(--ap-muted);
+  transition: transform 0.15s;
+}
+.ape-fold[open] > summary i {
+  transform: rotate(90deg);
+}
+.ape-fold > summary:hover .ape-fold-title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ape-fold > summary:focus-visible {
+  outline: 2px solid var(--color-rasta-gold);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.ape-fold-body {
+  display: grid;
+  gap: 18px;
+  padding: 2px 0 20px;
+}
+/* the fold's line already names it */
+.ape-fold-body > section > h3:first-child,
+.ape-fold-body .ape-codes-head h3 {
+  display: none;
+}
+.ape-fold-body .ape-codes-head {
+  justify-content: flex-end;
+}
+.ape-fold-body > section.ape-danger {
+  border: 0;
+  padding: 0;
+}
+/* delete: quiet, at the very end */
+.ape-delete-link {
+  all: unset;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  color: color-mix(in srgb, #c2334d 85%, var(--color-paper));
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ape-delete-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ape-delete-link:focus-visible {
+  outline: 2px solid var(--color-rasta-gold);
+  outline-offset: 2px;
+}
+/* nothing inside may widen the panel: the photo strip scrolls within it */
+.ape-body > * {
+  min-width: 0;
+}
+/* an option's photos: one quiet row of small squares, the add button the same size */
+.ape-opt-photos {
+  padding: 0 0 10px;
+}
+.ape-opt-photos .ape-thumbs--sm {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-height: 0;
+  gap: 6px;
+  scrollbar-width: thin;
+}
+.ape-opt-photos .ape-thumbs--sm > li {
+  flex: 0 0 44px;
+}
+.ape-opt-photos .ape-thumbs--sm .ape-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+.ape-opt-photos .ape-opt-add {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  border-radius: 8px;
+}
+.ape-opt-photos .ape-opt-add::before {
+  content: "+";
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+/* on a small square, only the remove button, top-right on hover */
+.ape-opt-photos .ape-thumb-opt,
+.ape-opt-photos .ape-thumb-tools button:not(.is-del) {
+  display: none;
+}
+.ape-opt-photos .ape-thumb-tools {
+  inset: 2px 2px auto auto;
+}
+.ape-opt-photos .ape-thumb-tools .is-del {
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
 }

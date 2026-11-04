@@ -16,6 +16,10 @@ export type AdminVariant = {
   track_stock: boolean;
   is_visible: boolean;
   sort_order: number;
+  // codes and the "was" price (0028); empty is null
+  sku: string | null;
+  barcode: string | null;
+  compare_at: number | null;
 };
 // A photo uploaded from the admin, in the product-photos bucket
 // (supabase/migrations/0012_product_photo_storage.sql). variant_id ties it to
@@ -39,6 +43,9 @@ export type AdminProduct = {
   brand: string;
   product_type: string;
   tags: string[];
+  // its search-engine listing; empty means made automatically (0026, lib/seo.ts)
+  seo_title: string;
+  seo_description: string;
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -64,8 +71,19 @@ function toVariant(row: {
   track_stock?: boolean;
   is_visible: boolean;
   sort_order: number;
+  sku?: string | null;
+  barcode?: string | null;
+  compare_at?: unknown;
 }): AdminVariant {
-  return { ...row, price: toNumber(row.price), stock_qty: toNumber(row.stock_qty), track_stock: row.track_stock ?? false };
+  return {
+    ...row,
+    price: toNumber(row.price),
+    stock_qty: toNumber(row.stock_qty),
+    track_stock: row.track_stock ?? false,
+    sku: row.sku ?? null,
+    barcode: row.barcode ?? null,
+    compare_at: row.compare_at == null ? null : toNumber(row.compare_at),
+  };
 }
 
 export async function listCategories(): Promise<AdminCategory[]> {
@@ -106,7 +124,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -116,6 +134,8 @@ type ProductRow = {
   brand: string | null;
   product_type: string | null;
   tags: string[] | null;
+  seo_title: string | null;
+  seo_description: string | null;
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -136,6 +156,8 @@ function toProduct(row: ProductRow): AdminProduct {
     brand: row.brand ?? "",
     product_type: row.product_type ?? "",
     tags: row.tags ?? [],
+    seo_title: row.seo_title ?? "",
+    seo_description: row.seo_description ?? "",
     is_visible: row.is_visible,
     sort_order: row.sort_order,
     category_id: row.category_id,
@@ -178,7 +200,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "is_visible" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "is_visible" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;
@@ -211,11 +233,15 @@ export async function bulkSetProductVisibility(ids: string[], visible: boolean) 
   if (error) throw error;
 }
 
+// a SKU that's already on another option: say so plainly
+const skuTaken = (e: { code?: string; message?: string }) =>
+  e.code === "23505" && /sku/i.test(e.message ?? "") ? new Error("That SKU is already used by another option. Each SKU has to be different.") : e;
+
 export async function upsertVariant(productId: string, variant: Partial<AdminVariant> & { id?: string }) {
   if (variant.id) {
     const { id, ...patch } = variant;
     const { error } = await db().from("product_variants").update(patch).eq("id", id);
-    if (error) throw error;
+    if (error) throw skuTaken(error);
   } else {
     const { error } = await db()
       .from("product_variants")

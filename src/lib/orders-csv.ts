@@ -1,7 +1,7 @@
 // Orders as a spreadsheet (CSV that Excel and Google Sheets open as-is):
 // one row per order, or one row per item for packing or stock counts.
 import { STATUS_LABEL } from "./order-status";
-import type { Order } from "./orders-db";
+import type { Customer, Order } from "./orders-db";
 
 const STAMP = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Kolkata",
@@ -59,4 +59,17 @@ export function download(name: string, text: string) {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// the customers in view, one row each
+export function customersCsv(rows: Customer[]) {
+  const head = ["Name", "Email", "Phone", "City", "State", "Tags", "Account", "Joined", "Orders", "Spent", "Last order"];
+  return sheet([
+    head,
+    ...rows.map((c) => [
+      c.full_name, c.email, c.phone, c.city, c.state, c.tags.join("; "),
+      c.role === "admin" ? "Admin" : c.is_test ? "Test" : "Customer",
+      stamp(c.joined), c.orders, r2(c.spent), c.last_order ? stamp(c.last_order) : "",
+    ]),
+  ]);
 }

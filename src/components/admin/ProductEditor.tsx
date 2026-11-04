@@ -2,6 +2,8 @@
 
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { Bin } from "@/components/admin/ui";
+import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
+import { suggestSku } from "@/lib/sku";
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
@@ -261,6 +263,12 @@ export default function ProductEditor({
     ...shoot.filter((x) => x.group === g).map((x) => ({ key: x.path, src: x.src, ref: { kind: "shoot", path: x.path } as PhotoRef, shoot: true })),
   ];
   const groupProps = { live, drop, setDrop, dragRef, onPlace: place, onRemove: remove, options: many ? product.variants : null };
+  // for the one-line summaries
+  const catName = categories.find((c) => c.id === product.category_id)?.name ?? product.category_name ?? "";
+  const needs = needsOf(product);
+  const stockLeft = product.variants.filter((v) => v.track_stock).reduce((n, v) => n + v.stock_qty, 0);
+  const withSku = product.variants.filter((v) => v.sku).length;
+  const onOffer = product.variants.some((v) => v.compare_at && v.compare_at > v.price && v.price > 0);
 
   return (
     <div className={sheet ? "ape ape--sheet" : "ape"} role={sheet ? "dialog" : undefined} aria-label={sheet ? `Edit ${product.name}` : undefined}>
@@ -306,6 +314,14 @@ export default function ProductEditor({
             {product.is_visible ? "On the shop" : "Hidden"}
           </button>
         </div>
+        <div className="ape-summary">
+          <b>{mainPrice(product) > 0 ? formatPrice(mainPrice(product)) : "No price"}</b>
+          {many && <span>{product.variants.length} options</span>}
+          {tracked && <span>{stockLeft} in stock</span>}
+          <span>{catName}</span>
+          {needs.photo && <em>Needs a photo</em>}
+          {needs.price && <em>Needs a price</em>}
+        </div>
         {err && <p className="ape-err">{err}</p>}
 
         {/* photos: drag any of them to reorder, or onto an option below */}
@@ -322,7 +338,7 @@ export default function ProductEditor({
             void addFiles([...e.dataTransfer.files]);
           }}
         >
-          <h3>{many ? "Photos of the product" : "Photos"}</h3>
+          <h3 className="sr-only">{many ? "Photos of the product" : "Photos"}</h3>
           <PhotoGroup
             {...groupProps}
             group={null}
@@ -337,8 +353,7 @@ export default function ProductEditor({
                 ) : (
                   <>
                     <b aria-hidden="true">+</b>
-                    <span>Add photos</span>
-                    <small>Drop, paste or choose</small>
+                    <span>Add</span>
                   </>
                 )}
               </button>
@@ -355,65 +370,6 @@ export default function ProductEditor({
               e.target.value = "";
             }}
           />
-        </section>
-
-        {/* details */}
-        <section className="ape-fields">
-          <h3>Details</h3>
-          <label className="ape-field">
-            <span>Category</span>
-            <select value={product.category_id} onChange={(e) => run(() => api.updateProduct(product.id, { category_id: e.target.value }))}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="ape-field ape-field--wide">
-            <span>Description</span>
-            <textarea
-              rows={3}
-              value={description}
-              placeholder="Pack size, material, what it fits"
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={() => description !== product.description && run(() => api.updateProduct(product.id, { description: description.trim() }))}
-            />
-          </label>
-          <label className="ape-field">
-            <span>Brand</span>
-            <input
-              list="ape-brands"
-              value={brand}
-              placeholder={brandOf(product.name).brand ?? "No brand"}
-              onChange={(e) => setBrand(e.target.value)}
-              onBlur={() => brand.trim() !== product.brand && run(() => api.updateProduct(product.id, { brand: brand.trim() }))}
-            />
-            <datalist id="ape-brands">
-              {BRAND_NAMES.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
-          </label>
-          <label className="ape-field">
-            <span>Type</span>
-            <input
-              list="ape-types"
-              value={ptype}
-              placeholder="Cones, papers, tray…"
-              onChange={(e) => setPtype(e.target.value)}
-              onBlur={() => ptype.trim() !== product.product_type && run(() => api.updateProduct(product.id, { product_type: ptype.trim() }))}
-            />
-            <datalist id="ape-types">
-              {TYPE_HINTS.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
-          </label>
-          <div className="ape-field ape-field--wide">
-            <span id="ape-tags-label">Tags</span>
-            <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
-          </div>
         </section>
 
         {/* price and options */}
@@ -467,36 +423,108 @@ export default function ProductEditor({
           </button>
         </section>
 
-        {/* what each option costs the shop, and what it makes */}
-        <CostAndProfit variants={product.variants} />
+        <Fold title="Details" summary={[catName, product.brand, product.product_type, product.tags.length ? `${product.tags.length} tag${product.tags.length === 1 ? "" : "s"}` : "", !product.description.trim() && "no description yet"].filter(Boolean).join(" · ")}>
+          {/* details */}
+          <section className="ape-fields">
+            <h3>Details</h3>
+            <label className="ape-field">
+              <span>Category</span>
+              <select value={product.category_id} onChange={(e) => run(() => api.updateProduct(product.id, { category_id: e.target.value }))}>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ape-field ape-field--wide">
+              <span>Description</span>
+              <textarea
+                rows={3}
+                value={description}
+                placeholder="Pack size, material, what it fits"
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => description !== product.description && run(() => api.updateProduct(product.id, { description: description.trim() }))}
+              />
+            </label>
+            <label className="ape-field">
+              <span>Brand</span>
+              <input
+                list="ape-brands"
+                value={brand}
+                placeholder={brandOf(product.name).brand ?? "No brand"}
+                onChange={(e) => setBrand(e.target.value)}
+                onBlur={() => brand.trim() !== product.brand && run(() => api.updateProduct(product.id, { brand: brand.trim() }))}
+              />
+              <datalist id="ape-brands">
+                {BRAND_NAMES.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
+            </label>
+            <label className="ape-field">
+              <span>Type</span>
+              <input
+                list="ape-types"
+                value={ptype}
+                placeholder="Cones, papers, tray…"
+                onChange={(e) => setPtype(e.target.value)}
+                onBlur={() => ptype.trim() !== product.product_type && run(() => api.updateProduct(product.id, { product_type: ptype.trim() }))}
+              />
+              <datalist id="ape-types">
+                {TYPE_HINTS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </label>
+            <div className="ape-field ape-field--wide">
+              <span id="ape-tags-label">Tags</span>
+              <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
+            </div>
+          </section>
+        </Fold>
 
-        {/* stock: counted down by each order when tracked, with its history */}
-        <section className="ape-fields">
-          <h3>Stock</h3>
-          <button
-            type="button"
-            className={`ape-switch ${tracked ? "is-on" : ""}`}
-            aria-pressed={tracked}
-            onClick={() => run(() => Promise.all(product.variants.map((v) => api.upsertVariant(product.id, { id: v.id, track_stock: !tracked }))))}
-          >
-            <i aria-hidden="true" />
-            {tracked ? "Tracking stock" : "Not tracking stock"}
-          </button>
-          <p className="ape-hint">
-            {tracked
-              ? `Each order takes its items off the ${many ? "counts" : "count"} above, and at 0 ${many ? "an option" : "it"} can't be ordered.`
-              : "Always orderable. Turn this on to count stock down with each order and stop orders at 0."}
-          </p>
-          {tracked && <StockHistory variants={product.variants} />}
-        </section>
+        <Fold title="Stock" summary={tracked ? `Counted · ${stockLeft} in stock` : "Not counted · always orderable"}>
+          {/* stock: counted down by each order when tracked, with its history */}
+          <section className="ape-fields">
+            <h3>Stock</h3>
+            <button
+              type="button"
+              className={`ape-switch ${tracked ? "is-on" : ""}`}
+              aria-pressed={tracked}
+              onClick={() => run(() => Promise.all(product.variants.map((v) => api.upsertVariant(product.id, { id: v.id, track_stock: !tracked }))))}
+            >
+              <i aria-hidden="true" />
+              {tracked ? "Tracking stock" : "Not tracking stock"}
+            </button>
+            <p className="ape-hint">
+              {tracked
+                ? `Each order takes its items off the ${many ? "counts" : "count"} above, and at 0 ${many ? "an option" : "it"} can't be ordered.`
+                : "Always orderable. Turn this on to count stock down with each order and stop orders at 0."}
+            </p>
+            {tracked && <StockHistory variants={product.variants} />}
+          </section>
+        </Fold>
+
+        <Fold title="Codes and was-price" summary={`${withSku} of ${product.variants.length} SKU${product.variants.length === 1 ? "" : "s"}${onOffer ? " · on offer" : ""}`}>
+          {/* SKU, barcode and the "was" price, per option */}
+          <VariantCodes product={product} categorySlug={categories.find((c) => c.id === product.category_id)?.slug ?? product.category_slug ?? ""} onSave={(id, patch) => run(() => api.upsertVariant(product.id, { id, ...patch }))} />
+        </Fold>
+
+        <Fold title="Cost and profit" summary={"What it costs you, and what you make"}>
+          {/* what each option costs the shop, and what it makes */}
+          <CostAndProfit variants={product.variants} />
+        </Fold>
+
+        <Fold title="Search engine listing" summary={product.seo_title || product.seo_description ? "Written by you" : "Automatic"}>
+          {/* how it shows on Google and in shared links */}
+          <SeoListing key={`seo-${product.id}`} product={product} categoryName={categories.find((c) => c.id === product.category_id)?.name ?? product.category_name ?? ""} onSave={(patch) => run(() => api.updateProduct(product.id, patch))} />
+        </Fold>
 
         {onDelete && (
-          <section className="ape-fields ape-danger">
-            <button type="button" className="ape-delete" onClick={onDelete}>
-              <Bin /> Delete this product
-            </button>
-            <p className="ape-hint">For good, with its options and photos. If it has been ordered it stays: hide it instead.</p>
-          </section>
+          <button type="button" className="ape-delete-link" onClick={onDelete} title="For good, with its options and photos. If it has been ordered it stays: hide it instead.">
+            <Bin /> Delete this product
+          </button>
         )}
       </div>
     </div>
@@ -934,5 +962,191 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string
         onBlur={() => draft.trim() && add(draft)}
       />
     </div>
+  );
+}
+
+// The product's search-engine listing: what Google shows, and what WhatsApp
+// or Instagram show when someone shares its link. Both fields are optional;
+// left empty, they're written from the product (lib/seo.ts), and the preview
+// shows exactly that.
+function SeoListing({
+  product,
+  categoryName,
+  onSave,
+}: {
+  product: AdminProduct;
+  categoryName: string;
+  onSave: (patch: { seo_title?: string; seo_description?: string }) => void;
+}) {
+  const [title, setTitle] = useState(product.seo_title);
+  const [desc, setDesc] = useState(product.seo_description);
+  const base = { name: product.name, category: categoryName, description: product.description, brand: product.brand, price: mainPrice(product) || null };
+  const autoT = autoTitle(base);
+  const autoD = autoDescription(base);
+  const shownT = fullTitle(title.trim() || autoT);
+  const shownD = desc.trim() || autoD;
+  const slugPath = ["shop", product.category_slug ?? "", product.slug].filter(Boolean).join(" › ");
+  const count = (n: number, max: number) => (
+    <span className={`ape-count ${n > max ? "is-over" : ""}`}>
+      {n}/{max}
+    </span>
+  );
+  return (
+    <section className="ape-fields ape-seo">
+      <h3>Search engine listing</h3>
+      <p className="ape-hint">How it shows on Google and when its link is shared. Leave empty to use what&apos;s written from the product. Changes reach Google after the next site update.</p>
+      <div className="ape-serp" aria-label="Preview of the search result">
+        <span className="ape-serp-site">
+          <i aria-hidden="true">B</i>
+          <span>
+            Babajee
+            <small>neferchipss.github.io › {slugPath}</small>
+          </span>
+        </span>
+        <b className="ape-serp-title">{shownT.length > TITLE_MAX + 11 ? `${shownT.slice(0, TITLE_MAX + 10)}…` : shownT}</b>
+        <span className="ape-serp-desc">{shownD}</span>
+      </div>
+      <label className="ape-field ape-field--wide">
+        <span className="ape-seo-label">
+          Page title {count(shownT.length, TITLE_MAX)}
+        </span>
+        <input
+          value={title}
+          maxLength={120}
+          placeholder={autoT}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => title.trim() !== product.seo_title && onSave({ seo_title: title.trim() })}
+        />
+      </label>
+      <label className="ape-field ape-field--wide">
+        <span className="ape-seo-label">
+          Description {count(shownD.length, DESC_MAX)}
+        </span>
+        <textarea
+          rows={3}
+          value={desc}
+          maxLength={320}
+          placeholder={autoD}
+          onChange={(e) => setDesc(e.target.value)}
+          onBlur={() => desc.trim() !== product.seo_description && onSave({ seo_description: desc.trim() })}
+        />
+      </label>
+      {(product.seo_title || product.seo_description) && (
+        <button
+          type="button"
+          className="ape-link"
+          onClick={() => {
+            setTitle("");
+            setDesc("");
+            onSave({ seo_title: "", seo_description: "" });
+          }}
+        >
+          Go back to the automatic listing
+        </button>
+      )}
+    </section>
+  );
+}
+
+// Codes and the "was" price for each option. The SKU is the shop's own stock
+// code (on orders and exports); the barcode is the number printed under the
+// bars; the compare-at price is the higher price the shop strikes through
+// beside the real one, with "₹x OFF".
+function VariantCodes({ product, categorySlug, onSave }: { product: AdminProduct; categorySlug: string; onSave: (id: string, patch: Partial<AdminVariant>) => Promise<boolean> }) {
+  const many = product.variants.length > 1;
+  const empty = product.variants.filter((v) => !v.sku);
+  return (
+    <section className="ape-fields ape-codes">
+      <div className="ape-codes-head">
+        <h3>Codes and was-price</h3>
+        {empty.length > 0 && (
+          <button
+            type="button"
+            className="ape-chip"
+            onClick={async () => {
+              for (const v of empty) await onSave(v.id, { sku: suggestSku(categorySlug, product.slug, v.label, many) });
+            }}
+          >
+            Fill in {empty.length === product.variants.length ? "SKUs" : `${empty.length} missing SKU${empty.length === 1 ? "" : "s"}`}
+          </button>
+        )}
+      </div>
+      <p className="ape-hint">SKU is your own stock code; it goes on orders and exports. Compare-at is the higher price shown struck through, like ₹499 → ₹399 with ₹100 OFF.</p>
+      <div className={`ape-codes-grid ${many ? "is-many" : ""}`}>
+        <span className="ape-codes-th">{many ? "Option" : ""}</span>
+        <span className="ape-codes-th">SKU</span>
+        <span className="ape-codes-th">Barcode</span>
+        <span className="ape-codes-th">Compare-at price</span>
+        {product.variants.map((v) => (
+          <CodeRow key={`${v.id}|${v.sku}|${v.barcode}|${v.compare_at}`} variant={v} many={many} hint={suggestSku(categorySlug, product.slug, v.label, many)} onSave={(patch) => onSave(v.id, patch)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CodeRow({ variant: v, many, hint, onSave }: { variant: AdminVariant; many: boolean; hint: string; onSave: (patch: Partial<AdminVariant>) => void }) {
+  const [sku, setSku] = useState(v.sku ?? "");
+  const [code, setCode] = useState(v.barcode ?? "");
+  const [was, setWas] = useState(v.compare_at ? String(v.compare_at) : "");
+  const wasN = Number(was) || 0;
+  const below = wasN > 0 && v.price > 0 && wasN <= v.price;
+  const enter = (e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && e.currentTarget.blur();
+  return (
+    <>
+      <span className="ape-codes-opt">{many ? v.label : ""}</span>
+      <input
+        aria-label={`${v.label} SKU`}
+        value={sku}
+        placeholder={hint}
+        spellCheck={false}
+        onChange={(e) => setSku(e.target.value.toUpperCase())}
+        onKeyDown={enter}
+        onBlur={() => sku.trim() !== (v.sku ?? "") && onSave({ sku: sku.trim() || null })}
+      />
+      <input
+        aria-label={`${v.label} barcode`}
+        value={code}
+        inputMode="numeric"
+        placeholder="EAN or UPC"
+        spellCheck={false}
+        onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
+        onKeyDown={enter}
+        onBlur={() => code.trim() !== (v.barcode ?? "") && onSave({ barcode: code.trim() || null })}
+      />
+      <span className="ape-codes-was">
+        <span className={`ape-money ${below ? "is-below" : ""}`}>
+          <i>₹</i>
+          <input
+            aria-label={`${v.label} compare-at price`}
+            inputMode="decimal"
+            value={was}
+            placeholder="None"
+            onChange={(e) => setWas(e.target.value.replace(/[^\d.]/g, ""))}
+            onKeyDown={enter}
+            onBlur={() => (wasN || null) !== v.compare_at && onSave({ compare_at: wasN || null })}
+          />
+        </span>
+        {wasN > v.price && v.price > 0 ? (
+          <small className="ape-codes-off">{Math.round(((wasN - v.price) / wasN) * 100)}% off</small>
+        ) : below ? (
+          <small className="ape-codes-warn">Not above the price, so it won&apos;t show</small>
+        ) : null}
+      </span>
+    </>
+  );
+}
+
+// A section folded to one line: its name and what's in it. Open it to edit.
+function Fold({ title, summary, children }: { title: string; summary: string; children: ReactNode }) {
+  return (
+    <details className="ape-fold">
+      <summary>
+        <span className="ape-fold-title">{title}</span>
+        <span className="ape-fold-sum">{summary}</span>
+        <i aria-hidden="true">›</i>
+      </summary>
+      <div className="ape-fold-body">{children}</div>
+    </details>
   );
 }

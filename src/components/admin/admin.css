@@ -2850,3 +2850,175 @@ th[aria-sort="ascending"] .adm-sort .down {
   outline: 2px solid var(--adm-ink);
   outline-offset: 2px;
 }
+
+/* ------------------------------------------------------------------ customers: groups, tags, add */
+.cus-mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cus-mine-label {
+  color: var(--adm-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-right: 2px;
+}
+.adm-chip.cus-own {
+  border-style: dashed;
+}
+.adm-chip.cus-own.is-on {
+  border-style: solid;
+}
+.adm-chip.cus-new {
+  color: var(--adm-gold);
+  border-color: color-mix(in srgb, var(--adm-gold) 45%, transparent);
+}
+.cus-rules {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin: -2px 0 12px;
+  padding: 10px 14px;
+  border: 1px dashed var(--adm-line);
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+.cus-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.cus-tags span {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-ink) 10%, transparent);
+  color: var(--adm-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.cus-rule-list {
+  display: grid;
+  gap: 8px;
+}
+.cus-rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+.cus-val {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cus-val input {
+  min-width: 0;
+  flex: 1;
+}
+.cus-val i {
+  font-style: normal;
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.cus-x {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--adm-ink);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.cus-x:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.cus-count {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--adm-good) 12%, transparent);
+}
+.cus-count b {
+  font-size: 1.2rem;
+}
+.cus-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.cus-form .cus-wide {
+  grid-column: 1 / -1;
+}
+.cus-tagbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  border: 1px solid var(--adm-line);
+}
+.cus-tagbox:focus-within {
+  border-color: var(--adm-gold);
+}
+.cus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 3px 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-ink) 12%, transparent);
+  font-size: 0.85rem;
+}
+.cus-tag button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cus-tag button:hover {
+  background: color-mix(in srgb, var(--adm-ink) 18%, transparent);
+}
+.cus-tagbox input {
+  flex: 1 1 110px;
+  min-width: 110px;
+  padding: 5px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--adm-ink);
+  font: inherit;
+  outline: none;
+}
+@media (max-width: 640px) {
+  .cus-rule {
+    grid-template-columns: 1fr 1fr 34px;
+  }
+  .cus-rule .cus-val,
+  .cus-rule > span:empty {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+  .cus-form {
+    grid-template-columns: 1fr;
+  }
+  .cus-tools .adm-btn {
+    flex: 1;
+  }
+}

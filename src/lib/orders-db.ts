@@ -386,7 +386,50 @@ export type Customer = {
   last_order: string | null;
   // a seeded test account (can't sign in), tagged "Test" in the admin
   is_test: boolean;
+  tags: string[];
+  // from their default saved address, else their latest order
+  city: string;
+  state: string;
 };
+
+export async function setCustomerTags(id: string, tags: string[]) {
+  const { error } = await db().rpc("admin_set_customer_tags", { p_customer: id, p_tags: tags });
+  if (error) throw error;
+}
+
+export type NewCustomer = {
+  name: string;
+  phone: string;
+  email: string;
+  address: { line1: string; line2: string; city: string; state: string; pincode: string } | null;
+  tags: string[];
+};
+// a customer typed in by the shop; their account can't sign in (0027)
+export async function addCustomer(c: NewCustomer): Promise<string> {
+  const { data, error } = await db().rpc("admin_add_customer", { p_name: c.name, p_phone: c.phone, p_email: c.email, p_address: c.address, p_tags: c.tags });
+  if (error) throw error;
+  return data as string;
+}
+
+// groups the shop builds itself (lib/customer-groups.ts)
+export type Segment = { id: string; name: string; rules: import("./customer-groups").Rule[] };
+export async function listSegments(): Promise<Segment[]> {
+  const { data, error } = await db().from("customer_segments").select("id, name, rules").order("created_at");
+  if (error) throw error;
+  return (data ?? []) as Segment[];
+}
+export async function saveSegment(s: { id?: string; name: string; rules: Segment["rules"] }, by: string | null): Promise<Segment> {
+  const q = s.id
+    ? db().from("customer_segments").update({ name: s.name, rules: s.rules }).eq("id", s.id)
+    : db().from("customer_segments").insert({ name: s.name, rules: s.rules, created_by: by });
+  const { data, error } = await q.select("id, name, rules").single();
+  if (error) throw error;
+  return data as Segment;
+}
+export async function deleteSegment(id: string) {
+  const { error } = await db().from("customer_segments").delete().eq("id", id);
+  if (error) throw error;
+}
 
 export async function listCustomers(): Promise<Customer[]> {
   const { data, error } = await db().rpc("admin_customers");

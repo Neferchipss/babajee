@@ -29,8 +29,11 @@ const body = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Babajee",
+  // where the site lives, so page links and preview images are full addresses
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://neferchipss.github.io"),
+  title: { default: "Babajee", template: "%s | Babajee" },
   description: "Smoking accessories: rolling papers, trays, glass, grinders and more.",
+  openGraph: { siteName: "Babajee", type: "website", locale: "en_IN" },
 };
 
 // Edge to edge on phones with a notch or Dynamic Island: the page draws

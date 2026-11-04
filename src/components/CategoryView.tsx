@@ -1,12 +1,13 @@
 "use client";
 
+import { fullTitle, seoTitle } from "@/lib/seo";
 import { useLiveCatalog } from "@/lib/useLiveCatalog";
 import { photosFor } from "@/lib/product-photos";
 import { toneAt } from "@/lib/tone";
 import SceneLink from "@/components/SceneLink";
 import { byGroup } from "@/lib/brand";
 import { addToCart, tossIntoJar } from "@/lib/cart";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
 import CategorySwitch from "./CategorySwitch";
@@ -63,6 +64,11 @@ const followSheet = (slug: string) => {
   if (slug !== sheetSlug()) window.history.replaceState(null, "", `?p=${encodeURIComponent(slug)}`);
 };
 
+// the browser tab's title (kept out of the component: it writes to the page)
+const setTabTitle = (t: string) => {
+  document.title = t;
+};
+
 const VALUES = [
   { Icon: LeafIcon, label: "Thoughtful design" },
   { Icon: SunIcon, label: "A brighter tomorrow" },
@@ -87,7 +93,7 @@ export default function CategoryView({ category, products: snapshot, categories:
   })) : initialCategories;
   const products: CardProduct[] = catalog ? catalog.filter((p) => everything || p.categorySlug === category.slug).map((p) => ({
     href: `/shop/${p.categorySlug}?p=${encodeURIComponent(p.slug)}`, slug: p.slug, name: p.name,
-    options: Math.max(0, p.variantCount - 1), price: p.minPrice, variants: p.variants,
+    options: Math.max(0, p.variantCount - 1), price: p.minPrice, mrp: p.mrp, variants: p.variants,
     images: photosFor(p.slug), tone: toneAt(Math.max(0, categories.findIndex((c) => c.slug === p.categorySlug))),
     group: everything ? p.categoryName : undefined,
   })) : snapshot;
@@ -118,6 +124,17 @@ export default function CategoryView({ category, products: snapshot, categories:
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
   const sheetItems = shown.filter((p) => p.slug && p.variants);
   const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
+
+  // the browser tab names the open product, as its own address would; back
+  // to the shelf's title when the sheet closes
+  const shelfTitle = useRef<string | null>(null);
+  const openItem = openAt >= 0 ? sheetItems[openAt] : null;
+  const ownTitle = openItem ? snapshot.find((p) => p.slug === openItem.slug)?.seoTitle : undefined;
+  const tabTitle = openItem ? fullTitle(seoTitle({ name: openItem.name, category: openItem.group ?? category.name, seoTitle: ownTitle })) : null;
+  useEffect(() => {
+    shelfTitle.current ??= document.title;
+    setTabTitle(tabTitle ?? shelfTitle.current);
+  }, [tabTitle]);
 
   return (
     <div className="cp">
