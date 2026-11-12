@@ -128,6 +128,16 @@ function Orders() {
             {busy ? "Saving" : `Mark ${picked.size} as ${bulkTo}`}
           </button>
         )}
+        {picked.size > 0 && (
+          <>
+            <Link href={`/admin/orders/print?ids=${[...picked].join(",")}&doc=slip`} className="adm-btn" target="_blank">
+              Packing slips ({picked.size})
+            </Link>
+            <Link href={`/admin/orders/print?ids=${[...picked].join(",")}&doc=invoice`} className="adm-btn" target="_blank">
+              Invoices ({picked.size})
+            </Link>
+          </>
+        )}
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
         </button>

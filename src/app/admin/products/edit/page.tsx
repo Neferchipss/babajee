@@ -1,5 +1,6 @@
 "use client";
 
+import { errText } from "@/lib/orders-db";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -35,7 +36,7 @@ function EditProduct() {
         setCategories(cats);
         if (!p) setErr("No product with this id.");
       })
-      .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+      .catch((e) => setErr(errText(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 

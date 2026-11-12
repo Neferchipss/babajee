@@ -27,6 +27,9 @@ export type OrderItem = {
   sku: string | null;
   unit_price: number;
   quantity: number;
+  // the GST bracket this line sold at, and the product's HSN code today (0030)
+  gst_rate?: number;
+  hsn?: string;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
   slug?: string | null;
   // the product as it is in the shop today, for "Buy again" (customer order page)
@@ -77,12 +80,16 @@ export type Order = {
   shipping: number;
   tax: number;
   total: number;
-  gst_rate: number;
+  // the one GST rate all lines share; null when lines sit in different brackets (0030)
+  gst_rate: number | null;
   gst_inclusive: boolean;
   // what was actually paid; null until the order leaves "pending" (0017)
   paid_total: number | null;
   notes: string;
   is_test: boolean;
+  // its GST invoice, once one has been made (0029)
+  invoice_number?: string | null;
+  invoice_date?: string | null;
   created_at: string;
   updated_at?: string;
   order_items?: OrderItem[];
@@ -99,14 +106,14 @@ function toOrder(row: Record<string, unknown>): Order {
     subtotal: toNumber(o.subtotal),
     shipping: toNumber(o.shipping),
     tax: toNumber(o.tax),
-    gst_rate: toNumber(o.gst_rate),
+    gst_rate: o.gst_rate == null ? null : toNumber(o.gst_rate),
     total: toNumber(o.total),
     order_items: o.order_items?.map((i) => {
       type PV = {
         label?: string;
         price?: number | string;
         is_visible?: boolean;
-        products?: { slug?: string; is_visible?: boolean; categories?: { slug?: string } | null } | null;
+        products?: { slug?: string; is_visible?: boolean; hsn?: string; categories?: { slug?: string } | null } | null;
       } | null;
       const raw = i as OrderItem & { product_variants?: PV };
       const { product_variants: pv, ...rest } = raw;
@@ -115,7 +122,7 @@ function toOrder(row: Record<string, unknown>): Order {
         pv && p?.slug && pv.label !== undefined && pv.price !== undefined
           ? { slug: p.slug, category: p.categories?.slug ?? "", label: pv.label, price: toNumber(pv.price), ok: !!(pv.is_visible && p.is_visible && toNumber(pv.price) > 0) }
           : null;
-      return { ...rest, unit_price: toNumber(i.unit_price), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
+      return { ...rest, unit_price: toNumber(i.unit_price), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), ...(p?.hsn ? { hsn: p.hsn } : {}), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
     }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
@@ -128,7 +135,7 @@ function toOrder(row: Record<string, unknown>): Order {
 // the list carries enough for the spreadsheet export (items, address, refunds)
 const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax), order_requests(id, kind, status)";
 const FULL =
-  "*, order_items(*, product_variants(label, price, is_visible, products(slug, is_visible, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
+  "*, order_items(*, product_variants(label, price, is_visible, products(slug, is_visible, hsn, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
 
 // ---------------------------------------------------------------- customer
 
@@ -155,6 +162,21 @@ export async function listMyOrders(profileId: string): Promise<Order[]> {
   const { data, error } = await db().from("orders").select(MINE).eq("profile_id", profileId).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(toOrder);
+}
+
+// several orders in full, for printing invoices and packing slips; oldest first
+export async function getOrders(ids: string[]): Promise<Order[]> {
+  if (!ids.length) return [];
+  const { data, error } = await db().from("orders").select(FULL).in("id", ids).order("created_at");
+  if (error) throw error;
+  return (data ?? []).map(toOrder);
+}
+
+// invoice numbers for these orders (paid ones without one get the next in the series)
+export async function issueInvoices(ids: string[]) {
+  const { data, error } = await db().rpc("admin_issue_invoices", { p_orders: ids });
+  if (error) throw error;
+  return (data ?? []) as { order_id: string; invoice_number: string | null; invoice_date: string | null }[];
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
@@ -521,11 +543,28 @@ export type StoreSettings = {
   store_state: string;
   // days after delivery a customer can ask for a return; 0 = no returns (0022)
   return_days: number;
+  // printed on invoices and packing slips (0029)
+  store_name: string;
+  legal_name: string;
+  gstin: string;
+  store_address: string;
+  store_phone: string;
+  store_email: string;
+  invoice_prefix: string;
+  invoice_note: string;
 };
+
+// Each product's own GST bracket, by slug (null: the shop's default rate). Readable by anyone.
+export async function gstRates(slugs: string[]): Promise<Map<string, number | null>> {
+  if (!slugs.length) return new Map();
+  const { data, error } = await db().from("products").select("slug, gst_rate").in("slug", slugs);
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.slug as string, r.gst_rate == null ? null : toNumber(r.gst_rate)]));
+}
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -535,6 +574,14 @@ export async function getSettings(): Promise<StoreSettings> {
     gst_input_credit: data.gst_input_credit,
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
+    store_name: data.store_name ?? "Babajee",
+    legal_name: data.legal_name ?? "",
+    gstin: data.gstin ?? "",
+    store_address: data.store_address ?? "",
+    store_phone: data.store_phone ?? "",
+    store_email: data.store_email ?? "",
+    invoice_prefix: data.invoice_prefix ?? "BJ",
+    invoice_note: data.invoice_note ?? "",
   };
 }
 
@@ -545,19 +592,39 @@ export async function saveSettings(s: StoreSettings) {
 
 // ---------------------------------------------------------------- admin: cost + profit
 
-// Cost prices, by option id. Admin-only table (0015), never shown to customers.
+// Cost prices (with GST), by option id. Admin-only table (0015), never shown to customers.
 export async function getCosts(variantIds: string[]): Promise<Map<string, number>> {
-  if (!variantIds.length) return new Map();
-  const { data, error } = await db().from("variant_costs").select("variant_id, cost").in("variant_id", variantIds);
-  if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.variant_id as string, toNumber(r.cost)]));
+  return new Map([...(await getPurchases(variantIds))].map(([id, c]) => [id, c.cost]));
 }
 
-// null clears it (no cost known)
-export async function setCost(variantId: string, cost: number | null) {
-  const q = db().from("variant_costs");
-  const { error } = cost == null ? await q.delete().eq("variant_id", variantId) : await q.upsert({ variant_id: variantId, cost });
+// Purchase price (before GST) and cost price (purchase + GST at the
+// product's bracket), by option id. purchase is null for a cost typed before 0030.
+export async function getPurchases(variantIds: string[]): Promise<Map<string, { purchase: number | null; cost: number }>> {
+  if (!variantIds.length) return new Map();
+  const { data, error } = await db().from("variant_costs").select("variant_id, purchase, cost").in("variant_id", variantIds);
   if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.variant_id as string, { purchase: r.purchase == null ? null : toNumber(r.purchase), cost: toNumber(r.cost) }]));
+}
+
+// The purchase price, before GST; the database adds the GST to make the cost
+// price. null clears it (no cost known). Returns the new cost price.
+export async function setPurchase(variantId: string, purchase: number | null): Promise<number | null> {
+  const q = db().from("variant_costs");
+  if (purchase == null) {
+    const { error } = await q.delete().eq("variant_id", variantId);
+    if (error) throw error;
+    return null;
+  }
+  const { data, error } = await q.upsert({ variant_id: variantId, purchase, cost: purchase }).select("cost").single();
+  if (error) throw error;
+  return toNumber(data.cost);
+}
+
+// Units each product has sold, all time (cancelled orders and refunded units left out), by product id.
+export async function unitsSold(): Promise<Map<string, number>> {
+  const { data, error } = await db().rpc("admin_units_sold");
+  if (error) throw error;
+  return new Map(((data ?? []) as { product_id: string; units: number }[]).map((r) => [r.product_id, toNumber(r.units)]));
 }
 
 // The cost each line of an order sold at, by order line id.
@@ -570,10 +637,17 @@ export async function soldCosts(itemIds: string[]): Promise<Map<string, number>>
 
 export type Profit = {
   input_credit: boolean;
+  // with GST, as the customer paid
+  sales: number;
   net_sales: number;
+  // with GST, on the items that have a cost price
   costed_sales: number;
+  // cost prices with GST
   cost: number;
+  // the client's rule: selling price with GST - cost price with GST (0030)
   profit: number;
+  // what is left once the GST owed is paid
+  kept: number;
   lines: number;
   uncosted_lines: number;
   gst_collected: number;
@@ -590,7 +664,9 @@ export async function profit(from: string, to: string): Promise<Profit> {
   const n = (x: unknown) => toNumber(x as number);
   return {
     ...p,
+    sales: n(p.sales),
     net_sales: n(p.net_sales),
+    kept: n(p.kept),
     costed_sales: n(p.costed_sales),
     cost: n(p.cost),
     profit: n(p.profit),

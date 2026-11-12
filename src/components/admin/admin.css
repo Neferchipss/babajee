@@ -3022,3 +3022,15 @@ th[aria-sort="ascending"] .adm-sort .down {
     flex: 1;
   }
 }
+
+/* settings: two fields side by side, stacked on a phone */
+.set-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 560px) {
+  .set-two {
+    grid-template-columns: 1fr;
+  }
+}

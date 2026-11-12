@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import { gstLabel } from "@/lib/gst";
 import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
 import type { Order, OrderRequest } from "@/lib/orders-db";
 import { categoryTone } from "@/lib/tone";
@@ -458,7 +459,7 @@ export function MyOrder() {
             <dd>{o.shipping ? money(o.shipping) : "Free"}</dd>
             {o.tax > 0 && (
               <>
-                <dt>{o.gst_inclusive ? `Includes GST (${o.gst_rate}%)` : `GST (${o.gst_rate}%)`}</dt>
+                <dt>{gstLabel(o.gst_inclusive, o.gst_rate)}</dt>
                 <dd>{money(o.tax)}</dd>
               </>
             )}

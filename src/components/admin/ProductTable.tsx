@@ -1,5 +1,6 @@
 "use client";
 
+import { errText } from "@/lib/orders-db";
 import { Fragment, useState } from "react";
 import { mainPrice, needsOf, setMainPrice } from "@/components/admin/ProductEditor";
 import { Bin, SortTh, useSort } from "@/components/admin/ui";
@@ -31,6 +32,7 @@ export default function ProductTable({
   onCreate,
   onDelete,
   category,
+  sold,
 }: {
   products: AdminProduct[];
   categories: AdminCategory[];
@@ -48,6 +50,8 @@ export default function ProductTable({
   onDelete: (p: AdminProduct) => void;
   // the category in view, which a new product goes into by default
   category: string;
+  // units each product has sold, all time; null until loaded
+  sold: Map<string, number> | null;
 }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   // inside a category tab every row is in that category, so the column goes
@@ -64,6 +68,7 @@ export default function ProductTable({
     type: { get: (p) => p.product_type, text: true },
     price: { get: (p) => mainPrice(p) || null },
     stock: { get: (p) => stockTotal(p) },
+    sold: { get: (p) => sold?.get(p.id) ?? 0 },
     shown: { get: (p) => (p.is_visible ? 1 : 0) },
   });
   const flip = (id: string) =>
@@ -88,6 +93,7 @@ export default function ProductTable({
               <SortTh k="type" label="Type" sort={sort} onSort={toggle} />
               <SortTh k="price" label="Price (₹)" sort={sort} onSort={toggle} right />
               <SortTh k="stock" label="Stock" sort={sort} onSort={toggle} right />
+              <SortTh k="sold" label="Sold" sort={sort} onSort={toggle} right />
               <SortTh k="shown" label="On shop" sort={sort} onSort={toggle} />
               <th aria-label="Open" />
             </tr>
@@ -169,6 +175,11 @@ export default function ProductTable({
                         <span className="apt-static apt-muted">Not counted</span>
                       )}
                     </td>
+                    <td className="r c-sold">
+                      <span className={`apt-static ${sold?.get(p.id) ? "" : "apt-muted"}`} title="Units sold, all time (cancelled orders and returns left out)">
+                        {sold ? (sold.get(p.id) ?? 0) : "…"}
+                      </span>
+                    </td>
                     <td className="c-shop">
                       <Switch on={p.is_visible} label={p.name} onFlip={() => save(() => api.setProductVisibility(p, !p.is_visible), `${p.name} ${p.is_visible ? "hidden from the shop" : "shown on the shop"}`)} />
                     </td>
@@ -236,6 +247,7 @@ function OptionRow({ v, product: p, selecting, showCat, onSave }: { v: AdminVari
       <td className="r c-stock">
         <StockCell v={v} name={`${p.name} ${v.label}`} onSave={onSave} />
       </td>
+      <td className="c-sold" />
       <td className="c-shop">
         <Switch on={v.is_visible} label={`the ${v.label} option`} onFlip={() => onSave({ is_visible: !v.is_visible })} />
       </td>
@@ -260,7 +272,7 @@ function AddOptionRow({ product: p, onAdd }: { product: AdminProduct; onAdd: (la
   }
   return (
     <tr className="apt-opt apt-opt-add">
-      <td colSpan={10}>
+      <td colSpan={11}>
         <form
           className="apt-opt-form"
           onSubmit={(e) => {
@@ -391,7 +403,7 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
       setD(blank);
       requestAnimationFrame(() => document.getElementById("apt-new-name")?.focus());
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errText(e));
     }
     setBusy(false);
   }
@@ -437,6 +449,7 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         <td className="c-type">{field("type", "Type")}</td>
         <td className="r c-price">{field("price", "Price", { num: true })}</td>
         <td className="r c-stock">{field("stock", "Stock", { num: true, placeholder: "Not counted" })}</td>
+        <td className="c-sold" />
         <td className="c-shop">
           <Switch on={visible} label="the new product" onFlip={() => setVisible((v) => !v)} />
         </td>
@@ -448,7 +461,7 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
       </tr>
       {err && (
         <tr className="apt-new-err">
-          <td colSpan={10}>{err}</td>
+          <td colSpan={11}>{err}</td>
         </tr>
       )}
     </>

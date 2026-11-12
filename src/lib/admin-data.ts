@@ -46,6 +46,10 @@ export type AdminProduct = {
   // its search-engine listing; empty means made automatically (0026, lib/seo.ts)
   seo_title: string;
   seo_description: string;
+  // its GST bracket (0, 5, 12, 18, 28 or 40); null = the shop's default rate.
+  // HSN code for the invoice, may be empty (0030)
+  gst_rate: number | null;
+  hsn: string;
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -124,7 +128,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, hsn, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -136,6 +140,8 @@ type ProductRow = {
   tags: string[] | null;
   seo_title: string | null;
   seo_description: string | null;
+  gst_rate: number | string | null;
+  hsn: string | null;
   is_visible: boolean;
   sort_order: number;
   category_id: string;
@@ -158,6 +164,8 @@ function toProduct(row: ProductRow): AdminProduct {
     tags: row.tags ?? [],
     seo_title: row.seo_title ?? "",
     seo_description: row.seo_description ?? "",
+    gst_rate: row.gst_rate == null ? null : Number(row.gst_rate),
+    hsn: row.hsn ?? "",
     is_visible: row.is_visible,
     sort_order: row.sort_order,
     category_id: row.category_id,
@@ -200,7 +208,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "is_visible" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "hsn" | "is_visible" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;

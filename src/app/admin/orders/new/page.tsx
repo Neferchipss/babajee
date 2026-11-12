@@ -7,7 +7,7 @@ import { ProductPicker, Stepper, type Pick } from "@/components/admin/OrderForms
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
-import { bill } from "@/lib/gst";
+import { bill, gstLabel } from "@/lib/gst";
 import { createOrder, customerAddresses, errText, getSettings, listCustomers, type Customer, type CustomerAddress, type StoreSettings } from "@/lib/orders-db";
 
 // An order the shop takes itself: by phone, on WhatsApp, at the counter.
@@ -94,7 +94,7 @@ export default function NewOrderPage() {
   const sub = r2(live.reduce((n, l) => n + priceOf(l) * l.qty, 0));
   const autoShip = settings ? (settings.free_shipping_over != null && sub >= settings.free_shipping_over ? 0 : settings.shipping) : 0;
   const shipping = ship == null ? autoShip : Number(ship) || 0;
-  const total = settings ? bill(sub, shipping, { rate: settings.gst_rate, inclusive: settings.gst_inclusive }) : null;
+  const total = settings ? bill(live.map((l) => ({ gross: priceOf(l) * l.qty, rate: l.gst ?? settings.gst_rate })), shipping, settings.gst_inclusive) : null;
 
   const problem = !live.length
     ? "Add at least one item."
@@ -210,7 +210,7 @@ export default function NewOrderPage() {
               </span>
               {total && total.tax > 0 && (
                 <>
-                  <span>{settings?.gst_inclusive ? `Includes GST (${settings.gst_rate}%)` : `GST (${settings?.gst_rate}%)`}</span>
+                  <span>{gstLabel(!!settings?.gst_inclusive, total.rate)}</span>
                   <span>{money(total.tax)}</span>
                 </>
               )}

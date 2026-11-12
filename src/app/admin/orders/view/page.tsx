@@ -9,7 +9,7 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
 import { actionsFor, eventText, STEPS, type OrderAction, type OrderStatus } from "@/lib/order-status";
-import { unitProfit } from "@/lib/gst";
+import { gstLabel, unitProfit } from "@/lib/gst";
 import {
   addOrderComment,
   editOrder,
@@ -221,10 +221,20 @@ function OrderView() {
 
         <Roadmap order={o} busy={busy} onStep={pickStep} />
 
-        {(cancel || canEdit || canReturn || canRefund) && (
+        {(
           <div className="ov-actions">
             {STEPS.includes(o.status) && <span className="adm-muted adm-small">Tap a step on the road to move the order, forward or back.</span>}
             <span className="ov-gap" />
+            {o.paid_total != null && o.status !== "cancelled" && (
+              <Link href={`/admin/orders/print?ids=${o.id}&doc=invoice`} className="adm-btn" target="_blank">
+                {o.invoice_number ? `Invoice ${o.invoice_number}` : "Invoice"}
+              </Link>
+            )}
+            {o.status !== "cancelled" && (
+              <Link href={`/admin/orders/print?ids=${o.id}&doc=slip`} className="adm-btn" target="_blank">
+                Packing slip
+              </Link>
+            )}
             {canEdit && (
               <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("edit")}>
                 Edit order
@@ -328,7 +338,7 @@ function OrderView() {
               <span>{o.shipping ? money(o.shipping) : "Free"}</span>
               {o.tax > 0 && (
                 <>
-                  <span>{o.gst_inclusive ? `Includes GST (${o.gst_rate}%)` : `GST (${o.gst_rate}%)`}</span>
+                  <span>{gstLabel(o.gst_inclusive, o.gst_rate)}</span>
                   <span>{money(o.tax)}</span>
                 </>
               )}
@@ -821,7 +831,6 @@ function OrderProfit({ order: o }: { order: Order }) {
   }, [o.order_items]);
 
   if (!data) return null;
-  const g = { rate: o.gst_rate, inclusive: o.gst_inclusive, credit: data.credit };
   const rs = o.order_refunds ?? [];
   const back = new Map<string, number>();
   const shelved = new Map<string, number>();
@@ -835,9 +844,12 @@ function OrderProfit({ order: o }: { order: Order }) {
     }
     extra += r.subtotal - named;
   }
-  if (o.gst_inclusive) extra = (extra * 100) / (100 + o.gst_rate);
-  let net = 0;
+  // the goodwill part with GST, and without it
+  const extraG = o.gst_inclusive || !o.subtotal ? extra : (extra * (o.subtotal + o.tax)) / o.subtotal;
+  const extraEx = o.gst_inclusive && o.subtotal ? (extra * (o.subtotal - o.tax)) / o.subtotal : extra;
+  let sale = 0;
   let cost = 0;
+  let kept = 0;
   let missing = 0;
   let later = 0;
   for (const i of items) {
@@ -847,12 +859,20 @@ function OrderProfit({ order: o }: { order: Order }) {
       continue;
     }
     if (!data.sold.has(i.id)) later++;
-    const u = unitProfit(i.unit_price, c, g);
-    net += u.net * (i.quantity - (back.get(i.id) ?? 0));
-    cost += u.cost * (i.quantity - (shelved.get(i.id) ?? 0));
+    const u = unitProfit(i.unit_price, c, { rate: i.gst_rate ?? o.gst_rate ?? 0, inclusive: o.gst_inclusive, credit: data.credit });
+    const q = i.quantity - (back.get(i.id) ?? 0);
+    const out = i.quantity - (shelved.get(i.id) ?? 0);
+    sale += u.sale * q;
+    cost += u.cost * out;
+    // after GST: the sale without GST less the cost (without its GST if claimed back)
+    kept += u.net * q - (data.credit ? (u.cost * 100) / (100 + (i.gst_rate ?? o.gst_rate ?? 0)) : u.cost) * out;
   }
-  if (missing === 0) net -= extra;
-  const profit = net - cost;
+  if (missing === 0) {
+    sale -= extraG;
+    kept -= extraEx;
+  }
+  // the client's rule: selling price with GST - cost price with GST
+  const profit = sale - cost;
   const gone = o.status === "cancelled";
 
   return (
@@ -865,15 +885,17 @@ function OrderProfit({ order: o }: { order: Order }) {
       ) : (
         <>
           <div className="adm-kv">
-            <span>Sales without GST</span>
-            <span>{money(Math.round(net * 100) / 100)}</span>
-            <span>Cost{data.credit ? " without GST" : ""}</span>
+            <span>Sales with GST</span>
+            <span>{money(Math.round(sale * 100) / 100)}</span>
+            <span>Cost price with GST</span>
             <span>−{money(Math.round(cost * 100) / 100)}</span>
             <span className="tot">Profit</span>
             <span className={`tot ${profit < 0 ? "adm-profit-neg" : "adm-profit-pos"}`}>
               {money(Math.round(profit * 100) / 100)}
-              {net > 0 && <small className="adm-muted"> · {((profit / net) * 100).toFixed(1)}%</small>}
+              {sale > 0 && <small className="adm-muted"> · {((profit / sale) * 100).toFixed(1)}%</small>}
             </span>
+            <span>After paying the GST</span>
+            <span>{money(Math.round(kept * 100) / 100)}</span>
           </div>
           <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>
             {gone && "This order was cancelled, so it counts for nothing in Analytics. "}

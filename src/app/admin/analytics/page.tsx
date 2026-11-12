@@ -166,9 +166,9 @@ export default function AnalyticsPage() {
             <section className="adm-card">
               <h2>Profit and GST</h2>
               <div className="adm-kv anx-kv">
-                <span>Sales without GST</span>
+                <span>Sales with GST</span>
                 <span>{money(Math.round(pc.costed_sales))}</span>
-                <span>Cost of goods{pc.input_credit ? " (no GST)" : ""}</span>
+                <span>Cost price with GST</span>
                 <span>{pc.cost ? `−${money(Math.round(pc.cost))}` : money(0)}</span>
                 <span>
                   <strong>Gross profit</strong>
@@ -178,6 +178,8 @@ export default function AnalyticsPage() {
                 </span>
                 <span>Margin</span>
                 <span>{pc.costed_sales ? pct(margin(pc)) : "–"}</span>
+                <span>After paying the GST</span>
+                <span>{money(Math.round(pc.kept))}</span>
                 <span>GST collected</span>
                 <span>{money(Math.round(pc.gst_collected))}</span>
                 {pc.input_credit && (
@@ -187,7 +189,7 @@ export default function AnalyticsPage() {
                   </>
                 )}
                 <span className="tot">GST to pay</span>
-                <span className="tot">{money(Math.round(Math.max(0, pc.gst_collected - pc.gst_paid)))}</span>
+                <span className="tot">{money(Math.round(Math.max(0, pc.gst_collected - (pc.input_credit ? pc.gst_paid : 0))))}</span>
               </div>
               <p className="adm-muted adm-small anx-foot">
                 {pc.lines > 0 && pc.uncosted_lines === pc.lines
@@ -195,7 +197,7 @@ export default function AnalyticsPage() {
                   : pc.uncosted_lines > 0
                     ? `${count(pc.uncosted_lines)} of ${count(pc.lines)} items sold have no cost price, so profit counts the other ${count(pc.lines - pc.uncosted_lines)}. `
                     : ""}
-                Cancelled and refunded orders and delivery are left out.
+                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;After paying the GST&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
               </p>
             </section>
           </div>

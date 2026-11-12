@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
-import { bill, unitProfit } from "@/lib/gst";
+import { bill, costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
 import { errText, getSettings, saveSettings } from "@/lib/orders-db";
 
 // Store rules the owner can change without a code change: the delivery charge,
@@ -18,6 +18,8 @@ export default function SettingsPage() {
   const [credit, setCredit] = useState(false);
   const [home, setHome] = useState("");
   const [returnDays, setReturnDays] = useState("7");
+  // the shop's own details, for invoices
+  const [store, setStore] = useState({ store_name: "Babajee", legal_name: "", gstin: "", store_address: "", store_phone: "", store_email: "", invoice_prefix: "BJ", invoice_note: "" });
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -32,6 +34,16 @@ export default function SettingsPage() {
         setCredit(s.gst_input_credit);
         setHome(s.store_state);
         setReturnDays(String(s.return_days));
+        setStore({
+          store_name: s.store_name,
+          legal_name: s.legal_name,
+          gstin: s.gstin,
+          store_address: s.store_address,
+          store_phone: s.store_phone,
+          store_email: s.store_email,
+          invoice_prefix: s.invoice_prefix,
+          invoice_note: s.invoice_note,
+        });
         setLoaded(true);
       })
       .catch((e) => setErr(errText(e)));
@@ -44,6 +56,16 @@ export default function SettingsPage() {
     const days = Math.round(Number(returnDays) || 0);
     if (days < 0 || days > 90) {
       setErr("Returns can be open for 0 to 90 days.");
+      return;
+    }
+    const gstin = store.gstin.trim().toUpperCase();
+    if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+      setErr("That GSTIN doesn't look right: it's 15 characters, like 27ABCDE1234F1Z5.");
+      return;
+    }
+    const prefix = store.invoice_prefix.trim().toUpperCase();
+    if (!/^[A-Z0-9]{1,5}$/.test(prefix)) {
+      setErr("The invoice prefix is 1 to 5 letters or numbers, like BJ.");
       return;
     }
     const r = Number(rate);
@@ -60,6 +82,10 @@ export default function SettingsPage() {
         gst_input_credit: credit,
         store_state: home,
         return_days: days,
+        ...store,
+        store_name: store.store_name.trim() || "Babajee",
+        gstin,
+        invoice_prefix: prefix,
       });
       setMsg("Saved. New orders use these from now on.");
       toast("Settings saved");
@@ -71,8 +97,9 @@ export default function SettingsPage() {
 
   // a worked example with the rule as it stands on screen
   const g = { rate: Number(rate) || 0, inclusive, credit };
-  const ex = bill(1000, 0, g);
-  const u = unitProfit(1000, 600, g);
+  const ex = bill([{ gross: 1000, rate: g.rate }], 0, inclusive);
+  const exCost = costOf(500, g.rate);
+  const u = unitProfit(1000, exCost, g);
 
   return (
     <div>
@@ -80,6 +107,59 @@ export default function SettingsPage() {
       {err && <p className="adm-err">{err}</p>}
 
       <form className="adm-stack" style={{ maxWidth: 560 }} onSubmit={save}>
+        <section className="adm-card" style={{ display: "grid", gap: 16 }}>
+          <h2 style={{ margin: 0 }}>Store details</h2>
+          <p className="adm-muted adm-small" style={{ margin: "-8px 0 0" }}>
+            Printed on every invoice and packing slip.
+          </p>
+          <label className="adm-label">
+            Shop name
+            <input className="adm-input" value={store.store_name} disabled={!loaded} onChange={(e) => setStore({ ...store, store_name: e.target.value })} />
+          </label>
+          <label className="adm-label">
+            Legal name, as registered for GST
+            <input className="adm-input" value={store.legal_name} disabled={!loaded} placeholder="The business's registered name" onChange={(e) => setStore({ ...store, legal_name: e.target.value })} />
+          </label>
+          <label className="adm-label">
+            GSTIN
+            <input
+              className="adm-input"
+              value={store.gstin}
+              disabled={!loaded}
+              placeholder="27ABCDE1234F1Z5"
+              maxLength={15}
+              spellCheck={false}
+              onChange={(e) => setStore({ ...store, gstin: e.target.value.toUpperCase().replace(/\s/g, "") })}
+            />
+            <span className="adm-muted adm-small">Leave empty until the shop is registered: invoices then say &ldquo;Invoice&rdquo; instead of &ldquo;Tax invoice&rdquo;, with no GSTIN.</span>
+          </label>
+          <label className="adm-label">
+            Address
+            <textarea className="adm-input" rows={3} value={store.store_address} disabled={!loaded} placeholder={"Shop no., building, street\nArea, city, pincode"} onChange={(e) => setStore({ ...store, store_address: e.target.value })} />
+          </label>
+          <div className="set-two">
+            <label className="adm-label">
+              Phone
+              <input className="adm-input" type="tel" value={store.store_phone} disabled={!loaded} onChange={(e) => setStore({ ...store, store_phone: e.target.value })} />
+            </label>
+            <label className="adm-label">
+              Email
+              <input className="adm-input" type="email" value={store.store_email} disabled={!loaded} onChange={(e) => setStore({ ...store, store_email: e.target.value })} />
+            </label>
+          </div>
+          <div className="set-two">
+            <label className="adm-label">
+              Invoice number prefix
+              <input className="adm-input" value={store.invoice_prefix} disabled={!loaded} maxLength={5} onChange={(e) => setStore({ ...store, invoice_prefix: e.target.value.toUpperCase() })} />
+              <span className="adm-muted adm-small">Numbers run {store.invoice_prefix || "BJ"}/26-27/0001, 0002… and start again each April.</span>
+            </label>
+            <label className="adm-label">
+              Line at the bottom
+              <input className="adm-input" value={store.invoice_note} disabled={!loaded} onChange={(e) => setStore({ ...store, invoice_note: e.target.value })} />
+            </label>
+          </div>
+        </section>
+
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
           <h2 style={{ margin: 0 }}>Delivery charges</h2>
           <label className="adm-label">
@@ -95,8 +175,16 @@ export default function SettingsPage() {
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
           <h2 style={{ margin: 0 }}>GST</h2>
           <label className="adm-label">
-            GST rate on the cart (%)
-            <input className="adm-input" inputMode="decimal" value={rate} disabled={!loaded} onChange={(e) => setRate(e.target.value.replace(/[^\d.]/g, ""))} />
+            Default GST bracket
+            <select className="adm-input" value={rate} disabled={!loaded} onChange={(e) => setRate(e.target.value)}>
+              {!(GST_BRACKETS as readonly number[]).includes(Number(rate)) && <option value={rate}>{rate}%</option>}
+              {GST_BRACKETS.map((b) => (
+                <option key={b} value={String(b)}>
+                  {b}%
+                </option>
+              ))}
+            </select>
+            <span className="adm-muted adm-small">For products that don&apos;t have their own bracket. Set each product&apos;s bracket on the product, under Cost and profit.</span>
           </label>
 
           <label className="adm-label">
@@ -133,9 +221,10 @@ export default function SettingsPage() {
             </button>
             <span className="adm-muted adm-small">
               {credit
-                ? "Cost prices are taken as including GST at the same rate. That GST is taken off the cost and set against the GST collected, so Analytics shows the GST left to pay."
-                : "Cost prices count in full, and all GST collected is owed. Turn this on if the shop is GST-registered and claims input tax credit."}{" "}
-              Example: an item sold at {money(1000)} that cost {money(600)} makes {money(u.profit)} ({u.margin.toFixed(1)}% margin).
+                ? "The GST inside each cost price is set against the GST collected, so Analytics shows less GST left to pay."
+                : "All GST collected is owed. Turn this on if the shop is GST-registered and claims input tax credit."}{" "}
+              Example at {g.rate}%: bought for {money(500)} + GST = cost price {money(exCost)}, sold for {money(u.sale)} with GST: profit {money(u.profit)}. After paying the
+              GST, {money(u.kept)} is left.
             </span>
           </div>
         </section>

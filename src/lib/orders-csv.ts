@@ -35,7 +35,7 @@ export function ordersCsv(orders: Order[]) {
     return [
       o.order_number, stamp(o.created_at), STATUS_LABEL[o.status], o.contact_name, o.contact_phone, o.contact_email,
       o.address_line1, o.address_line2, o.address_landmark, o.address_city, o.address_state, o.address_pincode,
-      items, o.subtotal, o.shipping, o.tax, o.gst_rate, o.gst_inclusive ? "Yes" : "No",
+      items, o.subtotal, o.shipping, o.tax, o.gst_rate ?? "Mixed", o.gst_inclusive ? "Yes" : "No",
       o.total, o.paid_total ?? "", refunded || "", o.paid_total == null ? "" : r2(o.paid_total - refunded), o.is_test ? "Yes" : "", o.notes,
     ];
   });

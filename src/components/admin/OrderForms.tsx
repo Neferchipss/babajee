@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { money } from "@/components/admin/ui";
 import { listProducts, type AdminProduct } from "@/lib/admin-data";
 import { STATES } from "@/lib/addresses";
-import { bill } from "@/lib/gst";
+import { bill, gstLabel } from "@/lib/gst";
 import { refundsOf, type EditAddress, type EditContact, type EditLine, type Order } from "@/lib/orders-db";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -66,7 +66,8 @@ export function RefundForm({
 
   const itemsValue = items.reduce((n, i) => n + (qty[i.id] ?? 0) * i.unit_price, 0);
   const picked = items.some((i) => (qty[i.id] ?? 0) > 0);
-  const withGst = o.gst_inclusive ? itemsValue : itemsValue * (1 + o.gst_rate / 100);
+  // GST added on top goes back too, each item at its own bracket
+  const withGst = o.gst_inclusive ? itemsValue : items.reduce((n, i) => n + (qty[i.id] ?? 0) * i.unit_price * (1 + (i.gst_rate ?? o.gst_rate ?? 0) / 100), 0);
   const full = r2(withGst + num(ship));
   // a refund only sends back money that came in: never more than is left of what was paid
   const auto = Math.min(full, left);
@@ -186,7 +187,7 @@ export function RefundForm({
               {capped
                 ? `These come to ${money(full)}, but only ${money(left)} of what was paid is left to refund, so the refund stops there.`
                 : `${money(left)} left to refund of ${money(paid)} paid.`}
-              {!o.gst_inclusive && picked ? ` Includes ${o.gst_rate}% GST on the items.` : ""}
+              {!o.gst_inclusive && picked ? " Includes the GST on the items." : ""}
             </>
           )}
         </span>
@@ -224,7 +225,8 @@ export function RefundForm({
 
 // ---------------------------------------------------------------- product picker
 
-export type Pick = { variant: string; name: string; label: string; price: number; stock: number | null };
+// gst: the product's own GST bracket, null for the shop's default
+export type Pick = { variant: string; name: string; label: string; price: number; stock: number | null; gst: number | null };
 
 let catalogue: Promise<AdminProduct[]> | null = null;
 
@@ -247,7 +249,7 @@ export function ProductPicker({ onPick, unpriced = false, placeholder = "Add a p
     for (const p of products) {
       if (!p.name.toLowerCase().includes(w)) continue;
       for (const v of p.variants)
-        if (v.price > 0 || unpriced) out.push({ variant: v.id, name: p.name, label: v.label === "Default" ? "" : v.label, price: v.price, stock: v.track_stock ? v.stock_qty : null });
+        if (v.price > 0 || unpriced) out.push({ variant: v.id, name: p.name, label: v.label === "Default" ? "" : v.label, price: v.price, stock: v.track_stock ? v.stock_qty : null, gst: p.gst_rate });
       if (out.length >= 8) break;
     }
     return out.slice(0, 8);
@@ -294,14 +296,14 @@ export function ProductPicker({ onPick, unpriced = false, placeholder = "Add a p
 
 export type EditInput = { lines: EditLine[]; shipping: number | null; contact: EditContact | null; address: EditAddress | null };
 
-type Row = { key: string; item?: string; variant?: string; name: string; label: string; price: number; qty: number; was: number };
+type Row = { key: string; item?: string; variant?: string; name: string; label: string; price: number; qty: number; was: number; rate: number };
 
 // Before it ships: change quantities, take items off, add items at today's
 // price, change delivery, contact or address. The new total shows as you go,
 // with what that means for a paid order.
 export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order; busy: boolean; onCancel: () => void; onSubmit: (e: EditInput) => void }) {
   const [rows, setRows] = useState<Row[]>(() =>
-    (o.order_items ?? []).map((i) => ({ key: i.id, item: i.id, name: i.product_name, label: i.variant_label, price: i.unit_price, qty: i.quantity, was: i.quantity })),
+    (o.order_items ?? []).map((i) => ({ key: i.id, item: i.id, name: i.product_name, label: i.variant_label, price: i.unit_price, qty: i.quantity, was: i.quantity, rate: i.gst_rate ?? o.gst_rate ?? 0 })),
   );
   const [ship, setShip] = useState(String(o.shipping));
   const [who, setWho] = useState(false);
@@ -314,8 +316,7 @@ export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order;
     state: o.address_state,
     pincode: o.address_pincode,
   });
-  const sub = rows.reduce((n, r) => n + r.qty * r.price, 0);
-  const now = bill(sub, num(ship), { rate: o.gst_rate, inclusive: o.gst_inclusive });
+  const now = bill(rows.map((r) => ({ gross: r.qty * r.price, rate: r.rate })), num(ship), o.gst_inclusive);
   const diff = o.paid_total == null ? 0 : r2(now.total - o.paid_total);
   const set = (key: string, qty: number) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, qty } : r)));
 
@@ -323,7 +324,7 @@ export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order;
     setRows((rs) => {
       const same = rs.find((r) => r.variant === x.variant);
       if (same) return rs.map((r) => (r === same ? { ...r, qty: Math.min(99, r.qty + 1) } : r));
-      return [...rs, { key: `n${x.variant}`, variant: x.variant, name: x.name, label: x.label, price: x.price, qty: 1, was: 0 }];
+      return [...rs, { key: `n${x.variant}`, variant: x.variant, name: x.name, label: x.label, price: x.price, qty: 1, was: 0, rate: x.gst ?? o.gst_rate ?? 18 }];
     });
   }
 
@@ -429,7 +430,7 @@ export function EditForm({ order: o, busy, onCancel, onSubmit }: { order: Order;
         <span>{now.ship ? money(now.ship) : "Free"}</span>
         {now.tax > 0 && (
           <>
-            <span>{o.gst_inclusive ? `Includes GST (${o.gst_rate}%)` : `GST (${o.gst_rate}%)`}</span>
+            <span>{gstLabel(o.gst_inclusive, now.rate)}</span>
             <span>{money(now.tax)}</span>
           </>
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { errText } from "@/lib/orders-db";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -30,7 +31,7 @@ function NewProduct() {
         setCategories(cats);
         if (!preselect && cats[0]) setCategoryId(cats[0].id);
       })
-      .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+      .catch((e) => setErr(errText(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -48,7 +49,7 @@ function NewProduct() {
       });
       router.push(`/admin/products/edit?id=${id}`);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errText(e));
       setSaving(false);
     }
   }

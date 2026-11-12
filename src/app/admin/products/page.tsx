@@ -1,5 +1,6 @@
 "use client";
 
+import { errText } from "@/lib/orders-db";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
@@ -38,6 +39,8 @@ function ProductsAdmin() {
   const api = adminApi();
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [rows, setRows] = useState<AdminProduct[]>([]);
+  // units each product has sold, all time (admin_units_sold, 0030)
+  const [sold, setSold] = useState<Map<string, number> | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [cat, setCat] = useState(params.get("category") ?? "");
@@ -69,8 +72,12 @@ function ProductsAdmin() {
       const [cats, prods] = await Promise.all([api.listCategories(), api.listProducts()]);
       setCategories(cats);
       setRows(prods);
+      import("@/lib/orders-db")
+        .then((m) => m.unitsSold())
+        .then(setSold)
+        .catch(() => setSold(new Map()));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errText(e));
       toastError(e);
     }
     setLoading(false);
@@ -203,7 +210,7 @@ function ProductsAdmin() {
       setSelected(new Set());
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(errText(e));
       toastError(e);
     }
     setBulkBusy(false);
@@ -236,7 +243,7 @@ function ProductsAdmin() {
             const made = cats.find((c) => c.slug === slug);
             if (made) setCat(made.id);
           } catch (e) {
-            setErr(e instanceof Error ? e.message : String(e));
+            setErr(errText(e));
       toastError(e);
           }
         }}
@@ -310,7 +317,7 @@ function ProductsAdmin() {
               setCategories(await api.listCategories());
               toast("Category saved");
             } catch (e) {
-              setErr(e instanceof Error ? e.message : String(e));
+              setErr(errText(e));
       toastError(e);
             }
           }}
@@ -358,6 +365,7 @@ function ProductsAdmin() {
             onCreate={tableAdd}
             onDelete={(p) => setDeleting([p])}
             category={cat}
+            sold={sold}
             onSave={async (id, work, msg) => {
               try {
                 await work();
@@ -365,7 +373,7 @@ function ProductsAdmin() {
                 if (fresh) replace(fresh);
                 toast(msg ?? `Saved · ${fresh?.name ?? "product"}`);
               } catch (e) {
-                setErr(e instanceof Error ? e.message : String(e));
+                setErr(errText(e));
       toastError(e);
               }
             }}
@@ -381,6 +389,7 @@ function ProductsAdmin() {
             <li key={p.id}>
               <Card
                 product={p}
+                sold={sold?.get(p.id) ?? 0}
                 open={p.id === openId}
                 selecting={selecting}
                 checked={selected.has(p.id)}
@@ -393,7 +402,7 @@ function ProductsAdmin() {
                     if (fresh) replace(fresh);
                     toast(`Saved · ${fresh?.name ?? p.name}`);
                   } catch (e) {
-                    setErr(e instanceof Error ? e.message : String(e));
+                    setErr(errText(e));
       toastError(e);
                   }
                 }}
@@ -404,7 +413,7 @@ function ProductsAdmin() {
                     const fresh = await api.getProduct(p.id);
                     if (fresh) replace(fresh);
                   } catch (e) {
-                    setErr(e instanceof Error ? e.message : String(e));
+                    setErr(errText(e));
       toastError(e);
                   }
                 }}
@@ -477,6 +486,7 @@ function ProductsAdmin() {
 
 function Card({
   product: p,
+  sold,
   open,
   selecting,
   onDelete,
@@ -488,6 +498,8 @@ function Card({
 }: {
   api: ReturnType<typeof adminApi>;
   product: AdminProduct;
+  // units sold, all time
+  sold: number;
   open: boolean;
   selecting: boolean;
   onDelete: () => void;
@@ -569,7 +581,7 @@ function Card({
       )}
       <EditableName className="apc-name" value={p.name} onSave={(name) => onSave(() => api.updateProduct(p.id, { name }))} />
       <span className="apc-meta">
-        {[p.variants.length > 1 && `${p.variants.length} options`, !p.is_visible && "Hidden"].filter(Boolean).join(" · ")}
+        {[`${sold} sold`, p.variants.length > 1 && `${p.variants.length} options`, !p.is_visible && "Hidden"].filter(Boolean).join(" · ")}
       </span>
     </div>
   );
