@@ -82,7 +82,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
     padding: 0 0 16px;
     overflow: hidden;
     border: 2px solid var(--bbn-shadow);
-    border-radius: 150px 150px 18px 18px;
+    border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     background:
       url("../../assets/baba/night/hair-midnight.webp") center top / 100% auto no-repeat,
       var(--color-char);
@@ -156,7 +156,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   & .pc {
     padding: 0;
     overflow: hidden;
-    border-radius: 14px;
+    border-radius: var(--radius);
   }
   & .pc-link {
     display: grid;
@@ -202,7 +202,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
     justify-self: end;
     margin: 10px;
     padding: 2px 10px;
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--bb-green);
     color: var(--bb-on-accent);
     font-size: 0.7rem;
@@ -241,7 +241,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       height: auto;
       min-height: 0;
       padding: 16px;
-      border-radius: 18px;
+      border-radius: var(--radius);
       background-size: cover;
       background-position: center 30%;
       text-align: left;
@@ -376,7 +376,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       height: 44px;
       padding: 0;
       border: 0;
-      border-radius: 50%;
+      border-radius: var(--radius-round);
       background: transparent;
       color: var(--color-paper);
       cursor: pointer;
@@ -469,7 +469,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       height: 40px;
       padding: 0 12px;
       border: 1.5px solid var(--bb-maroon);
-      border-radius: 12px;
+      border-radius: var(--radius);
       background: var(--color-iron);
       color: var(--bb-maroon);
       box-shadow: 0 6px 14px rgb(0 0 0 / 0.35);
@@ -652,7 +652,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     position: relative;
     overflow: hidden;
     border: 1px solid var(--bbn-edge);
-    border-radius: 16px;
+    border-radius: var(--radius);
     background: var(--color-plate, #fff);
     transition:
       box-shadow 0.3s ease,
@@ -764,7 +764,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
     height: 34px;
     padding: 0;
     border: 1.5px solid var(--bb-maroon);
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: var(--color-iron);
     color: var(--bb-maroon);
     box-shadow: none;
@@ -806,7 +806,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
   & .pc-deal {
     padding: 2px 7px;
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--radius);
     background: var(--bb-green);
     color: #062a1e;
     box-shadow: 2px 2px 0 var(--bb-green-dk);
@@ -958,19 +958,14 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       width: auto;
       height: auto;
       padding: 4px 6px;
-      border-radius: 12px;
+      border-radius: var(--radius);
       background: none;
       box-shadow: none;
       color: var(--color-paper);
       text-decoration: none;
     }
     & .sb-profile:hover {
-      background: rgb(var(--bb-fg) / 0.06);
-    }
-    & .sb-label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 700;
+      background: none;
     }
     & .sb-profile .sb-badge {
       top: -2px;

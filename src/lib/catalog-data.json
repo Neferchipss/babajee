@@ -1,7 +1,7 @@
 [
   {
     "slug": "rolling-paper",
-    "name": "Rolling Paper",
+    "name": "Rolling Papers",
     "products": [
       {
         "slug": "b-e-hemp-regular",
@@ -397,7 +397,7 @@
   },
   {
     "slug": "accessory",
-    "name": "Accessory",
+    "name": "Accessories",
     "products": [
       {
         "slug": "smoke-buddy",
@@ -801,7 +801,7 @@
   },
   {
     "slug": "rolling-tray",
-    "name": "Rolling Tray",
+    "name": "Rolling Trays",
     "products": [
       {
         "slug": "raw-backflip-rolling-tray",
@@ -1418,7 +1418,7 @@
   },
   {
     "slug": "bong",
-    "name": "Bong",
+    "name": "Bongs",
     "products": [
       {
         "slug": "10-acrylic-bong",
@@ -1628,7 +1628,7 @@
   },
   {
     "slug": "bong-accessory",
-    "name": "Bong Accessory",
+    "name": "Bong Accessories",
     "products": [
       {
         "slug": "dab-slurper",
@@ -1802,7 +1802,7 @@
   },
   {
     "slug": "ashtray",
-    "name": "Ashtray",
+    "name": "Ashtrays",
     "products": [
       {
         "slug": "raw-snuffer",
@@ -1928,7 +1928,7 @@
   },
   {
     "slug": "pipe",
-    "name": "Pipe",
+    "name": "Pipes",
     "products": [
       {
         "slug": "ceramic-pipe-mug-simple",
@@ -2036,7 +2036,7 @@
   },
   {
     "slug": "grinder",
-    "name": "Grinder",
+    "name": "Grinders",
     "products": [
       {
         "slug": "raw-boarding-pass",
@@ -2126,7 +2126,7 @@
   },
   {
     "slug": "filter",
-    "name": "Filter",
+    "name": "Filters",
     "products": [
       {
         "slug": "smoking-15mm-filter",
@@ -2276,7 +2276,7 @@
   },
   {
     "slug": "roach",
-    "name": "Roach",
+    "name": "Roaches",
     "products": [
       {
         "slug": "raw-pro-tips",
@@ -2390,7 +2390,7 @@
   },
   {
     "slug": "lighter",
-    "name": "Lighter",
+    "name": "Lighters",
     "products": [
       {
         "slug": "stash-pro-lighters",
@@ -2499,7 +2499,7 @@
   },
   {
     "slug": "cleaning-accessory",
-    "name": "Cleaning Accessory",
+    "name": "Cleaning Accessories",
     "products": [
       {
         "slug": "magnetic-cleaning-brush",
@@ -2541,7 +2541,7 @@
   },
   {
     "slug": "blunt-pre-rolled-cone",
-    "name": "Blunt Pre-Rolled Cone",
+    "name": "Blunt Pre-Rolled Cones",
     "products": [
       {
         "slug": "cyclone-hemp-cones-original",
@@ -2559,7 +2559,7 @@
   },
   {
     "slug": "keychain",
-    "name": "Keychain",
+    "name": "Keychains",
     "products": [
       {
         "slug": "raw-keychain-silver",

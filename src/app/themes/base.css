@@ -74,7 +74,7 @@
 .hdr-menu {
   padding: 0.5rem 1rem;
   border: 1px solid #3a3a3a;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--color-paper);
   font-size: 0.95rem;
@@ -192,7 +192,7 @@
   overflow-x: auto;
   transform: translateX(-50%);
   border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(14 14 14 / 0.86);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -208,7 +208,7 @@
   flex: none;
   padding: 0.5rem 0.9rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: transparent;
   color: #d3cec3;
   font-size: 0.8rem;
@@ -252,7 +252,7 @@
   place-items: center;
   min-width: 17px;
   height: 17px;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--color-rasta-gold);
   color: var(--color-ink);
   font-size: 10px;
@@ -327,7 +327,7 @@
 #site[data-scope="shop"] .cp-empty {
   padding: 3rem 1rem;
   border: 1px dashed var(--color-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   color: var(--color-muted);
   text-align: center;
 }
@@ -399,6 +399,11 @@
   position: relative;
   min-width: 0;
 }
+/* the sliding highlight is only drawn where a theme lays the list out as a
+   column (shelf-side.css) */
+#site[data-scope="shop"] .cp-ink {
+  display: none;
+}
 #site[data-scope="shop"] .cp-strip ul {
   scrollbar-width: none;
   overscroll-behavior-x: contain;
@@ -429,7 +434,7 @@
   margin-top: -18px;
   padding: 0;
   border: 1px solid var(--color-line);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-iron);
   color: var(--color-paper);
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.18);
@@ -570,7 +575,7 @@
   padding: 3px;
   overflow: hidden;
   border: 2px solid var(--color-line, #2d2860);
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: none;
 }
 #site[data-scope="shop"] .pd-opt-list[data-swatches] .pd-opt[aria-checked="true"] {
@@ -581,7 +586,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 11px;
+  border-radius: var(--radius);
   background: var(--color-plate, #1c1b21);
   object-fit: cover;
 }
@@ -648,7 +653,7 @@
   top: 20px;
   left: 50%;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.6);
   color: #fff;
   font-size: 0.85rem;
@@ -672,7 +677,7 @@
   min-height: 40px;
   padding: 0 14px 0 11px;
   border: 1px solid rgb(255 255 255 / 0.3);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.55);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -696,7 +701,7 @@
   max-height: calc(100% - 48px);
   padding: 20px 20px 12px;
   border: 1px solid var(--color-line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--color-iron) 88%, transparent);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -744,7 +749,7 @@
 }
 #site[data-scope="shop"] .pano-cat:hover,
 #site[data-scope="shop"] .pano-cat:focus-visible {
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-ash);
   color: var(--color-rasta-gold);
 }
@@ -770,7 +775,7 @@
     width: auto;
     max-height: none;
     margin: -28px 12px 96px;
-    border-radius: 18px;
+    border-radius: var(--radius);
   }
   #site[data-scope="shop"] .pano-list {
     overflow: visible;
@@ -841,7 +846,7 @@
 #site .pc-dots i {
   width: 6px;
   height: 6px;
-  border-radius: 3px;
+  border-radius: 999px; /* photo dots stay round (the current one a pill) */
   background: rgb(20 16 40 / 0.28);
   transition:
     width 0.25s cubic-bezier(0.32, 0.72, 0, 1),
@@ -956,7 +961,7 @@
 #site .saved-art {
   margin-bottom: 8px;
   border: 1px solid var(--bbn-edge, var(--color-line));
-  border-radius: 16px !important;
+  border-radius: var(--radius) !important;
 }
 #site .saved-price {
   font-weight: 800;
@@ -977,7 +982,7 @@
 #site .saved-add {
   padding: 8px 12px;
   border: 1.5px solid var(--bb-maroon, var(--color-rasta-gold));
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--bb-maroon, var(--color-rasta-gold));
   font: inherit;
@@ -1066,7 +1071,7 @@
   height: 26px;
   padding: 0;
   border: 1.5px solid transparent;
-  border-radius: 8.5px;
+  border-radius: 50%; /* colour swatches stay round */
   background: none;
   cursor: pointer;
   transition: border-color 0.15s ease;
@@ -1075,7 +1080,7 @@
     content: "";
     position: absolute;
     inset: 1.5px;
-    border-radius: 5.5px;
+    border-radius: 50%; /* colour swatches stay round */
     background: var(--dot, var(--color-plate, #1c1b21));
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
   }
@@ -1091,7 +1096,7 @@
     z-index: 1;
     width: calc(100% - 3px);
     height: calc(100% - 3px);
-    border-radius: 5.5px;
+    border-radius: 50%; /* colour swatches stay round */
     object-fit: cover;
   }
   &[aria-checked="true"] {

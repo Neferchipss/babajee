@@ -7,17 +7,19 @@ import { MODE_KEY } from "./mode-boot";
 // keeps following it if it changes (sunset, say). The choice is kept in this
 // browser; <html data-mode> carries what is showing, set before the first
 // paint by the layout's boot script, so a page never flashes the wrong one.
-export type ModePref = "system" | "light" | "dark" | "earthy";
+export type ModePref = "system" | "light" | "dark";
 const EVENT = "bj-mode-change";
 // the browser's own bars, matched to the page
-const BAR = { dark: "#0c0a1c", light: "#f6f3fc", earthy: "#1c1916" };
+const BAR = { dark: "#000000", light: "#ffffff" };
 
 const prefersLight = () => window.matchMedia("(prefers-color-scheme: light)").matches;
 
 function readPref(): ModePref {
   try {
     const p = localStorage.getItem(MODE_KEY);
-    if (p === "light" || p === "dark" || p === "earthy") return p;
+    if (p === "light" || p === "dark") return p;
+    // "earthy" was folded into dark
+    if (p === "earthy") return "dark";
   } catch {}
   return "system";
 }

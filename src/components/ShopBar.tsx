@@ -11,6 +11,7 @@ import Logo from "./Logo";
 import DeliverTo from "./address/DeliverTo";
 import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
+import { shelfLeaving } from "@/lib/shelf-switch";
 
 type Sort = "featured" | "az" | "za";
 
@@ -183,6 +184,7 @@ export default function ShopBar({
 
   const tap = (slug: string, el: HTMLElement) => {
     if (slug === active) return;
+    if (slug !== "all") shelfLeaving();
     buzz();
     pendingRef.current = slug;
     setPending(slug);

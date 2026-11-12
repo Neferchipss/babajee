@@ -3,6 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
+import { fadeIn } from "@/lib/fade-in";
+import AddLabel from "./AddLabel";
 import Branded from "./Branded";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
@@ -385,7 +387,7 @@ export default function ProductSheet({
             )}
             </div>
             <button type="button" className="ps-add" data-added={added === p.slug} onClick={add}>
-              {added === p.slug ? "Added" : "Add"}
+              <AddLabel text={added === p.slug ? "Added" : "Add"} done={added === p.slug} />
             </button>
           </footer>
         </section>
@@ -418,7 +420,7 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
   };
   if (photos.length < 2) {
     // eslint-disable-next-line @next/next/no-img-element
-    if (photos[0]) return <div className="ps-art ps-photos"><img className="ps-one" src={photos[0]} alt={name} /></div>;
+    if (photos[0]) return <div className="ps-art ps-photos"><img {...fadeIn} className="ps-one" src={photos[0]} alt={name} /></div>;
     return <ProductArt name={name} tone={tone} slug={slug} className="ps-art" />;
   }
   return (
@@ -434,7 +436,7 @@ function SheetPhotos({ name, tone, slug, option }: { name: string; tone: string;
       >
         {photos.map((src, k) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={src} src={src} alt={k === 0 ? name : ""} loading={k ? "lazy" : "eager"} draggable={false} />
+          <img {...fadeIn} key={src} src={src} alt={k === 0 ? name : ""} loading={k ? "lazy" : "eager"} draggable={false} />
         ))}
       </div>
       {/* with a mouse there is no swipe: arrows either side step through */}

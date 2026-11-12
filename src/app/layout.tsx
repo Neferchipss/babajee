@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import AgeGate from "@/components/AgeGate";
 import MediaGuard from "@/components/MediaGuard";
 import SiteFooter from "@/components/SiteFooter";
@@ -20,12 +20,19 @@ import "./themes/baba.css";
 import "./themes/baba-night.css";
 import "./themes/baba-poster.css";
 import "./themes/modes.css";
+import "./themes/type.css";
+import "./themes/shelf-side.css";
+import "./themes/motion.css";
 import { themeFontVars } from "./themes/fonts";
 
-// One geometric family for everything outside the shop themes.
-const body = Outfit({
+// Geist for everything, Geist Mono for prices and small labels.
+const body = Geist({
   subsets: ["latin"],
   variable: "--font-body-face",
+});
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-face",
 });
 
 export const metadata: Metadata = {
@@ -61,7 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${body.variable} ${themeFontVars}`}
+      className={`${body.variable} ${mono.variable} ${themeFontVars}`}
       data-theme={DEFAULT_THEME}
       data-mode="dark"
       suppressHydrationWarning

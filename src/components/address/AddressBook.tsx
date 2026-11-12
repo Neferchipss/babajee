@@ -91,7 +91,7 @@ export default function AddressBook() {
         <ul className="grid gap-3">
           {list.map((a) =>
             editing === a.id ? (
-              <li key={a.id} className="rounded-xl border border-line bg-iron p-4 sm:p-5">
+              <li key={a.id} className="rounded-[var(--radius)] border border-line bg-iron p-4 sm:p-5">
                 <AddressForm
                   initial={a}
                   onSave={(next) => save(next, a.id)}
@@ -102,7 +102,7 @@ export default function AddressBook() {
             ) : (
               <li
                 key={a.id}
-                className={`rounded-xl border bg-iron p-4 sm:p-5 ${a.is_default ? "border-rasta-gold/60" : "border-line"}`}
+                className={`rounded-[var(--radius)] border bg-iron p-4 sm:p-5 ${a.is_default ? "border-rasta-gold/60" : "border-line"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-medium">
@@ -114,7 +114,7 @@ export default function AddressBook() {
                     )}
                   </p>
                   {a.is_default && (
-                    <span className="rounded-full bg-rasta-gold px-2 py-0.5 text-xs font-semibold text-ink">
+                    <span className="rounded-[var(--radius-round)] bg-rasta-gold px-2 py-0.5 text-xs font-semibold text-ink">
                       Default
                     </span>
                   )}
@@ -170,7 +170,7 @@ export default function AddressBook() {
 
       {list &&
         (editing === "new" ? (
-          <div className="mt-3 rounded-xl border border-line bg-iron p-4 sm:p-5">
+          <div className="mt-3 rounded-[var(--radius)] border border-line bg-iron p-4 sm:p-5">
             <AddressForm
               initial={fresh}
               startWithMap

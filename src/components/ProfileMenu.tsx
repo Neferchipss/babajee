@@ -13,7 +13,7 @@ import { enterShop } from "./scene-note";
 import "./shop-bar.css";
 import "./profile-panel.css";
 
-const OUT_MS = 280;
+const OUT_MS = 200;
 
 const I = ({ d, size = 22 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -66,7 +66,6 @@ export default function ProfileMenu() {
         <span key={plop} className="sb-cart-icon" data-plop={plop > 0 || undefined}>
           <JarIcon size={22} />
         </span>
-        <span className="sb-label">Cart</span>
         {count > 0 && (
           <b key={`n${count}`} className="sb-badge">
             {count > 99 ? "99+" : count}
@@ -82,7 +81,6 @@ export default function ProfileMenu() {
         onClick={() => setOpen(true)}
       >
         <UserIcon size={22} />
-        <span className="sb-label">Profile</span>
       </button>
       {open && <ProfilePanel onClosed={closed} />}
     </div>
@@ -306,7 +304,6 @@ const MODES: { id: ModePref; label: string; d: string }[] = [
   { id: "system", label: "System", d: "M4 5h16v11H4zM9 20h6M12 16v4" },
   { id: "light", label: "Light", d: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { id: "dark", label: "Dark", d: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
-  { id: "earthy", label: "Earthy", d: "M4 17C4 8 10 5 20 4c0 10-4 15-11 15M4 21l11-11" },
 ];
 
 // Light, dark, or as the device is set (the default)

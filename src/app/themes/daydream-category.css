@@ -73,7 +73,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
     margin: 0 0 22px;
     padding: 7px 14px;
     border: 1.5px solid var(--dd-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--dd-card);
     font-size: 11px;
     font-weight: 850;
@@ -107,7 +107,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
     display: inline-block;
     margin-top: 14px;
     padding: 5px 12px;
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--dd-yellow);
     color: var(--dd-ink);
     font-size: 12px;
@@ -221,7 +221,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
     counter-increment: dd-card;
     padding: 10px 10px 16px;
     border: 1.5px solid var(--dd-ink);
-    border-radius: 6px 28px 6px 6px;
+    border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     background: var(--dd-card);
     transition:
       transform 0.2s,
@@ -235,7 +235,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
     z-index: 2;
     padding: 2px 8px;
     border: 1.5px solid var(--dd-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--dd-card);
     font-size: 10px;
     font-weight: 850;
@@ -252,7 +252,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
   & .pc-img {
     overflow: hidden;
     border: 1.5px solid var(--dd-ink);
-    border-radius: 4px 20px 4px 4px;
+    border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     outline: 0;
   }
   & .pa {
@@ -322,7 +322,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
     margin: 6px 0 2px 2px;
     padding: 1px 8px;
     border: 1px solid var(--dd-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: #fcd9ea;
     color: var(--dd-ink);
     font-size: 11px;
@@ -344,7 +344,7 @@ html[data-theme="daydream"] #site[data-scope="shop"] .cp {
   & .cp-empty {
     padding: 48px 20px;
     border: 1.5px dashed var(--dd-ink);
-    border-radius: 6px 28px 6px 6px;
+    border-radius: var(--radius) var(--radius) var(--radius) var(--radius);
     background: var(--dd-dots), var(--dd-card);
     color: var(--dd-ink);
     font-weight: 700;

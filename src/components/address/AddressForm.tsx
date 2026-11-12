@@ -97,7 +97,7 @@ export default function AddressForm({
 
   const body = (
     <>
-      <div className="mb-5 flex items-center gap-3 rounded-xl border border-line bg-char/60 p-3">
+      <div className="mb-5 flex items-center gap-3 rounded-[var(--radius)] border border-line bg-char/60 p-3">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${hasPin ? "text-rasta-gold" : "text-muted"}`} aria-hidden="true">
           <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
           <circle cx="12" cy="10" r="2.3" />
@@ -164,7 +164,7 @@ export default function AddressForm({
             {LABELS.map((l) => (
               <label
                 key={l}
-                className={`flex min-h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-rasta-gold ${
+                className={`flex min-h-11 cursor-pointer items-center rounded-[var(--radius-round)] border px-4 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-rasta-gold ${
                   a.label === l ? "border-rasta-gold bg-rasta-gold text-ink" : "border-[#3a3a3a] hover:border-paper"
                 }`}
               >

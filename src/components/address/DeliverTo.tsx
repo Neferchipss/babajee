@@ -28,10 +28,16 @@ type Finding = "idle" | "finding" | "denied" | "failed";
 // "Delivering to" in the shop header. Tapping it opens a sheet (a dropdown
 // on wide screens): use the phone's location, add an address on the map, or
 // pick a saved one. Checkout starts from whatever is picked here.
+// how long the sheet takes to leave (deliver-to.css: dt-sink, dt-lift)
+const LEAVE_MS = 180;
+
 export default function DeliverTo() {
   const where = useDeliverTo();
   const { status, user, profile } = useAuth();
   const [open, setOpen] = useState(false);
+  // closing: the sheet plays its way out (deliver-to.css) before it goes
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef(0);
   const [step, setStep] = useState<"list" | "map" | "form">("list");
   const [draft, setDraft] = useState<AddressInput | null>(null);
   const [finding, setFinding] = useState<Finding>("idle");
@@ -138,9 +144,14 @@ export default function DeliverTo() {
   }, [open, step]);
 
   function close() {
-    setOpen(false);
-    setStep("list");
-    setDraft(null);
+    window.clearTimeout(leaveTimer.current);
+    setLeaving(true);
+    leaveTimer.current = window.setTimeout(() => {
+      setOpen(false);
+      setLeaving(false);
+      setStep("list");
+      setDraft(null);
+    }, LEAVE_MS);
   }
 
   function pinned(pin: Pin, place: Place | null) {
@@ -204,7 +215,9 @@ export default function DeliverTo() {
         aria-expanded={open}
         aria-label={`Delivering to ${label}${where?.line ? `, ${where.line}` : ""}. Change the delivery location.`}
         onClick={(e) => {
-          if (open) return close();
+          if (open && !leaving) return close();
+          window.clearTimeout(leaveTimer.current);
+          setLeaving(false);
           const r = e.currentTarget.getBoundingClientRect();
           setAnchor({ top: r.bottom + 10, left: r.left });
           setOpen(true);
@@ -246,10 +259,11 @@ export default function DeliverTo() {
         step !== "map" &&
         createPortal(
           <>
-            <div className="dt-scrim" aria-hidden="true" />
+            <div className="dt-scrim" aria-hidden="true" data-leaving={leaving || undefined} />
             <div
               ref={sheet}
               className="dt-sheet"
+              data-leaving={leaving || undefined}
               style={
                 anchor
                   ? ({

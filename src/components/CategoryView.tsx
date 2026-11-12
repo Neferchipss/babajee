@@ -6,7 +6,6 @@ import { photosFor } from "@/lib/product-photos";
 import { toneAt } from "@/lib/tone";
 import SceneLink from "@/components/SceneLink";
 import { byGroup } from "@/lib/brand";
-import { addToCart, tossIntoJar } from "@/lib/cart";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { GlobeIcon, HeartIcon, LeafIcon, SearchIcon, SunIcon } from "./icons";
 import CategoryNav from "./CategoryNav";
@@ -17,6 +16,8 @@ import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
 import ProductCard, { type CardProduct } from "./ProductCard";
 import ProductSheet from "./ProductSheet";
+import ProductDesk from "./ProductDesk";
+import { shelfArrived } from "@/lib/shelf-switch";
 
 type Props = {
   category: { slug: string; name: string };
@@ -63,6 +64,15 @@ const closeSheet = () => {
 const followSheet = (slug: string) => {
   if (slug !== sheetSlug()) window.history.replaceState(null, "", `?p=${encodeURIComponent(slug)}`);
 };
+
+// wide screens get the product as a full page instead of the phone's card
+const DESK = "(min-width: 1024px)";
+const onDeskChange = (fn: () => void) => {
+  const m = window.matchMedia(DESK);
+  m.addEventListener("change", fn);
+  return () => m.removeEventListener("change", fn);
+};
+const isDesk = () => window.matchMedia(DESK).matches;
 
 // the browser tab's title (kept out of the component: it writes to the page)
 const setTabTitle = (t: string) => {
@@ -122,6 +132,7 @@ export default function CategoryView({ category, products: snapshot, categories:
   const hints = products.slice(0, 8).map((p) => p.name);
 
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
+  const desk = useSyncExternalStore(onDeskChange, isDesk, () => false);
   const sheetItems = shown.filter((p) => p.slug && p.variants);
   const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
 
@@ -135,6 +146,9 @@ export default function CategoryView({ category, products: snapshot, categories:
     shelfTitle.current ??= document.title;
     setTabTitle(tabTitle ?? shelfTitle.current);
   }, [tabTitle]);
+
+  // this shelf is on screen: the one it replaced stops dimming
+  useEffect(() => shelfArrived(), [category.slug]);
 
   return (
     <div className="cp">
@@ -245,18 +259,6 @@ export default function CategoryView({ category, products: snapshot, categories:
                     key={p.href}
                     product={p}
                     onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
-                    onAdd={
-                      p.slug && p.variants?.length === 1
-                        ? (from) => {
-                            const v = p.variants![0];
-                            addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
-                            tossIntoJar(from);
-                            try {
-                              navigator.vibrate?.([10, 40, 10]);
-                            } catch {}
-                          }
-                        : undefined
-                    }
                   />
                 )),
               ])}
@@ -278,16 +280,18 @@ export default function CategoryView({ category, products: snapshot, categories:
 
       <ShelfReader />
 
-      {openAt >= 0 && (
-        <ProductSheet
-          key={category.slug}
-          products={sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants!, unit: p.unit, group: p.group }))}
-          start={openAt}
-          category={category.name}
-          onIndex={followSheet}
-          onClose={closeSheet}
-        />
-      )}
+      {openAt >= 0 &&
+        (() => {
+          const props = {
+            products: sheetItems.map((p) => ({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variants: p.variants!, unit: p.unit, group: p.group, mrp: p.mrp })),
+            start: openAt,
+            category: category.name,
+            onIndex: followSheet,
+            onClose: closeSheet,
+          };
+          // a wide screen gets a full product page; a phone the swipeable card
+          return desk ? <ProductDesk key={`desk-${category.slug}`} {...props} /> : <ProductSheet key={category.slug} {...props} />;
+        })()}
     </div>
   );
 }

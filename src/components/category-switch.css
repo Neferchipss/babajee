@@ -66,7 +66,7 @@
   padding: 10px max(12px, env(safe-area-inset-right)) 14px max(12px, env(safe-area-inset-left));
 }
 .csw[data-variant="sheet"] .csw-menu {
-  border-radius: 18px;
+  border-radius: var(--radius);
 }
 @keyframes csw-drop {
   from {
@@ -82,7 +82,7 @@
   min-height: 44px;
   padding: 0 12px;
   border: 1.5px solid var(--color-line, #2d2860);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: rgb(var(--bb-fg) / 0.03);
   color: var(--color-paper, #f4efff);
   font: inherit;
@@ -125,7 +125,7 @@
   height: 44px;
   padding: 0 18px;
   border: 1.5px solid var(--bb-hot, #ff8fb4);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(var(--bb-bg) / 0.85);
   color: var(--color-paper, #f4efff);
   font-size: 0.9rem;

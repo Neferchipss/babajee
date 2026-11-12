@@ -25,7 +25,7 @@ export default function QtyStepper({
     onChange?.(next);
   };
   return (
-    <div className="qty inline-flex items-center rounded-lg border border-[#3a3a3a]">
+    <div className="qty inline-flex items-center rounded-[var(--radius)] border border-[#3a3a3a]">
       <button
         type="button"
         aria-label={`Decrease ${label}`}

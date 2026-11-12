@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import SceneLink from "@/components/SceneLink";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
+import { shelfLeaving } from "@/lib/shelf-switch";
 
 type Props = {
   categories: { slug: string; name: string; count?: number }[];
@@ -12,12 +13,52 @@ type Props = {
 
 const EDGE = 4;
 
+// Where the "you are here" highlight last was, kept across pages: the list is
+// built afresh on each category's page, and the highlight glides from here.
+let lastInk: { top: number; left: number; width: number; height: number } | null = null;
+
 // The category list. Themes lay it out as a sidebar or as a horizontal strip;
 // when it is a strip this adds edge fades and prev/next buttons so the hidden
 // categories are visible, and it keeps the current one in view.
 export default function CategoryNav({ categories, currentSlug }: Props) {
   const listRef = useRef<HTMLUListElement>(null);
+  const inkRef = useRef<HTMLSpanElement>(null);
   const [edges, setEdges] = useState({ prev: false, next: false });
+
+  // the highlight behind the current category (shown where the theme lays
+  // the list out as a column): placed where it last was, then moved to the
+  // current one, so it glides; a click moves it at once, before the page
+  const inkTo = useCallback((link: HTMLElement | null, glide: boolean) => {
+    const ink = inkRef.current;
+    const strip = ink?.parentElement;
+    if (!ink || !strip || !link) return;
+    const s = strip.getBoundingClientRect();
+    const l = link.getBoundingClientRect();
+    if (!l.height) return;
+    const to = { top: l.top - s.top, left: l.left - s.left, width: l.width, height: l.height };
+    if (!glide && lastInk) {
+      ink.style.transition = "none";
+      ink.style.transform = `translate(${lastInk.left}px, ${lastInk.top}px)`;
+      ink.style.width = `${lastInk.width}px`;
+      ink.style.height = `${lastInk.height}px`;
+      void ink.offsetHeight; // lay it out there before moving on
+      ink.style.transition = "";
+    }
+    ink.style.transform = `translate(${to.left}px, ${to.top}px)`;
+    ink.style.width = `${to.width}px`;
+    ink.style.height = `${to.height}px`;
+    ink.dataset.on = "true";
+    lastInk = to;
+  }, []);
+  useLayoutEffect(() => {
+    inkTo(listRef.current?.querySelector<HTMLElement>('[aria-current="page"]') ?? null, false);
+  }, [currentSlug, inkTo]);
+  const tap = (e: React.MouseEvent<HTMLElement>) => {
+    inkTo(e.currentTarget, true);
+    // another category's shelf: dim this one until it arrives
+    const href = e.currentTarget.getAttribute("href") ?? "";
+    if (href.startsWith("/shop/") && e.currentTarget.getAttribute("aria-current") !== "page") shelfLeaving();
+  };
 
   const measure = useCallback(() => {
     const el = listRef.current;
@@ -69,9 +110,10 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
         <button type="button" className="cp-strip-btn cp-strip-btn--prev" aria-hidden="true" tabIndex={-1} onClick={() => nudge(-1)}>
           <Chevron />
         </button>
+        <span ref={inkRef} className="cp-ink" aria-hidden="true" />
         <ul ref={listRef} onScroll={measure}>
           <li>
-            <SceneLink href="/shop" aria-current={currentSlug === "all" ? "page" : undefined}>
+            <SceneLink href="/shop" aria-current={currentSlug === "all" ? "page" : undefined} onClick={tap}>
               <span className="cp-ico">
                 <CategoryIcon slug="all" />
               </span>
@@ -80,7 +122,7 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
           </li>
           {categories.map((c) => (
             <li key={c.slug}>
-              <Link href={`/shop/${c.slug}`} aria-current={c.slug === currentSlug ? "page" : undefined}>
+              <Link href={`/shop/${c.slug}`} aria-current={c.slug === currentSlug ? "page" : undefined} onClick={tap}>
                 <span className="cp-ico">
                   <CategoryIcon slug={c.slug} />
                 </span>

@@ -51,7 +51,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   & .btn-primary {
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--bb-maroon);
     color: var(--bb-on-accent);
     font-weight: 700;
@@ -63,7 +63,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   & .field {
     border: 1.5px solid var(--bb-ink);
-    border-radius: 10px;
+    border-radius: var(--radius);
     background: var(--color-iron);
   }
 
@@ -105,7 +105,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   & .hdr-menu {
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     color: var(--bb-ink);
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -140,7 +140,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   /* The plate the cut-out product photos sit on (and the blank plate of a
      product with none yet). */
   & .pa {
-    border-radius: 8px;
+    border-radius: var(--radius);
     background: var(--color-plate, #fff);
   }
   & .pa-initial {
@@ -200,7 +200,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     display: inline-flex;
     margin-top: 18px;
     padding: 12px 22px;
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--bb-maroon);
     color: var(--bb-on-accent);
     font-weight: 800;
@@ -237,7 +237,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     gap: 8px;
     padding: 9px 16px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--color-iron);
     font-size: 0.82rem;
     font-weight: 700;
@@ -271,7 +271,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .cp-search input {
     padding: 11px 18px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--color-iron);
   }
   & .cp-search--wide input {
@@ -288,14 +288,14 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .cp-sort select {
     padding: 9px 34px 9px 14px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background-color: var(--color-iron);
     color: var(--bb-ink);
     font-weight: 700;
   }
   & .cp-empty {
     border: 1.5px dashed var(--bb-ink);
-    border-radius: 14px;
+    border-radius: var(--radius);
     background: var(--color-iron);
     color: var(--bb-ink);
     font-weight: 700;
@@ -308,7 +308,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .pc {
     padding: 10px 10px 16px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: var(--color-iron);
     transition:
       transform 0.2s,
@@ -358,7 +358,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     bottom: 14px;
     width: 42px;
     height: 42px;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     background: var(--bb-maroon);
     color: var(--bb-on-accent);
   }
@@ -455,7 +455,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     height: 100%;
     padding: 16px 16px 14px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: var(--color-iron);
     transition:
       transform 0.2s,
@@ -473,7 +473,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     height: 58px;
     padding: 14px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     background: var(--bb-swirl) center / 120px 120px, var(--bb-blush);
     color: var(--bb-maroon);
   }
@@ -512,7 +512,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     place-items: center;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     background: var(--bb-maroon);
     color: var(--bb-on-accent);
     transition: background-color 0.2s;
@@ -539,7 +539,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .pd-media .pa {
     aspect-ratio: 1;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 16px;
+    border-radius: var(--radius);
     box-shadow: 6px 6px 0 var(--bb-ink);
   }
   & .pd-title {
@@ -578,7 +578,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .pd-opt {
     padding: 9px 16px;
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     background: var(--color-iron);
     color: var(--bb-ink);
     font-size: 0.82rem;
@@ -600,7 +600,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   }
   & .qty {
     border: 1.5px solid var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
   }
   & .qty button:hover {
     color: var(--bb-maroon);
@@ -613,7 +613,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
   & .pd-oos {
     padding: 12px 22px;
     border: 1.5px dashed var(--bb-ink);
-    border-radius: 999px;
+    border-radius: var(--radius-round);
     color: var(--color-muted);
     font-weight: 800;
     letter-spacing: 0.14em;

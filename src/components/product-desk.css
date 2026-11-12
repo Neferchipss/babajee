@@ -1,0 +1,445 @@
+/* The product page on a wide screen (ProductDesk.tsx): opens over the shelf,
+   under its header. Photos left, details right. Colours come from the
+   theme's tokens, so Earthy, Dark and Light all work. */
+/* one product, not a shelf: the header's category strip steps aside */
+html[data-desk="open"] #site .sb-nav {
+  display: none !important; /* the themes lay it out with stronger selectors */
+}
+
+.pdk {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 140;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none; /* still scrolls by wheel, trackpad and keys */
+  background: var(--color-char);
+  color: var(--color-paper);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  animation: pdk-in var(--dur-3, 0.36s) var(--ease-out, ease-out);
+}
+.pdk::-webkit-scrollbar {
+  display: none;
+}
+/* moving between products: the photo fades in; the details slide in from
+   the side the step came from (data-dir on .pdk-side) */
+.pdk-media {
+  animation: pdk-fade var(--dur-2, 0.22s) var(--ease-out, ease-out);
+}
+.pdk-side[data-dir] {
+  animation: pdk-side-on var(--dur-3, 0.36s) var(--ease-out, ease-out);
+}
+.pdk-side[data-dir="-1"] {
+  animation-name: pdk-side-back;
+}
+/* a new photo (thumbnail, arrows) fades in once loaded (lib/fade-in.ts) */
+@keyframes pdk-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pdk-side-on {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+@keyframes pdk-side-back {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+@keyframes pdk-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.pdk-inner {
+  /* exactly the header's content box: the logo's left edge to Profile's
+     right edge (measured in ProductDesk.tsx) */
+  box-sizing: border-box;
+  width: var(--pdk-w, calc(100% - 192px));
+  margin-left: var(--pdk-l, 96px);
+  /* side room for the arrows */
+  padding: 28px 64px 88px;
+}
+
+/* back to the shelf: underlined text in the bottom-left, under the logo */
+.pdk-back {
+  position: fixed;
+  left: var(--pdk-l, 16px);
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+.pdk-back:hover {
+  color: var(--color-paper);
+}
+/* previous / next product: bare arrows halfway down, just inside the
+   header's edges (under the logo and under Profile); the photo and details
+   are inset to leave them room */
+.pdk-edge {
+  position: fixed;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.pdk-edge[data-dir="-1"] {
+  left: calc(var(--pdk-l, 96px) - 10px);
+}
+.pdk-edge[data-dir="1"] {
+  left: calc(var(--pdk-l, 96px) + var(--pdk-w, calc(100vw - 192px)) - 44px + 10px);
+}
+/* close: a bare cross at the top right, under Profile, level with the
+   top of the photo */
+.pdk-close {
+  position: absolute;
+  top: 18px;
+  left: calc(var(--pdk-l, 96px) + var(--pdk-w, calc(100vw - 192px)) - 44px + 10px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.pdk-close:hover,
+.pdk-close:focus-visible {
+  color: var(--color-paper);
+}
+.pdk-edge:hover,
+.pdk-edge:focus-visible {
+  color: var(--bb-hot, var(--color-paper));
+}
+
+.pdk-grid {
+  display: grid;
+  /* thumbnails + photo, then a narrow details column; the group is centred */
+  grid-template-columns: auto minmax(320px, 480px);
+  justify-content: space-between;
+  gap: 48px;
+  align-items: start;
+}
+
+/* photos */
+/* thumbnails in a strip down the left, the big photo beside them */
+.pdk-media {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+.pdk-media:not(:has(.pdk-thumbs)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pdk-main {
+  position: relative;
+  aspect-ratio: 1;
+  grid-column: -2;
+  /* square, as big as the screen allows: never taller than it, never so wide
+     the details column gets squeezed */
+  width: min(calc(var(--pdk-w, 100vw) - 128px - 72px - 12px - 480px - 56px), max(440px, calc(100dvh - 200px)), 900px);
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-plate);
+  border: 1px solid var(--color-line);
+}
+.pdk-main > img,
+.pdk-main > .pa {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6%;
+  box-sizing: border-box;
+}
+.pdk-arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-paper);
+  /* stays readable over a light photo */
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.55));
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.pdk-arrow:hover {
+  color: var(--bb-hot, var(--color-paper));
+}
+.pdk-arrow[data-dir="-1"] {
+  left: 14px;
+}
+.pdk-arrow[data-dir="1"] {
+  right: 14px;
+}
+.pdk-main:hover .pdk-arrow,
+.pdk-arrow:focus-visible {
+  opacity: 1;
+}
+.pdk-thumbs {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: max(440px, calc(100dvh - 200px));
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.pdk-thumbs::-webkit-scrollbar {
+  display: none;
+}
+.pdk-thumbs button {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  padding: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-plate);
+  cursor: pointer;
+}
+.pdk-thumbs button {
+  transition: border-color var(--dur-2, 0.22s) var(--ease-out, ease-out);
+}
+.pdk-thumbs button[aria-selected="true"] {
+  border-color: var(--bb-hot, var(--color-paper));
+}
+.pdk-thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* details */
+.pdk-side {
+  position: sticky;
+  top: 20px;
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.pdk-eyebrow {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.pdk-title {
+  margin: -8px 0 0;
+  font-size: clamp(2.2rem, 3.2vw, 3.2rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.pdk-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+}
+.pdk-now {
+  color: var(--bb-hot, var(--color-paper));
+  font-size: 1.95rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.pdk-price s {
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+.pdk-off {
+  color: var(--color-green-soft, #52d98a);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.pdk-unit {
+  color: var(--color-muted);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+.pdk-opts-wrap {
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.pdk-label {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+.pdk-label b {
+  color: var(--color-paper);
+  font-weight: 600;
+}
+.pdk-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pdk-opt {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  padding: 10px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.pdk-opt[aria-checked="true"] {
+  border-color: var(--bb-hot, var(--color-paper));
+  box-shadow: inset 0 0 0 1px var(--bb-hot, var(--color-paper));
+}
+.pdk-opt-price {
+  color: var(--color-muted);
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+/* colour swatches stay round */
+.pdk-opts.is-swatch .pdk-opt {
+  width: 64px;
+  height: 64px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--color-plate);
+}
+.pdk-opts.is-swatch .pdk-opt img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.pdk-buy {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.pdk-buy .qty {
+  flex: none;
+  border-color: var(--color-line) !important;
+  border-radius: 8px !important;
+}
+.pdk-add {
+  flex: 1;
+  min-height: 56px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bb-hot, var(--color-paper));
+  color: var(--bb-on-accent, var(--color-char));
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.pdk-add:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.pdk-add:disabled {
+  background: var(--color-ash);
+  color: var(--color-muted);
+  cursor: default;
+}
+/* outranks the shelf cards' heart style (#site .wish) */
+#site .pdk .pdk-wish,
+.pdk-wish {
+  flex: none;
+  height: auto;
+  color: var(--color-paper);
+  stroke: var(--bb-hot, var(--color-paper));
+  display: grid;
+  place-items: center;
+  width: 48px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.pdk-about {
+  display: grid;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.pdk-about h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.pdk-about p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--color-muted);
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+@media (max-width: 1180px) {
+  .pdk-grid {
+    grid-template-columns: auto minmax(300px, 380px);
+    gap: 32px;
+  }
+  .pdk-main {
+    width: min(calc(var(--pdk-w, 100vw) - 128px - 72px - 12px - 380px - 40px), max(380px, calc(100dvh - 200px)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdk,
+  .pdk-media,
+  .pdk-side[data-dir] {
+    animation: none;
+  }
+}

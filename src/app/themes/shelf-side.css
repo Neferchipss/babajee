@@ -1,0 +1,272 @@
+/* Wide screens (1024px and up, as the desktop product page): the categories
+   are a list down the left of the shelf, as on a desktop shop, instead of
+   the phone's row of tabs under the search bar. The list is CategoryNav, in
+   the shelf's .cp-side; it stays in view as the shelf scrolls. */
+@media (min-width: 1024px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] {
+    & .sb-nav {
+      display: none !important;
+    }
+    /* two panels: on the left the logo, where to and the categories, the
+       window's height; on the right the bar (search, Cart, Profile) over
+       the products. Only the products scroll. */
+    & .cp {
+      /* the left panel hugs the window's left edge; the products take the rest */
+      max-width: none;
+      margin: 0;
+      padding-left: 24px;
+      padding-right: 40px;
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-areas:
+        "side mast"
+        "side main";
+      column-gap: 40px;
+    }
+    & .cp-side {
+      grid-area: side;
+      display: block !important;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100dvh;
+      margin: 0;
+      /* room at the top for the logo and where to, which sit over it */
+      padding-top: 128px;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+    /* the bar keeps only the search and Cart / Profile */
+    & .sb {
+      /* the bar is level with where to, beside the logo */
+      padding-top: 30px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "search me"
+        "cats cats";
+    }
+    /* behind the logo and where to, a solid patch: at the end of the shelf
+       the category list scrolls up and slides under them, not through them */
+    & .cp-hero::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: auto;
+      bottom: auto;
+      left: calc(-280px - 40px);
+      z-index: -1;
+      width: calc(280px + 40px);
+      height: 120px;
+      background: var(--color-char);
+    }
+    /* the logo and where to move up into the left panel */
+    & :is(.sb-logo, .dt) {
+      position: absolute;
+      left: calc(-280px - 40px);
+    }
+    & .sb-logo {
+      top: 14px;
+      margin-left: 10px;
+    }
+    & .sb-logo img {
+      width: 88px;
+    }
+    & :is(.sb-logo, .sb-logo img, .dt) {
+      transition:
+        top 0.25s ease,
+        left 0.25s ease,
+        width 0.25s ease;
+    }
+    /* where to, beside the logo, level with its middle */
+    & .dt {
+      top: 30px;
+      left: calc(-280px - 40px + 112px);
+      /* it may run into the gap before the search bar */
+      width: calc(280px + 40px - 112px - 6px);
+    }
+    & .cp-side::-webkit-scrollbar {
+      display: none;
+    }
+    & .cp-main {
+      grid-area: main;
+      /* the first row of products starts level with "All categories" */
+      margin-top: var(--shelf-drop, 38px);
+    }
+
+    /* the list itself: a plain column, no strip fades or buttons */
+    & .cp-side .cp-cats h2 {
+      margin: 0 0 10px;
+      padding: 0 12px;
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    & .cp-side .cp-cats .cp-strip {
+      display: block;
+    }
+    & .cp-side .cp-cats .cp-strip ul {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      overflow: visible;
+      mask-image: none;
+      -webkit-mask-image: none;
+    }
+    & .cp-side .cp-cats .cp-strip-btn {
+      display: none;
+    }
+    & .cp-side .cp-cats a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 0;
+      height: 25px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 8px;
+      background: none;
+      box-shadow: none;
+      color: var(--color-muted);
+      letter-spacing: normal;
+      text-transform: none;
+      font-size: 0.86rem;
+      font-weight: 500;
+      line-height: 1;
+      text-decoration: none;
+      opacity: 1;
+      transition:
+        color 0.15s,
+        background-color 0.15s;
+    }
+    & .cp-side .cp-cats a:hover {
+      color: var(--color-paper);
+      background: var(--color-iron);
+    }
+    & .cp-side .cp-cats a[aria-current="page"] {
+      color: var(--color-paper);
+      font-weight: 600;
+    }
+    /* the "you are here" highlight: one block behind the list that glides
+       to the category picked (CategoryNav.tsx moves it) */
+    & .cp-side .cp-cats .cp-strip {
+      position: relative;
+    }
+    & .cp-side .cp-cats .cp-strip ul {
+      position: relative;
+      z-index: 1;
+    }
+    & .cp-side .cp-cats .cp-ink {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      display: block;
+      border-radius: 8px;
+      background: var(--color-ash);
+      opacity: 0;
+      transition:
+        transform var(--dur-3, 0.36s) var(--ease-out, ease-out),
+        width var(--dur-3, 0.36s) var(--ease-out, ease-out),
+        height var(--dur-3, 0.36s) var(--ease-out, ease-out);
+      pointer-events: none;
+    }
+    & .cp-side .cp-cats .cp-ink[data-on="true"] {
+      opacity: 1;
+    }
+    /* hover tint stays under the text, above the highlight's block */
+    & .cp-side .cp-cats a[aria-current="page"]:hover {
+      background: none;
+    }
+    & .cp-side .cp-cats a[aria-current="page"] .cp-ico {
+      color: var(--bb-hot, var(--color-paper));
+    }
+    & .cp-side .cp-cats .cp-ico svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* a tree: All at the top, every category under it on a guide line */
+    & .cp-side .cp-cats .cp-strip li:first-child a {
+      color: var(--color-paper);
+      font-weight: 600;
+    }
+    & .cp-side .cp-cats .cp-strip li:not(:first-child) {
+      position: relative;
+      margin-left: 18px;
+      padding-left: 10px;
+      border-left: 1px solid var(--color-line);
+    }
+    /* the line's tick into each row */
+    & .cp-side .cp-cats .cp-strip li:not(:first-child)::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 8px;
+      border-top: 1px solid var(--color-line);
+    }
+    /* the last one ends the line at its tick */
+    & .cp-side .cp-cats .cp-strip li:last-child {
+      border-left-color: transparent;
+    }
+    & .cp-side .cp-cats .cp-strip li:last-child::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -1px;
+      height: 50%;
+      border-left: 1px solid var(--color-line);
+    }
+    & .cp-side .cp-cats .cp-lbl {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    & .cp-side .cp-cats .cp-num {
+      margin-left: auto;
+      color: var(--color-muted);
+      font-family: var(--font-mono-face, ui-monospace, monospace);
+      font-size: 0.75rem;
+    }
+
+    /* the shelf is narrower beside the list: five across, four on smaller laptops */
+    & .cp-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+}
+/* a product open (ProductDesk, z-index 140): the header stays above it, so
+   the logo, which hangs below the bar, is not cut off */
+@media (min-width: 1024px) {
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .cp-hero {
+    z-index: 141;
+  }
+  /* and the logo and where to shrink into the bar's one row, level with
+     the search */
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .cp-hero::before {
+    content: none;
+  }
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb-logo {
+    top: 30px;
+  }
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb-logo img {
+    width: 44px;
+  }
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .dt {
+    top: 30px;
+    left: calc(-280px - 40px + 68px);
+  }
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] :is(.sb-logo, .sb-logo img, .dt) {
+    transition:
+      top 0.25s ease,
+      left 0.25s ease,
+      width 0.25s ease;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1365px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -308,7 +308,7 @@ export function CheckoutItems() {
   const cart = useCart();
   const sums = cartSums(cart);
   return (
-    <aside className="rounded-xl border border-line bg-iron p-6">
+    <aside className="rounded-[var(--radius)] border border-line bg-iron p-6">
       <h2 className="text-2xl">Your items</h2>
       {cart.length === 0 ? (
         <p className="mt-4 text-sm text-muted">

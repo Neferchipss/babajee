@@ -1,0 +1,29 @@
+/* Type: Geist for everything in the shop, Geist Mono for prices. Headings
+   are tight and white rather than drip paint in the accent colour; the drip
+   lives in the logo only. Loaded after the themes so it wins over them. */
+html[data-theme^="baba"] #site[data-scope="shop"] {
+  --bb-display: var(--font-body-face), system-ui, sans-serif;
+  --bb-label: var(--font-body-face), system-ui, sans-serif;
+  font-family: var(--font-body-face), system-ui, sans-serif;
+
+  & :is(.cp-title, .si-title, .pd-title, .pd-more-title, .cp-brand h2) {
+    color: var(--color-paper);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    text-shadow: none;
+  }
+}
+
+/* prices, everywhere they show */
+:is(.pc-price, .pd-price, .ps-bar-price, .ps-opt-price) {
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* A browser extension on at least one machine styles any ".cp-body" in
+   Poppins (not loaded, so it falls back to a serif). Name the font here so
+   the category page never depends on what the visitor has installed. */
+#site .cp-body {
+  font-family: var(--font-body-face), system-ui, sans-serif;
+}

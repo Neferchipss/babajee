@@ -113,7 +113,7 @@ export default function AddressPicker() {
       )}
 
       {showForm ? (
-        <div className={saved.length || oneOff ? "mt-4 rounded-xl border border-line p-4 sm:p-5" : ""}>
+        <div className={saved.length || oneOff ? "mt-4 rounded-[var(--radius)] border border-line p-4 sm:p-5" : ""}>
           {(saved.length > 0 || oneOff) && <p className="mb-4 font-medium">New address</p>}
           <AddressForm
             initial={fresh}
@@ -171,7 +171,7 @@ function Choice({
   const on = chosen === id;
   return (
     <label
-      className={`flex cursor-pointer gap-3 rounded-xl border bg-iron p-4 transition-colors sm:p-5 ${
+      className={`flex cursor-pointer gap-3 rounded-[var(--radius)] border bg-iron p-4 transition-colors sm:p-5 ${
         on ? "border-rasta-gold" : "border-line hover:border-[#3a3a3a]"
       }`}
     >

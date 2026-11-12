@@ -94,7 +94,7 @@ body:has(.scene[data-intro="true"]) .ftr {
   position: absolute;
   inset: 16px;
   border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 6px;
+  border-radius: var(--radius);
   opacity: 0.75;
   background:
     linear-gradient(var(--c), var(--c)) 0 0 / 26px 2px no-repeat,
@@ -240,7 +240,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   z-index: 3;
   padding: 8px 16px;
   border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.6);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
@@ -264,7 +264,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   left: 0;
   padding: 2px 7px;
   border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.6);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
@@ -317,7 +317,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   height: 10px;
   margin: -5px 0 0 -5px;
   border: 2px solid rgb(0 0 0 / 0.55);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: #fff;
   pointer-events: none;
   transition:
@@ -367,7 +367,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
 .scene-cursor::after {
   content: "";
   position: absolute;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   translate: -50% -50%;
   transition:
     width 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
@@ -439,7 +439,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   top: 20px;
   left: 50%;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.6);
   color: #fff;
   font-size: 0.85rem;
@@ -463,7 +463,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
   max-height: calc(100% - 48px);
   padding: 20px 20px 12px;
   border: 1px solid var(--color-line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--color-iron) 88%, transparent);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -515,7 +515,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
 }
 .scene-cat:hover,
 .scene-cat:focus-visible {
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-ash);
   color: var(--color-rasta-gold);
 }
@@ -691,7 +691,7 @@ body:has(.scene) .theme-toggle {
   gap: 6px;
   padding: 8px 16px;
   border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.6);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
@@ -718,7 +718,7 @@ body:has(.scene) .theme-toggle {
   z-index: 3;
   max-width: calc(100% - 28px);
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: rgb(0 0 0 / 0.75);
   color: #fff;
   font-size: 0.8rem;
@@ -773,7 +773,7 @@ body:has(.scene) .theme-toggle {
   width: 42px;
   height: 42px;
   border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: rgb(0 0 0 / 0.75);
   color: #fff;
   cursor: pointer;
@@ -842,7 +842,7 @@ body:has(.scene) .theme-toggle {
   flex: none;
   width: var(--s);
   height: var(--s);
-  border-radius: 20px;
+  border-radius: var(--radius);
   background:
     radial-gradient(circle at 50% 46%, rgb(255 214 120 / 0.55), transparent 68%),
     #f3eff8;
@@ -890,7 +890,7 @@ body:has(.scene) .theme-toggle {
 @media (max-width: 760px) {
   .scene-peek-item {
     --s: 62px;
-    border-radius: 16px;
+    border-radius: var(--radius);
   }
   .scene-peek-fan {
     gap: 6px;

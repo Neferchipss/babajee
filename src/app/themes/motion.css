@@ -1,0 +1,280 @@
+/* Motion: small, quick, and only to explain a change (something appeared,
+   moved, or answered a tap). One easing and three durations for the whole
+   site; only transform and opacity move, so it stays smooth on cheap
+   phones. Everything here is off when the device asks for reduced motion. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 150ms; /* presses, colour changes */
+  --dur-2: 220ms; /* hovers, small moves */
+  --dur-3: 360ms; /* things arriving */
+}
+
+/* ------------------------------------------------------- product cards */
+
+/* arriving: the cards on the first screen rise into place in one quick
+   wave. Cards further down were laid out already finished (the shelf skips
+   rendering what is off screen), so scrolling never waits on them. */
+@keyframes pc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/* in every state: an older theme rule switches card animation off on
+   hover, and turning it back on as the mouse leaves would replay this */
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:is(*, :hover, [data-seen], [data-focus]) {
+  animation: pc-rise var(--dur-3) var(--ease-out) both;
+}
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 2) { animation-delay: 30ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 3) { animation-delay: 60ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 4) { animation-delay: 90ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 5) { animation-delay: 120ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 6) { animation-delay: 150ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 7) { animation-delay: 180ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 8) { animation-delay: 210ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 9) { animation-delay: 240ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 10) { animation-delay: 270ms; }
+html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:nth-child(n + 11) { animation-delay: 300ms; }
+
+/* the photo: eases in a little on hover */
+html[data-theme] #site .pc-photo {
+  transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-3) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme] #site .pc:hover .pc-photo {
+    transform: scale(1.03);
+  }
+}
+
+/* desktop: one photo per card. The strip of photos and its dots are for
+   swiping on a phone; with a mouse the card shows its first photo (the
+   chosen colour's, when it has colours) and the product page has the rest. */
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme] #site .pc-slides[data-many] {
+    overflow: clip;
+    scroll-snap-type: none;
+  }
+  html[data-theme] #site .pc-slides[data-many] .pc-slide:not(:first-child),
+  html[data-theme] #site .pc-dots {
+    display: none;
+  }
+}
+
+/* pressed: the card gives a little under a click. Mouse only: on a phone
+   the same touch starts a swipe through the photos, and the card moving
+   under the finger got in the way of it. */
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme] #site .pc-link:active .pc-img {
+    transform: scale(0.98);
+    transition-duration: var(--dur-1);
+  }
+}
+
+/* ------------------------------------------------------- add to cart */
+
+/* the button's words: a new label rises in; "Added" gets a tick that draws
+   itself (AddLabel.tsx) */
+@keyframes add-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+@keyframes add-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.add-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  animation: add-label-in var(--dur-2) var(--ease-out);
+}
+.add-check path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: add-check-draw var(--dur-3) var(--ease-out) 60ms forwards;
+}
+/* the desktop button gives a little under the click, as the phone's does */
+#site .pdk-add {
+  transition:
+    filter var(--dur-1) var(--ease-out),
+    transform var(--dur-1) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+#site .pdk-add:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ------------------------------------------------------ wishlist heart */
+
+/* saved: a small pop (this replaces the older, springier one in base.css)
+   while the colour pours in from the bottom; let go, it drains back down */
+@keyframes wish-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.wish-heart[data-pop="true"] {
+  animation: wish-pop var(--dur-3) var(--ease-out);
+  transform-origin: 50% 55%;
+}
+/* the outline layer keeps the empty look; the colour is the clipped layer */
+.wish[aria-pressed="true"] .wish-heart .wish-base {
+  fill: transparent;
+}
+#site .pc-wish[aria-pressed="true"] .wish-heart .wish-base {
+  fill: #a09dab;
+  stroke: #a09dab;
+}
+.wish-heart .wish-fill {
+  fill: var(--bb-hot, var(--bb-maroon, #ff4d8d));
+  stroke: var(--bb-hot, var(--bb-maroon, #ff4d8d));
+}
+/* the colour layer is cut off from the top down; saved, the cut opens
+   (an SVG clipPath would not animate in Chrome) */
+.wish-heart .wish-fill {
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path var(--dur-3) var(--ease-out);
+}
+.wish[aria-pressed="true"] .wish-heart .wish-fill {
+  clip-path: inset(0 0 0 0);
+}
+@keyframes wish-pour {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+.wish-heart[data-pop="true"] .wish-fill {
+  animation: wish-pour var(--dur-3) var(--ease-out);
+}
+
+/* ----------------------------------------------------- colour swatches */
+
+/* picked: the swatch's picture settles back to size as its gold ring fades
+   in (each place draws its own ring; the colour change eases in) */
+@keyframes swatch-pick {
+  from {
+    transform: scale(0.85);
+  }
+}
+#site[data-scope="shop"] .pc-dot[aria-checked="true"]::after,
+#site[data-scope="shop"] .pc-dot[aria-checked="true"] img,
+.pdk-opts.is-swatch .pdk-opt[aria-checked="true"] img,
+.ps-opts[data-swatches] .ps-opt[aria-checked="true"] .ps-swatch {
+  animation: swatch-pick var(--dur-2) var(--ease-out);
+}
+#site[data-scope="shop"] .pc-dot,
+.pdk-opt,
+.ps-opt {
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+
+/* and the photos change to that colour by fading in: they are built afresh
+   for each colour, and every product photo fades in once loaded (below) */
+
+/* ------------------------------------------------------ photos, loading */
+
+/* a product photo stays hidden on its plate until it has loaded, then fades
+   in (lib/fade-in.ts marks it), so nothing pops in half drawn */
+img[data-fade]:not([data-loaded]) {
+  opacity: 0;
+}
+img[data-fade] {
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out);
+}
+
+/* ---------------------------------------------------------------- search */
+
+/* the suggestions under the search bar drop in a few pixels as they appear
+   (once per search: the list stays while typing changes what is in it),
+   and the highlighted row eases from one to the next under the arrow keys */
+@keyframes found-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+#site .sb-found {
+  animation: found-drop var(--dur-2) var(--ease-out);
+}
+#site .sb-found a,
+#site .sb-found-all {
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+
+/* ------------------------------------------------------ buttons and icons */
+
+/* Across the shop and its panels: colours change smoothly on hover, and a
+   button gives a little under a press. These are the weakest rules there
+   are (:where), so a button with motion of its own keeps it, and one placed
+   with a transform keeps its place (it simply does not press). */
+:where(#site[data-scope="shop"], .pp, .dt-sheet) :where(button, a, .store-btn, .sb-sort) {
+  transition:
+    color var(--dur-1) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out),
+    opacity var(--dur-1) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+:where(#site[data-scope="shop"], .pp, .dt-sheet) :where(button, .store-btn, .sb-sort):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ------------------------------------------------- switching category */
+
+/* the shelf on screen dims from the click until the next one arrives
+   (lib/shelf-switch.ts), so the click visibly took */
+#site .cp-main {
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+html[data-shelf-leaving] #site .cp-main {
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] #site[data-scope="shop"] :is(.cp, .cv-recs) .cp-grid > li.pc:is(*, :hover, [data-seen], [data-focus]) {
+    animation: none;
+  }
+  html[data-theme] #site .pc-photo,
+  html[data-theme] #site .pc-img {
+    transition: none;
+  }
+  #site .sb-found,
+  #site[data-scope="shop"] .pc-dot[aria-checked="true"]::after,
+  #site[data-scope="shop"] .pc-dot[aria-checked="true"] img,
+  .pdk-opts.is-swatch .pdk-opt[aria-checked="true"] img,
+  .ps-opts[data-swatches] .ps-opt[aria-checked="true"] .ps-swatch,
+  .wish-heart[data-pop="true"],
+  .wish-heart[data-pop="true"] .wish-fill,
+  .add-label,
+  .add-check path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  #site .pdk-add:active:not(:disabled),
+  :where(#site[data-scope="shop"], .pp, .dt-sheet) :where(button, .store-btn, .sb-sort):active:not(:disabled) {
+    transform: none;
+  }
+  :where(#site[data-scope="shop"], .pp, .dt-sheet) :where(button, a, .store-btn, .sb-sort) {
+    transition: none;
+  }
+  img[data-fade],
+  #site .cp-main,
+  .wish-heart .wish-fill,
+  #site .sb-found a,
+  #site .sb-found-all {
+    transition: none;
+  }
+  html[data-theme] #site .pc:hover .pc-photo,
+  html[data-theme] #site .pc-link:active .pc-img {
+    transform: none;
+  }
+}

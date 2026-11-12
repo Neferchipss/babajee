@@ -181,6 +181,15 @@ async function liveCategoryDetail(slug: string) {
   };
 }
 
+// A product's description and brand, for the desktop product page (the
+// shelf's cards don't carry them). Empty when there is none or no database.
+export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string }> {
+  const sb = client();
+  if (!sb) return { description: "", brand: "" };
+  const { data } = await sb.from("products").select("description, brand").eq("slug", productSlug).maybeSingle();
+  return { description: data?.description ?? "", brand: data?.brand ?? "" };
+}
+
 export async function getProductDetail(categorySlug: string, productSlug: string) {
   const live = await liveProductDetail(categorySlug, productSlug);
   return live || !useLocal ? live : localProductDetail(categorySlug, productSlug);

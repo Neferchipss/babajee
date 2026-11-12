@@ -52,6 +52,8 @@
   pointer-events: auto;
 }
 .ps-card {
+  /* the opened card matches the cards in the grid */
+  --radius: 8px;
   position: relative;
   flex: 0 1 auto;
   min-height: 0;
@@ -59,7 +61,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--bbn-edge, #3a3478);
-  border-radius: 22px;
+  border-radius: var(--radius);
   background: var(--color-iron, #151232);
   color: var(--color-paper, #f4efff);
   box-shadow:
@@ -91,7 +93,7 @@
   z-index: 3;
   width: 40px;
   height: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: rgb(var(--bb-fg) / 0.22);
   transform: translateX(-50%);
 }
@@ -126,7 +128,7 @@
   width: 40px;
   height: 40px;
   padding: 3px 0 0;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
 }
 .ps-top .jar-sheet .jar-art {
   width: 24px;
@@ -137,13 +139,13 @@
   width: 40px;
   height: 40px;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   color: inherit;
   cursor: pointer;
 }
 .ps-full {
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   color: inherit;
   font-size: 0.75rem;
   font-weight: 700;
@@ -236,7 +238,7 @@
   width: 6px;
   height: 6px;
   margin: 0 auto;
-  border-radius: 3px;
+  border-radius: 999px; /* photo dots stay round (the current one a pill) */
   background: #c3c1cb; /* light, like the shelf cards' dots, on the dark plate */
   transition: width 0.25s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.25s;
 }
@@ -253,7 +255,7 @@
   height: 32px;
   padding: 0;
   border: 1px solid rgb(var(--bb-fg) / 0.14);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: rgb(var(--bb-bg) / 0.72);
   color: var(--color-paper, #f4efff);
   cursor: pointer;
@@ -300,7 +302,7 @@
   width: max-content;
   margin-inline: auto;
   padding: 5px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--ps-mint);
   color: var(--bb-on-accent, #16061a);
   font-size: 0.75rem;
@@ -369,7 +371,7 @@
   min-width: 96px;
   padding: 10px 12px;
   border: 1.5px solid var(--color-line, #2d2860);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--color-ash, #1c1840);
   color: inherit;
   font: inherit;
@@ -399,20 +401,20 @@
   height: 52px;
   padding: 3px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 50%; /* colour swatches stay round */
 }
 .ps-swatch {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 50%; /* colour swatches stay round */
   background: var(--color-plate, #1c1b21);
   object-fit: cover;
 }
 .ps-opts[data-swatches] .ps-opt-out {
   position: absolute;
   inset: auto 3px 3px;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius) var(--radius);
   background: rgb(var(--bb-bg) / 0.75);
   color: var(--color-paper, #f4efff);
   font-size: 0.6rem;
@@ -463,21 +465,19 @@
   min-width: 128px;
   height: 48px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 8px; /* the main buttons are softened slightly; the rest of the shop is square */
   background: var(--ps-pink);
   color: var(--bb-on-accent, #16061a);
   font: inherit;
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.12s;
+  /* as the desktop button: it gives a little under the press, and adding
+     only changes its words (motion.css), no colour flash or pop */
+  transition: transform var(--dur-1, 0.15s) var(--ease-out, ease-out);
 }
-.ps-add:active {
-  transform: scale(0.96);
-}
-.ps-add[data-added="true"] {
-  background: var(--ps-mint);
-  animation: ps-pop 0.3s ease-out;
+.ps-add:active:not(:disabled) {
+  transform: scale(0.97);
 }
 .ps-add:disabled {
   opacity: 0.45;
@@ -534,7 +534,7 @@
   width: calc(var(--dial-r, 300px) * 2);
   height: calc(var(--dial-r, 300px) * 2);
   border: 2px dashed rgb(var(--ps-glow) / 0.28);
-  border-radius: 50%;
+  border-radius: 50%; /* the wheel is round */
   transform: translateX(-50%) rotate(var(--dial-turn, 0rad));
   pointer-events: none;
 }
@@ -546,14 +546,14 @@
   height: 72px;
   overflow: hidden;
   border: 2px solid rgb(var(--bb-fg) / 0.14);
-  border-radius: 50%;
+  border-radius: 50%; /* the wheel is round */
   background: var(--color-plate, #171437);
   box-shadow: 0 8px 20px rgb(0 0 0 / 0.45);
   will-change: transform, opacity;
 }
 .pw-art {
   width: 100%;
-  border-radius: 50% !important;
+  border-radius: 50% !important; /* the wheel is round */
   transition: scale 0.16s cubic-bezier(0.32, 0.72, 0, 1);
 }
 /* pressed: it dips in; arriving in the middle: it pops and its ring lights */
@@ -625,7 +625,7 @@
   padding: 0 14px;
   scroll-margin-inline: 8px;
   border: 1.5px solid var(--color-line, #2d2860);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: rgb(var(--bb-bg) / 0.6);
   color: var(--color-muted, #a39cd0);
   font: inherit;
@@ -770,7 +770,7 @@ html #site[data-scope] .ps .pa-initial {
 #site .ps-top .wish {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: rgb(var(--bb-bg) / 0.55);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);

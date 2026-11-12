@@ -80,7 +80,7 @@
 .cv-panel {
   overflow: hidden;
   border: 1px solid var(--cv-line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   background: var(--cv-panel);
 }
 .cv-lines {
@@ -102,7 +102,7 @@
   display: block;
   overflow: hidden;
   border: 1px solid var(--cv-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 .cv-thumb .pa {
   border-radius: 0 !important;
@@ -156,7 +156,7 @@
   display: inline-flex;
   align-items: center;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--cv-pink);
   color: var(--bb-on-accent, #16061a);
   overflow: hidden;
@@ -215,7 +215,7 @@
   padding: 4px 0 10px;
   overflow: hidden;
   border: 1px solid var(--cv-line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   background: var(--cv-panel);
 }
 .cv-tabs {
@@ -257,7 +257,7 @@
   left: 0;
   width: 0;
   height: 3px;
-  border-radius: 3px 3px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: var(--cv-pink);
   pointer-events: none;
   transition:
@@ -328,7 +328,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
 .cv-sum {
   padding: 18px;
   border: 1px solid var(--cv-line);
-  border-radius: 18px;
+  border-radius: var(--radius);
   background: var(--cv-panel);
 }
 @media (min-width: 960px) {
@@ -410,7 +410,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: rgb(var(--bb-fg) / 0.08);
   color: var(--color-paper, #f4efff);
 }
@@ -430,7 +430,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   display: grid;
   place-items: center;
   height: 56px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--cv-pink);
   color: var(--bb-on-accent, #16061a);
   font-size: 1.1rem;
@@ -452,7 +452,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   gap: 12px;
   padding: 12px max(16px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border-top: 1px solid var(--cv-line);
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: rgb(var(--bb-bg) / 0.96);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -474,7 +474,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   gap: 16px;
   max-width: calc(100vw - 32px);
   padding: 10px 10px 10px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--color-paper, #f4efff);
   color: var(--color-char, #0c0a1c);
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
@@ -492,7 +492,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   flex: none;
   padding: 6px 12px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--color-char, #0c0a1c);
   color: var(--bb-maroon, #ff8fb3);
   font: inherit;

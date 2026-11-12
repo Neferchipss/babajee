@@ -1,5 +1,56 @@
 @import "tailwindcss";
 
+/* The shop's shape: square corners. One place to soften them (e.g. 2px), and
+   one for what used to be circles and pills (buttons, steppers, dots). Admin,
+   invoices and drawings (the eyes, the map pin, the jar) keep their own. */
+:root {
+  --radius: 0px;
+  --radius-round: 0px;
+}
+/* Taps answer at once: no wait to see if it is a double-tap zoom (pinch
+   zoom still works), and no grey flash over what was tapped; buttons show
+   their own pressed state instead (motion.css). */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+:where(a, button, label, summary, select, input, textarea, [role="button"], [role="radio"], [role="tab"], [role="option"]) {
+  touch-action: manipulation;
+}
+
+/* Every scrollbar on the site (the page, panels, sheets, lists, admin): a
+   thin pill in the theme's grey, no arrows, no track. Still the browser's
+   own, so dragging, wheel and keys work as usual. Places that hide theirs
+   (photo strips, the product page) set scrollbar-width: none and win. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 45%, transparent) transparent;
+}
+*:hover {
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 70%, transparent) transparent;
+}
+/* older Safari, which ignores the two properties above */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-muted) 50%, transparent) padding-box;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* product cards are softened a little (they were 16px) */
+#site .pc {
+  --radius: 8px;
+}
+
 @theme {
   --color-char: #0a0a0a;
   --color-iron: #121212;
@@ -67,7 +118,7 @@
     justify-content: center;
     gap: 0.5rem;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 0.85rem 1.6rem;
     font-size: 0.95rem;
     font-weight: 600;
@@ -104,7 +155,7 @@
     width: 100%;
     background: var(--color-iron);
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 0.8rem 1rem;
     color: var(--color-paper);
     transition: border-color 0.15s;
@@ -138,7 +189,7 @@
       ),
       var(--color-iron);
     border: 1px solid var(--color-line);
-    border-radius: 12px;
+    border-radius: var(--radius);
     transition: border-color 0.2s;
   }
   .tile::after {

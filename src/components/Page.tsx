@@ -33,7 +33,7 @@ export default function Page({ title, lede, back, narrow = false, children }: Pa
 
 export function Placeholder({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-lg border border-dashed border-line px-4 py-3 text-sm text-muted">
+    <p className="rounded-[var(--radius)] border border-dashed border-line px-4 py-3 text-sm text-muted">
       {children}
     </p>
   );
