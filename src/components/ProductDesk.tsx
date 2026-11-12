@@ -15,6 +15,8 @@ import type { SheetProduct } from "./ProductSheet";
 import QtyStepper from "./QtyStepper";
 import WishButton from "./WishButton";
 import "./product-desk.css";
+import { track } from "@/lib/track";
+import ProductReviews, { RatingLine } from "./ProductReviews";
 
 // A product on a wide screen, as a traditional shop page: big photos on the
 // left with thumbnails under them, and on the right the name, price, options,
@@ -40,7 +42,7 @@ export default function ProductDesk({
   const [choice, setChoice] = useState({ slug: "", v: 0 });
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState("");
-  const [about, setAbout] = useState<{ slug: string; description: string; brand: string } | null>(null);
+  const [about, setAbout] = useState<{ slug: string; description: string; brand: string; specs: { label: string; value: string }[] } | null>(null);
   // where the header sits: the page starts under it and lines up with its
   // edges (the logo on the left, Profile on the right)
   const [box, setBox] = useState({ top: 0, left: 0, width: 0 });
@@ -98,11 +100,15 @@ export default function ProductDesk({
     };
   }, [onClose]);
 
-  // a new product: the address follows, the page starts at the top, quantity back to 1
+  // a new product: the address follows, the page starts at the top, quantity
+  // back to 1, and the look is recorded for the customer's activity
   useEffect(() => {
     onIndex(p.slug);
     page.current?.scrollTo({ top: 0 });
   }, [p.slug, onIndex]);
+  useEffect(() => {
+    track("product", `${location.pathname}?p=${encodeURIComponent(p.slug)}`, p.name);
+  }, [p.slug, p.name]);
 
   // its description and brand, which the shelf doesn't carry
   useEffect(() => {
@@ -110,7 +116,7 @@ export default function ProductDesk({
     import("@/lib/catalog-db")
       .then((m) => m.getProductDescription(p.slug))
       .then((d) => live && setAbout({ slug: p.slug, ...d }))
-      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "" }));
+      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "", specs: [] }));
     return () => {
       live = false;
     };
@@ -158,6 +164,7 @@ export default function ProductDesk({
             <h1 id="pdk-title" className="pdk-title">
               <Branded name={p.name} />
             </h1>
+            <RatingLine slug={p.slug} target="pdk-reviews" />
 
             <div className="pdk-price">
               {deal ? (
@@ -221,6 +228,20 @@ export default function ProductDesk({
                 <p>{info.description}</p>
               </section>
             ) : null}
+            {info?.specs.length ? (
+              <section className="pdk-about pdk-specs">
+                <h2>Specifications</h2>
+                <dl>
+                  {info.specs.map((s) => (
+                    <div key={s.label}>
+                      <dt>{s.label}</dt>
+                      <dd>{s.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+            <ProductReviews slug={p.slug} id="pdk-reviews" />
           </div>
         </div>
       </div>

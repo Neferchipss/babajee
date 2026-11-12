@@ -6,7 +6,7 @@
 import { toNumber } from "./currency";
 import { getSupabase } from "./supabase";
 
-export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean };
+export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null };
 export type AdminVariant = {
   id: string;
   label: string;
@@ -51,6 +51,14 @@ export type AdminProduct = {
   gst_rate: number | null;
   hsn: string;
   is_visible: boolean;
+  // draft, on the shop, or archived (0041); is_visible follows it
+  status: ProductStatus;
+  // a label within its category, a filter chip on the shelf (0041)
+  subcategory: string;
+  // rows of the product page's specifications table (0041)
+  specs: Spec[];
+  // its own low-stock mark, or null for the shop's (0043)
+  low_stock_at: number | null;
   sort_order: number;
   category_id: string;
   category_slug?: string;
@@ -58,6 +66,9 @@ export type AdminProduct = {
   variants: AdminVariant[];
   images: AdminImage[];
 };
+
+export type ProductStatus = "draft" | "published" | "archived";
+export type Spec = { label: string; value: string };
 
 export const PHOTO_BUCKET = "product-photos";
 
@@ -93,7 +104,7 @@ function toVariant(row: {
 export async function listCategories(): Promise<AdminCategory[]> {
   const { data, error } = await db()
     .from("categories")
-    .select("id, slug, name, sort_order, is_visible")
+    .select("id, slug, name, sort_order, is_visible, tagline")
     .order("sort_order");
   if (error) throw error;
   return data ?? [];
@@ -104,7 +115,7 @@ export async function createCategory(input: { slug: string; name: string; sort_o
   if (error) throw error;
 }
 
-export async function updateCategory(id: string, patch: Partial<Pick<AdminCategory, "name" | "sort_order" | "is_visible">>) {
+export async function updateCategory(id: string, patch: Partial<Pick<AdminCategory, "name" | "sort_order" | "is_visible" | "tagline">>) {
   const { error } = await db().from("categories").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -128,7 +139,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, hsn, is_visible, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -143,6 +154,10 @@ type ProductRow = {
   gst_rate: number | string | null;
   hsn: string | null;
   is_visible: boolean;
+  status?: ProductStatus | null;
+  subcategory?: string | null;
+  specs?: Spec[] | null;
+  low_stock_at?: number | null;
   sort_order: number;
   category_id: string;
   categories: { slug: string; name: string } | { slug: string; name: string }[] | null;
@@ -167,6 +182,10 @@ function toProduct(row: ProductRow): AdminProduct {
     gst_rate: row.gst_rate == null ? null : Number(row.gst_rate),
     hsn: row.hsn ?? "",
     is_visible: row.is_visible,
+    status: row.status ?? (row.is_visible ? "published" : "draft"),
+    subcategory: row.subcategory ?? "",
+    specs: Array.isArray(row.specs) ? row.specs : [],
+    low_stock_at: row.low_stock_at ?? null,
     sort_order: row.sort_order,
     category_id: row.category_id,
     category_slug: cat?.slug,
@@ -208,7 +227,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "hsn" | "is_visible" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "hsn" | "is_visible" | "status" | "subcategory" | "specs" | "low_stock_at" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;
@@ -226,6 +245,24 @@ export async function setProductVisibility(product: AdminProduct, visible: boole
   if (product.variants.length === 1) {
     await upsertVariant(product.id, { ...product.variants[0], is_visible: visible });
   }
+}
+
+// Draft, on the shop, or archived; a single-option product's one option
+// follows, as with setProductVisibility above.
+export async function setProductStatus(product: AdminProduct, status: ProductStatus) {
+  await updateProduct(product.id, { status });
+  if (product.variants.length === 1) {
+    await upsertVariant(product.id, { ...product.variants[0], is_visible: status === "published" });
+  }
+}
+
+// the subcategories already used in a category, most used first
+export async function subcategoriesOf(categoryId: string): Promise<string[]> {
+  const { data, error } = await db().from("products").select("subcategory").eq("category_id", categoryId).neq("subcategory", "");
+  if (error) throw error;
+  const n = new Map<string, number>();
+  for (const r of (data ?? []) as { subcategory: string }[]) n.set(r.subcategory, (n.get(r.subcategory) ?? 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1]).map(([s]) => s);
 }
 
 export async function bulkSetVisibility(products: AdminProduct[], ids: string[], visible: boolean) {

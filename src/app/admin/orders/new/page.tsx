@@ -41,6 +41,7 @@ export default function NewOrderPage() {
       .catch((e) => setErr(errText(e)));
   }, []);
 
+
   useEffect(() => {
     if (!find || customers) return;
     listCustomers()
@@ -73,6 +74,20 @@ export default function NewOrderPage() {
     setAddr({ line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, latitude: a.latitude, longitude: a.longitude });
     if (a.recipient_name || a.phone) setContact((c) => ({ ...c, name: a.recipient_name || c.name, phone: a.phone || c.phone }));
   }
+
+  // from a customer's page (?customer=id): that customer, already picked
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("customer");
+    if (!id) return;
+    listCustomers()
+      .then((all) => {
+        setCustomers(all);
+        const c = all.find((x) => x.id === id);
+        if (c) pickCustomer(c);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function clearCustomer() {
     setWho(null);

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
@@ -18,6 +19,7 @@ export default function SettingsPage() {
   const [credit, setCredit] = useState(false);
   const [home, setHome] = useState("");
   const [returnDays, setReturnDays] = useState("7");
+  const [lowAt, setLowAt] = useState("3");
   // the shop's own details, for invoices
   const [store, setStore] = useState({ store_name: "Babajee", legal_name: "", gstin: "", store_address: "", store_phone: "", store_email: "", invoice_prefix: "BJ", invoice_note: "" });
   const [loaded, setLoaded] = useState(false);
@@ -34,6 +36,7 @@ export default function SettingsPage() {
         setCredit(s.gst_input_credit);
         setHome(s.store_state);
         setReturnDays(String(s.return_days));
+        setLowAt(String(s.low_stock_at));
         setStore({
           store_name: s.store_name,
           legal_name: s.legal_name,
@@ -82,6 +85,7 @@ export default function SettingsPage() {
         gst_input_credit: credit,
         store_state: home,
         return_days: days,
+        low_stock_at: Math.min(10000, Math.round(Number(lowAt) || 0)),
         ...store,
         store_name: store.store_name.trim() || "Babajee",
         gstin,
@@ -106,9 +110,37 @@ export default function SettingsPage() {
       <h1 className="sr-only">Settings</h1>
       {err && <p className="adm-err">{err}</p>}
 
+      <header className="adm-pagehead">
+        <h1>Store settings</h1>
+        <p>The shop&apos;s details, delivery, GST and rules. Change what you need, then Save at the bottom of the screen.</p>
+      </header>
+      {/* jump to a section */}
+      <div className="adm-chips" style={{ marginBottom: 16 }}>
+        {[
+          ["store", "Store details"],
+          ["delivery", "Delivery"],
+          ["gst", "GST"],
+          ["returns", "Returns"],
+          ["stock", "Low stock"],
+        ].map(([id, label]) => (
+          <a key={id} href={`#set-${id}`} className="adm-chip">
+            {label}
+          </a>
+        ))}
+      </div>
+      {/* who can use the admin, and everything they changed (phones: the sidebar has them) */}
+      <div className="adm-chips adm-only-narrow" style={{ marginBottom: 16 }}>
+        <Link href="/admin/settings/team" className="adm-chip">
+          Admins →
+        </Link>
+        <Link href="/admin/settings/activity" className="adm-chip">
+          Activity log →
+        </Link>
+      </div>
+
       <form className="adm-stack" style={{ maxWidth: 560 }} onSubmit={save}>
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 style={{ margin: 0 }}>Store details</h2>
+          <h2 id="set-store" style={{ margin: 0, scrollMarginTop: 140 }}>Store details</h2>
           <p className="adm-muted adm-small" style={{ margin: "-8px 0 0" }}>
             Printed on every invoice and packing slip.
           </p>
@@ -161,7 +193,7 @@ export default function SettingsPage() {
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 style={{ margin: 0 }}>Delivery charges</h2>
+          <h2 id="set-delivery" style={{ margin: 0, scrollMarginTop: 140 }}>Delivery charges</h2>
           <label className="adm-label">
             Delivery charge per order (₹)
             <input className="adm-input" inputMode="decimal" value={ship} disabled={!loaded} onChange={(e) => setShip(e.target.value.replace(/[^\d.]/g, ""))} />
@@ -173,7 +205,7 @@ export default function SettingsPage() {
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 style={{ margin: 0 }}>GST</h2>
+          <h2 id="set-gst" style={{ margin: 0, scrollMarginTop: 140 }}>GST</h2>
           <label className="adm-label">
             Default GST bracket
             <select className="adm-input" value={rate} disabled={!loaded} onChange={(e) => setRate(e.target.value)}>
@@ -230,7 +262,7 @@ export default function SettingsPage() {
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 style={{ margin: 0 }}>Cancellations and returns</h2>
+          <h2 id="set-returns" style={{ margin: 0, scrollMarginTop: 140 }}>Cancellations and returns</h2>
           <label className="adm-label">
             Days after delivery a customer can ask for a return
             <input className="adm-input" inputMode="numeric" value={returnDays} disabled={!loaded} onChange={(e) => setReturnDays(e.target.value.replace(/\D/g, ""))} />
@@ -243,13 +275,40 @@ export default function SettingsPage() {
           </label>
         </section>
 
-        <div className="adm-actions">
+        <section className="adm-card" style={{ display: "grid", gap: 16 }}>
+          <h2 id="set-stock" style={{ margin: 0, scrollMarginTop: 140 }}>Low stock</h2>
+          <label className="adm-label">
+            An option is low at this many or fewer left
+            <input className="adm-input" inputMode="numeric" value={lowAt} disabled={!loaded} onChange={(e) => setLowAt(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">
+              For products that count stock. The admin shows an alert, and a notification while it&apos;s open, when an option reaches it. A product can set its own number on its page, like 10 for papers that sell fast.
+            </span>
+          </label>
+          <NotifyToggle />
+        </section>
+
+        {/* always in reach at the bottom of the screen */}
+        <div className="adm-actions set-save">
           <button className="adm-btn pri" disabled={!loaded}>
-            Save
+            Save settings
           </button>
           {msg && <span className="adm-muted adm-small" style={{ alignSelf: "center" }}>{msg}</span>}
         </div>
       </form>
     </div>
+  );
+}
+
+
+// Browser notifications for low stock, in this browser, while the admin is open.
+function NotifyToggle() {
+  const [state, setState] = useState<string>(() => (typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"));
+  if (state === "unsupported") return <p className="adm-muted adm-small" style={{ margin: 0 }}>This browser can&apos;t show notifications; alerts show inside the admin.</p>;
+  if (state === "granted") return <p className="adm-muted adm-small" style={{ margin: 0 }}>Notifications are on in this browser.</p>;
+  if (state === "denied") return <p className="adm-muted adm-small" style={{ margin: 0 }}>Notifications are blocked for this site in the browser&apos;s settings; alerts still show inside the admin.</p>;
+  return (
+    <button type="button" className="adm-btn" style={{ justifySelf: "start" }} onClick={() => Notification.requestPermission().then(setState)}>
+      Notify me in this browser
+    </button>
   );
 }

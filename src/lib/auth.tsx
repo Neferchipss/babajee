@@ -3,6 +3,8 @@
 import type { User } from "@supabase/supabase-js";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { linkCart } from "./cart";
+import { linkSaved } from "./wishlist";
 
 // The provider sits in the root layout, but the Supabase client is about
 // 60 KB that only the account and admin pages need straight away. So it is
@@ -84,6 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     unsubscribe.current = () => data.subscription.unsubscribe();
   }, []);
+
+  // saved products and the cart follow the account: merged on sign-in
+  // (lib/wishlist.ts, lib/cart.ts)
+  const uid = user?.id ?? null;
+  useEffect(() => {
+    if (status === "loading") return;
+    void linkSaved(uid);
+    void linkCart(uid);
+  }, [uid, status]);
 
   // on the account and admin pages at once (including arriving there later)
   useEffect(() => {

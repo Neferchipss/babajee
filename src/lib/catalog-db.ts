@@ -38,6 +38,8 @@ export type DbCardProduct = {
   seoTitle?: string;
   // the "was" price of its cheapest option, when that option is marked down
   mrp?: number;
+  // its label within the category, a filter chip on the shelf (0041)
+  subcategory?: string;
 };
 export type DbCategory = { slug: string; name: string };
 
@@ -99,6 +101,7 @@ function markedDown(variants: DbVariant[]) {
 function toCard(row: {
   slug: string;
   name: string;
+  subcategory?: string | null;
   product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null;
 }): DbCardProduct {
   const variants = normalizeVariants(row.product_variants);
@@ -110,6 +113,7 @@ function toCard(row: {
     minPrice: minPriced(variants),
     mrp: markedDown(variants),
     variants,
+    ...(row.subcategory ? { subcategory: row.subcategory } : {}),
   };
 }
 
@@ -168,26 +172,28 @@ export async function getCategoryDetail(slug: string) {
 async function liveCategoryDetail(slug: string) {
   const sb = client();
   if (!sb) return null;
-  const { data: category } = await sb.from("categories").select("id, slug, name").eq("slug", slug).maybeSingle();
+  const { data: category } = await sb.from("categories").select("id, slug, name, tagline").eq("slug", slug).maybeSingle();
   if (!category) return null;
   const { data: products } = await sb
     .from("products")
-    .select("slug, name, sort_order, seo_title, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
+    .select("slug, name, sort_order, seo_title, subcategory, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
     .eq("category_id", category.id)
     .order("sort_order");
   return {
-    category: { slug: category.slug, name: category.name },
+    category: { slug: category.slug, name: category.name, tagline: (category as { tagline?: string | null }).tagline ?? "" },
     products: (products ?? []).map((p) => ({ ...toCard(p), seoTitle: (p as { seo_title?: string }).seo_title ?? "" })),
   };
 }
 
 // A product's description and brand, for the desktop product page (the
 // shelf's cards don't carry them). Empty when there is none or no database.
-export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string }> {
+export type ProductSpec = { label: string; value: string };
+export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[] }> {
   const sb = client();
-  if (!sb) return { description: "", brand: "" };
-  const { data } = await sb.from("products").select("description, brand").eq("slug", productSlug).maybeSingle();
-  return { description: data?.description ?? "", brand: data?.brand ?? "" };
+  if (!sb) return { description: "", brand: "", specs: [] };
+  const { data } = await sb.from("products").select("description, brand, specs").eq("slug", productSlug).maybeSingle();
+  const specs = Array.isArray(data?.specs) ? (data.specs as ProductSpec[]).filter((r) => r && r.label && r.value) : [];
+  return { description: data?.description ?? "", brand: data?.brand ?? "", specs };
 }
 
 export async function getProductDetail(categorySlug: string, productSlug: string) {
@@ -255,7 +261,7 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   if (!sb) return null;
   const { data, error } = await sb
     .from("products")
-    .select("slug, name, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
+    .select("slug, name, subcategory, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
   return (data ?? [])
@@ -298,18 +304,22 @@ export type SeoProduct = {
   seoTitle: string;
   seoDescription: string;
   minPrice?: number;
+  maxPrice?: number;
+  // any option for sale: stock above zero, or stock not counted
+  inStock: boolean;
 };
 let seoCache: Promise<SeoProduct[]> | null = null;
 export function getSeoCatalog(): Promise<SeoProduct[]> {
   return (seoCache ??= (async () => {
     const sb = client();
     const data = sb
-      ? (await sb.from("products").select("slug, name, description, brand, seo_title, seo_description, categories!inner(slug, name), product_variants(price)")).data
+      ? (await sb.from("products").select("slug, name, description, brand, seo_title, seo_description, categories!inner(slug, name), product_variants(price, stock_qty)")).data
       : null;
     if (data?.length)
       return data.map((p) => {
         const c = p.categories as unknown as { slug: string; name: string };
-        const prices = ((p.product_variants ?? []) as { price: unknown }[]).map((v) => toNumber(v.price)).filter((x) => x > 0);
+        const vs = (p.product_variants ?? []) as { price: unknown; stock_qty: unknown }[];
+        const prices = vs.map((v) => toNumber(v.price)).filter((x) => x > 0);
         return {
           slug: p.slug,
           categorySlug: c.slug,
@@ -320,11 +330,13 @@ export function getSeoCatalog(): Promise<SeoProduct[]> {
           seoTitle: p.seo_title ?? "",
           seoDescription: p.seo_description ?? "",
           minPrice: prices.length ? Math.min(...prices) : undefined,
+          maxPrice: prices.length ? Math.max(...prices) : undefined,
+          inStock: vs.some((v) => v.stock_qty == null || toNumber(v.stock_qty) > 0),
         };
       });
     if (!useLocal) return [];
     return CATEGORIES.flatMap((c) =>
-      c.products.map((p) => ({ slug: p.slug, categorySlug: c.slug, categoryName: c.name, name: p.name, description: "", brand: "", seoTitle: "", seoDescription: "" })),
+      c.products.map((p) => ({ slug: p.slug, categorySlug: c.slug, categoryName: c.name, name: p.name, description: "", brand: "", seoTitle: "", seoDescription: "", inStock: true })),
     );
   })());
 }

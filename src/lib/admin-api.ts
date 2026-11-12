@@ -23,6 +23,7 @@ type Api = Pick<
   | "updateProduct"
   | "deleteProduct"
   | "setProductVisibility"
+  | "setProductStatus"
   | "bulkSetVisibility"
   | "upsertVariant"
   | "deleteVariant"
@@ -57,6 +58,10 @@ function makeDemo(): Api {
       gst_rate: null,
       hsn: "",
       is_visible: i % 5 !== 3,
+      status: i % 5 !== 3 ? ("published" as const) : ("draft" as const),
+      subcategory: "",
+      specs: [],
+      low_stock_at: null,
       sort_order: i,
       category_id: c.slug,
       category_slug: c.slug,
@@ -111,6 +116,10 @@ function makeDemo(): Api {
         {
           id,
           ...input,
+          status: "published",
+          subcategory: "",
+          specs: [],
+          low_stock_at: null,
           brand: "",
           product_type: "",
           tags: [],
@@ -141,7 +150,14 @@ function makeDemo(): Api {
     async setProductVisibility(product, visible) {
       const p = find(product.id);
       p.is_visible = visible;
+      p.status = visible ? "published" : p.status === "archived" ? "archived" : "draft";
       if (p.variants.length === 1) p.variants[0].is_visible = visible;
+    },
+    async setProductStatus(product, status) {
+      const p = find(product.id);
+      p.status = status;
+      p.is_visible = status === "published";
+      if (p.variants.length === 1) p.variants[0].is_visible = p.is_visible;
     },
     async bulkSetVisibility(_all, ids, visible) {
       for (const id of ids) await api.setProductVisibility(find(id), visible);

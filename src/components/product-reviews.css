@@ -1,0 +1,162 @@
+/* A product's reviews (ProductReviews.tsx), on the desktop product page and
+   the phone's product card. */
+.rv-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-paper);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.rv-line:hover span:not(.rv-muted) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rv-muted {
+  color: var(--color-muted);
+}
+.rv {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.rv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.rv-head h2 {
+  margin: 0;
+  color: var(--color-paper);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.rv-sum {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.88rem;
+}
+.rv-sum b {
+  color: var(--color-paper);
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-size: 1.1rem;
+}
+.rv-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rv-list li {
+  display: grid;
+  gap: 6px;
+}
+.rv-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-paper);
+  font-size: 0.92rem;
+}
+.rv-body {
+  margin: 0;
+  color: var(--color-paper);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.rv-by {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+.rv-verified {
+  color: var(--bb-hot, var(--color-paper));
+}
+
+button.rv-line {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.ps-info .rv-line {
+  margin: -2px 0 4px;
+}
+
+/* phones: the reviews in a panel rising over the product card */
+.rv-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  align-items: end;
+}
+.rv-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--bb-scrim, rgb(0 0 0 / 0.6));
+  cursor: pointer;
+}
+.rv-sheet {
+  position: relative;
+  max-height: 80dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(18px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  border-radius: 8px 8px 0 0;
+  background: var(--bb-sheet, var(--color-iron));
+  color: var(--color-paper);
+  animation: rv-rise var(--dur-3, 0.36s) var(--ease-out, ease-out);
+}
+.rv-sheet .rv {
+  border-top: 0;
+  padding-top: 4px;
+}
+.rv-sheet-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 10px;
+  background: inherit;
+}
+.rv-sheet-bar p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.rv-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: -10px;
+  border: 0;
+  background: none;
+  color: var(--color-paper);
+  cursor: pointer;
+}
+@keyframes rv-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-sheet {
+    animation: none;
+  }
+}

@@ -1234,7 +1234,12 @@ textarea.adm-input {
 }
 @media (min-width: 760px) {
   .anx-strip {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1180px) {
+  .anx-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 .anx-stat {
@@ -3033,4 +3038,841 @@ th[aria-sort="ascending"] .adm-sort .down {
   .set-two {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* a customer's activity (CustomerActivity.tsx): three facts, then visits,
+   newest first, each a short list of what they did */
+.cact-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 18px;
+}
+.cact-facts dt {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+.cact-facts dd {
+  margin: 2px 0 0;
+  font-size: 0.92rem;
+}
+.cact-visits {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cact-visit {
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+.cact-visits ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--color-line);
+  list-style: none;
+}
+.cact-visits ul li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+.cact-visits ul li.is-strong {
+  font-weight: 600;
+}
+.cact-visits time {
+  flex: none;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* a failed delivery on an order (0039): the request banner, in red */
+.ov-request.is-fail {
+  border-color: color-mix(in srgb, var(--adm-bad) 45%, var(--adm-line));
+  background: color-mix(in srgb, var(--adm-bad) 10%, transparent);
+}
+.ov-request.is-fail a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.anx-stat-note {
+  margin-top: 2px;
+  color: var(--adm-bad);
+  font-size: 0.78rem;
+}
+
+/* collections (products/collections): the list, then the open one */
+.col-wrap {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  .col-wrap {
+    grid-template-columns: 300px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.col-list ul,
+.col-items,
+.col-find ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.col-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.col-list li > button {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.col-list li > button.is-on {
+  background: color-mix(in srgb, var(--adm-line) 60%, transparent);
+}
+.col-new {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.col-new input {
+  min-width: 0;
+  flex: 1;
+}
+.col-edit {
+  display: grid;
+  gap: 12px;
+}
+.col-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.col-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.col-find {
+  position: relative;
+}
+.col-find ul {
+  position: absolute;
+  z-index: 5;
+  inset: calc(100% + 4px) 0 auto;
+  padding: 4px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: var(--adm-card, var(--color-iron));
+}
+.col-find li button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.col-find li button:hover {
+  background: color-mix(in srgb, var(--adm-line) 60%, transparent);
+}
+.col-items li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--adm-line);
+}
+.col-pos {
+  width: 22px;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.col-pname {
+  flex: 1;
+  min-width: 0;
+}
+.col-move {
+  display: inline-flex;
+  gap: 2px;
+}
+.col-move button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--adm-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.col-move button:hover:not(:disabled) {
+  color: inherit;
+  background: color-mix(in srgb, var(--adm-line) 60%, transparent);
+}
+.col-move button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* admins (settings/team) */
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--adm-line);
+}
+.team-row:first-child {
+  border-top: 0;
+}
+
+/* the activity log (settings/activity) */
+.aud {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aud > li {
+  border-top: 1px solid var(--adm-line);
+}
+.aud > li:first-child {
+  border-top: 0;
+}
+.aud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  width: 100%;
+  padding: 11px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.aud-row:disabled {
+  cursor: default;
+}
+.aud-row:not(:disabled):hover {
+  background: color-mix(in srgb, var(--adm-line) 35%, transparent);
+}
+.aud-what {
+  min-width: 0;
+}
+.aud-row time {
+  flex: none;
+  white-space: nowrap;
+}
+.aud-diff {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 16px 12px 32px;
+  font-size: 0.85rem;
+}
+.aud-diff > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 160px) 1fr;
+  gap: 12px;
+}
+.aud-diff dt {
+  color: var(--adm-muted);
+}
+.aud-diff dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.aud-diff s {
+  color: var(--adm-muted);
+}
+
+/* the Products badge: options low or out of stock */
+.adm-nav .n.is-low {
+  background: color-mix(in srgb, var(--adm-bad) 22%, transparent);
+  color: var(--adm-bad);
+}
+
+/* a customer's support history (SupportHistory.tsx) */
+.sup-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.sup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.sup-row select {
+  flex: 1;
+  min-width: 140px;
+}
+.sup-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+.sup-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sup-list li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0 10px 12px;
+  border-left: 2px solid var(--adm-line);
+}
+.sup-list li.is-open {
+  border-left-color: var(--adm-gold);
+}
+.sup-list li.is-bad {
+  border-left-color: var(--adm-bad);
+}
+.sup-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 0.9rem;
+}
+.sup-head time {
+  margin-left: auto;
+}
+.sup-body {
+  margin: 0;
+  font-size: 0.88rem;
+  white-space: pre-line;
+}
+.sup-list .adm-link {
+  justify-self: start;
+}
+
+/* ---------- the section tree (AdminNav.tsx) ----------
+   phone: the sections only, as the strip; wide screen: each section with
+   its pages under it on a guide line, like the shop's category list */
+.adm-sec {
+  display: contents;
+}
+.adm-tree {
+  display: none;
+}
+.adm-nav .adm-ico {
+  display: none;
+}
+@media (min-width: 1000px) {
+  .adm-side {
+    max-height: calc(100dvh - 112px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  .adm-sec {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .adm-nav .adm-sec-link {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 9px;
+    font-size: 0.92rem;
+  }
+  .adm-nav .adm-ico {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    color: var(--adm-muted);
+  }
+  .adm-sec.is-on > .adm-sec-link {
+    color: var(--adm-ink);
+  }
+  .adm-sec.is-on > .adm-sec-link .adm-ico {
+    color: var(--bb-hot, var(--adm-gold));
+  }
+  /* the section's own row is only highlighted when it has no pages */
+  .adm-nav .adm-sec-link[aria-current="page"] {
+    background: var(--adm-panel);
+    box-shadow: inset 0 0 0 1px var(--adm-line);
+  }
+  .adm-sec:has(.adm-tree) > .adm-sec-link[aria-current="page"] {
+    background: none;
+    box-shadow: none;
+  }
+  .adm-tree {
+    display: block;
+    margin: 2px 0 4px;
+    padding: 0;
+    list-style: none;
+  }
+  .adm-tree li {
+    position: relative;
+    margin-left: 18px;
+    padding-left: 10px;
+    border-left: 1px solid var(--adm-line);
+  }
+  /* the line's tick into each row */
+  .adm-tree li::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 7px;
+    border-top: 1px solid var(--adm-line);
+  }
+  /* the last one ends the line at its tick */
+  .adm-tree li:last-child {
+    border-left-color: transparent;
+  }
+  .adm-tree li:last-child::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -1px;
+    height: 50%;
+    border-left: 1px solid var(--adm-line);
+  }
+  .adm-nav .adm-tree a {
+    min-height: 0;
+    height: 27px;
+    padding: 0 8px;
+    border-radius: 7px;
+    color: var(--adm-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition:
+      color 0.15s,
+      background-color 0.15s;
+  }
+  .adm-nav .adm-tree a:hover {
+    color: var(--adm-ink);
+    background: color-mix(in srgb, var(--adm-panel) 70%, transparent);
+  }
+  .adm-nav .adm-tree a[aria-current="page"] {
+    color: var(--adm-ink);
+    font-weight: 600;
+    background: var(--adm-panel);
+    box-shadow: inset 0 0 0 1px var(--adm-line);
+  }
+  .adm-tree-lbl {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .adm-tree-n {
+    margin-left: auto;
+    color: var(--adm-muted);
+    font-family: var(--font-mono-face, ui-monospace, monospace);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .adm-tree-n.is-warn {
+    color: var(--adm-bad);
+  }
+  .adm-nav .adm-shop {
+    color: var(--adm-muted);
+  }
+}
+/* on a phone the strip marks the section you're in */
+@media (max-width: 999px) {
+  .adm-sec.is-on > .adm-sec-link {
+    background: var(--adm-panel);
+    color: var(--adm-ink);
+    box-shadow: inset 0 0 0 1px var(--adm-line);
+  }
+}
+
+/* ---------- the admin's top bar (SiteHeader): logo, search, profile ---------- */
+.lb--admin {
+  --adm-panel: var(--color-iron);
+  --adm-line: var(--color-line);
+  --adm-ink: var(--color-paper);
+  --adm-muted: var(--color-muted);
+  --adm-gold: var(--color-rasta-gold);
+  justify-content: flex-start;
+  gap: 12px;
+}
+.lb--admin .lb-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 620px;
+}
+.lb--admin .asr {
+  margin: 0;
+}
+.lb--admin .sb-me {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .lb--admin .lb-logo-img {
+    width: 40px;
+  }
+}
+
+/* ---------- the admin's frame: like the shop's two panels on a wide screen ----------
+   the section tree hugs the window's left edge (280px, 24px in, as the
+   shop's categories), the big logo sits over it in the bar, and the search
+   starts where the page does */
+.adm-frame {
+  width: 100%;
+  padding: 24px 20px 40px;
+}
+@media (min-width: 640px) {
+  .adm-frame {
+    padding: 32px 32px 48px;
+  }
+}
+@media (min-width: 1000px) {
+  .adm-frame {
+    padding: 24px 40px 56px 24px;
+  }
+  .adm {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 40px;
+  }
+  .adm-side {
+    top: 136px;
+    max-height: calc(100dvh - 152px);
+    scrollbar-width: none;
+  }
+  .adm-side::-webkit-scrollbar {
+    display: none;
+  }
+  .lb--admin {
+    min-height: 112px;
+    gap: 0;
+    padding-left: 24px;
+    padding-right: 40px;
+  }
+  .lb--admin .lb-logo {
+    flex: 0 0 calc(280px + 40px - 10px);
+    margin-left: 10px;
+  }
+  .lb--admin .lb-logo-img {
+    width: 88px;
+  }
+  .lb--admin .asr-pop {
+    width: 100%;
+  }
+  /* the tree's rows as the shop's: a little roomier */
+  .adm-nav .adm-sec-link {
+    font-size: 0.95rem;
+  }
+  .adm-nav .adm-tree a {
+    height: 28px;
+    font-size: 0.88rem;
+  }
+}
+
+/* ---------- a page's own head: what it is, how many, what to do here ---------- */
+.adm-pagehead {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+}
+.adm-pagehead h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.adm-pagehead-n {
+  color: var(--adm-muted);
+  font-family: var(--font-mono-face, ui-monospace, monospace);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.adm-pagehead p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.92rem;
+}
+/* tabs repeated from the sidebar: phones only */
+@media (min-width: 1000px) {
+  .adm-only-narrow {
+    display: none !important;
+  }
+}
+.adm-btn.adm-btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+.ord-table .c-step {
+  width: 1%;
+}
+.adm-btn.adm-btn-sm.is-warn {
+  border-color: color-mix(in srgb, var(--adm-gold) 55%, var(--adm-line));
+  color: var(--adm-gold);
+}
+.col-start {
+  display: grid;
+  gap: 8px;
+}
+.col-start p {
+  margin: 0;
+}
+.col-wrap.is-empty {
+  grid-template-columns: minmax(0, 560px);
+}
+.col-start .adm-chips {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+/* the shop's footer has no place under the admin */
+body:has(.adm-frame) .ftr {
+  display: none;
+}
+/* settings: the Save button stays at the bottom of the screen */
+.set-save {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgb(var(--bb-bg, 0 0 0)) 70%, transparent);
+}
+/* the tree, tighter: everything fits on one screen */
+@media (min-width: 1000px) {
+  .adm-sec {
+    margin-bottom: 2px;
+  }
+  .adm-nav .adm-sec-link {
+    min-height: 28px;
+  }
+  .adm-tree {
+    margin: 0 0 4px;
+  }
+  .adm-nav .adm-tree a {
+    height: 22px;
+    font-size: 0.85rem;
+  }
+}
+/* the logo centred over the sidebar panel below it (280px, then the 40px gap) */
+@media (min-width: 1000px) {
+  .lb--admin .lb-logo {
+    flex: 0 0 calc(280px + 40px);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    margin-left: 0;
+    padding-right: 40px;
+  }
+}
+/* the search runs the width of the page below it, up to the profile button */
+@media (min-width: 1000px) {
+  .lb--admin .lb-search {
+    max-width: none;
+    margin-right: 32px;
+  }
+}
+/* bar (112) + space above (24) + sidebar + space below (24) = the window:
+   a short page doesn't scroll just for the sidebar */
+@media (min-width: 1000px) {
+  .adm-frame {
+    padding-bottom: 24px;
+  }
+  .adm-side {
+    max-height: calc(100dvh - 112px - 48px);
+  }
+}
+/* a narrower panel: 220px (the longest row, "Cancelled & refunded", still fits) */
+@media (min-width: 1000px) {
+  .adm {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .lb--admin .lb-logo {
+    flex-basis: calc(220px + 40px);
+  }
+}
+
+/* ================= phone pass ================= */
+/* the page links each page used to repeat for phones now live in one place:
+   the row of chips under the section strip */
+.adm-only-narrow {
+  display: none !important;
+}
+.adm-subnav {
+  display: none;
+}
+@media (max-width: 999px) {
+  .adm-side {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .adm-side .adm-nav {
+    flex: 1 1 100%;
+  }
+  .adm-subnav {
+    display: flex;
+    flex: 1 1 100%;
+    gap: 6px;
+    min-width: 0;
+    margin-inline: -20px;
+    padding: 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding-inline: 20px;
+  }
+  .adm-subnav::-webkit-scrollbar {
+    display: none;
+  }
+  .adm-subnav a {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px;
+    border: 1px solid var(--adm-line);
+    border-radius: 999px;
+    color: var(--adm-ink);
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .adm-subnav a b {
+    color: var(--adm-muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .adm-subnav a b.is-warn {
+    color: var(--adm-bad);
+  }
+  .adm-subnav a[aria-current="page"] {
+    background: var(--adm-ink);
+    border-color: var(--adm-ink);
+    color: var(--color-char, #111);
+  }
+  .adm-subnav a[aria-current="page"] b {
+    color: inherit;
+    opacity: 0.65;
+  }
+  /* a typing shortcut means nothing without a keyboard */
+  .asr-field kbd {
+    display: none;
+  }
+}
+@media (max-width: 639px) {
+  .adm-subnav {
+    margin-inline: -20px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* the head: tighter, so the work starts higher on the screen */
+  .adm-pagehead {
+    gap: 2px;
+    margin-bottom: 12px;
+  }
+  .adm-pagehead h1 {
+    font-size: 1.45rem;
+  }
+  .adm-pagehead p {
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+
+  /* toolbar: with two or more buttons the search gets its own row and the
+     buttons share the one under it */
+  .adm-toolbar:has(> .adm-btn:not(.ord-new) ~ .adm-btn:not(.ord-new)) {
+    flex-wrap: wrap;
+  }
+  .adm-toolbar:has(> .adm-btn:not(.ord-new) ~ .adm-btn:not(.ord-new)) > .adm-input {
+    flex: 1 1 100%;
+  }
+  .adm-toolbar:has(> .adm-btn:not(.ord-new) ~ .adm-btn:not(.ord-new)) > .adm-btn:not(.ord-new) {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  /* an order with a customer's reason: the reason gets the card's full width */
+  .ord-table tr:has(.adm-reason) {
+    grid-template-areas:
+      "num total"
+      "who status"
+      "date status"
+      "why why"
+      "step step";
+  }
+  .ord-table .c-status:has(.adm-reason) {
+    display: contents;
+  }
+  .ord-table .c-status:has(.adm-reason) > .adm-pill,
+  .ord-table .c-status:has(.adm-reason) > :first-child {
+    grid-area: status;
+    justify-self: end;
+  }
+  .ord-table .c-status .adm-asked:has(.adm-reason) {
+    grid-area: why;
+    text-align: left;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--adm-gold) 9%, transparent);
+  }
+  .ord-table .c-step {
+    justify-self: start;
+  }
+  /* room at the end of a list for the floating + button */
+  .adm-main:has(.ord-new) .adm-tablecard {
+    margin-bottom: 72px;
+  }
+}
+/* Home on a phone: what needs doing first, the numbers after */
+@media (max-width: 720px) {
+  .adm-home {
+    display: flex;
+    flex-direction: column;
+  }
+  .adm-home > .adm-two {
+    order: 1;
+    margin-bottom: 16px;
+  }
+  .adm-home > .adm-metrics {
+    order: 2;
+  }
+}
+/* the order's courier: its tracking link stands out */
+.ov-addr a {
+  color: var(--adm-gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

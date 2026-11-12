@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import SceneLink from "@/components/SceneLink";
 import Page, { Placeholder } from "@/components/Page";
+
+export const metadata: Metadata = {
+  title: "About Babajee",
+  description: "Who Babajee is and what we stand for: thoughtful design, good people and higher standards in smoking accessories.",
+};
 
 export default function AboutPage() {
   return (

@@ -15,6 +15,8 @@ import ProductArt from "./ProductArt";
 import WishButton from "./WishButton";
 import ProductWheel, { type WheelSteer } from "./ProductWheel";
 import "./product-sheet.css";
+import { track } from "@/lib/track";
+import { RatingLine, ReviewsPanel } from "./ProductReviews";
 
 export type SheetProduct = {
   slug: string;
@@ -58,6 +60,8 @@ export default function ProductSheet({
   const [view, setView] = useState({ i: start, dir: 0, picked: false });
   const [choice, setChoice] = useState({ slug: "", v: 0 });
   const [added, setAdded] = useState("");
+  // the product whose reviews are open over the card (phones)
+  const [reviewsOf, setReviewsOf] = useState("");
   const card = useRef<HTMLElement>(null);
   const steerRef = useRef<WheelSteer | null>(null);
   const at = useRef({ i: start, n: products.length });
@@ -96,6 +100,11 @@ export default function ProductSheet({
     const t = window.setTimeout(() => onIndex(p.slug), 450);
     return () => window.clearTimeout(t);
   }, [p.slug, onIndex]);
+  // and the product it settles on is recorded for the customer's activity
+  useEffect(() => {
+    const t = window.setTimeout(() => track("product", `${location.pathname}?p=${encodeURIComponent(p.slug)}`, p.name), 450);
+    return () => window.clearTimeout(t);
+  }, [p.slug, p.name]);
 
   useEffect(() => {
     if (!added) return;
@@ -342,6 +351,7 @@ export default function ProductSheet({
             <h2 id="ps-title" className="ps-title">
               <Branded name={p.name} />
             </h2>
+            <RatingLine slug={p.slug} onOpen={() => setReviewsOf(p.slug)} />
             {showOptions && (
               <div className="ps-opts" role="radiogroup" aria-label="Options" data-swatches={hasOptionPhotos(p.slug) || undefined}>
                 {p.variants.map((o, k) => (
@@ -375,6 +385,7 @@ export default function ProductSheet({
             {!showOptions && <div className="ps-opts ps-opts--none" aria-hidden="true" />}
           </div>
 
+          {reviewsOf === p.slug && <ReviewsPanel slug={p.slug} name={p.name} onClose={() => setReviewsOf("")} />}
           <footer className="ps-bar">
             <div className="ps-bar-what">
               <span className="ps-bar-label">{variant.label}</span>

@@ -24,6 +24,14 @@ export default function LoginForm() {
     });
     if (error) {
       const code = "code" in error ? error.code : undefined;
+      // the shop's login history (migration 0040): a wrong password never
+      // reaches the database, so the form reports it (not a dropped connection)
+      if (error.status) {
+        const reason = code === "invalid_credentials" ? "Wrong email or password" : code === "email_not_confirmed" ? "Email not confirmed" : error.status === 429 ? "Too many tries" : (code ?? "Other");
+        void getSupabase()!
+          .rpc("log_failed_login", { p_email: String(form.get("email")).trim(), p_reason: reason, p_user_agent: navigator.userAgent })
+          .then(() => {});
+      }
       setError(
         code === "email_not_confirmed" || error.message === "Email not confirmed"
           ? "Confirm your email first. We sent you a link when you signed up."

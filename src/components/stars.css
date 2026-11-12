@@ -1,0 +1,36 @@
+/* Stars.tsx: gold for the rating, the line colour for the rest */
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  vertical-align: middle;
+}
+.stars svg {
+  display: block;
+}
+.stars .stars-empty {
+  fill: var(--color-line, #3a3a3a);
+}
+.stars .stars-full {
+  fill: var(--bb-hot, #d3ab70);
+}
+.stars.is-pick button {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.stars.is-pick svg path {
+  fill: var(--color-line, #3a3a3a);
+  transition: fill 0.12s;
+}
+.stars.is-pick svg[data-on] path {
+  fill: var(--bb-hot, #d3ab70);
+}
+.stars.is-pick button:focus-visible {
+  outline: 2px solid var(--bb-hot, #d3ab70);
+  outline-offset: 1px;
+  border-radius: 4px;
+}

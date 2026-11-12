@@ -42,7 +42,8 @@ const LIST: { href: string; label: string; d: string }[] = [
 // after the delivery apps. Who you are across the top, shortcuts (addresses,
 // orders, wishlist) under it, then the site's pages. Back, Escape, a
 // tap beside it (wide screens) or a swipe to the right closes it.
-export default function ProfileMenu() {
+// cart={false}: the profile button alone (the admin's bar)
+export default function ProfileMenu({ cart = true }: { cart?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const closed = useCallback(() => setOpen(false), []);
@@ -56,22 +57,24 @@ export default function ProfileMenu() {
   }, []);
   return (
     <div className="sb-me">
-      <Link
-        href="/cart"
-        className="sb-profile sb-cart"
-        data-jar="header"
-        aria-current={path === "/cart" ? "page" : undefined}
-        aria-label={count === 0 ? "Cart, empty" : `Cart, ${count} item${count === 1 ? "" : "s"}`}
-      >
-        <span key={plop} className="sb-cart-icon" data-plop={plop > 0 || undefined}>
-          <JarIcon size={22} />
-        </span>
-        {count > 0 && (
-          <b key={`n${count}`} className="sb-badge">
-            {count > 99 ? "99+" : count}
-          </b>
-        )}
-      </Link>
+      {cart && (
+        <Link
+          href="/cart"
+          className="sb-profile sb-cart"
+          data-jar="header"
+          aria-current={path === "/cart" ? "page" : undefined}
+          aria-label={count === 0 ? "Cart, empty" : `Cart, ${count} item${count === 1 ? "" : "s"}`}
+        >
+          <span key={plop} className="sb-cart-icon" data-plop={plop > 0 || undefined}>
+            <JarIcon size={22} />
+          </span>
+          {count > 0 && (
+            <b key={`n${count}`} className="sb-badge">
+              {count > 99 ? "99+" : count}
+            </b>
+          )}
+        </Link>
+      )}
       <button
         type="button"
         className="sb-profile"

@@ -1,12 +1,16 @@
 "use client";
 
-import { errText } from "@/lib/orders-db";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { createProduct, listCategories, type AdminCategory } from "@/lib/admin-data";
+import { toast } from "@/components/admin/Toaster";
+import { createProduct, getProduct, listCategories, updateProduct, upsertVariant, type AdminCategory } from "@/lib/admin-data";
+import { errText } from "@/lib/orders-db";
 import { slugify } from "@/lib/slug";
 
+// Add a product: its name, its category, a price if known. It starts as a
+// draft (never half-finished on the shop) and opens in its panel, where the
+// photos go in and it's set to On the shop.
 export default function NewProductPage() {
   return (
     <Suspense>
@@ -21,7 +25,7 @@ function NewProduct() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [categoryId, setCategoryId] = useState(preselect);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -41,29 +45,48 @@ function NewProduct() {
     setSaving(true);
     setErr("");
     try {
-      const id = await createProduct({
-        category_id: categoryId,
-        slug: slugify(name),
-        name: name.trim(),
-        description: description.trim(),
-      });
-      router.push(`/admin/products/edit?id=${id}`);
-    } catch (e) {
-      setErr(errText(e));
+      // a name already used gets the next free address (grinder, grinder-2, ...)
+      let id = "";
+      for (let n = 1; !id; n++) {
+        try {
+          id = await createProduct({ category_id: categoryId, slug: n === 1 ? slugify(name) : `${slugify(name)}-${n}`, name: name.trim(), description: "" });
+        } catch (x) {
+          if ((x as { code?: string }).code !== "23505" || n > 20) throw x;
+        }
+      }
+      await updateProduct(id, { status: "draft" });
+      const p = Math.round(Number(price) || 0);
+      if (p > 0) {
+        const made = await getProduct(id);
+        const v = made?.variants[0];
+        if (v) await upsertVariant(id, { id: v.id, price: p });
+      }
+      toast(`${name.trim()} added as a draft`);
+      router.push(`/admin/products?product=${id}`);
+    } catch (x) {
+      setErr(errText(x));
       setSaving(false);
     }
   }
 
   return (
-    <div>
-      <Link href="/admin/products" className="text-sm text-muted hover:text-paper">
-        Back to products
+    <div style={{ maxWidth: 560 }}>
+      <Link href="/admin/products" className="adm-back adm-only-narrow">
+        ← Products
       </Link>
-      <h1 className="mt-2 text-3xl">Add a product</h1>
-      <form onSubmit={submit} className="mt-6 grid max-w-lg gap-4">
-        <label>
-          <span className="mb-1.5 block text-sm font-medium">Category</span>
-          <select className="field w-full" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+      <header className="adm-pagehead">
+        <h1>Add a product</h1>
+        <p>Name it and pick its category. It starts as a draft: add its photos and price in the next step, then set it to On the shop.</p>
+      </header>
+      {err && <p className="adm-err">{err}</p>}
+      <form onSubmit={submit} className="adm-card" style={{ display: "grid", gap: 14 }}>
+        <label className="adm-label">
+          Name
+          <input className="adm-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="RAW Classic King Size Slim" autoFocus required />
+        </label>
+        <label className="adm-label">
+          Category
+          <select className="adm-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -71,22 +94,16 @@ function NewProduct() {
             ))}
           </select>
         </label>
-        <label>
-          <span className="mb-1.5 block text-sm font-medium">Name</span>
-          <input className="field w-full" value={name} onChange={(e) => setName(e.target.value)} required />
+        <label className="adm-label">
+          Selling price, ₹ (optional)
+          <input className="adm-input" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="Can be added later" />
         </label>
-        <label>
-          <span className="mb-1.5 block text-sm font-medium">Description</span>
-          <textarea className="field w-full" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </label>
-        {err && <p className="text-sm text-rasta-red">{err}</p>}
-        <button type="submit" className="btn btn-primary w-fit disabled:opacity-60" disabled={saving}>
-          {saving ? "Creating" : "Create product"}
-        </button>
+        <div className="adm-actions">
+          <button className="adm-btn pri" disabled={saving || !name.trim() || !categoryId}>
+            {saving ? "Adding" : "Add and continue"}
+          </button>
+        </div>
       </form>
-      <p className="mt-4 text-sm text-muted">
-        New products appear on the shop immediately. You can edit the default option or hide the product on the next screen.
-      </p>
     </div>
   );
 }

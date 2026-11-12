@@ -10,8 +10,13 @@ import { Dialog, money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
 import { actionsFor, eventText, STEPS, type OrderAction, type OrderStatus } from "@/lib/order-status";
 import { gstLabel, unitProfit } from "@/lib/gst";
+import { trackLink } from "@/lib/tracking";
 import {
   addOrderComment,
+  cameBack,
+  deliveryFailed,
+  FAIL_REASONS,
+  sendAgain,
   editOrder,
   errText,
   getCosts,
@@ -54,6 +59,15 @@ function OrderView() {
   // a customer request being answered: accepting opens the refund form filled in
   const [answering, setAnswering] = useState<OrderRequest | null>(null);
   const [declining, setDeclining] = useState<OrderRequest | null>(null);
+  // a failed delivery: recording it, sending it again, the parcel coming back
+  const [failing, setFailing] = useState(false);
+  const [failWhy, setFailWhy] = useState(FAIL_REASONS[0]);
+  const [failNote, setFailNote] = useState("");
+  const [resending, setResending] = useState(false);
+  const [reCarrier, setReCarrier] = useState("");
+  const [reTracking, setReTracking] = useState("");
+  const [comingBack, setComingBack] = useState(false);
+  const [backConfirm, setBackConfirm] = useState(false);
   const [reply, setReply] = useState("");
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
@@ -64,6 +78,13 @@ function OrderView() {
         .then((r) => {
           setO(r);
           setNotes(r?.notes ?? "");
+          // from the list's "Ship…": straight to the courier form
+          const u = new URLSearchParams(window.location.search);
+          if (u.get("step") === "shipped") {
+            if (r?.status === "packed") setStepping("shipped");
+            u.delete("step");
+            window.history.replaceState(null, "", `${window.location.pathname}?${u}`);
+          }
         })
         .catch((e) => setErr(errText(e))),
     [id],
@@ -100,6 +121,10 @@ function OrderView() {
       setStepping(null);
       setAnswering(null);
       setDeclining(null);
+      setFailing(false);
+      setResending(false);
+      setComingBack(false);
+      setBackConfirm(false);
       await load();
     } catch (e) {
       setErr(errText(e));
@@ -153,7 +178,9 @@ function OrderView() {
 
   const placed = when(o.created_at).toLowerCase();
   const closedAt = (o.order_events ?? []).find((e) => e.status === o.status)?.created_at;
+  const cameBackAt = o.status === "refunded" ? (o.order_events ?? []).find((e) => e.status === "refunded" && e.note.startsWith("Came back undelivered"))?.created_at : undefined;
   const cancel = actions.find((a) => a.to === "cancelled");
+  const nextStep = actions.find((a) => a.primary);
   // a click on the road: forward steps that need nothing go straight
   // through; shipping asks for the courier; going back asks first
   function pickStep(to: OrderStatus) {
@@ -166,23 +193,27 @@ function OrderView() {
   const wa = phone.length === 10 ? `91${phone}` : phone.length === 12 && phone.startsWith("91") ? phone : "";
   // status changes already sit on the road; activity keeps everything else
   const activity = (o.order_events ?? []).filter(
-    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone", "request"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
+    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone", "request", "delivery_failed", "sent_again"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
   );
 
   const next =
     o.status === "pending"
-      ? `Waiting for ${money(o.total)}. Tap Paid below when the money arrives.`
+      ? `Waiting for ${money(o.total)}. Mark it paid when the money arrives.`
       : o.status === "paid"
         ? `Paid. Pack the ${count} item${count === 1 ? "" : "s"} next.`
         : o.status === "packed"
-          ? "Packed. Tap Shipped once it's with the courier."
-          : o.status === "shipped"
-            ? `On its way${ship?.carrier ? ` with ${ship.carrier}` : ""}. Tap Delivered when it arrives.`
+          ? "Packed. Mark it shipped once it's with the courier."
+          : o.status === "shipped" && o.delivery_failed_at
+            ? "The courier couldn't deliver it. Send it again, or take it back in once it returns."
+            : o.status === "shipped"
+            ? `On its way${ship?.carrier ? ` with ${ship.carrier}` : ""}. Mark it delivered when it arrives.`
             : o.status === "delivered"
               ? `Delivered${ship?.delivered_at ? ` ${when(ship.delivered_at).toLowerCase()}` : ""}. Nothing left to do.`
               : o.status === "cancelled"
                 ? `Cancelled${closedAt ? ` ${when(closedAt).toLowerCase()}` : ""}.`
-                : `Refunded in full: ${money(refunds.amount)} sent back.`;
+                : cameBackAt
+                  ? `Came back undelivered ${when(cameBackAt).toLowerCase()}. ${money(refunds.amount)} refunded${refunds.amount < (paid ?? 0) ? `, ${money((paid ?? 0) - refunds.amount)} kept` : ""}.`
+                  : `Refunded in full: ${money(refunds.amount)} sent back.`;
 
   return (
     <div className="ov">
@@ -198,6 +229,7 @@ function OrderView() {
               <StatusPill status={o.status} />
               {refunds.amount > 0 && o.status !== "refunded" && <span className="adm-pill off">Partly refunded</span>}
               {o.is_test && <span className="adm-pill off">Test</span>}
+              {o.status === "shipped" && o.delivery_failed_at && <span className="adm-pill warn">Delivery failed</span>}
             </h1>
             <p className="ov-next">{next}</p>
             <p className="adm-muted adm-small ov-meta">
@@ -223,7 +255,13 @@ function OrderView() {
 
         {(
           <div className="ov-actions">
-            {STEPS.includes(o.status) && <span className="adm-muted adm-small">Tap a step on the road to move the order, forward or back.</span>}
+            {/* the next step, plainly; the road above still moves it either way */}
+            {nextStep && !openReq && !(o.status === "shipped" && o.delivery_failed_at) && (
+              <button type="button" className="adm-btn pri" disabled={busy} onClick={() => pickStep(nextStep.to)}>
+                {nextStep.label}
+              </button>
+            )}
+            {STEPS.includes(o.status) && <span className="adm-muted adm-small">Or tap a step on the road, forward or back.</span>}
             <span className="ov-gap" />
             {o.paid_total != null && o.status !== "cancelled" && (
               <Link href={`/admin/orders/print?ids=${o.id}&doc=invoice`} className="adm-btn" target="_blank">
@@ -234,6 +272,11 @@ function OrderView() {
               <Link href={`/admin/orders/print?ids=${o.id}&doc=slip`} className="adm-btn" target="_blank">
                 Packing slip
               </Link>
+            )}
+            {o.status === "shipped" && !o.delivery_failed_at && (
+              <button type="button" className="adm-btn" disabled={busy} onClick={() => (setFailWhy(FAIL_REASONS[0]), setFailNote(""), setFailing(true))}>
+                Delivery failed
+              </button>
             )}
             {canEdit && (
               <button type="button" className="adm-btn" disabled={busy} onClick={() => setForm("edit")}>
@@ -260,6 +303,42 @@ function OrderView() {
       </section>
 
       {err && <p className="adm-err">{err}</p>}
+      {o.status === "shipped" && o.delivery_failed_at && (
+        <div className="ov-request is-fail">
+          <div>
+            <b>Delivery failed{(o.delivery_attempts ?? 0) > 1 ? ` (${o.delivery_attempts} times)` : ""}</b>
+            <span>
+              {o.delivery_failed_reason || "Not delivered"} · {when(o.delivery_failed_at)}
+              {wa && (
+                <>
+                  {" · "}
+                  <a href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hi ${o.contact_name.split(" ")[0]}, the courier couldn't deliver your Babajee order ${o.order_number}. Could you confirm your address and a good time to deliver?`)}`} target="_blank" rel="noreferrer">
+                    Message on WhatsApp
+                  </a>
+                </>
+              )}
+            </span>
+          </div>
+          <div className="ov-request-do">
+            <button type="button" className="adm-btn pri" disabled={busy} onClick={() => (setReCarrier(ship?.carrier ?? ""), setReTracking(""), setResending(true))}>
+              Send again
+            </button>
+            <button
+              type="button"
+              className="adm-btn"
+              disabled={busy}
+              onClick={() => {
+                if (canReturn) {
+                  setComingBack(true);
+                  setForm("return");
+                } else setBackConfirm(true);
+              }}
+            >
+              Came back to us
+            </button>
+          </div>
+        </div>
+      )}
       {openReq && (
         <div className="ov-request">
           <div>
@@ -443,6 +522,14 @@ function OrderView() {
                   {ship.tracking_number && (
                     <span>
                       Tracking <b className="ov-track">{ship.tracking_number}</b>
+                      {trackLink(ship.carrier, ship.tracking_number) && (
+                        <>
+                          {" · "}
+                          <a href={trackLink(ship.carrier, ship.tracking_number)!.url} target="_blank" rel="noopener noreferrer">
+                            Track on {trackLink(ship.carrier, ship.tracking_number)!.site}
+                          </a>
+                        </>
+                      )}
                     </span>
                   )}
                 </p>
@@ -529,6 +616,98 @@ function OrderView() {
           </form>
         )}
       </Dialog>
+      <Dialog open={failing} onClose={() => setFailing(false)}>
+        {failing && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void act(() => deliveryFailed(o.id, failWhy, failNote.trim()), `${o.order_number}: delivery failed recorded`);
+            }}
+          >
+            <h2>Delivery failed?</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              From what the courier told you. The order stays shipped; next you send it again, or take it back in when it returns.
+            </p>
+            <label className="adm-label">
+              What happened
+              <select className="adm-input" value={failWhy} onChange={(e) => setFailWhy(e.target.value)}>
+                {FAIL_REASONS.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+            </label>
+            <label className="adm-label">
+              Note (optional, only staff see it)
+              <input className="adm-input" value={failNote} onChange={(e) => setFailNote(e.target.value)} placeholder="Courier tried twice, gate locked" />
+            </label>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" onClick={() => setFailing(false)}>
+                Back
+              </button>
+              <button className="adm-btn pri" disabled={busy}>
+                {busy ? "Saving" : "Record it"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+      <Dialog open={resending} onClose={() => setResending(false)}>
+        {resending && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void act(() => sendAgain(o.id, { carrier: reCarrier, tracking: reTracking }), `${o.order_number} sent again`);
+            }}
+          >
+            <h2>Send it again</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              The order carries on as shipped. Add the new tracking number if the courier gave one.
+            </p>
+            <label className="adm-label">
+              Courier
+              <input className="adm-input" value={reCarrier} onChange={(e) => setReCarrier(e.target.value)} placeholder="Delhivery" />
+            </label>
+            <label className="adm-label">
+              New tracking number (optional)
+              <input className="adm-input" value={reTracking} onChange={(e) => setReTracking(e.target.value)} />
+            </label>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" onClick={() => setResending(false)}>
+                Back
+              </button>
+              <button className="adm-btn pri" disabled={busy}>
+                {busy ? "Saving" : "Sent again"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+      <Dialog open={backConfirm} onClose={() => setBackConfirm(false)}>
+        {backConfirm && (
+          <form
+            method="dialog"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void act(() => cameBack(o.id, o.delivery_failed_reason ?? ""), `${o.order_number} closed: came back`);
+            }}
+          >
+            <h2>Came back to us?</h2>
+            <p className="adm-muted" style={{ margin: 0 }}>
+              Nothing is left to refund on this order, so it&apos;s simply closed as came back undelivered.
+            </p>
+            <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="adm-btn" onClick={() => setBackConfirm(false)}>
+                Back
+              </button>
+              <button className="adm-btn pri" disabled={busy}>
+                {busy ? "Saving" : "Close the order"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Dialog>
       <Dialog open={declining !== null} onClose={() => setDeclining(null)}>
         {declining && (
           <form
@@ -564,27 +743,32 @@ function OrderView() {
           </form>
         )}
       </Dialog>
-      <Dialog open={form !== null} onClose={() => (setForm(null), setAnswering(null))} wide={form === "edit"}>
+      <Dialog open={form !== null} onClose={() => (setForm(null), setAnswering(null), setComingBack(false))} wide={form === "edit"}>
         {(form === "refund" || form === "return") && (
           <RefundForm
             order={o}
             mode={form}
             busy={busy}
-            onCancel={() => (setForm(null), setAnswering(null))}
+            onCancel={() => (setForm(null), setAnswering(null), setComingBack(false))}
             onSubmit={(r: RefundInput) =>
               act(
                 async () => {
                   await refundOrder(o.id, r);
                   if (answering) await resolveRequest(answering.id, true, "");
+                  if (comingBack) await cameBack(o.id, o.delivery_failed_reason ?? "");
                 },
-                answering
+                comingBack
+                  ? `${o.order_number} came back · ${money(r.amount)} refunded`
+                  : answering
                   ? `${answering.kind === "cancel" ? "Cancellation" : "Return"} approved · ${money(r.amount)} refunded`
                   : `${r.returned ? "Return recorded" : "Refunded"} · ${money(r.amount)} on ${o.order_number}`,
               )
             }
             onEdit={canEdit && !answering ? () => setForm("edit") : undefined}
             preset={
-              answering
+              comingBack
+                ? { everything: true, restock: true, keepDelivery: true, title: "Came back:", note: `Came back undelivered${o.delivery_failed_reason ? `: ${o.delivery_failed_reason}` : ""}` }
+                : answering
                 ? answering.kind === "cancel"
                   ? { everything: true, restock: true, note: `Cancelled at the customer's request${answering.reason ? `: ${answering.reason}` : ""}` }
                   : { qty: Object.fromEntries(answering.items.map((x) => [x.item, x.qty])), restock: true, note: answering.reason }
@@ -627,7 +811,12 @@ function Confirm({
           <h2>Ship {order.order_number}</h2>
           <label className="adm-label">
             Courier
-            <input className="adm-input" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Delhivery, DTDC, India Post…" autoFocus />
+            <input className="adm-input" list="ov-couriers" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Delhivery, DTDC, India Post…" autoFocus />
+            <datalist id="ov-couriers">
+              {knownCouriers().map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </label>
           <label className="adm-label">
             Tracking number
@@ -763,7 +952,9 @@ function StepForm({
       method="dialog"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!blocked) onConfirm(back ? { note } : { carrier, tracking });
+        if (blocked) return;
+        if (!back) rememberCourier(carrier);
+        onConfirm(back ? { note } : { carrier, tracking });
       }}
     >
       {back ? (
@@ -908,4 +1099,22 @@ function OrderProfit({ order: o }: { order: Order }) {
       )}
     </section>
   );
+}
+
+// couriers used before on this device, most recent first, then the common ones
+const COURIER_KEY = "bj-couriers";
+function knownCouriers(): string[] {
+  let mine: string[] = [];
+  try {
+    mine = JSON.parse(localStorage.getItem(COURIER_KEY) ?? "[]") as string[];
+  } catch {}
+  return [...new Set([...mine, "Delhivery", "DTDC", "Blue Dart", "India Post", "Xpressbees", "Ekart", "Shadowfax"])];
+}
+function rememberCourier(name: string) {
+  const c = name.trim();
+  if (!c) return;
+  try {
+    const mine = JSON.parse(localStorage.getItem(COURIER_KEY) ?? "[]") as string[];
+    localStorage.setItem(COURIER_KEY, JSON.stringify([c, ...mine.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 6)));
+  } catch {}
 }

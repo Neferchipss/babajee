@@ -29,6 +29,8 @@ export type CardProduct = {
   variants?: BuyVariant[];
   // on the all-products shelf, the category it is listed under
   group?: string;
+  // its subcategory, for the shelf's filter chips (not shown on the card)
+  sub?: string;
   // its own search-engine title, when the admin wrote one (for the tab title)
   seoTitle?: string;
 };

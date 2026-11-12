@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import AddressMap from "@/components/admin/AddressMap";
+import CustomerActivity from "@/components/admin/CustomerActivity";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
-import { addCustomerNote, customerDetail, errText, listCustomers, setCustomerTags, type Customer, type CustomerAddress, type CustomerNote, type Order } from "@/lib/orders-db";
+import { customerDetail, customerSaved, errText, listCustomers, setCustomerTags, type Customer, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
+import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
+import SupportHistory from "@/components/admin/SupportHistory";
 
 // One customer: what they have spent, their orders, saved addresses and the
 // staff's private notes about them.
@@ -25,7 +28,10 @@ function CustomerView() {
   const [c, setC] = useState<Customer | null | undefined>(undefined);
   const [d, setD] = useState<{ orders: Order[]; addresses: CustomerAddress[]; notes: CustomerNote[] } | null>(null);
   const [err, setErr] = useState("");
-  const [note, setNote] = useState("");
+  // what they saved for later (empty until the table exists, or for guests)
+  const [saved, setSaved] = useState<CustomerSaved[]>([]);
+  // their latest sign-ins and failed attempts (0040)
+  const [logins, setLogins] = useState<LoginEvent[] | null>(null);
 
   const load = useCallback(
     () =>
@@ -40,6 +46,10 @@ function CustomerView() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    customerSaved(id).then(setSaved, () => setSaved([]));
+    loginEvents({ profile: id, limit: 8 }).then(setLogins, () => setLogins([]));
+  }, [id]);
 
   if (c === undefined) return <p className="adm-muted">{err || "Loading."}</p>;
   if (c === null)
@@ -55,6 +65,8 @@ function CustomerView() {
   const live = d?.orders.filter((o) => o.status !== "cancelled" && o.status !== "refunded") ?? [];
   const aov = live.length ? live.reduce((n, o) => n + o.total, 0) / live.length : 0;
 
+  const digits = (c.phone ?? "").replace(/\D/g, "");
+  const wa = digits.length === 10 ? `91${digits}` : digits.length === 12 && digits.startsWith("91") ? digits : "";
   return (
     <div>
       <Link href="/admin/customers" className="adm-back">
@@ -68,6 +80,27 @@ function CustomerView() {
             {c.is_test && <span className="adm-role is-test" title="A seeded test account: it can't sign in">Test</span>}
           </h1>
           <p className="adm-sub">Customer since {when(c.joined).toLowerCase()}</p>
+        </div>
+        {/* get in touch, or take an order for them, from the top of the page */}
+        <div className="adm-actions">
+          {wa && (
+            <a className="adm-btn" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">
+              WhatsApp
+            </a>
+          )}
+          {c.phone && (
+            <a className="adm-btn" href={`tel:${c.phone.replace(/\s/g, "")}`}>
+              Call
+            </a>
+          )}
+          {c.email && (
+            <a className="adm-btn" href={`mailto:${c.email}`}>
+              Email
+            </a>
+          )}
+          <Link className="adm-btn pri" href={`/admin/orders/new?customer=${c.id}`}>
+            Create an order
+          </Link>
         </div>
       </header>
       {err && <p className="adm-err">{err}</p>}
@@ -117,34 +150,9 @@ function CustomerView() {
             )}
           </section>
 
-          <section className="adm-card">
-            <h2>Notes</h2>
-            <form
-              style={{ display: "flex", gap: 8 }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!user || !note.trim()) return;
-                addCustomerNote(c.id, user.id, note.trim())
-                  .then(() => setNote(""))
-                  .then(load)
-                  .then(() => toast("Note added"))
-                  .catch((x) => (setErr(errText(x)), toastError(x)));
-              }}
-            >
-              <input className="adm-input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Private note about this customer" aria-label="Note" />
-              <button className="adm-btn" disabled={!note.trim()}>
-                Add
-              </button>
-            </form>
-            <ol className="adm-tl">
-              {d?.notes.map((n) => (
-                <li key={n.id} className="comment">
-                  <span>{n.body}</span>
-                  <time dateTime={n.created_at}>{when(n.created_at)}</time>
-                </li>
-              ))}
-            </ol>
-          </section>
+          <CustomerActivity id={id} orders={d?.orders ?? []} saved={saved} />
+
+          <SupportHistory customerId={c.id} userId={user?.id} notes={d?.notes ?? []} orders={d?.orders ?? []} onChange={load} />
         </div>
 
         <div className="adm-stack">
@@ -193,6 +201,53 @@ function CustomerView() {
                   <AddressMap lat={a.latitude} lng={a.longitude} label={`${a.label}, ${a.line1}`} />
                 </div>
               ))
+            )}
+          </section>
+          <section className="adm-card">
+            <h2>Sign-ins</h2>
+            {!logins ? (
+              <p className="adm-muted adm-small">Loading.</p>
+            ) : !logins.length ? (
+              <p className="adm-muted adm-small">None recorded yet.</p>
+            ) : (
+              <ul className="adm-small" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                {logins.map((l) => (
+                  <li key={l.id} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <span>
+                      {l.ok ? "Signed in" : <span style={{ color: "var(--adm-bad)" }}>{l.reason || "Failed attempt"}</span>}
+                      <span className="adm-muted"> · {deviceOf(l.user_agent)}</span>
+                    </span>
+                    <span className="adm-muted" style={{ whiteSpace: "nowrap" }}>{when(l.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/admin/customers/sign-ins" className="adm-link adm-small" style={{ display: "inline-block", marginTop: 10 }}>
+              All sign-ins →
+            </Link>
+          </section>
+          <section className="adm-card">
+            <h2>Saved for later</h2>
+            {!saved.length ? (
+              <p className="adm-muted adm-small">Nothing saved with the heart.</p>
+            ) : (
+              <ul className="adm-small" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                {saved.map((s) => (
+                  <li key={s.slug} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <span>
+                      {s.href ? (
+                        <a href={s.href} target="_blank" rel="noreferrer">
+                          {s.name}
+                        </a>
+                      ) : (
+                        s.name
+                      )}
+                      {s.price ? <span className="adm-muted"> · {money(s.price)}</span> : null}
+                    </span>
+                    <span className="adm-muted">{when(s.saved_at)}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
         </div>

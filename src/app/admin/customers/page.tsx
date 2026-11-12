@@ -103,7 +103,13 @@ export default function CustomersPage() {
 
   return (
     <div>
-      <h1 className="sr-only">Customers</h1>
+      <header className="adm-pagehead">
+        <h1>
+          {own ? own.name : seg === "all" ? "All customers" : (SEGMENTS.find((s) => s.id === seg)?.label ?? "Customers")}
+          {rows && <span className="adm-pagehead-n">{shown.length}</span>}
+        </h1>
+        <p>Tap a customer for their orders, activity and support history. The chips filter the list; make your own group from rules, like spent over ₹5,000 in Pune.</p>
+      </header>
       {err && <p className="adm-err">{err}</p>}
 
       <div className="adm-chips cus-groups" style={{ marginBottom: 8 }}>
@@ -113,6 +119,9 @@ export default function CustomersPage() {
             {s.id !== "all" && <b>{rows?.filter(s.match).length ?? 0}</b>}
           </button>
         ))}
+        <Link href="/admin/customers/sign-ins" className="adm-chip adm-only-narrow">
+          Sign-ins →
+        </Link>
       </div>
 
       {/* the shop's own groups: a row of their own, so they never scroll out of sight */}

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Page from "@/components/Page";
 import { MIN_AGE } from "@/lib/config";
+
+export const metadata: Metadata = {
+  title: "Help and FAQs",
+  description: "Answers on orders, delivery, payment, returns and your account at Babajee.",
+};
 
 const FAQ: { q: string; a: string }[] = [
   {

@@ -20,7 +20,11 @@ import ProductDesk from "./ProductDesk";
 import { shelfArrived } from "@/lib/shelf-switch";
 
 type Props = {
-  category: { slug: string; name: string };
+  category: { slug: string; name: string; tagline?: string };
+  // a product's own page: the product to open on arrival
+  open?: string;
+  // a collection's shelf (0041): its products' slugs, in the shop's order
+  pick?: string[];
   products: CardProduct[];
   categories: { slug: string; name: string; count: number }[];
 };
@@ -88,7 +92,18 @@ const VALUES = [
 
 // The same page in every theme. The theme CSS moves the pieces around:
 // a sidebar or a row of tabs, a banner or a title block, tiles or cards.
-export default function CategoryView({ category, products: snapshot, categories: initialCategories }: Props) {
+export default function CategoryView({ category, products: snapshot, categories: initialCategories, pick, open }: Props) {
+  // arrived on a product's own address (/shop/grinder/rotary-missile/): it
+  // opens here, and the address becomes the shelf's (/shop/grinder/?p=…) so
+  // closing it leaves the shelf, as when it's opened from the shelf
+  useEffect(() => {
+    if (!open) return;
+    const path = window.location.pathname;
+    const tail = `/${open}`;
+    const shelf = path.endsWith(tail) || path.endsWith(`${tail}/`) ? path.slice(0, path.lastIndexOf(tail) + 1) : path;
+    window.history.replaceState(null, "", `${shelf}?p=${encodeURIComponent(open)}`);
+    window.dispatchEvent(new Event(SHEET_EVENT));
+  }, [open]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
   // phones and tablets: the search field opens from the title bar
@@ -101,12 +116,31 @@ export default function CategoryView({ category, products: snapshot, categories:
   const categories = catalog ? initialCategories.map((c) => ({
     ...c, count: catalog.filter((p) => p.categorySlug === c.slug).length,
   })) : initialCategories;
-  const products: CardProduct[] = catalog ? catalog.filter((p) => everything || p.categorySlug === category.slug).map((p) => ({
+  // a collection lists its own products, in its order, each under its category
+  const order = pick ? new Map(pick.map((s, i) => [s, i])) : null;
+  const products: CardProduct[] = catalog ? catalog.filter((p) => (order ? order.has(p.slug) : everything || p.categorySlug === category.slug)).sort((a, b) => (order ? order.get(a.slug)! - order.get(b.slug)! : 0)).map((p) => ({
     href: `/shop/${p.categorySlug}?p=${encodeURIComponent(p.slug)}`, slug: p.slug, name: p.name,
     options: Math.max(0, p.variantCount - 1), price: p.minPrice, mrp: p.mrp, variants: p.variants,
     images: photosFor(p.slug), tone: toneAt(Math.max(0, categories.findIndex((c) => c.slug === p.categorySlug))),
-    group: everything ? p.categoryName : undefined,
+    group: everything || order ? p.categoryName : undefined,
+    sub: p.subcategory,
   })) : snapshot;
+  // the switched-on collections, listed under the categories (live: a new
+  // one shows without the site being rebuilt)
+  const [collections, setCollections] = useState<{ slug: string; name: string }[]>([]);
+  useEffect(() => {
+    let live = true;
+    import("@/lib/collections")
+      .then((m) => m.listCollections())
+      .then((l) => live && setCollections(l.filter((c) => c.is_visible).map(({ slug, name }) => ({ slug, name }))))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  // subcategory chips: on a category's own shelf, when its products carry them
+  const [sub, setSub] = useState("");
+  const subs = everything || order ? [] : [...new Set(products.map((p) => p.sub).filter((x): x is string => !!x))];
   const searching = category.slug === "search";
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the query in the address, once
@@ -115,9 +149,10 @@ export default function CategoryView({ category, products: snapshot, categories:
 
   const q = query.trim().toLowerCase();
   const words = q.split(/\s+/).filter(Boolean);
+  const inSub = sub && subs.includes(sub) ? products.filter((p) => p.sub === sub) : products;
   const filtered = words.length
-    ? products.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""}`.toLowerCase().includes(w)))
-    : products;
+    ? inSub.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""} ${p.sub ?? ""}`.toLowerCase().includes(w)))
+    : inSub;
   // Featured on the all-products shelf lists it category by category, under
   // a heading for each; a category's own shelf is one run of cards (the
   // brand is on each card)
@@ -143,9 +178,11 @@ export default function CategoryView({ category, products: snapshot, categories:
   const ownTitle = openItem ? snapshot.find((p) => p.slug === openItem.slug)?.seoTitle : undefined;
   const tabTitle = openItem ? fullTitle(seoTitle({ name: openItem.name, category: openItem.group ?? category.name, seoTitle: ownTitle })) : null;
   useEffect(() => {
-    shelfTitle.current ??= document.title;
+    // arrived on a product's own page, the tab starts with the product's
+    // title: the shelf's is its category's
+    shelfTitle.current ??= open ? fullTitle(category.name) : document.title;
     setTabTitle(tabTitle ?? shelfTitle.current);
-  }, [tabTitle]);
+  }, [tabTitle, open, category.name]);
 
   // this shelf is on screen: the one it replaced stops dimming
   useEffect(() => shelfArrived(), [category.slug]);
@@ -214,10 +251,29 @@ export default function CategoryView({ category, products: snapshot, categories:
 
       <div className="cp-body">
         <aside className="cp-side" aria-label="Browse">
-          <CategoryNav categories={categories} currentSlug={category.slug} />
+          <CategoryNav categories={categories} currentSlug={category.slug} collections={collections} />
         </aside>
 
         <div className="cp-main">
+          {/* the shelf's header: how many, the name, its line (on phones the
+              name is already in the bar above, so just the line and count) */}
+          <header className="cp-head">
+            <p className="cp-head-count">
+              {products.length} product{products.length === 1 ? "" : "s"}
+            </p>
+            <h2 className="cp-head-name">{category.name}</h2>
+            {category.tagline ? <p className="cp-head-line">{category.tagline}</p> : null}
+          </header>
+          {subs.length > 0 && (
+            <div className="cp-subs" role="group" aria-label={`Filter ${category.name}`}>
+              {["", ...subs].map((s) => (
+                <button key={s || "all"} type="button" aria-pressed={sub === s || (!s && !subs.includes(sub))} onClick={() => setSub(s)}>
+                  {s || "All"}
+                  <span>{s ? products.filter((p) => p.sub === s).length : products.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="cp-toolbar" data-open={finding || q !== ""}>
             <label className="cp-search">
               <span className="sr-only">Search {category.name}</span>
@@ -241,9 +297,13 @@ export default function CategoryView({ category, products: snapshot, categories:
             </label>
           </div>
 
-          {shown.length === 0 ? (
+          {order && !catalog ? null : shown.length === 0 ? (
             <p className="cp-empty">
-              No product matches &ldquo;{query}&rdquo;. Try a shorter word, or clear the search.
+              {q ? (
+                <>No product matches &ldquo;{query}&rdquo;. Try a shorter word, or clear the search.</>
+              ) : (
+                "Nothing here yet."
+              )}
             </p>
           ) : (
             <ul className="cp-grid">

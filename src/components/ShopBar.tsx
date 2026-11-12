@@ -116,7 +116,8 @@ export default function ShopBar({
     if (hdr) ro.observe(hdr);
     return () => ro.disconnect();
   }, []);
-  const hint = useHint(hints);
+  const roll = useHint(hints);
+  const hint = roll.now;
 
   // scrolled down the shelf: on wide screens the categories fold away and
   // the top row stays as a bar (phones lift the header instead, in CSS)
@@ -249,6 +250,23 @@ export default function ShopBar({
         }}
       >
         <SearchIcon size={20} className="sb-search-ico" />
+        {/* the hint, as Blinkit's: 'Search "' stays, the product name rolls up */}
+        {hint && !query && (
+          <span className="sb-roll" aria-hidden="true">
+            Search &ldquo;
+            <span className="sb-roll-win">
+              {roll.prev && (
+                <span key={`out-${roll.i}`} className="sb-roll-out">
+                  {roll.prev.toLowerCase()}
+                </span>
+              )}
+              <span key={`in-${roll.i}`} className={roll.i > 0 ? "sb-roll-in" : undefined}>
+                {hint.toLowerCase()}
+              </span>
+            </span>
+            &rdquo;
+          </span>
+        )}
         <input
           type="search"
           enterKeyHint="search"
@@ -274,7 +292,7 @@ export default function ShopBar({
           aria-controls="sb-found"
           aria-autocomplete="list"
           aria-label="Search the shop"
-          placeholder={hint ? `Search "${hint.toLowerCase()}"` : "Search"}
+          placeholder={hint ? "" : "Search"}
         />
         {found.length > 0 && (
           <ul id="sb-found" className="sb-found" role="listbox">
@@ -357,14 +375,16 @@ export default function ShopBar({
   );
 }
 
-// a product name to suggest, changing every few seconds
+// a product name to suggest, changing every few seconds; with the one it
+// replaced, so the bar can roll the old one up and out as the new one rises
 function useHint(hints: string[]) {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (hints.length < 2) return;
-    const t = window.setInterval(() => setI((n) => (n + 1) % hints.length), 2600);
+    const t = window.setInterval(() => setI((n) => n + 1), 2600);
     return () => window.clearInterval(t);
   }, [hints.length]);
-  return hints[i % Math.max(1, hints.length)];
+  const n = Math.max(1, hints.length);
+  return { now: hints[i % n], prev: i > 0 ? hints[(i - 1) % n] : undefined, i };
 }
 

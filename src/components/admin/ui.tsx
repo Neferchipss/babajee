@@ -1,45 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/lib/currency";
 import { STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/order-status";
-import { homeCounts } from "@/lib/orders-db";
 
-// ---------------------------------------------------------------- section list
-
-const SECTIONS = [
-  ["/admin", "Home"],
-  ["/admin/orders", "Orders"],
-  ["/admin/products", "Products"],
-  ["/admin/customers", "Customers"],
-  ["/admin/analytics", "Analytics"],
-  ["/admin/settings", "Settings"],
-] as const;
-
-export function AdminNav() {
-  const path = (usePathname() ?? "").replace(/\/$/, "") || "/";
-  const [unpaid, setUnpaid] = useState(0);
-  useEffect(() => {
-    homeCounts()
-      .then((c) => setUnpaid(c.unpaid + c.to_pack + c.to_ship))
-      .catch(() => {});
-  }, [path]);
-  const on = (href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`));
-  return (
-    <nav className="adm-nav" aria-label="Admin sections">
-      {SECTIONS.map(([href, label]) => (
-        <Link key={href} href={href} aria-current={on(href) ? "page" : undefined}>
-          {label}
-          {href === "/admin/orders" && unpaid > 0 && <span className="n">{unpaid}</span>}
-        </Link>
-      ))}
-      <span className="gap" />
-      <Link href="/shop">View shop</Link>
-    </nav>
-  );
-}
+// the section list is AdminNav.tsx
 
 // ---------------------------------------------------------------- sortable tables
 
@@ -128,7 +93,8 @@ export const money = (n: number) => formatPrice(n, { paise: n % 1 !== 0 });
 // "before" line on the charts inside.
 export const CompareOff = createContext(false);
 
-export function Delta({ now, before, pct = true }: { now: number; before: number; pct?: boolean }) {
+// lowerIsBetter: a rise shows in the warning colour (cart abandonment)
+export function Delta({ now, before, pct = true, lowerIsBetter = false }: { now: number; before: number; pct?: boolean; lowerIsBetter?: boolean }) {
   const off = useContext(CompareOff);
   // shown as a small pill; colour plus arrow, never colour alone
   if (off || (!before && !now)) return null;
@@ -137,7 +103,7 @@ export function Delta({ now, before, pct = true }: { now: number; before: number
   const r = Math.round(d * 10) / 10;
   if (r === 0) return <span className="adm-delta flat">0%</span>;
   return (
-    <span className={`adm-delta ${r > 0 ? "up" : "down"}`}>
+    <span className={`adm-delta ${r > 0 !== lowerIsBetter ? "up" : "down"}`}>
       {r > 0 ? "↑" : "↓"} {Math.abs(r)}
       {pct ? "%" : ""}
     </span>

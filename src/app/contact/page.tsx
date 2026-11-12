@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Page from "@/components/Page";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Get in touch with Babajee about an order, a product or anything else.",
+};
 
 const DETAILS = ["Address", "Phone", "Email", "Opening hours"];
 

@@ -9,6 +9,9 @@ import { shelfLeaving } from "@/lib/shelf-switch";
 type Props = {
   categories: { slug: string; name: string; count?: number }[];
   currentSlug: string;
+  // the shop's switched-on collections (0041); a collection's shelf has
+  // currentSlug "collection:<slug>"
+  collections?: { slug: string; name: string }[];
 };
 
 const EDGE = 4;
@@ -20,7 +23,7 @@ let lastInk: { top: number; left: number; width: number; height: number } | null
 // The category list. Themes lay it out as a sidebar or as a horizontal strip;
 // when it is a strip this adds edge fades and prev/next buttons so the hidden
 // categories are visible, and it keeps the current one in view.
-export default function CategoryNav({ categories, currentSlug }: Props) {
+export default function CategoryNav({ categories, currentSlug, collections = [] }: Props) {
   const listRef = useRef<HTMLUListElement>(null);
   const inkRef = useRef<HTMLSpanElement>(null);
   const [edges, setEdges] = useState({ prev: false, next: false });
@@ -131,12 +134,35 @@ export default function CategoryNav({ categories, currentSlug }: Props) {
               </Link>
             </li>
           ))}
+          {collections.length > 0 && (
+            <li className="cp-group" aria-hidden="true">
+              Collections
+            </li>
+          )}
+          {collections.map((c) => (
+            <li key={`col-${c.slug}`} className="cp-col">
+              <Link href={`/shop/collections?c=${encodeURIComponent(c.slug)}`} aria-current={currentSlug === `collection:${c.slug}` ? "page" : undefined} onClick={tap}>
+                <span className="cp-ico">
+                  <Star />
+                </span>
+                <span className="cp-lbl">{c.name}</span>
+              </Link>
+            </li>
+          ))}
         </ul>
         <button type="button" className="cp-strip-btn cp-strip-btn--next" aria-hidden="true" tabIndex={-1} onClick={() => nudge(1)}>
           <Chevron />
         </button>
       </div>
     </nav>
+  );
+}
+
+function Star() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z" />
+    </svg>
   );
 }
 

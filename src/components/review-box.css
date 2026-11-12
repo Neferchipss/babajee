@@ -1,0 +1,83 @@
+/* Writing a review under an order's item (ReviewBox.tsx) */
+.rvb-rate,
+.rvb-mine button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--bb-hot, var(--color-paper));
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rvb-mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+.rvb-form {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+.rvb-form input,
+.rvb-form textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+.rvb-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.rvb-send {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bb-hot, var(--color-paper));
+  color: var(--bb-on-accent, var(--color-char));
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rvb-send:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.rvb-cancel {
+  padding: 9px 4px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.rvb-err {
+  margin: 0;
+  color: var(--color-red-soft, #f08b74);
+  font-size: 0.82rem;
+}
+.rvb-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}

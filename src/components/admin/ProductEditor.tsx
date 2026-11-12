@@ -6,7 +6,7 @@ import { Bin } from "@/components/admin/ui";
 import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
 import { suggestSku } from "@/lib/sku";
 import type { adminApi } from "@/lib/admin-api";
-import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
+import { subcategoriesOf, type AdminCategory, type AdminProduct, type AdminVariant, type ProductStatus, type Spec } from "@/lib/admin-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
@@ -20,9 +20,14 @@ export function needsOf(p: AdminProduct) {
   return {
     photo: p.images.length === 0 && photosFor(p.slug).length === 0,
     price: !p.variants.some((v) => v.price > 0),
-    hidden: !p.is_visible,
+    hidden: p.status === "draft",
   };
 }
+const STATUSES: [ProductStatus, string, string][] = [
+  ["draft", "Draft", "Being prepared: not on the shop yet"],
+  ["published", "On the shop", "Customers can see and buy it"],
+  ["archived", "Archived", "Retired: off the shop and out of the everyday list, kept with its orders"],
+];
 export const needsWork = (p: AdminProduct) => Object.values(needsOf(p)).some(Boolean);
 
 // A product's main price: the one its options share (the most common; a price
@@ -302,15 +307,14 @@ export default function ProductEditor({
       <div className="ape-body">
         <div className="ape-title">
           <EditableName className="ape-name" value={product.name} onSave={(n) => run(() => api.updateProduct(product.id, { name: n }))} />
-          <button
-            type="button"
-            className={`ape-switch ${product.is_visible ? "is-on" : ""}`}
-            aria-pressed={product.is_visible}
-            onClick={() => run(() => api.setProductVisibility(product, !product.is_visible))}
-          >
-            <i aria-hidden="true" />
-            {product.is_visible ? "On the shop" : "Hidden"}
-          </button>
+          {/* draft while it's being prepared, on the shop, or archived when retired */}
+          <span className="ape-status" role="radiogroup" aria-label="Status">
+            {STATUSES.map(([s, label, hint]) => (
+              <button key={s} type="button" role="radio" aria-checked={product.status === s} title={hint} className={product.status === s ? `is-on is-${s}` : ""} onClick={() => product.status !== s && run(() => api.setProductStatus(product, s))}>
+                {label}
+              </button>
+            ))}
+          </span>
         </div>
         {(needs.photo || needs.price) && (
           <div className="ape-summary">
@@ -454,6 +458,7 @@ export default function ProductEditor({
                 ))}
               </datalist>
             </label>
+            <SubcategoryField key={`sub-${product.id}`} product={product} onSave={(subcategory) => run(() => api.updateProduct(product.id, { subcategory }))} />
             <div className="ape-field ape-field--wide">
               <span id="ape-tags-label">Tags, for finding it</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
@@ -474,8 +479,11 @@ export default function ProductEditor({
             <p className="ape-hint">
               {tracked ? "Each order takes its pieces off the stock, and at 0 it can't be ordered." : "Always orderable. Turn this on to count stock down with each order and stop orders at 0."}
             </p>
+            {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
             {tracked && <StockHistory variants={product.variants} />}
           </section>
+
+          <SpecsEditor key={`specs-${product.id}`} specs={product.specs} onSave={(specs) => run(() => api.updateProduct(product.id, { specs }))} />
 
           <HsnField key={`hsn-${product.id}`} product={product} onSave={(hsn) => run(() => api.updateProduct(product.id, { hsn }))} />
 
@@ -1217,5 +1225,93 @@ function Fold({ title, summary, children }: { title: string; summary: string; ch
       </summary>
       <div className="ape-fold-body">{children}</div>
     </details>
+  );
+}
+
+
+// A label within the category ("Cones", "Filters"): customers filter the
+// shelf by it. Suggests the ones the category already uses.
+function SubcategoryField({ product, onSave }: { product: AdminProduct; onSave: (s: string) => void }) {
+  const [value, setValue] = useState(product.subcategory);
+  const [known, setKnown] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    subcategoriesOf(product.category_id).then((l) => live && setKnown(l), () => {});
+    return () => {
+      live = false;
+    };
+  }, [product.category_id]);
+  return (
+    <label className="ape-field">
+      <span>Subcategory</span>
+      <input list="ape-subs" value={value} maxLength={40} placeholder="Cones, filters…" onChange={(e) => setValue(e.target.value)} onBlur={() => value.trim() !== product.subcategory && onSave(value.trim())} />
+      <datalist id="ape-subs">
+        {known.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+    </label>
+  );
+}
+
+// Specifications: label and value rows ("Material", "Aluminium"), shown as
+// a table on the product page. Saved when a field is left.
+function SpecsEditor({ specs, onSave }: { specs: Spec[]; onSave: (s: Spec[]) => void }) {
+  const [rows, setRows] = useState<Spec[]>(specs.length ? specs : []);
+  const clean = (list: Spec[]) => list.map((r) => ({ label: r.label.trim(), value: r.value.trim() })).filter((r) => r.label && r.value);
+  const save = (list: Spec[]) => {
+    const c = clean(list);
+    if (JSON.stringify(c) !== JSON.stringify(specs)) onSave(c);
+  };
+  const set = (i: number, k: keyof Spec, v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  return (
+    <section className="ape-fields">
+      <h3>Specifications</h3>
+      {rows.length === 0 && <p className="ape-hint">Material, size, what&apos;s in the box… shown as a table on the product page.</p>}
+      <div className="ape-specs">
+        {rows.map((r, i) => (
+          <div key={i} className="ape-spec">
+            <input value={r.label} placeholder="Material" maxLength={40} aria-label="Specification" onChange={(e) => set(i, "label", e.target.value)} onBlur={() => save(rows)} />
+            <input value={r.value} placeholder="Aluminium" maxLength={120} aria-label="Value" onChange={(e) => set(i, "value", e.target.value)} onBlur={() => save(rows)} />
+            <button
+              type="button"
+              className="ape-icon"
+              aria-label={`Remove ${r.label || "row"}`}
+              onClick={() => {
+                const next = rows.filter((_, j) => j !== i);
+                setRows(next);
+                save(next);
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="ape-add" onClick={() => setRows((rs) => [...rs, { label: "", value: "" }])}>
+        + Add a row
+      </button>
+    </section>
+  );
+}
+
+
+// This product's low-stock mark: empty uses the shop's (Settings).
+function LowMark({ product, onSave }: { product: AdminProduct; onSave: (n: number | null) => void }) {
+  const [v, setV] = useState(product.low_stock_at == null ? "" : String(product.low_stock_at));
+  return (
+    <label className="ape-field">
+      <span>Low stock at</span>
+      <input
+        inputMode="numeric"
+        value={v}
+        placeholder="Shop's default"
+        onChange={(e) => setV(e.target.value.replace(/\D/g, ""))}
+        onBlur={() => {
+          const n = v === "" ? null : Math.min(10000, Number(v));
+          if (n !== product.low_stock_at) onSave(n);
+        }}
+      />
+    </label>
   );
 }

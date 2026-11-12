@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import SceneLink, { isScenePath } from "@/components/SceneLink";
 import { usePathname } from "next/navigation";
@@ -10,6 +11,9 @@ import { JarIcon, SearchIcon, UserIcon } from "./icons";
 import DeliverTo from "./address/DeliverTo";
 import Logo from "./Logo";
 import ProfileMenu from "./ProfileMenu";
+
+// the admin's search, in the bar on admin pages only (loaded only there)
+const AdminSearch = dynamic(() => import("./admin/AdminSearch").then((m) => m.AdminSearch), { ssr: false });
 
 const NAV = [
   { href: "/shop", label: "Shop" },
@@ -45,6 +49,20 @@ export default function SiteHeader() {
   // profile button, whose menu holds every page and light or dark.
   const shelves = pathname === "/shop" || pathname.startsWith("/shop/") || pathname === "/checkout";
   const tools = /^\/(pitch|styles)(\/|$)/.test(pathname);
+  // the admin: logo, its search across the bar, and the profile button (no cart)
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return (
+      <header className="lb lb--admin">
+        <Link href="/admin" aria-label="Babajee admin" className="lb-logo">
+          <Logo className="lb-logo-img" priority />
+        </Link>
+        <div className="lb-search">
+          <AdminSearch />
+        </div>
+        <ProfileMenu cart={false} />
+      </header>
+    );
+  }
   if (pathname === "/" || (!shelves && !tools)) {
     const cart = pathname !== "/";
     return (

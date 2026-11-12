@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
-import { analytics, errText, profit, type Analytics, type Profit } from "@/lib/orders-db";
+import { analytics, errText, failedDeliveries, profit, salesByCategory, savedProducts, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
 
 // The stats page. One date range drives every card, and each number is
 // compared with the period just before it (the same number of days).
@@ -23,6 +23,26 @@ export default function AnalyticsPage() {
   const [err, setErr] = useState("");
 
   const { from, to } = range;
+  // sales by category, for the chosen dates
+  const [catsFor, setCatsFor] = useState<{ key: string; rows: CategorySales[] } | null>(null);
+  useEffect(() => {
+    const key = `${from}:${to}`;
+    salesByCategory(from, to).then(
+      (rows) => setCatsFor({ key, rows }),
+      () => setCatsFor({ key, rows: [] }),
+    );
+  }, [from, to]);
+  // still loading while the result is for other dates
+  const cats = catsFor?.key === `${from}:${to}` ? catsFor.rows : null;
+
+  // saved for later, all time (not tied to the date range)
+  const [saved, setSaved] = useState<SavedProduct[] | null>(null);
+  // failed deliveries recorded in the range (0039), under Shipped
+  const [failed, setFailed] = useState<{ key: string; n: number } | null>(null);
+  useEffect(() => {
+    savedProducts().then(setSaved, () => setSaved([]));
+  }, []);
+
   useEffect(() => {
     const n = daysBetween(from, to);
     const pFrom = addDays(from, -n);
@@ -36,13 +56,21 @@ export default function AnalyticsPage() {
         setDays(a.daily.map((d) => d.day));
       })
       .catch((e) => setErr(errText(e)));
+    failedDeliveries(from, to).then(
+      (n) => setFailed({ key: `${from}|${to}`, n }),
+      () => {},
+    );
   }, [from, to]);
+  const failedNow = failed?.key === `${from}|${to}` ? failed.n : 0;
 
   const a = cur;
   const b = prev;
   const net = (x: Analytics) => x.gross - x.returns;
   const aov = (x: Analytics) => (x.orders ? x.gross / x.orders : 0);
   const conv = (x: Analytics) => (x.sessions ? (x.orders / x.sessions) * 100 : 0);
+  // of the visits that put something in the cart, the share that did not
+  // end in an order (guests included: it is counted from visits, not accounts)
+  const abandon = (x: Analytics) => (x.cart_sessions ? Math.max(0, 1 - x.orders / x.cart_sessions) * 100 : 0);
   const ret = (x: Analytics) => (x.customers ? (x.returning / x.customers) * 100 : 0);
   const margin = (x: Profit) => (x.costed_sales ? (x.profit / x.costed_sales) * 100 : 0);
   const label = rangeLabel(range);
@@ -106,8 +134,9 @@ export default function AnalyticsPage() {
           <div className="adm-card anx-strip">
             <Stat label="Visitors" value={count(a.sessions)} now={a.sessions} before={b.sessions} />
             <Stat label="Conversion" value={pct(conv(a))} now={conv(a)} before={conv(b)} />
+            <Stat label="Cart abandonment" value={a.cart_sessions ? pct(abandon(a)) : "–"} now={abandon(a)} before={abandon(b)} lowerIsBetter />
             <Stat label="Items sold" value={count(a.items)} now={a.items} before={b.items} />
-            <Stat label="Shipped" value={count(a.fulfilled)} now={a.fulfilled} before={b.fulfilled} />
+            <Stat label="Shipped" value={count(a.fulfilled)} now={a.fulfilled} before={b.fulfilled} note={failedNow > 0 ? `${failedNow} failed deliver${failedNow === 1 ? "y" : "ies"}` : undefined} />
             <Stat label="Returning customers" value={pct(ret(a))} now={ret(a)} before={ret(b)} />
           </div>
 
@@ -145,6 +174,16 @@ export default function AnalyticsPage() {
               <Bars rows={a.by_state.map((p) => ({ name: p.name, value: p.sales }))} fmt={money} />
             </section>
           </div>
+          <section className="adm-card">
+            <h2>Sales by category</h2>
+            {cats === null ? (
+              <p className="adm-muted adm-small">Loading.</p>
+            ) : cats.length ? (
+              <Bars rows={cats.map((c) => ({ name: c.name, value: c.sales }))} fmt={money} />
+            ) : (
+              <p className="adm-muted adm-small">No sales in these dates.</p>
+            )}
+          </section>
 
           <SectionTitle id="profit">Profit</SectionTitle>
           <div className="adm-pair wide">
@@ -201,6 +240,19 @@ export default function AnalyticsPage() {
               </p>
             </section>
           </div>
+          <section className="adm-card">
+            <div className="anx-card-head">
+              <h2>Most saved for later</h2>
+              <span className="adm-muted adm-small">All time · signed-in customers</span>
+            </div>
+            {saved === null ? (
+              <p className="adm-muted adm-small">Loading.</p>
+            ) : saved.length ? (
+              <Bars rows={saved.slice(0, 8).map((p) => ({ name: p.name, value: p.saves }))} fmt={(n) => `${count(n)} saved`} />
+            ) : (
+              <p className="adm-muted adm-small">No one has saved a product with the heart yet. Saves from signed-in customers show here.</p>
+            )}
+          </section>
           {pc.top.length > 0 && (
             <section className="adm-card">
               <h2>Most profitable products</h2>
@@ -269,13 +321,14 @@ function Kpi({ label, value, note, now, before, spark }: { label: string; value:
   );
 }
 
-function Stat({ label, value, now, before }: { label: string; value: string; now: number; before: number }) {
+function Stat({ label, value, now, before, lowerIsBetter, note }: { label: string; value: string; now: number; before: number; lowerIsBetter?: boolean; note?: string }) {
   return (
     <div className="anx-stat">
       <div className="anx-lab">{label}</div>
       <div className="anx-stat-val">
-        {value} <Delta now={now} before={before} />
+        {value} <Delta now={now} before={before} lowerIsBetter={lowerIsBetter} />
       </div>
+      {note && <div className="anx-stat-note">{note}</div>}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { errText } from "@/lib/orders-db";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -15,12 +16,36 @@ import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
 
-type Need = "all" | "photo" | "price" | "hidden" | "low" | "out";
+type Need = "all" | "photo" | "price" | "hidden" | "archived" | "low" | "out";
 
-// stock, for products that track it: none left, or 3 or fewer of some option
+// stock, for products that track it: none left, or at its low mark (its
+// own, or the shop's from Settings) or fewer of some option
+let shopLowAt = 3;
+const setShopLowAt = (n: number) => {
+  shopLowAt = n;
+};
 const stockOf = (p: AdminProduct) => {
   const t = p.variants.filter((v) => v.track_stock && v.is_visible);
-  return { out: t.length > 0 && t.some((v) => v.stock_qty === 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= 3) };
+  const mark = p.low_stock_at ?? shopLowAt;
+  return { out: t.length > 0 && t.some((v) => v.stock_qty === 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
+};
+
+// what each filter is, and what to do about it, for the page's head
+type NeedCounts = { photo: number; price: number; hidden: number; low: number; out: number };
+const NEED_HEAD: Record<Need, { title: string; note: (c: NeedCounts) => string }> = {
+  all: {
+    title: "",
+    note: (c) =>
+      c.price || c.photo
+        ? `Tap a product to edit it. Still to do: ${[c.price && `${c.price} without a price (they can't be ordered)`, c.photo && `${c.photo} without a photo`].filter(Boolean).join(", ")}. The table view is quickest for prices and stock.`
+        : "Tap a product to edit it. The table view is quickest for prices and stock.",
+  },
+  photo: { title: "No photo", note: () => "Customers see a plain tile for these. Open one and drop photos into its panel." },
+  price: { title: "No price", note: () => "These can't be ordered until they have a selling price. Switch to the table view and type prices straight in." },
+  hidden: { title: "Drafts", note: () => "Not on the shop yet. Open one, finish it, and set it to On the shop." },
+  archived: { title: "Archived", note: () => "Retired products, kept with their orders. Set one to Draft or On the shop to bring it back." },
+  low: { title: "Low stock", note: () => "Options at or under their low mark. Restock, then update the count." },
+  out: { title: "Out of stock", note: () => "None left: the shop stops selling these until the count goes up." },
 };
 
 // The catalogue as the shop shows it: a grid of cards, by category. Each card
@@ -45,6 +70,12 @@ function ProductsAdmin() {
   const [err, setErr] = useState("");
   const [cat, setCat] = useState(params.get("category") ?? "");
   const [need, setNeed] = useState<Need>((params.get("need") as Need | null) ?? "all");
+  // the sidebar's Products › Low stock while already here: switch in place
+  useEffect(() => {
+    const go = (e: Event) => setNeed(((e as CustomEvent<{ need: string }>).detail.need || "all") as Need);
+    window.addEventListener("adm-nav", go);
+    return () => window.removeEventListener("adm-nav", go);
+  }, []);
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(params.get("product"));
   const [selecting, setSelecting] = useState(false);
@@ -69,7 +100,8 @@ function ProductsAdmin() {
 
   async function load() {
     try {
-      const [cats, prods] = await Promise.all([api.listCategories(), api.listProducts()]);
+      const [cats, prods, settings] = await Promise.all([api.listCategories(), api.listProducts(), import("@/lib/orders-db").then((m) => m.getSettings()).catch(() => null)]);
+      if (settings) setShopLowAt(settings.low_stock_at);
       setCategories(cats);
       setRows(prods);
       import("@/lib/orders-db")
@@ -103,7 +135,10 @@ function ProductsAdmin() {
     }
   }, [cat, openId, need]);
 
-  const inCat = useMemo(() => (cat ? rows.filter((p) => p.category_id === cat) : rows), [rows, cat]);
+  // archived products stay out of everything but their own filter
+  const inCatAll = useMemo(() => (cat ? rows.filter((p) => p.category_id === cat) : rows), [rows, cat]);
+  const archived = useMemo(() => inCatAll.filter((p) => p.status === "archived"), [inCatAll]);
+  const inCat = useMemo(() => (need === "archived" ? archived : inCatAll.filter((p) => p.status !== "archived")), [inCatAll, archived, need]);
   const counts = useMemo(() => {
     const c = { photo: 0, price: 0, hidden: 0, low: 0, out: 0 };
     for (const p of inCat) {
@@ -121,13 +156,14 @@ function ProductsAdmin() {
     ["all", "Everything", inCat.length],
     ["photo", "No photo", counts.photo],
     ["price", "No price", counts.price],
-    ["hidden", "Hidden", counts.hidden],
+    ["hidden", "Drafts", counts.hidden],
+    ["archived", "Archived", archived.length],
     ["low", "Low stock", counts.low],
     ["out", "Out of stock", counts.out],
   ] as const;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return inCat.filter((p) => (!q || `${p.name} ${p.brand} ${p.product_type} ${p.tags.join(" ")} ${p.variants.map((v) => `${v.sku ?? ""} ${v.barcode ?? ""}`).join(" ")}`.toLowerCase().includes(q)) && (need === "all" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
+    return inCat.filter((p) => (!q || `${p.name} ${p.brand} ${p.product_type} ${p.tags.join(" ")} ${p.variants.map((v) => `${v.sku ?? ""} ${v.barcode ?? ""}`).join(" ")}`.toLowerCase().includes(q)) && (need === "all" || need === "archived" || (need === "low" || need === "out" ? stockOf(p)[need] : needsOf(p)[need])));
   }, [inCat, query, need]);
 
   const open = openId ? rows.find((p) => p.id === openId) : undefined;
@@ -219,7 +255,13 @@ function ProductsAdmin() {
 
   return (
     <div className={`ap ${open ? "ap--editing" : ""}`}>
-      <h1 className="sr-only">Products</h1>
+      <header className="adm-pagehead">
+        <h1>
+          {[categories.find((c) => c.id === cat)?.name, NEED_HEAD[need].title].filter(Boolean).join(" · ") || "All products"}
+          <span className="adm-pagehead-n">{loading ? "" : shown.length}</span>
+        </h1>
+        <p>{NEED_HEAD[need].note(counts)}</p>
+      </header>
       {err && <p className="ap-err">{err}</p>}
 
       <AdminCategoryBar
@@ -262,6 +304,13 @@ function ProductsAdmin() {
           <button type="button" className={`ap-chip ${selecting ? "is-on" : ""}`} onClick={() => (setSelecting((s) => !s), setSelected(new Set()))}>
             {selecting ? "Done" : "Select"}
           </button>
+          {/* customers' reviews, waiting for approval and published */}
+          <Link href="/admin/products/reviews" className="ap-chip adm-only-narrow">
+            Reviews
+          </Link>
+          <Link href="/admin/products/collections" className="ap-chip adm-only-narrow">
+            Collections
+          </Link>
           <span className="ap-view" role="group" aria-label="View">
             <button type="button" aria-pressed={view === "cards"} title="Cards, as on the shop" onClick={() => pickView("cards")}>
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -581,7 +630,7 @@ function Card({
       )}
       <EditableName className="apc-name" value={p.name} onSave={(name) => onSave(() => api.updateProduct(p.id, { name }))} />
       <span className="apc-meta">
-        {[`${sold} sold`, p.variants.length > 1 && `${p.variants.length} options`, !p.is_visible && "Hidden"].filter(Boolean).join(" · ")}
+        {[`${sold} sold`, p.variants.length > 1 && `${p.variants.length} options`, p.status === "draft" && "Draft", p.status === "archived" && "Archived"].filter(Boolean).join(" · ")}
       </span>
     </div>
   );
@@ -671,6 +720,7 @@ function CategoryTools({
   onChange: (work: () => Promise<unknown>) => Promise<void>;
 }) {
   const [name, setName] = useState(c.name);
+  const [line, setLine] = useState(c.tagline ?? "");
   return (
     <div className="ap-cat" role="group" aria-label={`${c.name} category`}>
       <input
@@ -680,6 +730,17 @@ function CategoryTools({
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         onBlur={() => name.trim() && name.trim() !== c.name && onChange(() => api.updateCategory(c.id, { name: name.trim() }))}
+      />
+      {/* the line under the category's name at the top of its shelf */}
+      <input
+        className="ap-cat-name ap-cat-line"
+        value={line}
+        placeholder="A line under the name on the shop, e.g. Every way to break it down."
+        aria-label={`Line shown under ${c.name} on the shop`}
+        maxLength={90}
+        onChange={(e) => setLine(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+        onBlur={() => line.trim() !== (c.tagline ?? "") && onChange(() => api.updateCategory(c.id, { tagline: line.trim() || null }))}
       />
       <button type="button" className={`ap-chip ${c.is_visible ? "" : "is-on"}`} onClick={() => onChange(() => api.updateCategory(c.id, { is_visible: !c.is_visible }))}>
         {c.is_visible ? "On the shop" : "Hidden from the shop"}

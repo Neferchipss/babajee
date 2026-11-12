@@ -270,3 +270,119 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* The shelf's header (CategoryView): how many products, the category's name
+   large and tight in Geist, and its line of copy (categories.tagline). On
+   phones and tablets the name is already in the bar above the shelf, so the
+   header is just the line and the count. */
+html[data-theme] #site[data-scope="shop"] :is(.cp-head, .cp-head > *) {
+  text-align: left;
+}
+html[data-theme] #site[data-scope="shop"] .cp-head {
+  margin: 0 0 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-line);
+}
+html[data-theme] #site[data-scope="shop"] .cp-head-count {
+  margin: 0 0 10px;
+  color: var(--color-muted);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+html[data-theme] #site[data-scope="shop"] .cp-head-name {
+  margin: 0;
+  color: var(--color-paper);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  font-size: clamp(2.4rem, 4vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  text-shadow: none;
+}
+html[data-theme] #site[data-scope="shop"] .cp-head-line {
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-family: var(--font-body-face), system-ui, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+@media (max-width: 1023px) {
+  html[data-theme] #site[data-scope="shop"] .cp-head {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 4px;
+    margin: 4px 0 16px;
+    padding-bottom: 14px;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-head-name {
+    display: none;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-head-count {
+    margin: 0;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-head-line {
+    margin: 0;
+    color: var(--color-paper);
+    font-size: 0.95rem;
+  }
+}
+
+/* collections in the category list (0041): on the desktop panel a quiet
+   label above them; in a phone's strip they're just more chips */
+html[data-theme] #site[data-scope="shop"] .cp-cats .cp-group {
+  display: none;
+}
+@media (min-width: 1024px) {
+  html[data-theme] #site[data-scope="shop"] .cp-side .cp-cats .cp-group {
+    display: block;
+    margin: 18px 0 6px;
+    padding: 0 10px;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+}
+
+/* a category's subcategory chips, under its header */
+html[data-theme] #site[data-scope="shop"] .cp-subs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  font: 500 0.86rem/1 var(--font-body-face), system-ui, sans-serif;
+  cursor: pointer;
+  transition:
+    color var(--dur-1, 150ms),
+    border-color var(--dur-1, 150ms),
+    background-color var(--dur-1, 150ms);
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs button span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs button:hover {
+  color: var(--color-paper);
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs button[aria-pressed="true"] {
+  border-color: var(--bb-hot);
+  color: var(--color-paper);
+  background: color-mix(in srgb, var(--bb-hot) 14%, transparent);
+}

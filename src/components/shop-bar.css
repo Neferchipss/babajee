@@ -123,6 +123,66 @@
 .sb-search input::placeholder {
   color: var(--color-muted, #a39cd0);
 }
+/* the rolling hint over the empty field (ShopBar): "Search “" stays put,
+   the product name rolls up, the old one out above as the new one rises */
+.sb-roll {
+  position: absolute;
+  top: 50%;
+  left: 44px;
+  right: 56px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  color: var(--color-muted, #a39cd0);
+  font-size: 1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.sb-roll-win {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  height: 1.3em;
+  overflow: hidden;
+  vertical-align: top;
+}
+.sb-roll-win > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-roll-in {
+  animation: sb-roll-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.sb-roll-out {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: sb-roll-out 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes sb-roll-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+@keyframes sb-roll-out {
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-roll-in,
+  .sb-roll-out {
+    animation: none;
+  }
+  .sb-roll-out {
+    display: none;
+  }
+}
 .sb-search input::-webkit-search-cancel-button {
   filter: invert(1) opacity(0.6);
 }

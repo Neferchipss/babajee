@@ -3,10 +3,12 @@
 import { useSyncExternalStore } from "react";
 
 
-// The cart (Baba's jar). It lives in this browser's localStorage until there
-// is an account to keep it on; every jar, count and cart page on the site
-// reads it through useCart and updates the moment it changes, in this tab
-// and in any other.
+// The cart (Baba's jar). It lives in this browser's localStorage; every jar,
+// count and cart page on the site reads it through useCart and updates the
+// moment it changes, in this tab and in any other. For a signed-in customer
+// it is also kept on their account (carts.lines, migration 0034), copied a
+// moment after each change, so the shop can see active and abandoned carts
+// and the cart follows them to other devices. Signing in merges the two.
 export type CartLine = {
   key: string; // product + option
   slug: string;
@@ -25,6 +27,8 @@ const KEY = "bj-cart";
 const EVENT = "bb:cart";
 // fired once a product has visibly dropped into a jar, so the jar can react
 export const LANDED_EVENT = "bb:cart-landed";
+// fired on every add, with what was added (for the customer's activity)
+export const ADDED_EVENT = "bb:cart-added";
 const EMPTY: CartLine[] = [];
 
 let raw: string | null = null;
@@ -53,6 +57,55 @@ function write(next: CartLine[]) {
     localStorage.setItem(KEY, raw);
   } catch {}
   window.dispatchEvent(new Event(EVENT));
+  pushSoon();
+}
+
+// ---------------------------------------------------------------- account
+
+// the signed-in customer, set by linkCart (from the auth provider)
+let me: string | null = null;
+let pushTimer = 0;
+
+// the cart, copied to the account once changes settle (quantity steppers
+// change it many times a second)
+function pushSoon() {
+  if (!me) return;
+  window.clearTimeout(pushTimer);
+  pushTimer = window.setTimeout(() => void push(me), 700);
+}
+async function push(profile: string | null) {
+  if (!profile) return;
+  try {
+    const { getSupabase } = await import("./supabase");
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from("carts").upsert({ profile_id: profile, lines: read() }, { onConflict: "profile_id" });
+  } catch {}
+}
+
+// Signed in (or out). In: the account's cart and this browser's are merged
+// (the larger quantity where both have a line), kept here, and sent up.
+export async function linkCart(profile: string | null) {
+  me = profile;
+  if (!profile) return;
+  try {
+    const { getSupabase } = await import("./supabase");
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data, error } = await sb.from("carts").select("lines").eq("profile_id", profile).maybeSingle();
+    if (error || me !== profile) return;
+    const theirs = (Array.isArray(data?.lines) ? data.lines : []) as CartLine[];
+    const merged = [...read()];
+    for (const t of theirs) {
+      if (!t?.key || !(t.qty > 0)) continue;
+      const at = merged.findIndex((l) => l.key === t.key);
+      if (at < 0) merged.push(t);
+      else if (t.qty > merged[at].qty) merged[at] = { ...merged[at], qty: t.qty };
+    }
+    const changed = JSON.stringify(merged) !== JSON.stringify(read());
+    if (changed) write(merged);
+    else if (JSON.stringify(theirs) !== JSON.stringify(merged)) await push(profile);
+  } catch {}
 }
 
 function subscribe(cb: () => void) {
@@ -94,6 +147,7 @@ export function addToCart(item: CartItem, qty = 1) {
   const at = cart.findIndex((l) => l.key === key);
   if (at >= 0) write(cart.map((l, i) => (i === at ? { ...l, ...item, qty: l.qty + qty } : l)));
   else write([...cart, { ...item, key, qty }]);
+  window.dispatchEvent(new CustomEvent(ADDED_EVENT, { detail: { ...item, qty } }));
 }
 
 export function setQty(key: string, qty: number) {

@@ -48,7 +48,8 @@ export function RefundForm({
   // offered when part of the order was never paid and it can still be edited
   onEdit?: () => void;
   // filled in from a customer's request: items (or everything), restock
-  preset?: { qty?: Record<string, number>; everything?: boolean; restock?: boolean; note?: string };
+  // keepDelivery: everything, but the delivery charge stays with the shop (a parcel that came back)
+  preset?: { qty?: Record<string, number>; everything?: boolean; restock?: boolean; note?: string; keepDelivery?: boolean; title?: string };
 }) {
   const done = refundsOf(o);
   const paid = o.paid_total ?? o.total;
@@ -59,7 +60,7 @@ export function RefundForm({
   const [qty, setQty] = useState<Record<string, number>>(() =>
     preset?.everything ? Object.fromEntries(items.map((i) => [i.id, i.open])) : Object.fromEntries(Object.entries(preset?.qty ?? {}).map(([k, v]) => [k, Math.min(v, items.find((i) => i.id === k)?.open ?? 0)])),
   );
-  const [ship, setShip] = useState(preset?.everything && shipLeft > 0 ? String(shipLeft) : "");
+  const [ship, setShip] = useState(preset?.everything && !preset.keepDelivery && shipLeft > 0 ? String(shipLeft) : "");
   const [typed, setTyped] = useState<string | null>(null);
   const [restock, setRestock] = useState(preset?.restock ?? mode === "return");
   const [reason, setReason] = useState(preset?.note ?? "");
@@ -114,7 +115,7 @@ export function RefundForm({
     >
       <div className="ofm-head">
         <h2>
-          {mode === "return" ? "Return items from" : "Refund"} {o.order_number}
+          {preset?.title ?? (mode === "return" ? "Return items from" : "Refund")} {o.order_number}
         </h2>
         <button type="button" className="adm-link" onClick={everything}>
           Select everything

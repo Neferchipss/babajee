@@ -1303,6 +1303,13 @@
   align-items: center;
   gap: 8px;
 }
+/* the category's line on the shop: wider, on its own row */
+.ap-cat-line {
+  order: 10;
+  flex: 1 1 100%;
+  max-width: none;
+  color: var(--ap-muted, inherit);
+}
 .ap-cat-name {
   flex: 1 1 200px;
   max-width: 320px;
@@ -2758,4 +2765,126 @@ select.ape-line-input {
 .ape-profit .ape-profit-warn {
   color: var(--color-red-soft, #ff8a8a);
   font-weight: 600;
+}
+
+/* a product's status (0041): draft, on the shop, archived */
+.ape-status {
+  flex: none;
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--ap-line);
+  border-radius: 999px;
+}
+.ape-status button {
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ap-muted);
+  font: 600 0.8rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ape-status button.is-on {
+  color: var(--color-paper);
+  background: color-mix(in srgb, var(--ap-line) 70%, transparent);
+}
+.ape-status button.is-published {
+  background: var(--bb-green-dk, #2c9a74);
+}
+
+/* specifications: label and value side by side */
+.ape-specs {
+  display: grid;
+  gap: 6px;
+}
+.ape-spec {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.ape-spec input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ap-ink);
+  font: inherit;
+  font-size: 0.88rem;
+}
+.ape-add {
+  justify-self: start;
+  margin-top: 8px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--ap-hot);
+  font: 600 0.84rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ---------- a working screen, not a shop: everything a size smaller on a
+   wide screen (the category bar as a row of small tabs, the search, the
+   filters and the view switch at the admin's control height) ---------- */
+@media (min-width: 1000px) {
+  .acb {
+    top: 112px;
+    padding-top: 2px;
+  }
+  .acb li button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 7px 11px 10px;
+    font-size: 0.82rem;
+  }
+  .acb li button[aria-pressed="true"]::after {
+    left: 10px;
+    right: 10px;
+    height: 2px;
+  }
+  .acb-ico svg {
+    width: 16px;
+    height: 16px;
+  }
+  .acb-dot {
+    top: -3px;
+    right: -4px;
+    width: 5px;
+    height: 5px;
+  }
+  .ap-tools {
+    gap: 8px;
+  }
+  .ap-search {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+  }
+  .ap-needs button,
+  .ap-chip {
+    padding: 6px 11px;
+    font-size: 0.8rem;
+  }
+  .ap-searchrow .ap-chip {
+    height: auto;
+  }
+  .ap-view {
+    padding: 2px;
+    border-radius: 10px;
+  }
+  .ap-view button {
+    height: 30px;
+    padding: 0 9px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+  .ap-view svg {
+    width: 15px;
+    height: 15px;
+  }
 }

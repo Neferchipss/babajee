@@ -426,6 +426,29 @@ html[data-desk="open"] #site .sb-nav {
   line-height: 1.65;
   white-space: pre-line;
 }
+/* specifications: label and value, a quiet two-column list */
+.pdk-specs dl {
+  display: grid;
+  margin: 0;
+}
+.pdk-specs dl > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 38%) 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-line) 60%, transparent);
+  font-size: 0.92rem;
+}
+.pdk-specs dl > div:last-child {
+  border-bottom: 0;
+}
+.pdk-specs dt {
+  color: var(--color-muted);
+}
+.pdk-specs dd {
+  margin: 0;
+  color: var(--color-paper);
+}
 
 @media (max-width: 1180px) {
   .pdk-grid {

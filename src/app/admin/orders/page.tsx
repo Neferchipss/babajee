@@ -13,15 +13,20 @@ import { errText, listOrders, updateOrder, type Order } from "@/lib/orders-db";
 // The order list: one tab per kind of work (unpaid, to pack, to ship, ...),
 // a search box, bulk "mark as" for ticked orders, and export to a spreadsheet.
 const openRequest = (o: Order) => (o.order_requests ?? []).find((r) => r.status === "open");
-const TABS: { id: string; label: string; match: (o: Order) => boolean }[] = [
-  { id: "all", label: "All", match: () => true },
-  { id: "requests", label: "Customer requests", match: (o) => !!openRequest(o) },
-  { id: "pending", label: "Unpaid", match: (o) => o.status === "pending" },
-  { id: "paid", label: "To pack", match: (o) => o.status === "paid" },
-  { id: "packed", label: "To ship", match: (o) => o.status === "packed" },
-  { id: "shipped", label: "Shipped", match: (o) => o.status === "shipped" },
-  { id: "delivered", label: "Delivered", match: (o) => o.status === "delivered" },
-  { id: "closed", label: "Cancelled / refunded", match: (o) => o.status === "cancelled" || o.status === "refunded" },
+// Each tab: its title, what it's for in a line, and the one step that moves
+// an order on from it (a button on every row; "ship" opens the order's
+// courier form, since it needs a tracking number).
+type Step = { label: string; to: OrderStatus | "ship" | "open"; done: string };
+const TABS: { id: string; label: string; note: string; step?: Step; match: (o: Order) => boolean }[] = [
+  { id: "all", label: "All orders", note: "Every order, newest first. Tap one to see it all and act on it.", match: () => true },
+  { id: "pending", label: "Unpaid", note: "Waiting for the bank transfer. Mark each one paid once the money is in.", step: { label: "Mark paid", to: "paid", done: "marked as paid" }, match: (o) => o.status === "pending" },
+  { id: "paid", label: "To pack", note: "Paid and ready to pack. Print the packing slips, pack, then mark them packed.", step: { label: "Packed", to: "packed", done: "marked as packed" }, match: (o) => o.status === "paid" },
+  { id: "packed", label: "To ship", note: "Packed and waiting for the courier. Ship each with its courier and tracking number.", step: { label: "Ship…", to: "ship", done: "" }, match: (o) => o.status === "packed" },
+  { id: "shipped", label: "On the way", note: "With the courier. Mark each delivered when it arrives.", step: { label: "Delivered", to: "delivered", done: "marked as delivered" }, match: (o) => o.status === "shipped" },
+  { id: "requests", label: "Customer requests", note: "Customers asking to cancel or return. Open one to accept and refund, or decline with a reply.", step: { label: "Review", to: "open", done: "" }, match: (o) => !!openRequest(o) },
+  { id: "problems", label: "Delivery problems", note: "Orders the courier couldn't deliver. Open one to send it again, or take it back in.", step: { label: "Sort it out", to: "open", done: "" }, match: (o) => o.status === "shipped" && !!o.delivery_failed_at },
+  { id: "delivered", label: "Delivered", note: "Done. Customers can ask for a return from here, within the return window.", match: (o) => o.status === "delivered" },
+  { id: "closed", label: "Cancelled & refunded", note: "Orders that were cancelled or refunded in full.", match: (o) => o.status === "cancelled" || o.status === "refunded" },
 ];
 
 // what a ticked group can be moved to, given the tab they are in
@@ -41,6 +46,14 @@ function Orders() {
   const [rows, setRows] = useState<Order[] | null>(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState(params.get("tab") ?? "all");
+  // the sidebar's Orders › To pack while already here: switch in place
+  useEffect(() => {
+    const go = (e: Event) => {
+      setTab((e as CustomEvent<{ tab: string }>).detail.tab || "all");
+    };
+    window.addEventListener("adm-nav", go);
+    return () => window.removeEventListener("adm-nav", go);
+  }, []);
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -82,6 +95,22 @@ function Orders() {
   });
 
   const bulkTo = BULK[tab];
+  const here = TABS.find((t) => t.id === tab) ?? TABS[0];
+  const [moving, setMoving] = useState("");
+  // the row's own next step, without opening the order
+  async function step(o: Order, s: Step) {
+    if (s.to === "ship") return router.push(`/admin/orders/view?id=${o.id}&step=shipped`);
+    if (s.to === "open") return router.push(`/admin/orders/view?id=${o.id}`);
+    setMoving(o.id);
+    try {
+      await updateOrder(o.id, s.to);
+      await load();
+      toast(`${o.order_number} ${s.done}`);
+    } catch (e) {
+      toastError(e);
+    }
+    setMoving("");
+  }
   async function bulk() {
     if (!bulkTo) return;
     setBusy(true);
@@ -109,16 +138,27 @@ function Orders() {
 
   return (
     <div>
-      <h1 className="sr-only">Orders</h1>
+      <header className="adm-pagehead">
+        <h1>
+          {here.label}
+          {rows && <span className="adm-pagehead-n">{counts[here.id]}</span>}
+        </h1>
+        <p>{here.note}</p>
+      </header>
       {err && <p className="adm-err">{err}</p>}
 
-      <div className="adm-chips" role="tablist" style={{ marginBottom: 12 }}>
+      {/* phones: the tabs (a wide screen has them in the sidebar) */}
+      <div className="adm-chips adm-only-narrow" role="tablist" style={{ marginBottom: 12 }}>
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`adm-chip ${tab === t.id ? "is-on" : ""}`} onClick={() => (setTab(t.id), setPicked(new Set()))}>
             {t.label}
             {t.id !== "all" && counts[t.id] > 0 && <b>{counts[t.id]}</b>}
           </button>
         ))}
+        {/* carts customers have not checked out yet: a page of its own */}
+        <Link href="/admin/orders/carts" className="adm-chip">
+          Carts →
+        </Link>
       </div>
 
       <div className="adm-toolbar">
@@ -137,6 +177,12 @@ function Orders() {
               Invoices ({picked.size})
             </Link>
           </>
+        )}
+        {/* To pack: the whole tab's slips at once, without ticking */}
+        {tab === "paid" && picked.size === 0 && shown.length > 0 && (
+          <Link href={`/admin/orders/print?ids=${shown.map((o) => o.id).join(",")}&doc=slip`} className="adm-btn" target="_blank">
+            Print packing slips ({shown.length})
+          </Link>
         )}
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
@@ -175,6 +221,7 @@ function Orders() {
                 <SortTh k="status" label="Status" sort={sort} onSort={sortBy} />
                 <SortTh k="items" label="Items" sort={sort} onSort={sortBy} />
                 <SortTh k="total" label="Total" sort={sort} onSort={sortBy} right />
+                {here.step && <th aria-label="Next step" />}
               </tr>
             </thead>
             <tbody>
@@ -182,7 +229,7 @@ function Orders() {
                 const items = o.order_items?.reduce((n, i) => n + i.quantity, 0) ?? 0;
                 const href = `/admin/orders/view?id=${o.id}`;
                 return (
-                  <tr key={o.id} data-href onClick={(e) => !(e.target as HTMLElement).closest("input,a") && router.push(href)}>
+                  <tr key={o.id} data-href onClick={(e) => !(e.target as HTMLElement).closest("input,a,button") && router.push(href)}>
                     {bulkTo && (
                       <td data-hide-sm>
                         <input type="checkbox" aria-label={`Select ${o.order_number}`} checked={picked.has(o.id)} onChange={() => toggle(o.id)} />
@@ -202,7 +249,13 @@ function Orders() {
                     <td className="c-status">
                       <StatusPill status={o.status} />
                       {o.status !== "refunded" && (o.order_refunds?.length ?? 0) > 0 && <div className="adm-small adm-refunded">Partly refunded</div>}
-                      {openRequest(o) && <div className="adm-small adm-asked">{openRequest(o)!.kind === "cancel" ? "Asks to cancel" : "Asks to return"}</div>}
+                      {openRequest(o) && (
+                        <div className="adm-small adm-asked">
+                          {openRequest(o)!.kind === "cancel" ? "Asks to cancel" : "Asks to return"}
+                          {tab === "requests" && openRequest(o)!.reason ? <span className="adm-muted adm-reason">: &ldquo;{openRequest(o)!.reason}&rdquo;</span> : null}
+                        </div>
+                      )}
+                      {o.status === "shipped" && o.delivery_failed_at && <div className="adm-small adm-asked">Delivery failed</div>}
                     </td>
                     <td className="adm-muted" data-hide-sm>
                       {items} item{items === 1 ? "" : "s"}
@@ -210,6 +263,20 @@ function Orders() {
                     <td className="r c-total">
                       <strong>{money(o.total)}</strong>
                     </td>
+                    {here.step && (
+                      <td className="r c-step">
+                        {openRequest(o) && here.step.to !== "open" ? (
+                          // the customer asked to cancel or return: that comes first
+                          <Link href={href} className="adm-btn adm-btn-sm is-warn">
+                            Review request
+                          </Link>
+                        ) : (
+                          <button type="button" className="adm-btn adm-btn-sm" disabled={moving === o.id || busy} onClick={() => step(o, here.step!)}>
+                            {moving === o.id ? "Saving" : here.step.label}
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

@@ -11,7 +11,9 @@ import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
 import type { Order, OrderRequest } from "@/lib/orders-db";
 import { categoryTone } from "@/lib/tone";
 import { photosFor } from "@/lib/product-photos";
+import { trackLink } from "@/lib/tracking";
 import "./my-orders.css";
+import ReviewBox from "./ReviewBox";
 
 const DATE = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
@@ -389,15 +391,46 @@ export function MyOrder() {
           </div>
         )}
 
+        {/* the courier couldn't deliver it (0039): the shop gets in touch */}
+        {o.status === "shipped" && o.delivery_failed_at && (
+          <div className="mo-refund mo-failed">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M10 6.2v4.6M10 13.6v.1" />
+            </svg>
+            <span>
+              <b>The courier couldn&apos;t deliver this</b>
+              {o.delivery_failed_reason && o.delivery_failed_reason !== "Other" ? ` (${o.delivery_failed_reason.toLowerCase()})` : ""}. We&apos;ll contact you on {o.contact_phone} to arrange it
+              {/wrong|address/i.test(o.delivery_failed_reason ?? "") ? "; please check your address below" : ""}.
+            </span>
+          </div>
+        )}
+
         {o.status === "shipped" && ship?.tracking_number && (
           <div className="mo-track">
             <span>
               <small>{ship.carrier || "Courier"} tracking number</small>
               <b>{ship.tracking_number}</b>
             </span>
-            <button type="button" className="btn btn-ghost" onClick={() => copy(ship.tracking_number!)}>
-              {copied ? "Copied" : "Copy"}
-            </button>
+            <span className="mo-track-btns">
+              <button type="button" className="btn btn-ghost" onClick={() => copy(ship.tracking_number!)}>
+                {copied ? "Copied" : "Copy"}
+              </button>
+              {trackLink(ship.carrier, ship.tracking_number) && (
+                <a
+                  className="btn btn-primary"
+                  href={trackLink(ship.carrier, ship.tracking_number)!.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => !trackLink(ship.carrier, ship.tracking_number)!.direct && copy(ship.tracking_number!)}
+                >
+                  Track parcel
+                </a>
+              )}
+            </span>
+            {trackLink(ship.carrier, ship.tracking_number)?.direct === false && (
+              <small className="mo-track-hint">{trackLink(ship.carrier, ship.tracking_number)!.site}&apos;s page needs the number typed in: Track parcel copies it, so just paste it there.</small>
+            )}
           </div>
         )}
 
@@ -446,6 +479,8 @@ export function MyOrder() {
                       {[i.variant_label, `${i.quantity} × ${money(i.unit_price)}`].filter(Boolean).join(" · ")}
                     </small>
                     {out > 0 && <em className="mo-tag">{out === i.quantity ? "Refunded" : `${out} refunded`}</em>}
+                    {/* delivered and kept: the customer can rate it */}
+                    {o.status === "delivered" && i.slug && out < i.quantity && <ReviewBox slug={i.slug} name={i.product_name} />}
                   </span>
                   <span className="mo-price">{money(i.unit_price * i.quantity)}</span>
                 </li>

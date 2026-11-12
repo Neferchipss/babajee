@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Delta, money, StatusPill, when } from "@/components/admin/ui";
-import { analytics, errText, homeCounts, listOrders, type Analytics, type HomeCounts, type Order } from "@/lib/orders-db";
+import { analytics, errText, homeCounts, listOrders, openFollowUps, type Analytics, type FollowUp, type HomeCounts, type Order } from "@/lib/orders-db";
 import { isoDay } from "@/lib/dates";
 
 // Admin home: today's numbers against yesterday, the work waiting on the
@@ -14,6 +14,11 @@ export default function AdminHome() {
   const [yday, setYday] = useState<Analytics | null>(null);
   const [recent, setRecent] = useState<Order[]>([]);
   const [err, setErr] = useState("");
+  // customers waiting on a follow-up from the shop (0044)
+  const [follow, setFollow] = useState<FollowUp[]>([]);
+  useEffect(() => {
+    openFollowUps().then(setFollow, () => {});
+  }, []);
 
   useEffect(() => {
     const t = isoDay(0);
@@ -39,14 +44,35 @@ export default function AdminHome() {
         [counts.to_ship, "packed orders to ship", "/admin/orders?tab=packed"],
         [counts.in_transit, "orders on their way", "/admin/orders?tab=shipped"],
         [counts.out_of_stock, "tracked options out of stock", "/admin/products?need=out"],
-        [counts.low_stock, "tracked options with 3 or fewer left", "/admin/products?need=low"],
+        [counts.low_stock, "tracked options running low", "/admin/products?need=low"],
         [counts.unpriced, "options with no price, which can't be ordered", "/admin/products"],
       ]
     : [];
 
+  // orders and requests waiting on the shop (on the way needs nothing yet)
+  const needs = counts ? counts.requests + counts.unpaid + counts.to_pack + counts.to_ship + counts.out_of_stock + counts.low_stock : 0;
   return (
-    <div>
-      <h1 className="sr-only">{hello}</h1>
+    <div className="adm-home">
+      <header className="adm-pagehead">
+        <h1>{hello}</h1>
+        <p>
+          {!counts
+            ? "Loading."
+            : needs
+              ? `${needs} thing${needs === 1 ? "" : "s"} need${needs === 1 ? "s" : ""} you: ${[
+                  [counts.requests, counts.requests === 1 ? "customer request" : "customer requests"],
+                  [counts.unpaid, "unpaid"],
+                  [counts.to_pack, "to pack"],
+                  [counts.to_ship, "to ship"],
+                  [counts.out_of_stock, "out of stock"],
+                  [counts.low_stock, "low on stock"],
+                ]
+                  .filter(([n]) => n)
+                  .map(([n, t]) => `${n} ${t}`)
+                  .join(", ")}.`
+              : "All clear. Nothing needs you right now."}
+        </p>
+      </header>
       {err && <p className="adm-err">{err}</p>}
 
       <div className="adm-metrics five" style={{ marginBottom: 16 }}>
@@ -72,13 +98,32 @@ export default function AdminHome() {
             <p className="adm-muted">Loading.</p>
           ) : (
             <div className="adm-tasks">
-              {tasks.map(([n, text, href]) => (
+              {!tasks.some(([n]) => n) && <p className="adm-muted adm-small">All clear.</p>}
+              {tasks.filter(([n]) => n).map(([n, text, href]) => (
                 <Link key={href + text} href={href} className={`adm-task ${n ? "" : "is-zero"}`}>
                   <b>{n ?? 0}</b>
                   <span>{text}</span>
                 </Link>
               ))}
             </div>
+          )}
+          {follow.length > 0 && (
+            <>
+              <h2 style={{ marginTop: 18 }}>Follow-ups</h2>
+              <div className="adm-tasks">
+                {follow.map((f) => (
+                  <Link key={f.id} href={`/admin/customers/view?id=${f.profile_id}`} className="adm-task">
+                    <span>
+                      <strong>{f.name}</strong>
+                      <br />
+                      <small className="adm-muted">
+                        {f.body.length > 70 ? `${f.body.slice(0, 70)}…` : f.body} · {when(f.created_at).toLowerCase()}
+                      </small>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </>
           )}
         </section>
 

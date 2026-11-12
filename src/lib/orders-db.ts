@@ -65,6 +65,10 @@ export type Order = {
   order_number: string;
   profile_id: string | null;
   status: OrderStatus;
+  // an open failed delivery (0039): when and why; cleared when sent again
+  delivery_failed_at?: string | null;
+  delivery_failed_reason?: string;
+  delivery_attempts?: number;
   contact_name: string;
   contact_email: string;
   contact_phone: string;
@@ -133,7 +137,7 @@ function toOrder(row: Record<string, unknown>): Order {
 }
 
 // the list carries enough for the spreadsheet export (items, address, refunds)
-const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax), order_requests(id, kind, status)";
+const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax), order_requests(id, kind, status, reason)";
 const FULL =
   "*, order_items(*, product_variants(label, price, is_visible, products(slug, is_visible, hsn, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
 
@@ -216,6 +220,27 @@ export async function setStep(id: string, to: OrderStatus, opts: { note?: string
     p_tracking: opts.tracking ?? null,
   });
   if (error) throw error;
+}
+
+// Failed deliveries (0039): the courier couldn't deliver a shipped order;
+// then it's sent again, or it came back and is closed after its refund.
+export const FAIL_REASONS = ["Customer not home", "Wrong or incomplete address", "Phone unreachable", "Refused the parcel", "Other"];
+export async function deliveryFailed(id: string, reason: string, note = "") {
+  const { error } = await db().rpc("admin_delivery_failed", { p_order: id, p_reason: reason, p_note: note });
+  if (error) throw error;
+}
+export async function sendAgain(id: string, opts: { carrier?: string; tracking?: string; note?: string } = {}) {
+  const { error } = await db().rpc("admin_send_again", { p_order: id, p_carrier: opts.carrier ?? null, p_tracking: opts.tracking ?? null, p_note: opts.note ?? "" });
+  if (error) throw error;
+}
+export async function cameBack(id: string, note = "") {
+  const { error } = await db().rpc("admin_came_back", { p_order: id, p_note: note });
+  if (error) throw error;
+}
+export async function failedDeliveries(from: string, to: string): Promise<number> {
+  const { data, error } = await db().rpc("admin_failed_deliveries", { p_from: from, p_to: to });
+  if (error) throw error;
+  return Number(data ?? 0);
 }
 
 // A refund, whole or partial; with items it's a return (0017). Money is
@@ -325,6 +350,14 @@ function numbers<T>(x: T): T {
     ) as T;
   }
   return x;
+}
+
+// sales by category for a date range (migration 0035), biggest first
+export type CategorySales = { name: string; slug: string; qty: number; sales: number };
+export async function salesByCategory(from: string, to: string): Promise<CategorySales[]> {
+  const { data, error } = await db().rpc("admin_sales_by_category", { p_from: from, p_to: to });
+  if (error) throw error;
+  return ((data ?? []) as CategorySales[]).map((r) => ({ ...r, qty: Number(r.qty), sales: Number(r.sales) }));
 }
 
 export async function analytics(from: string, to: string): Promise<Analytics> {
@@ -459,7 +492,19 @@ export async function listCustomers(): Promise<Customer[]> {
   return ((data ?? []) as Customer[]).map((c) => ({ ...c, orders: toNumber(c.orders), spent: toNumber(c.spent) }));
 }
 
-export type CustomerNote = { id: string; body: string; author_id: string | null; created_at: string };
+// a private note, or a logged contact with the customer that can need a follow-up (0044)
+export type SupportChannel = "" | "whatsapp" | "call" | "email" | "in_person" | "instagram" | "other";
+export type CustomerNote = {
+  id: string;
+  body: string;
+  author_id: string | null;
+  created_at: string;
+  kind: "note" | "contact";
+  channel: SupportChannel;
+  order_id: string | null;
+  status: "open" | "resolved" | null;
+  resolved_at: string | null;
+};
 export type CustomerAddress = {
   id: string;
   label: string;
@@ -476,12 +521,68 @@ export type CustomerAddress = {
   is_default: boolean;
 };
 
+// Signed-in customers' carts with something in them (migration 0034), newest
+// first. Lines are as the shop draws them; active or abandoned is decided
+// from updated_at on the page.
+export type AdminCartLine = { key: string; slug: string; href: string; name: string; variant: string; price?: number; unit?: string; qty: number };
+export type AdminCart = {
+  profile_id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  lines: AdminCartLine[];
+  updated_at: string;
+  last_order_at: string | null;
+};
+export async function adminCarts(): Promise<AdminCart[]> {
+  const { data, error } = await db().rpc("admin_carts");
+  if (error) throw error;
+  return ((data ?? []) as AdminCart[]).map((c) => ({ ...c, lines: Array.isArray(c.lines) ? c.lines : [] }));
+}
+
+// Saved for later (the heart), from customers' accounts (migration 0033):
+// products by how many customers saved them, test accounts left out.
+export type SavedProduct = { slug: string; name: string; category: string; category_slug: string; saves: number; last_saved: string };
+export async function savedProducts(): Promise<SavedProduct[]> {
+  const { data, error } = await db().rpc("admin_saved_products");
+  if (error) throw error;
+  return ((data ?? []) as SavedProduct[]).map((r) => ({ ...r, saves: Number(r.saves) }));
+}
+
+// One customer's activity on the site (migration 0036): how they first
+// arrived, when they were last seen, how many visits, and their latest
+// events, newest first.
+export type ActivityEvent = { kind: "view" | "cart" | "checkout" | "product" | "add"; path: string; label: string; device: string; referrer: string; visit: string; at: string };
+export type CustomerActivity = {
+  first: { at: string; referrer: string; device: string; path: string } | null;
+  last_seen: string | null;
+  visits: number;
+  events: ActivityEvent[];
+};
+export async function customerActivity(id: string): Promise<CustomerActivity> {
+  const { data, error } = await db().rpc("admin_customer_activity", { p_profile: id });
+  if (error) throw error;
+  const r = (data ?? {}) as Partial<CustomerActivity>;
+  return { first: r.first ?? null, last_seen: r.last_seen ?? null, visits: Number(r.visits ?? 0), events: r.events ?? [] };
+}
+
+// one customer's saved products, newest first
+export type CustomerSaved = { slug: string; name: string; href: string; price: number | null; saved_at: string };
+export async function customerSaved(id: string): Promise<CustomerSaved[]> {
+  const { data, error } = await db().from("saved_products").select("product_slug, item, created_at").eq("profile_id", id).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => {
+    const it = (r.item ?? {}) as { name?: string; href?: string; price?: number | null };
+    return { slug: r.product_slug, name: it.name ?? r.product_slug, href: it.href ?? "", price: it.price ?? null, saved_at: r.created_at };
+  });
+}
+
 export async function customerDetail(id: string) {
   const sb = db();
   const [orders, addresses, notes] = await Promise.all([
     sb.from("orders").select(LIST).eq("profile_id", id).order("created_at", { ascending: false }),
     sb.from("addresses").select("id, label, recipient_name, phone, line1, line2, landmark, city, state, pincode, latitude, longitude, is_default").eq("profile_id", id).order("is_default", { ascending: false }),
-    sb.from("customer_notes").select("id, body, author_id, created_at").eq("profile_id", id).order("created_at", { ascending: false }),
+    sb.from("customer_notes").select("id, body, author_id, created_at, kind, channel, order_id, status, resolved_at").eq("profile_id", id).order("created_at", { ascending: false }),
   ]);
   for (const r of [orders, addresses, notes]) if (r.error) throw r.error;
   return {
@@ -491,9 +592,41 @@ export async function customerDetail(id: string) {
   };
 }
 
-export async function addCustomerNote(profileId: string, authorId: string, body: string) {
-  const { error } = await db().from("customer_notes").insert({ profile_id: profileId, author_id: authorId, body });
+export async function addCustomerNote(
+  profileId: string,
+  authorId: string,
+  body: string,
+  more: { kind?: "note" | "contact"; channel?: SupportChannel; order_id?: string | null; open?: boolean } = {},
+) {
+  const { error } = await db()
+    .from("customer_notes")
+    .insert({ profile_id: profileId, author_id: authorId, body, kind: more.kind ?? "note", channel: more.channel ?? "", order_id: more.order_id ?? null, status: more.open ? "open" : more.kind === "contact" ? "resolved" : null });
   if (error) throw error;
+}
+
+// a follow-up done (or reopened)
+export async function setNoteStatus(id: string, status: "open" | "resolved") {
+  const { error } = await db().from("customer_notes").update({ status, resolved_at: status === "resolved" ? new Date().toISOString() : null }).eq("id", id);
+  if (error) throw error;
+}
+
+// the customer's cancellation and return requests, with the shop's replies
+export async function requestsFor(orderIds: string[]): Promise<(OrderRequest & { order_id: string })[]> {
+  if (!orderIds.length) return [];
+  const { data, error } = await db().from("order_requests").select("id, order_id, kind, status, reason, items, reply, created_at, resolved_at").in("order_id", orderIds);
+  if (error) throw error;
+  return (data ?? []) as (OrderRequest & { order_id: string })[];
+}
+
+// follow-ups still open across all customers, oldest first, for Home
+export type FollowUp = { id: string; body: string; channel: SupportChannel; created_at: string; profile_id: string; name: string };
+export async function openFollowUps(): Promise<FollowUp[]> {
+  const { data, error } = await db().from("customer_notes").select("id, body, channel, created_at, profile_id, profiles(full_name)").eq("status", "open").order("created_at").limit(20);
+  if (error) throw error;
+  return (data ?? []).map((r) => {
+    const pr = (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles) as { full_name?: string } | null;
+    return { id: r.id as string, body: r.body as string, channel: r.channel as SupportChannel, created_at: r.created_at as string, profile_id: r.profile_id as string, name: pr?.full_name || "A customer" };
+  });
 }
 
 // ---------------------------------------------------------------- admin: stock history
@@ -543,6 +676,8 @@ export type StoreSettings = {
   store_state: string;
   // days after delivery a customer can ask for a return; 0 = no returns (0022)
   return_days: number;
+  // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
+  low_stock_at: number;
   // printed on invoices and packing slips (0029)
   store_name: string;
   legal_name: string;
@@ -564,7 +699,7 @@ export async function gstRates(slugs: string[]): Promise<Map<string, number | nu
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -574,6 +709,7 @@ export async function getSettings(): Promise<StoreSettings> {
     gst_input_credit: data.gst_input_credit,
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
+    low_stock_at: data.low_stock_at ?? 3,
     store_name: data.store_name ?? "Babajee",
     legal_name: data.legal_name ?? "",
     gstin: data.gstin ?? "",
@@ -583,6 +719,14 @@ export async function getSettings(): Promise<StoreSettings> {
     invoice_prefix: data.invoice_prefix ?? "BJ",
     invoice_note: data.invoice_note ?? "",
   };
+}
+
+// Low and out-of-stock options (0043): each with its product, stock and low mark.
+export type LowItem = { variant_id: string; product_id: string; product: string; option: string; stock: number; mark: number; out: boolean };
+export async function lowStock(): Promise<LowItem[]> {
+  const { data, error } = await db().rpc("admin_low_stock");
+  if (error) throw error;
+  return (data ?? []) as LowItem[];
 }
 
 export async function saveSettings(s: StoreSettings) {
@@ -680,12 +824,15 @@ export async function profit(from: string, to: string): Promise<Profit> {
 
 // ---------------------------------------------------------------- admin: reports
 
-export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst";
+export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst" | DeliveryKind;
 export type ReportRow = Record<string, string | number | boolean | null>;
+export type DeliveryKind = "couriers" | "places" | "late";
 
 // One report's rows for a date range (0016). Columns per kind are listed on
-// the Reports page.
+// the Reports page. The delivery reports are worked out here from the
+// shipments recorded on each order.
 export async function report(kind: ReportKind, from: string, to: string): Promise<ReportRow[]> {
+  if (kind === "couriers" || kind === "places" || kind === "late") return deliveryReport(kind, from, to);
   const { data, error } = await db().rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
@@ -753,4 +900,82 @@ export async function customerAddresses(id: string): Promise<CustomerAddress[]> 
     .order("is_default", { ascending: false });
   if (error) throw error;
   return (data ?? []) as CustomerAddress[];
+}
+
+// ---------------------------------------------------------------- delivery reports
+
+// Late: shipped this many days ago or more and still not delivered.
+export const LATE_DAYS = 7;
+
+type ShipRow = {
+  carrier: string | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  orders: { id: string; order_number: string; contact_name: string; address_city: string; address_state: string; status: string; delivery_attempts: number } | null;
+};
+
+// How deliveries went, from each order's latest shipment: by courier and by
+// state for orders shipped in the range, and every order still out after
+// LATE_DAYS (whatever the range: those need chasing now).
+async function deliveryReport(kind: DeliveryKind, from: string, to: string): Promise<ReportRow[]> {
+  const DAY = 864e5;
+  const now = Date.now();
+  let q = db()
+    .from("shipments")
+    .select("carrier, tracking_number, shipped_at, delivered_at, orders(id, order_number, contact_name, address_city, address_state, status, delivery_attempts)")
+    .not("shipped_at", "is", null)
+    .order("shipped_at", { ascending: true })
+    .limit(5000);
+  if (kind === "late") q = q.is("delivered_at", null).lt("shipped_at", new Date(now - LATE_DAYS * DAY).toISOString());
+  else q = q.gte("shipped_at", `${from}T00:00:00+05:30`).lte("shipped_at", `${to}T23:59:59.999+05:30`);
+  const { data, error } = await q;
+  if (error) throw error;
+
+  // an order sent again has more than one shipment: its latest one counts
+  const latest = new Map<string, ShipRow>();
+  for (const r of (data ?? []) as unknown as ShipRow[]) if (r.orders) latest.set(r.orders.id, r);
+  const ships = [...latest.values()];
+
+  if (kind === "late")
+    return ships
+      .filter((r) => r.orders!.status === "shipped")
+      .map((r) => ({
+        order: r.orders!.order_number,
+        order_id: r.orders!.id,
+        customer: r.orders!.contact_name,
+        city: r.orders!.address_city,
+        state: r.orders!.address_state,
+        courier: r.carrier?.trim() || "Not recorded",
+        tracking: r.tracking_number || null,
+        shipped: r.shipped_at!.slice(0, 10),
+        days_out: Math.floor((now - new Date(r.shipped_at!).getTime()) / DAY),
+        failed: r.orders!.delivery_attempts || null,
+      }))
+      .sort((a, b) => b.days_out - a.days_out);
+
+  const groups = new Map<string, ShipRow[]>();
+  for (const r of ships) {
+    const key = kind === "couriers" ? r.carrier?.trim() || "Not recorded" : r.orders!.address_state || "Unknown";
+    groups.set(key, [...(groups.get(key) ?? []), r]);
+  }
+  const rows: ReportRow[] = [];
+  for (const [key, list] of groups) {
+    const done = list.filter((r) => r.delivered_at);
+    const days = done.map((r) => (new Date(r.delivered_at!).getTime() - new Date(r.shipped_at!).getTime()) / DAY).sort((a, b) => a - b);
+    const out = list.filter((r) => !r.delivered_at && r.orders!.status === "shipped");
+    rows.push({
+      [kind === "couriers" ? "courier" : "state"]: key,
+      shipped: list.length,
+      delivered: done.length,
+      on_the_way: out.length,
+      late: out.filter((r) => now - new Date(r.shipped_at!).getTime() >= LATE_DAYS * DAY).length,
+      failed: list.filter((r) => r.orders!.delivery_attempts > 0).length,
+      came_back: list.filter((r) => !r.delivered_at && r.orders!.status === "refunded").length,
+      avg_days: days.length ? Math.round((days.reduce((a, b) => a + b, 0) / days.length) * 10) / 10 : null,
+      slowest: days.length ? Math.round(days[days.length - 1] * 10) / 10 : null,
+      delivered_rate: list.length ? (done.length / list.length) * 100 : null,
+    });
+  }
+  return rows.sort((a, b) => Number(b.shipped) - Number(a.shipped));
 }

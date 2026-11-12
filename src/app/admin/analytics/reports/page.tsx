@@ -5,13 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { AnalyticsTabs, RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { dayLabel } from "@/lib/dates";
-import { errText, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
+import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
 
 // Report tables: one date range, one report at a time, every column sortable,
 // totals at the foot, and the whole table downloadable as CSV for a
 // spreadsheet or the accountant.
 type Fmt = "text" | "money" | "count" | "num" | "pct" | "day" | "month";
-type Col = { key: string; label: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string };
+type Col = { key: string; label: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string; href?: (r: ReportRow) => string };
 
 const marginOf = (profit: unknown, sales: unknown) => (profit == null || !Number(sales) ? null : (Number(profit) / Number(sales)) * 100);
 
@@ -99,6 +99,55 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "sgst", label: "SGST", fmt: "money", total: true },
       { key: "igst", label: "IGST", fmt: "money", total: true },
       { key: "gst", label: "Total GST", fmt: "money", total: true },
+    ],
+  },
+  {
+    id: "couriers",
+    label: "Deliveries by courier",
+    about: "Orders shipped in the range, by courier: how many arrived, how many are still out, and how many days delivery took from shipping. Failed counts orders with at least one failed attempt; came back, those returned to the shop.",
+    cols: [
+      { key: "courier", label: "Courier", fmt: "text" },
+      { key: "shipped", label: "Shipped", fmt: "count", total: true },
+      { key: "delivered", label: "Delivered", fmt: "count", total: true },
+      { key: "delivered_rate", label: "Delivered %", fmt: "pct" },
+      { key: "on_the_way", label: "On the way", fmt: "count", total: true },
+      { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
+      { key: "failed", label: "Failed", fmt: "count", total: true },
+      { key: "came_back", label: "Came back", fmt: "count", total: true },
+      { key: "avg_days", label: "Avg days", fmt: "num" },
+      { key: "slowest", label: "Slowest (days)", fmt: "num" },
+    ],
+  },
+  {
+    id: "places",
+    label: "Deliveries by state",
+    about: "Orders shipped in the range, by the state they went to: where deliveries are slow or fail most.",
+    cols: [
+      { key: "state", label: "State", fmt: "text" },
+      { key: "shipped", label: "Shipped", fmt: "count", total: true },
+      { key: "delivered", label: "Delivered", fmt: "count", total: true },
+      { key: "delivered_rate", label: "Delivered %", fmt: "pct" },
+      { key: "on_the_way", label: "On the way", fmt: "count", total: true },
+      { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
+      { key: "failed", label: "Failed", fmt: "count", total: true },
+      { key: "avg_days", label: "Avg days", fmt: "num" },
+      { key: "slowest", label: "Slowest (days)", fmt: "num" },
+    ],
+  },
+  {
+    id: "late",
+    label: "Late deliveries",
+    about: `Every order shipped ${LATE_DAYS} or more days ago and still not delivered, longest first, whatever the dates above. Chase these with the courier or the customer.`,
+    cols: [
+      { key: "order", label: "Order", fmt: "text", href: (r) => `/admin/orders/view?id=${r.order_id}` },
+      { key: "customer", label: "Customer", fmt: "text" },
+      { key: "city", label: "City", fmt: "text" },
+      { key: "state", label: "State", fmt: "text" },
+      { key: "courier", label: "Courier", fmt: "text" },
+      { key: "tracking", label: "Tracking", fmt: "text" },
+      { key: "shipped", label: "Shipped", fmt: "day" },
+      { key: "days_out", label: "Days out", fmt: "count" },
+      { key: "failed", label: "Failed attempts", fmt: "count", empty: "–" },
     ],
   },
 ];
@@ -255,7 +304,7 @@ export default function ReportsPage() {
         {!rows && !err ? (
           <p className="adm-muted">Loading.</p>
         ) : rows && rows.length === 0 ? (
-          <p className="adm-muted rpt-empty">Nothing in this range.</p>
+          <p className="adm-muted rpt-empty">{kind === "late" ? `Nothing late: every order shipped ${LATE_DAYS}+ days ago has arrived.` : "Nothing in this range."}</p>
         ) : (
           rows && (
             <div className="rpt-scroll">
@@ -280,7 +329,7 @@ export default function ReportsPage() {
                         const neg = c.fmt === "money" && v != null && n(v) < 0;
                         return (
                           <td key={c.key} className={`${left(c) ? "" : "r"} ${v == null ? "nil" : ""} ${neg ? "neg" : ""}`}>
-                            {c.key === "returns" && n(v) > 0 ? `−${show(v, c)}` : show(v, c)}
+                            {c.href && v != null ? <Link href={c.href(r)}>{show(v, c)}</Link> : c.key === "returns" && n(v) > 0 ? `−${show(v, c)}` : show(v, c)}
                           </td>
                         );
                       })}

@@ -903,3 +903,22 @@
   color: var(--color-rasta-gold);
   font-weight: 600;
 }
+
+/* a failed delivery: the refund note's shape, in the warning colour */
+.mo-refund.mo-failed {
+  color: var(--color-paper);
+  border-color: color-mix(in srgb, var(--color-red-soft, #f08b74) 45%, transparent);
+  background: color-mix(in srgb, var(--color-red-soft, #f08b74) 10%, transparent);
+}
+.mo-refund.mo-failed svg {
+  stroke: var(--color-red-soft, #f08b74);
+}
+
+/* the tracking number's buttons: copy it, or follow the parcel on the courier's site */
+.mo-track-btns {
+  display: flex !important;
+  gap: 8px;
+}
+.mo-track .mo-track-hint {
+  flex: 1 1 100%;
+}

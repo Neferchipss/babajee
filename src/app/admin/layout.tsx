@@ -1,17 +1,22 @@
-import { AdminSearch } from "@/components/admin/AdminSearch";
+import type { Metadata } from "next";
 import RequireAdmin from "@/components/admin/RequireAdmin";
 import { Toaster } from "@/components/admin/Toaster";
-import { AdminNav } from "@/components/admin/ui";
+import { Suspense } from "react";
+import AdminNav from "@/components/admin/AdminNav";
 import "@/components/admin/admin.css";
+
+// the admin is never in search results
+export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+    <div className="adm-frame">
       <RequireAdmin>
         <div className="adm">
           <div className="adm-side">
-            <AdminSearch />
-            <AdminNav />
+            <Suspense>
+              <AdminNav />
+            </Suspense>
           </div>
           <div className="adm-main">{children}</div>
           <Toaster />
