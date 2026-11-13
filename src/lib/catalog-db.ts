@@ -40,6 +40,9 @@ export type DbCardProduct = {
   mrp?: number;
   // its label within the category, a filter chip on the shelf (0041)
   subcategory?: string;
+  // for the shelf's Sort & filter: its brand, and when it was added
+  brand?: string;
+  added?: string;
 };
 export type DbCategory = { slug: string; name: string };
 
@@ -102,6 +105,8 @@ function toCard(row: {
   slug: string;
   name: string;
   subcategory?: string | null;
+  brand?: string | null;
+  created_at?: string | null;
   product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null;
 }): DbCardProduct {
   const variants = normalizeVariants(row.product_variants);
@@ -114,6 +119,8 @@ function toCard(row: {
     mrp: markedDown(variants),
     variants,
     ...(row.subcategory ? { subcategory: row.subcategory } : {}),
+    ...(row.brand?.trim() ? { brand: row.brand.trim() } : {}),
+    ...(row.created_at ? { added: row.created_at } : {}),
   };
 }
 
@@ -176,7 +183,7 @@ async function liveCategoryDetail(slug: string) {
   if (!category) return null;
   const { data: products } = await sb
     .from("products")
-    .select("slug, name, sort_order, seo_title, subcategory, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
+    .select("slug, name, sort_order, seo_title, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
     .eq("category_id", category.id)
     .order("sort_order");
   return {
@@ -261,7 +268,7 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   if (!sb) return null;
   const { data, error } = await sb
     .from("products")
-    .select("slug, name, subcategory, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
+    .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
   return (data ?? [])

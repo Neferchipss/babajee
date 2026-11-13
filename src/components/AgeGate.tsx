@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AGE_STORAGE_KEY, MIN_AGE } from "@/lib/config";
 import Logo from "./Logo";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // Visibility is driven by html[data-age-ok] (set before paint by the inline
 // script in the root layout), so returning visitors never see a flash.
 export default function AgeGate() {
   const [denied, setDenied] = useState(false);
+  // shown or not by CSS; while it shows, Tab stays on it
+  const gate = useRef<HTMLDivElement>(null);
+  useFocusTrap(gate, true, { initial: "keep", restore: false });
 
   function confirm() {
     try {
@@ -20,6 +24,7 @@ export default function AgeGate() {
 
   return (
     <div
+      ref={gate}
       id="age-gate"
       role="dialog"
       aria-modal="true"

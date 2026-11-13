@@ -20,6 +20,7 @@ export type Profile = {
   phone: string;
   role: "customer" | "admin";
   age_verified_at: string | null;
+  date_of_birth: string | null;
 };
 
 type Status = "off" | "loading" | "out" | "in";
@@ -50,7 +51,7 @@ async function fetchProfile(id: string): Promise<Profile | null> {
   if (!sb) return null;
   const { data } = await sb
     .from("profiles")
-    .select("full_name, phone, role, age_verified_at")
+    .select("full_name, phone, role, age_verified_at, date_of_birth")
     .eq("id", id)
     .maybeSingle();
   return (data as Profile | null) ?? null;

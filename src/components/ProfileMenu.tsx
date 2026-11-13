@@ -12,6 +12,7 @@ import SceneLink from "./SceneLink";
 import { enterShop } from "./scene-note";
 import "./shop-bar.css";
 import "./profile-panel.css";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const OUT_MS = 200;
 
@@ -22,6 +23,7 @@ const I = ({ d, size = 22 }: { d: string; size?: number }) => (
 );
 const PIN = "M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 12.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6z";
 const BOX = "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8";
+const JAR = "M7 4h10M8 4v3l-2 3v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9l-2-3V4M6 11h12";
 const HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z";
 
 const LIST: { href: string; label: string; d: string }[] = [
@@ -42,8 +44,10 @@ const LIST: { href: string; label: string; d: string }[] = [
 // after the delivery apps. Who you are across the top, shortcuts (addresses,
 // orders, wishlist) under it, then the site's pages. Back, Escape, a
 // tap beside it (wide screens) or a swipe to the right closes it.
-// cart={false}: the profile button alone (the admin's bar)
-export default function ProfileMenu({ cart = true }: { cart?: boolean } = {}) {
+// The cart has no button up here: it's the View cart pill at the bottom of
+// the page (CartBar) and the first tile in the profile screen.
+// cart: the jar button beside it again, if ever wanted
+export default function ProfileMenu({ cart = false }: { cart?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const closed = useCallback(() => setOpen(false), []);
@@ -91,10 +95,12 @@ export default function ProfileMenu({ cart = true }: { cart?: boolean } = {}) {
 }
 
 function ProfilePanel({ onClosed }: { onClosed: () => void }) {
+  const count = cartCount(useCart());
   const { status, user, profile, signOut } = useAuth();
   const path = usePathname();
   const [leaving, setLeaving] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
+  useFocusTrap(panel, true, { initial: "keep", restore: false });
   const gone = useRef(false);
   const shut = useCallback(() => {
     if (gone.current) return;
@@ -237,6 +243,7 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
 
         <div className="pp-body">
           <div className="pp-tiles">
+            {tile("/cart", <>Your<br />cart</>, JAR, count > 0 ? <b className="pp-tile-n">{count > 99 ? "99+" : count}</b> : undefined)}
             {tile("/account#addresses-heading", <>Saved<br />addresses</>, PIN)}
             {tile("/orders", <>Your<br />orders</>, BOX)}
             {tile("/cart#saved-title", <>Your<br />wishlist</>, HEART)}

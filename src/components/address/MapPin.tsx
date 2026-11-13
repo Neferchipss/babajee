@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { findPlace, placeAt, type Pin, type Place } from "@/lib/addresses";
 import "./map-pin.css";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // India, zoomed out, while we find the customer.
 const INDIA: Pin = { lat: 22.5, lng: 79 };
@@ -22,6 +23,8 @@ type Props = {
 // map settles, and fills in city, state and PIN code on the form.
 export default function MapPin({ start, onConfirm, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialog);
   const map = useRef<LeafletMap | null>(null);
   const [pin, setPin] = useState<Pin>(start ?? INDIA);
   const [zoomedIn, setZoomedIn] = useState(!!start);
@@ -148,7 +151,7 @@ export default function MapPin({ start, onConfirm, onClose }: Props) {
       : "";
 
   return createPortal(
-    <div className="mp" role="dialog" aria-modal="true" aria-label="Pin your delivery location">
+    <div ref={dialog} className="mp" role="dialog" aria-modal="true" aria-label="Pin your delivery location">
       <div ref={box} className="mp-map" />
 
       <div className={`mp-pin${moving ? " is-lifted" : ""}`} aria-hidden="true">

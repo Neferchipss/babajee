@@ -29,6 +29,8 @@ export default async function Shelf({ categorySlug, open }: { categorySlug: stri
         slug: p.slug,
         seoTitle: p.seoTitle,
         sub: p.subcategory,
+        brand: p.brand,
+        added: p.added,
         variants: p.variants.map(({ label, price, stockQty }) => ({ label, price, stockQty })),
       }))}
     />

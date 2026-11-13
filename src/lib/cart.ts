@@ -178,8 +178,9 @@ export const clearCart = () => write([]);
 // reduced motion, it only tells the jar.
 export function tossIntoJar(from: Element | null) {
   const land = () => window.dispatchEvent(new Event(LANDED_EVENT));
-  // the jar on the product sheet first, then the cart button in the bar
-  const rank = (j: HTMLElement) => ["sheet", "header"].indexOf(j.dataset.jar ?? "");
+  // the jar on the product sheet first, then the View cart pill at the
+  // bottom of the shelf, then the cart button in the bar
+  const rank = (j: HTMLElement) => ["sheet", "bar", "header"].indexOf(j.dataset.jar ?? "");
   const jars = [...document.querySelectorAll<HTMLElement>("[data-jar]")].sort((x, y) => rank(x) - rank(y));
   const jar = jars.find((j) => {
     const r = j.getBoundingClientRect();

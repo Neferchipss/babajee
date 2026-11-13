@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ReviewSummary } from "@/lib/reviews";
 import Stars from "./Stars";
 import "./product-reviews.css";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // A product's approved reviews, fetched once per product per page load and
 // shared by the rating line (under the price) and the reviews section.
@@ -60,6 +61,9 @@ export function RatingLine({ slug, target, onOpen }: { slug: string; target?: st
 
 // on a phone: the reviews in a panel over the product card
 export function ReviewsPanel({ slug, name, onClose }: { slug: string; name: string; onClose: () => void }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useRef<HTMLButtonElement>(null);
+  useFocusTrap(panel, true, { initial: close });
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", key);
@@ -68,12 +72,12 @@ export function ReviewsPanel({ slug, name, onClose }: { slug: string; name: stri
   // on the page itself, not inside the card: the card moves with swipes and
   // would carry the panel (and its scrolling) with it
   return createPortal(
-    <div className="rv-panel" role="dialog" aria-modal="true" aria-label={`Reviews of ${name}`}>
-      <button type="button" className="rv-scrim" aria-label="Close reviews" onClick={onClose} />
+    <div ref={panel} className="rv-panel" role="dialog" aria-modal="true" aria-label={`Reviews of ${name}`}>
+      <button type="button" className="rv-scrim" aria-label="Close reviews" tabIndex={-1} onClick={onClose} />
       <div className="rv-sheet">
         <div className="rv-sheet-bar">
           <p>{name}</p>
-          <button type="button" className="rv-close" onClick={onClose} aria-label="Close reviews">
+          <button ref={close} type="button" className="rv-close" onClick={onClose} aria-label="Close reviews">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>

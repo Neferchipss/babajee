@@ -58,8 +58,9 @@
       height: 120px;
       background: var(--color-char);
     }
-    /* the logo and where to move up into the left panel */
-    & :is(.sb-logo, .dt) {
+    /* the logo and where to move up into the left panel (the shelves' own
+       bar only: the cart's and the other pages' bars have no left panel) */
+    & :is(.sb-logo, .sb .dt) {
       position: absolute;
       left: calc(-280px - 40px);
     }
@@ -70,14 +71,14 @@
     & .sb-logo img {
       width: 88px;
     }
-    & :is(.sb-logo, .sb-logo img, .dt) {
+    & :is(.sb-logo, .sb-logo img, .sb .dt) {
       transition:
         top 0.25s ease,
         left 0.25s ease,
         width 0.25s ease;
     }
     /* where to, beside the logo, level with its middle */
-    & .dt {
+    & .sb .dt {
       top: 30px;
       left: calc(-280px - 40px + 112px);
       /* it may run into the gap before the search bar */
@@ -254,11 +255,11 @@
   html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb-logo img {
     width: 44px;
   }
-  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .dt {
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb .dt {
     top: 30px;
     left: calc(-280px - 40px + 68px);
   }
-  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] :is(.sb-logo, .sb-logo img, .dt) {
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] :is(.sb-logo, .sb-logo img, .sb .dt) {
     transition:
       top 0.25s ease,
       left 0.25s ease,

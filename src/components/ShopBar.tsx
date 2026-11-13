@@ -13,7 +13,6 @@ import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
 import { shelfLeaving } from "@/lib/shelf-switch";
 
-type Sort = "featured" | "az" | "za";
 
 // Each category is its own page, so the strip is built afresh on every tap.
 // What it looked like as the old page went (scrolled where, the underline
@@ -54,8 +53,7 @@ export default function ShopBar({
   catalog,
   current,
   categories,
-  sort,
-  onSort,
+  tools,
   hints,
   query: shared,
   onQuery,
@@ -63,8 +61,8 @@ export default function ShopBar({
   catalog?: import("@/lib/catalog-db").DbSearchProduct[] | null;
   current: string;
   categories: { slug: string; name: string }[];
-  sort: Sort;
-  onSort: (s: Sort) => void;
+  // Sort & filter, beside the search
+  tools?: React.ReactNode;
   // product names the placeholder cycles through ("Search "alien grinder"")
   hints: string[];
   // On the search page the bar filters that page as you type (it holds every
@@ -324,17 +322,7 @@ export default function ShopBar({
             </li>
           </ul>
         )}
-        <label className="sb-sort" title="Sort">
-          <span className="sr-only">Sort</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5" />
-          </svg>
-          <select value={sort} onChange={(e) => onSort(e.target.value as Sort)}>
-            <option value="featured">Featured</option>
-            <option value="az">Name, A to Z</option>
-            <option value="za">Name, Z to A</option>
-          </select>
-        </label>
+        {tools}
       </form>
 
       <nav aria-label="Categories" className="sb-nav">

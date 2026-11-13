@@ -1,0 +1,159 @@
+/* "View cart" (CartBar.tsx): a gold pill at the bottom of the page while
+   the cart has something in it. Narrower than the screen on purpose: Safari
+   on iOS 26 treats a full-width bar fixed at the bottom as the page's own
+   bar and paints its glass toolbar solid in that colour; a narrower one
+   floats and the page shows through the glass as usual. Centred; on the
+   shelves (phones) the store button's icon and the pill are centred as a pair. */
+.cbar {
+  position: fixed;
+  left: 50%;
+  width: min(300px, 72vw);
+  margin-left: calc(min(300px, 72vw) / -2);
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 14px;
+  background: var(--bb-hot, #d3ab70);
+  color: #14110a;
+  text-decoration: none;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.25);
+  -webkit-tap-highlight-color: transparent;
+  animation: cbar-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  transition: transform 0.15s ease;
+}
+.cbar:active {
+  transform: scale(0.97);
+}
+/* a product just landed in it */
+.cbar[data-bump] {
+  animation: cbar-bump 0.38s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@media (min-width: 901px) {
+  .cbar {
+    bottom: 28px;
+    width: 380px;
+    margin-left: -190px;
+  }
+}
+
+/* the last few things added, overlapping */
+.cbar-pics {
+  display: flex;
+  flex: none;
+}
+.cbar-pic {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 2px solid var(--bb-hot, #d3ab70);
+  border-radius: 10px;
+  background: #fff;
+  color: #fff;
+  font-weight: 800;
+}
+.cbar-pic + .cbar-pic {
+  margin-left: -16px;
+}
+.cbar-pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+.cbar-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+.cbar-text b {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.cbar-text small {
+  overflow: hidden;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.75;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cbar-go {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.14);
+}
+
+/* the store button beside it (phones, on the shelves): just its icon, on
+   the left of the pill, the pill's height and corners */
+@media (max-width: 900px) {
+  /* the pair: icon (58) + gap (10) + pill, centred together */
+  html[data-cartbar] {
+    --cbar-w: min(300px, 72vw);
+    --cbar-pair: calc(58px + 10px + var(--cbar-w));
+  }
+  .cbar--shelf {
+    margin-left: calc(var(--cbar-pair) / -2 + 68px);
+  }
+  html[data-cartbar] .store-btn {
+    left: calc(50% - var(--cbar-pair) / 2);
+    right: auto;
+    width: 58px;
+    min-height: 58px;
+    height: 58px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 14px;
+  }
+  html[data-cartbar] .store-btn span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  /* room at the end of the shelf, so the pill never hides the last row */
+  html[data-cartbar] #site {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+@media (min-width: 901px) {
+  html[data-cartbar] #site {
+    padding-bottom: 96px;
+  }
+}
+
+/* away while a product is open over the shelf */
+html[data-sheet] .cbar {
+  visibility: hidden;
+}
+
+@keyframes cbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+}
+@keyframes cbar-bump {
+  40% {
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cbar,
+  .cbar[data-bump] {
+    animation: none;
+  }
+}

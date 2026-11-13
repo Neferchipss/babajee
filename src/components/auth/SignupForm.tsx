@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ageOf, readDob } from "@/lib/age";
 import { MIN_AGE } from "@/lib/config";
 import { getSupabase, siteRoot, supabaseConfigured } from "@/lib/supabase";
 import NotConnected from "./NotConnected";
@@ -14,6 +15,10 @@ export default function SignupForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [sentTo, setSentTo] = useState("");
+  // date of birth as three boxes (day, month, year): quicker than a
+  // calendar that opens on today, and each box moves on to the next
+  const monthBox = useRef<HTMLInputElement>(null);
+  const yearBox = useRef<HTMLInputElement>(null);
 
   if (!supabaseConfigured) return <NotConnected />;
 
@@ -38,6 +43,15 @@ export default function SignupForm() {
       setError(`Use at least ${MIN_PASSWORD} characters for the password.`);
       return;
     }
+    const born = readDob(String(form.get("dob_d")), String(form.get("dob_m")), String(form.get("dob_y")));
+    if ("error" in born) {
+      setError(born.error);
+      return;
+    }
+    if ((ageOf(born.dob) ?? 0) < MIN_AGE) {
+      setError(`Babajee is for adults only: you must be ${MIN_AGE} or older to create an account.`);
+      return;
+    }
     setBusy(true);
     setError("");
     const { data, error } = await getSupabase()!.auth.signUp({
@@ -48,12 +62,13 @@ export default function SignupForm() {
         data: {
           full_name: String(form.get("name")).trim(),
           phone: String(form.get("phone")).trim(),
-          age_confirmed: form.get("age") === "on",
+          date_of_birth: born.dob,
         },
       },
     });
     if (error) {
-      setError(error.message);
+      // the database's own check (18+, a real date) refuses with a general message
+      setError(/database error/i.test(error.message) ? "We couldn't create the account with that date of birth. Check it and try again." : error.message);
       setBusy(false);
       return;
     }
@@ -93,10 +108,55 @@ export default function SignupForm() {
         />
         <span className="mt-1.5 block text-xs text-muted">At least {MIN_PASSWORD} characters.</span>
       </label>
-      <label className="flex items-start gap-3 text-sm">
-        <input name="age" type="checkbox" className="mt-1 size-4 accent-[var(--color-rasta-gold)]" required />
-        <span>I confirm I am {MIN_AGE} or older.</span>
-      </label>
+      <fieldset>
+        <legend className="mb-1.5 block text-sm font-medium">Date of birth</legend>
+        <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-2">
+          <input
+            className="field text-center"
+            name="dob_d"
+            inputMode="numeric"
+            autoComplete="bday-day"
+            placeholder="DD"
+            maxLength={2}
+            aria-label="Day"
+            required
+            onChange={(e) => {
+              e.target.value = e.target.value.replace(/\D/g, "");
+              if (e.target.value.length === 2) monthBox.current?.focus();
+            }}
+          />
+          <input
+            ref={monthBox}
+            className="field text-center"
+            name="dob_m"
+            inputMode="numeric"
+            autoComplete="bday-month"
+            placeholder="MM"
+            maxLength={2}
+            aria-label="Month"
+            required
+            onChange={(e) => {
+              e.target.value = e.target.value.replace(/\D/g, "");
+              if (e.target.value.length === 2) yearBox.current?.focus();
+            }}
+          />
+          <input
+            ref={yearBox}
+            className="field text-center"
+            name="dob_y"
+            inputMode="numeric"
+            autoComplete="bday-year"
+            placeholder="YYYY"
+            maxLength={4}
+            aria-label="Year"
+            required
+            onChange={(e) => {
+              e.target.value = e.target.value.replace(/\D/g, "");
+            }}
+          />
+        </div>
+        <span className="mt-1.5 block text-xs text-muted">You must be {MIN_AGE} or older. It can&apos;t be changed later.</span>
+      </fieldset>
       {error && (
         <p role="alert" className="text-sm text-rasta-red">
           {error}

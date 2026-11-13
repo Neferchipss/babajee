@@ -360,6 +360,20 @@ export async function salesByCategory(from: string, to: string): Promise<Categor
   return ((data ?? []) as CategorySales[]).map((r) => ({ ...r, qty: Number(r.qty), sales: Number(r.sales) }));
 }
 
+// Who buys, by age (0046): orders in the dates by the buyer's age band, and
+// every customer account by band
+export type AgeBand = { band: string; buyers: number; orders: number; sales: number };
+export type AgeSales = { bands: AgeBand[]; accounts: { band: string; n: number }[] };
+export async function salesByAge(from: string, to: string): Promise<AgeSales> {
+  const { data, error } = await db().rpc("admin_sales_by_age", { p_from: from, p_to: to });
+  if (error) throw error;
+  const d = (data ?? { bands: [], accounts: [] }) as AgeSales;
+  return {
+    bands: d.bands.map((b) => ({ ...b, buyers: Number(b.buyers), orders: Number(b.orders), sales: Number(b.sales) })),
+    accounts: d.accounts.map((a) => ({ ...a, n: Number(a.n) })),
+  };
+}
+
 export async function analytics(from: string, to: string): Promise<Analytics> {
   const { data, error } = await db().rpc("admin_analytics", { p_from: from, p_to: to });
   if (error) throw error;
@@ -431,6 +445,8 @@ export async function geo(from: string, to: string): Promise<{ cities: GeoCity[]
 
 export type Customer = {
   id: string;
+  // yyyy-mm-dd, asked at sign-up (0045); none for an account made by hand
+  date_of_birth?: string | null;
   full_name: string;
   phone: string;
   email: string;

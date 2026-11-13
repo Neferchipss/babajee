@@ -2,15 +2,17 @@
 // list of rules, all of which a customer must meet. Saved in
 // customer_segments (0027) and applied here, on the Customers page, to the
 // list admin_customers() returns.
+import { ageOf } from "./age";
 import type { Customer } from "./orders-db";
 
-export type RuleField = "spent" | "orders" | "last_order" | "joined" | "city" | "state" | "tag" | "account";
+export type RuleField = "spent" | "orders" | "age" | "last_order" | "joined" | "city" | "state" | "tag" | "account";
 export type Rule = { field: RuleField; op: string; value: string };
 
 type Kind = "money" | "count" | "days" | "text" | "tag" | "account";
 export const FIELDS: { id: RuleField; label: string; kind: Kind }[] = [
   { id: "spent", label: "Amount spent", kind: "money" },
   { id: "orders", label: "Number of orders", kind: "count" },
+  { id: "age", label: "Age", kind: "count" },
   { id: "last_order", label: "Last order", kind: "days" },
   { id: "joined", label: "Joined", kind: "days" },
   { id: "city", label: "City", kind: "text" },
@@ -62,6 +64,12 @@ export function meets(c: Customer, r: Rule): boolean {
   const n = Number(r.value);
   const v = r.value.trim();
   switch (r.field) {
+    case "age": {
+      if (!v || isNaN(n)) return true;
+      const a = ageOf(c.date_of_birth);
+      if (a === null) return false; // no date of birth: not in an age group
+      return r.op === "gte" ? a >= n : r.op === "lte" ? a <= n : a === n;
+    }
     case "spent":
     case "orders": {
       if (!v || isNaN(n)) return true; // not filled in yet: no effect

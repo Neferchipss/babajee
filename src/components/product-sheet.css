@@ -823,3 +823,82 @@ html #site[data-scope] .ps .pa-initial {
   display: grid;
   place-items: center;
 }
+
+/* the category line, with ‹ 3 of 42 › to step through the category without swiping */
+.ps-catrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ps-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-muted, #a39cd0);
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ps-step span {
+  min-width: 52px;
+  text-align: center;
+}
+.ps-step button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgb(var(--bb-fg, 255 255 255) / 0.14);
+  border-radius: 50%;
+  background: rgb(var(--bb-fg, 255 255 255) / 0.04);
+  color: var(--color-paper, #f4efff);
+  cursor: pointer;
+}
+.ps-step button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* the one-time hint over the photo: it swipes */
+.ps-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: ps-hint 2.95s ease both;
+}
+.ps-hint span {
+  opacity: 0.7;
+}
+@keyframes ps-hint {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  10%,
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ps-hint {
+    animation: none;
+  }
+}

@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { blankRule, describe, FIELDS, kindOf, meetsAll, needsValue, opsFor, type Rule, type RuleField } from "@/lib/customer-groups";
 import { customersCsv, download } from "@/lib/orders-csv";
 import { addCustomer, deleteSegment, errText, listCustomers, listSegments, saveSegment, type Customer, type Segment } from "@/lib/orders-db";
+import { ageOf } from "@/lib/age";
 
 // Everyone with an account, with what they have bought. The tabs are groups:
 // ready-made ones (repeat buyers, never ordered, quiet for 90 days) and any
@@ -194,7 +195,10 @@ export default function CustomersPage() {
                       </Link>
                       {c.role === "admin" && <span className="adm-role">Admin</span>}
                       {c.is_test && <span className="adm-role is-test" title="A seeded test account: it can't sign in">Test</span>}
-                      <div className="adm-muted adm-small">{c.phone || c.email}</div>
+                      <div className="adm-muted adm-small">
+                        {c.phone || c.email}
+                        {ageOf(c.date_of_birth) !== null && ` · ${ageOf(c.date_of_birth)} yrs`}
+                      </div>
                       {c.tags.length > 0 && (
                         <div className="cus-tags">
                           {c.tags.map((t) => (

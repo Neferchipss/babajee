@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { type MouseEvent, type UIEvent, useRef, useState, useSyncExternalStore } from "react";
+import { type MouseEvent, type UIEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatPrice } from "@/lib/currency";
 import { fadeIn } from "@/lib/fade-in";
 import { dealFor } from "@/lib/deal";
 import { dotColour, optionsWithPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
 import Branded from "./Branded";
+import { JarIcon } from "./icons";
 import Price from "./Price";
 import type { BuyVariant } from "./ProductBuy";
 import ProductArt from "./ProductArt";
@@ -31,6 +32,9 @@ export type CardProduct = {
   group?: string;
   // its subcategory, for the shelf's filter chips (not shown on the card)
   sub?: string;
+  // for Sort & filter (not shown on the card): its brand, when it was added
+  brand?: string;
+  added?: string;
   // its own search-engine title, when the admin wrote one (for the tab title)
   seoTitle?: string;
 };
@@ -38,8 +42,9 @@ export type CardProduct = {
 // One card, five looks. The features are fixed: image, name, price, an
 // options count where a product has variants, and one "Add to cart" action.
 // With onOpen, a plain tap opens the product sheet instead of the page;
-// a new-tab click still goes to the page. Adding to the cart happens in the
-// sheet or on the product page; the card itself has no add button.
+// a new-tab click still goes to the page. With onAdd too, the add button
+// puts a single-option product straight in the jar (its picture is passed
+// along to fly in); a product with options opens the sheet to choose.
 // ?demo=photos (in development only) gives every card three stand-in photos,
 // to try the swipe before real ones exist
 const noop = () => () => {};
@@ -54,10 +59,18 @@ const useDemoPhotos = () =>
 export default function ProductCard({
   product,
   onOpen,
+  onAdd,
 }: {
   product: CardProduct;
   onOpen?: () => void;
+  onAdd?: (from: Element | null) => void;
 }) {
+  const [added, setAdded] = useState(false);
+  useEffect(() => {
+    if (!added) return;
+    const t = window.setTimeout(() => setAdded(false), 1400);
+    return () => window.clearTimeout(t);
+  }, [added]);
   const [shown, setShown] = useState(0);
   const demo = useDemoPhotos();
   // options with their own photos show as dots under the card (a colour, or
@@ -92,6 +105,19 @@ export default function ProductCard({
         onOpen();
       }
     : undefined;
+  // only a single-option product that can be bought goes straight in; any
+  // other opens (the sheet to choose an option, or to see it's out of stock)
+  const v0 = product.variants?.[0];
+  const ready = product.options === 0 && (!product.variants || (product.variants.length === 1 && !!v0?.price && v0.stockQty > 0));
+  const add =
+    onAdd && ready
+      ? (e: MouseEvent<HTMLAnchorElement>) => {
+          if (!plain(e)) return;
+          e.preventDefault();
+          onAdd(e.currentTarget.closest(".pc")?.querySelectorAll(".pc-img .pa")[shown] ?? null);
+          setAdded(true);
+        }
+      : open;
 
   return (
     <li className="pc">
@@ -172,6 +198,27 @@ export default function ProductCard({
           item={{ slug: product.slug, href: product.href, name: product.name, tone: product.tone, price: product.price, options: product.options }}
         />
       )}
+      <Link
+        href={product.href}
+        className="pc-add"
+        data-added={added}
+        aria-label={ready ? `Add ${product.name} to cart` : product.options > 0 ? `Choose an option of ${product.name}` : `See ${product.name}`}
+        onClick={add}
+      >
+        <JarIcon size={20} />
+        <svg className="pc-add-plus" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {added ? <path d="m5 12.5 4.5 4.5L19 7.5" /> : <path d="M12 5v14M5 12h14" />}
+        </svg>
+        <span className="pc-add-text">Add to cart</span>
+        <span className="pc-add-short" aria-hidden="true">
+          {added ? "Added" : "Add"}
+        </span>
+        {product.options > 0 && (
+          <span className="pc-add-sub" aria-hidden="true">
+            {product.options + 1} options
+          </span>
+        )}
+      </Link>
     </li>
   );
 }

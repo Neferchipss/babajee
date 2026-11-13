@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { deliverToAddress, setDeliverTo, useDeliverTo } from "@/lib/deliver-to";
 import AddressForm from "./AddressForm";
 import "./deliver-to.css";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 const MapPin = dynamic(() => import("./MapPin"), { ssr: false });
 const db = () => import("@/lib/address-db");
@@ -45,6 +46,7 @@ export default function DeliverTo() {
   const [loadFailed, setLoadFailed] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
+  useFocusTrap(sheet, open && step !== "map");
   // where the dropdown goes on wide screens (the sheet lives at the end of
   // <body>: the header's blur would otherwise trap a fixed sheet inside it)
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(

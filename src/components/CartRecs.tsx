@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { useCart } from "@/lib/cart";
+import { addToCart, tossIntoJar, useCart } from "@/lib/cart";
 import { useLiveCatalog } from "@/lib/useLiveCatalog";
 import ProductCard, { type CardProduct } from "./ProductCard";
 
@@ -78,6 +78,11 @@ export default function CartRecs({ groups }: { groups: RecGroup[] }) {
           <ProductCard
             key={p.slug}
             product={p}
+            onAdd={(from) => {
+              const v = p.variants?.[0];
+              addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v?.label ?? "Standard", price: v?.price, unit: p.unit });
+              tossIntoJar(from);
+            }}
           />
         ))}
       </ul>

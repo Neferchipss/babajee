@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { customerDetail, customerSaved, errText, listCustomers, setCustomerTags, type Customer, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
 import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
 import SupportHistory from "@/components/admin/SupportHistory";
+import { ageOf, dobLabel } from "@/lib/age";
 
 // One customer: what they have spent, their orders, saved addresses and the
 // staff's private notes about them.
@@ -79,7 +80,10 @@ function CustomerView() {
             {c.role === "admin" && <span className="adm-role">Admin</span>}
             {c.is_test && <span className="adm-role is-test" title="A seeded test account: it can't sign in">Test</span>}
           </h1>
-          <p className="adm-sub">Customer since {when(c.joined).toLowerCase()}</p>
+          <p className="adm-sub">
+            {c.date_of_birth ? `${ageOf(c.date_of_birth)} years old (born ${dobLabel(c.date_of_birth)}) · ` : ""}
+            Customer since {when(c.joined).toLowerCase()}
+          </p>
         </div>
         {/* get in touch, or take an order for them, from the top of the page */}
         <div className="adm-actions">

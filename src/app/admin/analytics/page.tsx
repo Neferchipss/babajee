@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
-import { analytics, errText, failedDeliveries, profit, salesByCategory, savedProducts, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
+import { analytics, errText, failedDeliveries, profit, salesByAge, salesByCategory, savedProducts, type AgeSales, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
 
 // The stats page. One date range drives every card, and each number is
 // compared with the period just before it (the same number of days).
@@ -34,6 +34,16 @@ export default function AnalyticsPage() {
   }, [from, to]);
   // still loading while the result is for other dates
   const cats = catsFor?.key === `${from}:${to}` ? catsFor.rows : null;
+  // who buys, by age, for the chosen dates
+  const [ageFor, setAgeFor] = useState<{ key: string; data: AgeSales | null } | null>(null);
+  useEffect(() => {
+    const key = `${from}:${to}`;
+    salesByAge(from, to).then(
+      (data) => setAgeFor({ key, data }),
+      () => setAgeFor({ key, data: null }),
+    );
+  }, [from, to]);
+  const ages = ageFor?.key === `${from}:${to}` ? ageFor : null;
 
   // saved for later, all time (not tied to the date range)
   const [saved, setSaved] = useState<SavedProduct[] | null>(null);
@@ -174,16 +184,19 @@ export default function AnalyticsPage() {
               <Bars rows={a.by_state.map((p) => ({ name: p.name, value: p.sales }))} fmt={money} />
             </section>
           </div>
-          <section className="adm-card">
-            <h2>Sales by category</h2>
-            {cats === null ? (
-              <p className="adm-muted adm-small">Loading.</p>
-            ) : cats.length ? (
-              <Bars rows={cats.map((c) => ({ name: c.name, value: c.sales }))} fmt={money} />
-            ) : (
-              <p className="adm-muted adm-small">No sales in these dates.</p>
-            )}
-          </section>
+          <div className="adm-pair">
+            <section className="adm-card">
+              <h2>Sales by category</h2>
+              {cats === null ? (
+                <p className="adm-muted adm-small">Loading.</p>
+              ) : cats.length ? (
+                <Bars rows={cats.map((c) => ({ name: c.name, value: c.sales }))} fmt={money} />
+              ) : (
+                <p className="adm-muted adm-small">No sales in these dates.</p>
+              )}
+            </section>
+            <AgeCard ages={ages} />
+          </div>
 
           <SectionTitle id="profit">Profit</SectionTitle>
           <div className="adm-pair wide">
@@ -356,5 +369,39 @@ function Legend({ label, columns = false }: { label: string; columns?: boolean }
         </span>
       )}
     </div>
+  );
+}
+
+// Who buys, by age: sales in the dates per age band (from the date of birth
+// asked at sign-up), how many orders and buyers each, and how many of all
+// customer accounts are in each band
+function AgeCard({ ages }: { ages: { data: AgeSales | null } | null }) {
+  const d = ages?.data;
+  const known = d ? d.bands.filter((b) => b.band !== "Age not given") : [];
+  const unknown = d?.bands.find((b) => b.band === "Age not given");
+  const accounts = d?.accounts ?? [];
+  const told = accounts.filter((a) => a.band !== "Age not given").reduce((n, a) => n + a.n, 0);
+  const all = accounts.reduce((n, a) => n + a.n, 0);
+  return (
+    <section className="adm-card">
+      <h2>Sales by age</h2>
+      {ages === null ? (
+        <p className="adm-muted adm-small">Loading.</p>
+      ) : !d ? (
+        <p className="adm-muted adm-small">Couldn&apos;t load ages.</p>
+      ) : (
+        <>
+          {known.length ? (
+            <Bars rows={known.map((b) => ({ name: `${b.band} · ${b.orders} order${b.orders === 1 ? "" : "s"}`, value: b.sales }))} fmt={money} />
+          ) : (
+            <p className="adm-muted adm-small">No orders from customers with a date of birth in these dates yet.</p>
+          )}
+          <p className="adm-muted adm-small" style={{ marginTop: 10 }}>
+            {unknown ? `${money(unknown.sales)} more from ${unknown.orders} order${unknown.orders === 1 ? "" : "s"} where the age isn't known (guests, older accounts). ` : ""}
+            {all ? `${told} of ${all} customer accounts have a date of birth${told ? `: ${accounts.filter((a) => a.band !== "Age not given").map((a) => `${a.band} ${a.n}`).join(", ")}` : ""}.` : ""}
+          </p>
+        </>
+      )}
+    </section>
   );
 }

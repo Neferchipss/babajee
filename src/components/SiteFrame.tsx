@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { watchSystemMode } from "@/lib/mode";
 import BabaBand from "./baba/BabaBand";
+import CartBar from "./CartBar";
 import StoreButton from "./StoreButton";
 import ThemeToggle from "./ThemeToggle";
 
@@ -24,6 +25,7 @@ export default function SiteFrame({ children }: { children: ReactNode }) {
       {children}
       {scope === "shop" && <ThemeToggle />}
       <StoreButton />
+      <CartBar />
     </div>
   );
 }

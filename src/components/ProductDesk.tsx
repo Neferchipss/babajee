@@ -17,6 +17,7 @@ import WishButton from "./WishButton";
 import "./product-desk.css";
 import { track } from "@/lib/track";
 import ProductReviews, { RatingLine } from "./ProductReviews";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // A product on a wide screen, as a traditional shop page: big photos on the
 // left with thumbnails under them, and on the right the name, price, options,
@@ -47,6 +48,8 @@ export default function ProductDesk({
   // edges (the logo on the left, Profile on the right)
   const [box, setBox] = useState({ top: 0, left: 0, width: 0 });
   const page = useRef<HTMLDivElement>(null);
+  const closeBtn = useRef<HTMLButtonElement>(null);
+  useFocusTrap(page, true, { initial: closeBtn, trap: false });
   // the latest go(), for the arrow keys (the key listener is set up once)
   const step = useRef<(d: number) => void>(() => {});
   const host = typeof document === "undefined" ? null : document.getElementById("site");
@@ -247,7 +250,7 @@ export default function ProductDesk({
       </div>
 
       {/* close, top right, under Profile */}
-      <button type="button" className="pdk-close" onClick={onClose} aria-label={`Close, back to ${category}`}>
+      <button ref={closeBtn} type="button" className="pdk-close" onClick={onClose} aria-label={`Close, back to ${category}`}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>

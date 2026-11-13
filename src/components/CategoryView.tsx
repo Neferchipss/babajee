@@ -14,7 +14,9 @@ import ShelfReader from "./baba/ShelfReader";
 import ShopBar from "./ShopBar";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
+import { addToCart, tossIntoJar } from "@/lib/cart";
 import ProductCard, { type CardProduct } from "./ProductCard";
+import ShelfFilter, { ActiveFilters, applyFilters, filterCount, NO_FILTERS, sortProducts, type Filters, type Sort } from "./ShelfFilter";
 import ProductSheet from "./ProductSheet";
 import ProductDesk from "./ProductDesk";
 import { shelfArrived } from "@/lib/shelf-switch";
@@ -29,7 +31,6 @@ type Props = {
   categories: { slug: string; name: string; count: number }[];
 };
 
-type Sort = "featured" | "az" | "za";
 
 // The open product lives in the address (?p=slug), so the back button puts
 // the sheet away and a link can open it. Next keeps pushState in step with
@@ -106,6 +107,7 @@ export default function CategoryView({ category, products: snapshot, categories:
   }, [open]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   // phones and tablets: the search field opens from the title bar
   const [finding, setFinding] = useState(false);
 
@@ -124,6 +126,7 @@ export default function CategoryView({ category, products: snapshot, categories:
     images: photosFor(p.slug), tone: toneAt(Math.max(0, categories.findIndex((c) => c.slug === p.categorySlug))),
     group: everything || order ? p.categoryName : undefined,
     sub: p.subcategory,
+    brand: p.brand, added: p.added,
   })) : snapshot;
   // the switched-on collections, listed under the categories (live: a new
   // one shows without the site being rebuilt)
@@ -150,9 +153,13 @@ export default function CategoryView({ category, products: snapshot, categories:
   const q = query.trim().toLowerCase();
   const words = q.split(/\s+/).filter(Boolean);
   const inSub = sub && subs.includes(sub) ? products.filter((p) => p.sub === sub) : products;
-  const filtered = words.length
+  const searched = words.length
     ? inSub.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""} ${p.sub ?? ""}`.toLowerCase().includes(w)))
     : inSub;
+  // then Sort & filter's choices
+  const filtered = applyFilters(searched, filters);
+  const narrowed = q !== "" || filterCount(filters) > 0;
+  const sortFilter = { products: searched, sort, onSort: setSort, filters, onFilters: setFilters };
   // Featured on the all-products shelf lists it category by category, under
   // a heading for each; a category's own shelf is one run of cards (the
   // brand is on each card)
@@ -161,7 +168,7 @@ export default function CategoryView({ category, products: snapshot, categories:
     ? brands.flatMap((g) => g.items)
     : sort === "featured"
       ? filtered
-      : [...filtered].sort((a, b) => a.name.localeCompare(b.name) * (sort === "az" ? 1 : -1));
+      : sortProducts(filtered, sort);
 
   // a few of the shelf's own products, for the search bar to suggest
   const hints = products.slice(0, 8).map((p) => p.name);
@@ -193,8 +200,7 @@ export default function CategoryView({ category, products: snapshot, categories:
         <ShopBar
           current={category.slug}
           categories={categories}
-          sort={sort}
-          onSort={setSort}
+          tools={<ShelfFilter {...sortFilter} className="sb-sort" />}
           hints={hints}
           catalog={catalog}
           {...(searching ? { query, onQuery: setQuery } : {})}
@@ -220,17 +226,7 @@ export default function CategoryView({ category, products: snapshot, categories:
           </SceneLink>
         </div>
         <div className="cp-bar-tools">
-          <label className="cp-bar-btn cp-bar-sort">
-            <span className="sr-only">Sort</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5" />
-            </svg>
-            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              <option value="featured">Featured</option>
-              <option value="az">Name, A to Z</option>
-              <option value="za">Name, Z to A</option>
-            </select>
-          </label>
+          <ShelfFilter {...sortFilter} className="cp-bar-btn cp-bar-sort" />
           <button
             type="button"
             className="cp-bar-btn"
@@ -259,6 +255,7 @@ export default function CategoryView({ category, products: snapshot, categories:
               name is already in the bar above, so just the line and count) */}
           <header className="cp-head">
             <p className="cp-head-count">
+              {narrowed ? `${shown.length} of ` : ""}
               {products.length} product{products.length === 1 ? "" : "s"}
             </p>
             <h2 className="cp-head-name">{category.name}</h2>
@@ -274,6 +271,7 @@ export default function CategoryView({ category, products: snapshot, categories:
               ))}
             </div>
           )}
+          <ActiveFilters filters={filters} onFilters={setFilters} sort={sort} onSort={setSort} />
           <div className="cp-toolbar" data-open={finding || q !== ""}>
             <label className="cp-search">
               <span className="sr-only">Search {category.name}</span>
@@ -285,16 +283,9 @@ export default function CategoryView({ category, products: snapshot, categories:
               />
             </label>
             <p className="cp-count" aria-live="polite">
-              {q ? `${shown.length} of ${products.length} products` : `${products.length} products`}
+              {narrowed ? `${shown.length} of ${products.length} products` : `${products.length} products`}
             </p>
-            <label className="cp-sort">
-              <span>Sort by</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-                <option value="featured">Featured</option>
-                <option value="az">Name, A to Z</option>
-                <option value="za">Name, Z to A</option>
-              </select>
-            </label>
+            <ShelfFilter {...sortFilter} className="cp-sort" label />
           </div>
 
           {order && !catalog ? null : shown.length === 0 ? (
@@ -319,6 +310,18 @@ export default function CategoryView({ category, products: snapshot, categories:
                     key={p.href}
                     product={p}
                     onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
+                    onAdd={
+                      p.slug && p.variants?.length === 1
+                        ? (from) => {
+                            const v = p.variants![0];
+                            addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
+                            tossIntoJar(from);
+                            try {
+                              navigator.vibrate?.([10, 40, 10]);
+                            } catch {}
+                          }
+                        : undefined
+                    }
                   />
                 )),
               ])}

@@ -21,6 +21,9 @@ export async function allShelfProducts() {
           slug: p.slug,
           variants: p.variants.map(({ label, price, stockQty }) => ({ label, price, stockQty })),
           group: detail.category.name,
+          mrp: p.mrp,
+          brand: p.brand,
+          added: p.added,
         }))
       : [],
   );

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase";
 import AddressBook from "../address/AddressBook";
 import NotConnected from "./NotConnected";
+import { dobLabel } from "@/lib/age";
 
 export default function AccountPanel() {
   const { status, user, profile, refreshProfile, signOut } = useAuth();
@@ -59,7 +60,12 @@ export default function AccountPanel() {
       <dl className="grid gap-1 text-sm">
         <dt className="text-muted">Email</dt>
         <dd className="text-base">{user.email}</dd>
-        {profile?.age_verified_at && (
+        {profile?.date_of_birth ? (
+          <>
+            <dt className="mt-3 text-muted">Date of birth</dt>
+            <dd className="text-base">{dobLabel(profile.date_of_birth)}</dd>
+          </>
+        ) : profile?.age_verified_at && (
           <>
             <dt className="mt-3 text-muted">Age</dt>
             <dd className="text-base">Confirmed 18 or older</dd>

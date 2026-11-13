@@ -17,6 +17,10 @@ import ProductWheel, { type WheelSteer } from "./ProductWheel";
 import "./product-sheet.css";
 import { track } from "@/lib/track";
 import { RatingLine, ReviewsPanel } from "./ProductReviews";
+import { useFocusTrap } from "@/lib/use-focus-trap";
+
+// set once the swipe hint has shown on this device
+const SWIPE_HINT = "bj-swipe-hint";
 
 export type SheetProduct = {
   slug: string;
@@ -66,9 +70,63 @@ export default function ProductSheet({
   const steerRef = useRef<WheelSteer | null>(null);
   const at = useRef({ i: start, n: products.length });
   const closeBtn = useRef<HTMLButtonElement>(null);
+  // keyboard: Tab stays in the sheet, and focus goes back to the card it opened from
+  const sheetRoot = useRef<HTMLDivElement>(null);
+  useFocusTrap(sheetRoot, true, { initial: "keep" });
   const host = typeof document === "undefined" ? null : document.getElementById("site");
 
   const p = products[view.i];
+  // ‹ › beside the category: the next or previous product, for anyone who
+  // doesn't swipe (the wheel turns as if they had)
+  const stepBy = (d: number) => {
+    const to = at.current.i + d;
+    const s = steerRef.current;
+    if (!s || to < 0 || to >= at.current.n) return;
+    s.grab();
+    s.release(to);
+  };
+  // the first product ever opened on this device: the card nudges toward the
+  // next one (so it can be seen peeking) and a line says it swipes; once
+  const [hint, setHint] = useState(false);
+  useEffect(() => {
+    if (products.length < 2) return;
+    try {
+      if (localStorage.getItem(SWIPE_HINT)) return;
+    } catch {
+      return;
+    }
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    const timers = [
+      window.setTimeout(() => {
+        // seen: marked as it shows (not before, so a sheet closed at once
+        // still gets it next time)
+        try {
+          localStorage.setItem(SWIPE_HINT, "1");
+        } catch {}
+        setHint(true);
+        const s = steerRef.current;
+        if (still || !s) return;
+        // out a fifth of a product and back, eased
+        const t0 = performance.now();
+        s.grab();
+        const tick = (t: number) => {
+          const k = Math.min(1, (t - t0) / 380);
+          s.drag(0.22 * Math.sin(k * Math.PI * 0.5));
+          if (k < 1) raf = requestAnimationFrame(tick);
+          else window.setTimeout(() => s.release(at.current.i), 160);
+        };
+        raf = requestAnimationFrame(tick);
+      }, 650),
+      window.setTimeout(() => setHint(false), 3600),
+    ];
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      cancelAnimationFrame(raf);
+    };
+    // once, when the sheet first opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // the option picked on the shelf card, until one is chosen here
   const v =
     choice.slug === p.slug ? choice.v : Math.max(0, p.variants.findIndex((x) => x.label === shelfPicks.get(p.slug)));
@@ -321,7 +379,7 @@ export default function ProductSheet({
 
   if (!host) return null;
   return createPortal(
-    <div className="ps">
+    <div ref={sheetRoot} className="ps">
       <div className="ps-scrim" onClick={onClose} aria-hidden="true" />
       <div className="ps-stack">
         <div ref={strip} className="ps-strip">
@@ -343,11 +401,35 @@ export default function ProductSheet({
             <div key={p.slug} className="ps-stage" data-dir={view.dir}>
               <SheetPhotos key={variant.label} name={p.name} tone={p.tone} slug={p.slug} option={variant.label} />
               {view.picked && <span className="ps-picked">Baba&rsquo;s pick</span>}
+              {hint && (
+                <span className="ps-hint" role="status">
+                  <span aria-hidden="true">‹</span> Swipe for more {(p.group ?? category).toLowerCase()} <span aria-hidden="true">›</span>
+                </span>
+              )}
             </div>
           </div>
 
           <div key={`info-${p.slug}`} className="ps-info" data-dir={view.dir}>
-            <p className="ps-cat">{p.group ?? category}</p>
+            <div className="ps-catrow">
+              <p className="ps-cat">{p.group ?? category}</p>
+              {products.length > 1 && (
+                <nav className="ps-step" aria-label="Other products">
+                  <button type="button" onClick={() => stepBy(-1)} disabled={view.i === 0} aria-label={view.i > 0 ? `Previous: ${products[view.i - 1].name}` : "Previous product"}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M15 5l-7 7 7 7" />
+                    </svg>
+                  </button>
+                  <span>
+                    {view.i + 1} of {products.length}
+                  </span>
+                  <button type="button" onClick={() => stepBy(1)} disabled={view.i === products.length - 1} aria-label={view.i < products.length - 1 ? `Next: ${products[view.i + 1].name}` : "Next product"}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </nav>
+              )}
+            </div>
             <h2 id="ps-title" className="ps-title">
               <Branded name={p.name} />
             </h2>

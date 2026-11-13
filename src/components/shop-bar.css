@@ -618,3 +618,8 @@
     right: -2px;
   }
 }
+/* the profile button keeps to the right edge of the bar, whatever else is in
+   it (the cart page has no "Delivering to" to push it across) */
+.lb .sb-me {
+  margin-left: auto;
+}

@@ -1,0 +1,312 @@
+/* Sort & filter (ShelfFilter.tsx): the button beside the search, its panel
+   (a dropdown on a wide screen, a sheet from the bottom on a phone) and the
+   row of filters that are on, above the products. Drawn with the shared
+   channels (modes.css), so it suits light and dark. */
+
+.sf-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sf-btn-text {
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sf-badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bb-hot, #d3ab70);
+  color: #111;
+  font: 700 0.68rem/1 var(--font-body-face, system-ui), sans-serif;
+}
+.sf-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bb-hot, #d3ab70);
+}
+
+/* ---------- the panel ---------- */
+.sf-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.sf-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--bb-scrim, rgb(0 0 0 / 0.6));
+  animation: sf-fade 0.18s ease-out;
+}
+.sf-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  background: var(--bb-sheet, #121213);
+  color: var(--color-paper, #f2f3f5);
+  font-family: var(--font-body-face, system-ui), system-ui, sans-serif;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+}
+/* a phone: a sheet from the bottom, clear of the home bar */
+@media (max-width: 719px) {
+  .sf-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: min(82dvh, 720px);
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: sf-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sf-panel::before {
+    content: "";
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    margin-top: 8px;
+    border-radius: 2px;
+    background: rgb(var(--bb-fg) / 0.25);
+  }
+}
+/* wide: a dropdown under the button, its right edge on the button's */
+@media (min-width: 720px) {
+  .sf-scrim {
+    background: rgb(0 0 0 / 0.25);
+  }
+  .sf-panel {
+    top: var(--sf-top, 120px);
+    right: var(--sf-right, 24px);
+    width: 400px;
+    max-height: calc(100dvh - var(--sf-top, 120px) - 16px);
+    border: 1px solid rgb(var(--bb-fg) / 0.12);
+    border-radius: 14px;
+    animation: sf-drop 0.18s ease-out;
+  }
+}
+.sf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px 20px;
+}
+.sf-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.sf-x {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(var(--bb-fg) / 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+.sf-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 20px 12px;
+}
+.sf-body section {
+  padding: 12px 0;
+  border-top: 1px solid rgb(var(--bb-fg) / 0.08);
+}
+.sf-body section:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+.sf-body h3 {
+  margin: 0 0 10px;
+  color: var(--color-muted, #96979d);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* sort: a short list, one ticked */
+.sf-sorts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.sf-sort {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--bb-fg) / 0.12);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-muted, #96979d);
+  font: 500 0.86rem/1.2 inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sf-sort[aria-checked="true"] {
+  border-color: var(--bb-hot, #d3ab70);
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
+  color: var(--color-paper, #f2f3f5);
+  font-weight: 600;
+}
+
+/* filters: chips with the count each would leave */
+.sf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid rgb(var(--bb-fg) / 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-paper, #f2f3f5);
+  font: 500 0.86rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sf-chip small {
+  color: var(--color-muted, #96979d);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+.sf-chip[aria-pressed="true"] {
+  border-color: var(--bb-hot, #d3ab70);
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
+  font-weight: 600;
+}
+.sf-chip:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+.sf-chip:not(:disabled):hover,
+.sf-sort:hover {
+  border-color: rgb(var(--bb-fg) / 0.3);
+}
+
+.sf-foot {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgb(var(--bb-fg) / 0.1);
+}
+.sf-clear,
+.sf-go {
+  min-height: 46px;
+  border-radius: 12px;
+  font: 600 0.92rem/1 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sf-clear {
+  flex: none;
+  padding: 0 16px;
+  border: 1px solid rgb(var(--bb-fg) / 0.16);
+  background: transparent;
+  color: inherit;
+}
+.sf-clear:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sf-go {
+  flex: 1;
+  border: 0;
+  background: var(--bb-hot, #d3ab70);
+  color: #111;
+}
+
+/* ---------- what's on, above the products ---------- */
+.sf-active {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sf-active::-webkit-scrollbar {
+  display: none;
+}
+#site .sf-active button {
+  flex: none;
+  /* a theme sizes the shelf's buttons; these fit their words */
+  width: auto;
+  min-width: max-content;
+  max-width: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px 0 13px;
+  border: 1px solid var(--bb-hot, #d3ab70);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
+  color: var(--color-paper, #f2f3f5);
+  font: 500 0.82rem/1 var(--font-body-face, system-ui), system-ui, sans-serif;
+  cursor: pointer;
+}
+#site .sf-active button span {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+#site .sf-active .sf-active-clear {
+  padding: 0 12px;
+  border-color: transparent;
+  background: none;
+  color: var(--color-muted, #96979d);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@keyframes sf-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sf-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sf-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-scrim,
+  .sf-panel {
+    animation: none;
+  }
+}
