@@ -105,3 +105,9 @@ export function dotColour(label: string): string | null {
 
 // the option last picked on a shelf card, so the product sheet opens on it
 export const shelfPicks = new Map<string, string>();
+
+// The small copy of a shoot photo (scripts/make-thumbs.mjs: 480px), for
+// grids, cards and swatches; photos from elsewhere pass through unchanged.
+const SHOOT = `${BASE}/products/`;
+export const thumb = (src: string | undefined) =>
+  src && src.startsWith(SHOOT) ? src.replace(/\/([^/]+\.webp)$/, "/sm/$1") : src;

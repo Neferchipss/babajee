@@ -9,7 +9,7 @@ import Branded from "./Branded";
 import type { BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
-import { hasOptionPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
+import { hasOptionPhotos, photosFor, shelfPicks, thumb } from "@/lib/product-photos";
 import Price from "./Price";
 import ProductArt from "./ProductArt";
 import WishButton from "./WishButton";
@@ -456,7 +456,7 @@ export default function ProductSheet({
                   >
                     {hasOptionPhotos(p.slug) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img className="ps-swatch" src={photosFor(p.slug, o.label)[0]} alt="" loading="lazy" draggable={false} />
+                      <img className="ps-swatch" src={thumb(photosFor(p.slug, o.label)[0])} alt="" loading="lazy" draggable={false} />
                     ) : (
                       <>
                         <span className="ps-opt-label">{o.label}</span>
@@ -614,7 +614,7 @@ function GhostCard({ p, category, side }: { p: SheetProduct; category: string; s
               <span key={o.label} className="ps-opt" aria-checked={k === 0}>
                 {swatches ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img className="ps-swatch" src={photosFor(p.slug, o.label)[0]} alt="" draggable={false} />
+                  <img className="ps-swatch" src={thumb(photosFor(p.slug, o.label)[0])} alt="" draggable={false} />
                 ) : (
                   <>
                     <span className="ps-opt-label">{o.label}</span>

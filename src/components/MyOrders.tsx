@@ -10,7 +10,7 @@ import { gstLabel } from "@/lib/gst";
 import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
 import type { Order, OrderRequest } from "@/lib/orders-db";
 import { categoryTone } from "@/lib/tone";
-import { photosFor } from "@/lib/product-photos";
+import { photosFor, thumb } from "@/lib/product-photos";
 import { trackLink } from "@/lib/tracking";
 import "./my-orders.css";
 import ReviewBox from "./ReviewBox";
@@ -182,7 +182,7 @@ function ItemPhoto({ src, size }: { src?: string; size: "s" | "l" }) {
     <span className={`mo-thumb ${size === "s" ? "is-s" : "is-l"}`} aria-hidden="true">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" loading="lazy" />
+        <img src={thumb(src)} alt="" loading="lazy" />
       ) : (
         <svg viewBox="0 0 24 24">
           <path d="M6 8h12l-1 12H7L6 8Z" />
@@ -205,7 +205,7 @@ function Thumb({ o }: { o: Order }) {
     <span className="mo-thumb" aria-hidden="true">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" loading="lazy" />
+        <img src={thumb(src)} alt="" loading="lazy" />
       ) : (
         <svg viewBox="0 0 24 24">
           <path d="M6 8h12l-1 12H7L6 8Z" />

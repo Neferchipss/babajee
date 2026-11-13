@@ -6,7 +6,7 @@ import { addToCart, tossIntoJar } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
 import { fadeIn } from "@/lib/fade-in";
-import { hasOptionPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
+import { hasOptionPhotos, photosFor, shelfPicks, thumb } from "@/lib/product-photos";
 import AddLabel from "./AddLabel";
 import Branded from "./Branded";
 import Price from "./Price";
@@ -202,7 +202,7 @@ export default function ProductDesk({
                     >
                       {swatches ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={photosFor(p.slug, o.label)[0]} alt="" loading="lazy" draggable={false} />
+                        <img src={thumb(photosFor(p.slug, o.label)[0])} alt="" loading="lazy" draggable={false} />
                       ) : (
                         <>
                           <span>{o.label}</span>
@@ -317,7 +317,7 @@ function Gallery({ name, tone, slug, option }: { name: string; tone: string; slu
           {photos.map((src, n) => (
             <button key={src} type="button" role="tab" aria-selected={n === at} aria-label={`Photo ${n + 1} of ${photos.length}`} onClick={() => setK(n)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img {...fadeIn} src={src} alt="" loading="lazy" draggable={false} />
+              <img {...fadeIn} src={thumb(src)} alt="" loading="lazy" draggable={false} />
             </button>
           ))}
         </div>

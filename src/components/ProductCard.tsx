@@ -5,7 +5,7 @@ import { type MouseEvent, type UIEvent, useEffect, useRef, useState, useSyncExte
 import { formatPrice } from "@/lib/currency";
 import { fadeIn } from "@/lib/fade-in";
 import { dealFor } from "@/lib/deal";
-import { dotColour, optionsWithPhotos, photosFor, shelfPicks } from "@/lib/product-photos";
+import { dotColour, optionsWithPhotos, photosFor, shelfPicks, thumb } from "@/lib/product-photos";
 import Branded from "./Branded";
 import { JarIcon } from "./icons";
 import Price from "./Price";
@@ -128,7 +128,7 @@ export default function ProductCard({
               <div key={`${opt}-${k}`} className="pc-slide">
                 {photos[k] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img {...fadeIn} src={photos[k]} alt={k === 0 ? product.name : ""} className="pa pc-photo" loading="lazy" draggable={false} />
+                  <img {...fadeIn} src={thumb(photos[k])} alt={k === 0 ? product.name : ""} className="pa pc-photo" loading="lazy" draggable={false} />
                 ) : (
                   <ProductArt name={product.name} tone={product.tone} />
                 )}
@@ -184,7 +184,7 @@ export default function ProductCard({
               >
                 {!colour && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photosFor(product.slug, label)[0]} alt="" loading="lazy" draggable={false} />
+                  <img src={thumb(photosFor(product.slug, label)[0])} alt="" loading="lazy" draggable={false} />
                 )}
               </button>
             );

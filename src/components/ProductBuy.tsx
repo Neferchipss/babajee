@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { addToCart, type CartItem, tossIntoJar } from "@/lib/cart";
-import { hasOptionPhotos, OPTION_EVENT, photosFor } from "@/lib/product-photos";
+import { hasOptionPhotos, OPTION_EVENT, photosFor, thumb } from "@/lib/product-photos";
 import Price from "./Price";
 import QtyStepper from "./QtyStepper";
 
@@ -61,7 +61,7 @@ export default function ProductBuy({
               >
                 {swatches ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img className="pd-swatch" src={photosFor(item.slug, v.label)[0]} alt="" loading="lazy" draggable={false} />
+                  <img className="pd-swatch" src={thumb(photosFor(item.slug, v.label)[0])} alt="" loading="lazy" draggable={false} />
                 ) : (
                   v.label
                 )}

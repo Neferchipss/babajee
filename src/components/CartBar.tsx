@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cartSums, LANDED_EVENT, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
-import { photosFor } from "@/lib/product-photos";
+import { photosFor, thumb } from "@/lib/product-photos";
 import "./cart-bar.css";
 
 // "View cart", floating at the bottom of the page once something is in the
@@ -53,7 +53,7 @@ export default function CartBar() {
             <span key={l.slug} className="cbar-pic" style={{ background: photo ? undefined : l.tone }}>
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={photo} alt="" />
+                <img src={thumb(photo)} alt="" />
               ) : (
                 l.name.slice(0, 1)
               )}

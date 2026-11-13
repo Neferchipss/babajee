@@ -251,30 +251,43 @@
    sit in its sky, the two buttons on its pavement, and the shop between is
    left clear */
 @media (max-aspect-ratio: 4/5) {
+  /* pinned to the top: on squat screens the pavement gives way, not the sky */
   .pano-front-art {
-    object-position: 50% 100%;
+    object-position: 50% 0;
   }
+  /* the logo and line stack in the sky above the shop (the top third of the
+     picture, which is pinned to the bottom of the screen): sized by the
+     screen's height too, so a short screen (Safari's bars) still fits them */
   .pano-front-copy {
-    position: static;
-    display: contents;
+    position: absolute;
+    inset: 0;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: calc(3.5svh + env(safe-area-inset-top)) 24px 0;
+    pointer-events: none;
+  }
+  .pano-front-copy > * {
+    pointer-events: auto;
   }
   .pano-front-logo {
-    position: absolute;
-    top: calc(9svh + env(safe-area-inset-top));
-    left: 50%;
-    width: min(9.5rem, 38vw);
-    transform: translateX(-50%);
+    width: min(7.5rem, 30vw, 14svh);
   }
   .pano-front-tag {
-    position: absolute;
-    top: calc(9svh + env(safe-area-inset-top) + min(9.5rem, 38vw) + 10px);
-    left: 50%;
-    width: max-content;
-    max-width: min(24ch, calc(100% - 48px));
-    margin: 0;
-    font-size: 0.9rem;
+    max-width: 26ch;
+    margin: 8px 0 0;
+    padding: 0;
+    background: none;
+    font-size: clamp(0.8rem, 1.9svh, 0.92rem);
+    line-height: 1.35;
     text-wrap: balance;
-    transform: translateX(-50%);
+  }
+  /* the dusk sky is dark: the line goes light */
+  html[data-mode="dark"]:not([data-look="daydream"]) .pano-front-tag {
+    color: #efe9dc;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.6);
   }
   .pano-front-actions {
     position: absolute;

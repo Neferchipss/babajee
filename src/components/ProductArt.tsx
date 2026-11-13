@@ -1,4 +1,4 @@
-import { photosFor } from "@/lib/product-photos";
+import { photosFor, thumb } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
 
 // A product's picture: its first photo when there is one, otherwise a large,
@@ -28,7 +28,7 @@ export default function ProductArt({
     >
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" className="pc-photo absolute inset-0 h-full w-full object-cover" loading="lazy" draggable={false} />
+        <img src={thumb(photo)} alt="" className="pc-photo absolute inset-0 h-full w-full object-cover" loading="lazy" draggable={false} />
       ) : (
         <span className="pa-initial text-[44cqw] font-extralight leading-none text-[color:var(--plate-ink,#cdc7b7)]">
           {initial}

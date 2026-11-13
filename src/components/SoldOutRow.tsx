@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { CardProduct } from "./ProductCard";
 import "./sold-out.css";
+import { thumb } from "@/lib/product-photos";
 
 // The end of a shelf: what's out of stock right now, kept out of the grid
 // so the shelf leads with what can be bought (like Blinkit's "Few items are
@@ -31,7 +32,7 @@ export default function SoldOutRow({ products, onOpen }: { products: CardProduct
               <span className="so-img">
                 {p.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0]} alt="" loading="lazy" draggable={false} />
+                  <img src={thumb(p.images[0])} alt="" loading="lazy" draggable={false} />
                 ) : null}
               </span>
               <span className="so-name">{p.name}</span>

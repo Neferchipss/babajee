@@ -6,6 +6,7 @@ import type React from "react";
 import type { CardProduct } from "./ProductCard";
 import CategoryIcon from "./CategoryIcon";
 import "./category-card.css";
+import { thumb } from "@/lib/product-photos";
 
 // A category's card: its name and a line on the left; on the right, two or
 // three of its products standing in a soft white shape. Every few seconds one
@@ -150,7 +151,7 @@ export default function CategoryCard({ name, slug, line, products, onOpen, link,
           <ul key={`out-${leaving!.round}`} className="ccard-items ccard-items--out" data-n={gone.length} aria-hidden="true">
             {gone.map((p, i) => (
               <li key={p.slug} className="ccard-item" data-slot={i} style={{ "--i": i } as React.CSSProperties}>
-                <img src={p.images![0]} alt="" draggable={false} />
+                <img src={thumb(p.images![0])} alt="" draggable={false} />
               </li>
             ))}
           </ul>
@@ -166,11 +167,11 @@ export default function CategoryCard({ name, slug, line, products, onOpen, link,
             <li key={p.slug} className="ccard-item" data-slot={i} style={{ "--i": i } as React.CSSProperties}>
               {onOpen ? (
                 <button type="button" onClick={() => onOpen(p.slug!)} aria-label={p.name}>
-                  <img src={p.images![0]} alt="" draggable={false} />
+                  <img src={thumb(p.images![0])} alt="" draggable={false} />
                 </button>
               ) : (
                 <Link href={p.href} aria-label={p.name}>
-                  <img src={p.images![0]} alt="" draggable={false} />
+                  <img src={thumb(p.images![0])} alt="" draggable={false} />
                 </Link>
               )}
             </li>

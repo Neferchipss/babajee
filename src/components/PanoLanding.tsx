@@ -14,6 +14,7 @@ import frontDuskTall from "@/assets/shop/front-dusk-tall.webp";
 import { PANO_SPOTS } from "./pano-spots";
 import "./shop-scene.css";
 import "./pano-landing.css";
+import { thumb } from "@/lib/product-photos";
 
 // The landing: the shopfront (a still for now; the walk-in will come back as
 // a scrubbed film), with two ways on: "Explore the shop" steps through the
@@ -269,6 +270,24 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
   // which look: follows light/dark (and Daydream), live
   const [lookSeen, setLook] = useState<Look | null>(null);
   const look: Look = lookSeen ?? "day";
+  // the screen's shape (which walk-in and shopfront), and whether the walk-in may load yet
+  const [tall, setTall] = useState(false);
+  const [warm, setWarm] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(TALL);
+    const on = () => setTall(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    // after the page has painted, unless the visitor asked to save data
+    const saving = (navigator as { connection?: { saveData?: boolean } }).connection?.saveData;
+    const go = () => !saving && window.setTimeout(() => setWarm(true), 1200);
+    if (document.readyState === "complete") go();
+    else window.addEventListener("load", go, { once: true });
+    return () => {
+      mq.removeEventListener("change", on);
+      window.removeEventListener("load", go);
+    };
+  }, []);
   useEffect(() => {
     const read = () => setLook(lookNow());
     read();
@@ -315,8 +334,12 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
     const tex = gl.createTexture();
     const img = new Image();
     img.decoding = "async";
-    img.src = ART[lookSeen].pano;
-    img.decode().then(
+    let texAsked = false;
+    const loadTex = () => {
+      if (texAsked || gone) return;
+      texAsked = true;
+      img.src = ART[lookSeen].pano;
+      img.decode().then(
       () => {
         if (gone) return;
         gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -331,7 +354,13 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
         setStatus("ready");
       },
       () => !gone && setStatus("flat"),
-    );
+      );
+    };
+    // out front, the shopfront is what matters: the shop loads just after
+    const soon = () => window.setTimeout(loadTex, 600);
+    if (enteredRef.current) loadTex();
+    else if (document.readyState === "complete") soon();
+    else window.addEventListener("load", soon, { once: true });
 
 
     // where the view looks, and how wide; dragging moves the target, the view eases to it
@@ -499,7 +528,8 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
       // a slow drift to the right until they take over
       if (isIn && !drag && !gyroOn && !still && !touchedRef.current) aim.yaw += dt * 0.04;
 
-      if (!texReady) return;
+      if (isIn && !texAsked) loadTex();
+      if (!texReady || !isIn) return;
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.viewport(0, 0, el.width, el.height);
       gl.uniform2f(u.res, el.width, el.height);
@@ -628,6 +658,7 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
 
     return () => {
       gone = true;
+      window.removeEventListener("load", soon);
       cancelAnimationFrame(raf);
       gl.deleteTexture(tex);
       window.removeEventListener("resize", size);
@@ -665,10 +696,10 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
           <video
             ref={film}
             className="pano-walk"
-            src={lookSeen ? ART[look].walk : undefined}
+            src={lookSeen ? (tall ? ART[look].walkTall : ART[look].walk) : undefined}
             muted
             playsInline
-            preload="auto"
+            preload={warm ? "auto" : "none"}
             aria-hidden="true"
           />
           <div className="pano-front-copy">
@@ -724,7 +755,7 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
                     style={{ "--i": i, "--r": `${(i - mid) * 7}deg`, "--y": `${Math.abs(i - mid) ** 2 * 7}px` } as React.CSSProperties}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image} alt="" draggable={false} loading="lazy" />
+                    <img src={thumb(p.image)} alt="" draggable={false} loading="lazy" />
                     <span className="sr-only">{p.name}</span>
                   </Link>
                 ))}

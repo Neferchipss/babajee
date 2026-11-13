@@ -16,7 +16,7 @@ const nextConfig: NextConfig = isPages
     }
   : {
       // let phones on the home Wi-Fi load the dev server (IP may change)
-      allowedDevOrigins: ["192.168.*.*"],
+      allowedDevOrigins: ["192.168.*.*", "172.20.10.*"], // home Wi-Fi, and the iPhone hotspot
     };
 
 export default nextConfig;
