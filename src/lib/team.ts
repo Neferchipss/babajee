@@ -49,6 +49,7 @@ export const AREAS: { id: string; label: string; tables: string[] }[] = [
   { id: "orders", label: "Orders", tables: ["orders", "order_refunds"] },
   { id: "customers", label: "Customers", tables: ["profiles", "customer_notes", "customer_segments"] },
   { id: "settings", label: "Settings", tables: ["store_settings"] },
+  { id: "export", label: "Data downloads", tables: ["export"] },
 ];
 export const AREA_NAME: Record<string, string> = {
   products: "product",
@@ -65,6 +66,7 @@ export const AREA_NAME: Record<string, string> = {
   customer_notes: "note",
   customer_segments: "customer group",
   store_settings: "settings",
+  export: "data download",
 };
 
 // field names as people say them; anything not here is shown tidied up

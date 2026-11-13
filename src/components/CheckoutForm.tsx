@@ -25,18 +25,30 @@ export default function CheckoutForm() {
   useEffect(() => {
     track("checkout");
   }, []);
+  // the checkout steps, for Analytics > Traffic: where people stop (0049)
+  const step = (label: string) => track("step", location.pathname, label.slice(0, 120));
+  useEffect(() => {
+    if (status === "out") step("sign-in needed");
+  }, [status]);
+  const stockBlocked = !!stock.blocked;
+  useEffect(() => {
+    if (stockBlocked) step("blocked: stock");
+  }, [stockBlocked]);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr("");
+    step("submit");
     const form = new FormData(e.currentTarget);
     const address = Object.fromEntries(FIELDS.map((k) => [k, String(form.get(`address_${k}`) ?? "")])) as Record<(typeof FIELDS)[number], string>;
     if (!address.line1) {
       setErr("Choose a delivery address, or add one and press Deliver here.");
+      step("blocked: no address");
       return;
     }
     if (!cart.length) {
       setErr("Your jar is empty.");
+      step("blocked: empty cart");
       return;
     }
     if (stock.blocked) {
@@ -46,6 +58,7 @@ export default function CheckoutForm() {
     const unpriced = cart.find((l) => l.price === undefined);
     if (unpriced) {
       setErr(`${unpriced.name} has no price yet, so it can't be ordered. Remove it to continue.`);
+      step("blocked: no price");
       return;
     }
     setBusy(true);
@@ -61,10 +74,12 @@ export default function CheckoutForm() {
         router.push(`/orders/view?id=${o.order_id}&placed=1`);
       } catch (x) {
         setErr(errText(x));
+        step(`error: ${errText(x)}`);
         setBusy(false);
       }
     } catch {
       setErr("Could not reach the shop. Check your connection and try again.");
+      step("error: offline");
       setBusy(false);
     }
   }

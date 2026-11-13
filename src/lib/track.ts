@@ -10,12 +10,42 @@
 // machines and staff are never counted: the database drops an admin's rows
 // (0048), and a device an admin has signed in on stays uncounted even signed
 // out (markStaffDevice). An order placed during a visit carries its id (0048).
+// Since 0049: a visitor id kept in this browser across visits (to count who
+// comes back and how many visits an order takes), the utm_ tags of the link
+// that started the visit, searches with how many products matched, and the
+// checkout steps.
 import { getSupabase } from "./supabase";
 
 const SESSION_KEY = "bj-visit";
 const REF_KEY = "bj-visit-ref";
 const SENT_KEY = "bj-visit-sent";
 const STAFF_KEY = "bj-staff";
+const VISITOR_KEY = "bj-visitor";
+const CAMPAIGN_KEY = "bj-visit-campaign";
+
+// a random id for this browser, kept across visits (empty when storage is blocked)
+function visitor(): string {
+  try {
+    let id = localStorage.getItem(VISITOR_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(VISITOR_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+// "source/medium/campaign" from the utm_ tags on the link that opened the
+// visit; a Google Ads click (gclid) without tags counts as google/cpc
+function campaignOf(search: string): string {
+  const q = new URLSearchParams(search);
+  const part = (k: string) => (q.get(k) ?? "").trim().toLowerCase().replace(/\//g, "-").slice(0, 50);
+  const src = part("utm_source");
+  if (src) return [src, part("utm_medium"), part("utm_campaign")].join("/").replace(/\/+$/, "");
+  return q.has("gclid") ? "google/cpc" : "";
+}
 
 // called when an admin is signed in on this browser
 export function markStaffDevice() {
@@ -55,6 +85,7 @@ function session(): string {
         if (r && r.host !== location.host) ref = r.host.replace(/^www\./, "").replace(/^l\.|^lm\.|^m\./, "");
       } catch {}
       sessionStorage.setItem(REF_KEY, ref);
+      sessionStorage.setItem(CAMPAIGN_KEY, campaignOf(location.search));
     }
     return id;
   } catch {
@@ -75,9 +106,11 @@ function counted(path: string) {
 
 // cart and checkout: once per visit, for the funnel. product and add: every
 // time, with the product's name, for the customer's activity.
-export type VisitKind = "view" | "cart" | "checkout" | "product" | "add";
+// search: label = what was typed, value = products that matched.
+// step: label = a checkout step ("submit", "blocked: …", "error: …").
+export type VisitKind = "view" | "cart" | "checkout" | "product" | "add" | "search" | "step";
 
-export function track(kind: VisitKind, path = location.pathname, label = "") {
+export function track(kind: VisitKind, path = location.pathname, label = "", value?: number) {
   if (!counted(path)) return;
   const sb = getSupabase();
   const id = session();
@@ -91,10 +124,12 @@ export function track(kind: VisitKind, path = location.pathname, label = "") {
     } catch {}
   }
   let ref = "";
+  let campaign = "";
   try {
     ref = sessionStorage.getItem(REF_KEY) ?? "";
+    campaign = sessionStorage.getItem(CAMPAIGN_KEY) ?? "";
   } catch {}
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const clean = (base && path.startsWith(base) ? path.slice(base.length) : path).replace(/\/$/, "").replace(/\/\?/, "?") || "/";
-  void sb.rpc("track_event", { p_session: id, p_kind: kind, p_path: clean, p_referrer: ref, p_device: device(), p_label: label }).then(() => {});
+  void sb.rpc("track_event", { p_session: id, p_kind: kind, p_path: clean, p_referrer: ref, p_device: device(), p_label: label, p_visitor: visitor(), p_campaign: campaign, p_value: value ?? null }).then(() => {});
 }

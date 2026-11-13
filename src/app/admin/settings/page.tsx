@@ -7,6 +7,7 @@ import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
 import { errText, getSettings, saveSettings } from "@/lib/orders-db";
+import { downloadAllData } from "@/lib/export-all";
 
 // Store rules the owner can change without a code change: the delivery charge,
 // the order value above which delivery is free, and GST.
@@ -122,6 +123,7 @@ export default function SettingsPage() {
           ["gst", "GST"],
           ["returns", "Returns"],
           ["stock", "Low stock"],
+          ["data", "Your data"],
         ].map(([id, label]) => (
           <a key={id} href={`#set-${id}`} className="adm-chip">
             {label}
@@ -295,7 +297,42 @@ export default function SettingsPage() {
           {msg && <span className="adm-muted adm-small" style={{ alignSelf: "center" }}>{msg}</span>}
         </div>
       </form>
+
+      <DataExport />
     </div>
+  );
+}
+
+// every table as raw CSV in one zip, for analysis (src/lib/export-all.ts)
+function DataExport() {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  async function go() {
+    setBusy(true);
+    setNote("Starting");
+    try {
+      await downloadAllData(setNote);
+      setNote("");
+      toast("Data downloaded");
+    } catch (e) {
+      setNote("");
+      toastError(e);
+    }
+    setBusy(false);
+  }
+  return (
+    <section className="adm-card" style={{ display: "grid", gap: 12, maxWidth: 560, marginTop: 16 }}>
+      <h2 id="set-data" style={{ margin: 0, scrollMarginTop: 140 }}>Your data</h2>
+      <p className="adm-muted adm-small" style={{ margin: 0 }}>
+        Everything the shop has recorded, one CSV file per table in a zip, with a README describing every column: orders, customers, products,
+        stock history, visits, searches, sign-ins and the activity log. It holds every customer&apos;s name, phone and address, so keep the file
+        private. Each download is written to the activity log.
+      </p>
+      <button type="button" className="adm-btn" style={{ justifySelf: "start" }} disabled={busy} onClick={go}>
+        {busy ? "Preparing…" : "Download all data"}
+      </button>
+      {note && <span className="adm-muted adm-small">{note}</span>}
+    </section>
   );
 }
 

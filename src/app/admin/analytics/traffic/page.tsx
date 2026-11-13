@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { CompareOff, Delta, Funnel, LineChart, money, SortTh, useSort, when } from "@/components/admin/ui";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
-import { errText, geo, traffic, type GeoCity, type Traffic, type TrafficGroup } from "@/lib/orders-db";
+import { errText, geo, traffic, trafficInsights, type GeoCity, type Traffic, type TrafficGroup, type TrafficInsights as Insights } from "@/lib/orders-db";
+import TrafficInsights from "@/components/admin/TrafficInsights";
 
 // Leaflet needs the browser
 const CustomerMap = dynamic(() => import("@/components/admin/CustomerMap"), { ssr: false });
@@ -36,8 +37,18 @@ export default function TrafficPage() {
   const [cur, setCur] = useState<Traffic | null>(null);
   const [prev, setPrev] = useState<Traffic | null>(null);
   const [places, setPlaces] = useState<{ cities: GeoCity[]; customers: number } | null>(null);
+  const [more, setMore] = useState<Insights | null>(null);
   const [err, setErr] = useState("");
   const { from, to } = range;
+
+  // the deeper half loads on its own: if it fails the rest still shows
+  useEffect(() => {
+    let live = true;
+    trafficInsights(from, to).then((x) => live && setMore(x), () => live && setMore(null));
+    return () => {
+      live = false;
+    };
+  }, [from, to]);
 
   useEffect(() => {
     const n = daysBetween(from, to);
@@ -107,6 +118,8 @@ export default function TrafficPage() {
           </div>
 
           <CategoryTable rows={a.categories} />
+
+          {more && <TrafficInsights x={more} />}
 
           {a.first_visit && new Date(a.first_visit) > new Date(from) && (
             <p className="adm-muted adm-small">Visitor counting started on {when(a.first_visit)}, so earlier days show no visits.</p>

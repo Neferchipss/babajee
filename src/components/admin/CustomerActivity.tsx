@@ -33,6 +33,8 @@ function describe(e: ActivityEvent, cats: Map<string, string>): string | null {
   if (e.kind === "add") return `Added ${e.label || "a product"} to the cart`;
   if (e.kind === "checkout") return "Reached checkout";
   if (e.kind === "cart") return null; // the per-product "add" rows say it better
+  if (e.kind === "search") return `Searched "${e.label}"`;
+  if (e.kind === "step") return e.label === "submit" ? "Pressed Place order" : `Checkout: ${e.label}`;
   const path = e.path.split("?")[0] || "/";
   const shelf = path.match(/^\/shop\/([^/]+)$/);
   if (shelf && shelf[1] !== "search") return `Browsed ${cats.get(shelf[1]) ?? titleCase(shelf[1])}`;

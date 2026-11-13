@@ -15,6 +15,7 @@ import ShopBar from "./ShopBar";
 import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
 import { addToCart, tossIntoJar } from "@/lib/cart";
+import { track } from "@/lib/track";
 import ProductCard, { type CardProduct } from "./ProductCard";
 import CategoryCard from "./CategoryCard";
 import SoldOutRow, { isSoldOut } from "./SoldOutRow";
@@ -158,6 +159,14 @@ export default function CategoryView({ category, products: snapshot, categories:
   const searched = words.length
     ? inSub.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""} ${p.sub ?? ""}`.toLowerCase().includes(w)))
     : inSub;
+  // what people search for and how many products matched, once they stop
+  // typing (Analytics > Traffic, 0049)
+  const hits = searched.length;
+  useEffect(() => {
+    if (q.length < 2) return;
+    const t = window.setTimeout(() => track("search", location.pathname, q.slice(0, 100), hits), 1200);
+    return () => window.clearTimeout(t);
+  }, [q, hits]);
   // then Sort & filter's choices; what's out of stock goes to the end of the
   // shelf, in its own row, unless the shopper filtered for it
   const picked = applyFilters(searched, filters);

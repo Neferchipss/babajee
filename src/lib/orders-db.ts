@@ -416,6 +416,36 @@ export async function traffic(from: string, to: string): Promise<Traffic> {
   return { ...t, first_visit: (data as Traffic).first_visit };
 }
 
+// searches, checkout steps, campaigns, returning visitors and the visits an
+// order took (migration 0049)
+export type TrafficInsights = {
+  searches: { q: string; visits: number; avg_hits: number; empty: number }[];
+  empty_searches: { q: string; visits: number }[];
+  search_visits: number;
+  steps: { step: string; visits: number; times: number }[];
+  checkout_visits: number;
+  campaigns: { name: string; visits: number; ordered: number; sales: number }[];
+  visitors: number;
+  new_visitors: number;
+  returning_visitors: number;
+  visits_untagged: number;
+  to_order: {
+    orders: number;
+    visits_median: number | null;
+    visits_avg: number | null;
+    days_median: number | null;
+    first_visit: number;
+    two_three: number;
+    four_plus: number;
+  };
+};
+
+export async function trafficInsights(from: string, to: string): Promise<TrafficInsights> {
+  const { data, error } = await db().rpc("admin_traffic_insights", { p_from: from, p_to: to });
+  if (error) throw error;
+  return numbers(data as TrafficInsights);
+}
+
 // the day (India time) of the first order, for the "All time" range
 export async function firstOrderDay(): Promise<string | null> {
   const { data, error } = await db().from("orders").select("created_at").order("created_at", { ascending: true }).limit(1).maybeSingle();
@@ -573,7 +603,7 @@ export async function savedProducts(): Promise<SavedProduct[]> {
 // One customer's activity on the site (migration 0036): how they first
 // arrived, when they were last seen, how many visits, and their latest
 // events, newest first.
-export type ActivityEvent = { kind: "view" | "cart" | "checkout" | "product" | "add"; path: string; label: string; device: string; referrer: string; visit: string; at: string };
+export type ActivityEvent = { kind: "view" | "cart" | "checkout" | "product" | "add" | "search" | "step"; path: string; label: string; device: string; referrer: string; visit: string; at: string };
 export type CustomerActivity = {
   first: { at: string; referrer: string; device: string; path: string } | null;
   last_seen: string | null;
