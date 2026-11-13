@@ -101,11 +101,6 @@ html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] :is(.
   background: #f0f2f5;
 }
 
-/* the footer in daylight: a hairline, not the night's hard black poster edge */
-html[data-mode="light"] #site[data-scope="shop"] .ftr {
-  border-top-color: var(--color-line);
-  box-shadow: none;
-}
 
 /* Dark: true black with dark-grey surfaces (like Discord's dark mode on a
    phone) and Babajee's brass as the one accent. */

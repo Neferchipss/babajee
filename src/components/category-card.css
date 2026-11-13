@@ -1,0 +1,333 @@
+/* A category's card (CategoryCard.tsx), on Blinkit's banner proportions:
+   wide and short (about 3 : 1), the name, a line and a "Shop now" button on
+   the left half; on the right half a cloud-shaped plate with two or three
+   products fanned out on it, big (most of the card's height), standing on
+   the card's bottom edge; a small tab hanging from the top edge. */
+
+#site .ccard {
+  --ccard-bg: color-mix(in srgb, var(--bb-hot) 16%, var(--color-char));
+  --ccard-splat: #ffffff;
+  position: relative;
+  display: grid;
+  grid-template-columns: 50% 50%;
+  /* its slot's width, always: with only a minimum height to go on, the
+     ratio would widen it past its slot (and over its neighbours) */
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  min-height: 120px;
+  max-height: 280px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ccard-bg);
+  color: var(--color-paper);
+  isolation: isolate;
+}
+html[data-mode="dark"] #site .ccard {
+  --ccard-bg: color-mix(in srgb, var(--bb-hot) 12%, var(--color-iron));
+  --ccard-splat: #f2f0ea;
+}
+
+/* ------------------------------------------------------------ the words */
+#site .ccard-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 14% 0 10% 9%;
+  color: inherit;
+  text-decoration: none;
+}
+#site .ccard-words {
+  min-width: 0;
+  max-width: 100%;
+}
+#site .ccard .ccard-name {
+  margin: 0;
+  font-size: clamp(1.4rem, 6.2vw, 3.1rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+#site .ccard-line {
+  margin: 0.4em 0 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: clamp(0.72rem, 2.9vw, 1rem);
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#site .ccard-cta {
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  margin: 0;
+  padding: 0.55em 1.05em;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-iron);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: clamp(0.78rem, 3vw, 1rem);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  cursor: pointer;
+}
+html[data-mode="dark"] #site .ccard-cta {
+  background: var(--color-paper);
+  color: var(--color-char);
+}
+#site :is(a.ccard-text:hover, a.ccard-text:focus-visible) .ccard-cta,
+#site button.ccard-cta:is(:hover, :focus-visible) {
+  background: var(--bb-hot);
+  color: var(--bb-on-accent, #000);
+}
+
+/* ------------------------------------------------------------ the stage */
+#site .ccard-stage {
+  position: relative;
+  min-width: 0;
+}
+/* the art behind the plate: none in Light and Dark */
+#site .ccard-art {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: none;
+}
+/* the plate: a soft cloud from the top fifth down, off the bottom and right */
+#site .ccard-splat {
+  position: absolute;
+  top: 22%;
+  right: -3%;
+  bottom: -6%;
+  left: -4%;
+  z-index: -1;
+  background: var(--ccard-splat);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cpath d='M0 140 C0 120 8 104 22 100 C20 80 36 66 52 72 C56 46 80 38 96 50 C104 22 134 18 146 38 C164 28 186 42 186 64 C198 74 200 100 200 140 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140' preserveAspectRatio='none'%3E%3Cpath d='M0 140 C0 120 8 104 22 100 C20 80 36 66 52 72 C56 46 80 38 96 50 C104 22 134 18 146 38 C164 28 186 42 186 64 C198 74 200 100 200 140 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+/* a shelf with no photos yet: its icon, big, on the plate */
+#site .ccard-icon {
+  position: absolute;
+  inset: 28% 0 0;
+  display: grid;
+  place-items: center;
+  color: var(--bb-hot);
+}
+#site .ccard-icon svg {
+  width: 42%;
+  height: auto;
+  max-height: 80%;
+}
+
+/* the set: big, fanned, standing on the bottom edge (a touch over it) */
+#site .ccard-items {
+  position: absolute;
+  top: 8%;
+  right: 3%;
+  bottom: -3%;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#site .ccard-items[data-n="1"] {
+  top: 4%;
+}
+#site .ccard-item {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 100%;
+  aspect-ratio: 1;
+  animation: ccard-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+  transform-origin: 50% 90%;
+}
+#site .ccard-item > * {
+  transform-origin: 50% 100%;
+  transition: transform 0.25s ease;
+}
+#site .ccard-items[data-n="3"] .ccard-item {
+  margin-inline: -16%;
+}
+#site .ccard-items[data-n="3"] .ccard-item[data-slot="0"] > * {
+  transform: translate(10%, -6%) rotate(-14deg) scale(0.8);
+}
+#site .ccard-items[data-n="3"] .ccard-item[data-slot="1"] {
+  z-index: 2;
+}
+#site .ccard-items[data-n="3"] .ccard-item[data-slot="2"] > * {
+  transform: translate(-10%, -6%) rotate(14deg) scale(0.8);
+}
+#site .ccard-items[data-n="2"] .ccard-item {
+  margin-inline: -10%;
+}
+#site .ccard-items[data-n="2"] .ccard-item[data-slot="0"] > * {
+  transform: translate(6%, -6%) rotate(-11deg) scale(0.86);
+}
+#site .ccard-items[data-n="2"] .ccard-item[data-slot="1"] {
+  z-index: 2;
+}
+#site .ccard-items[data-n="2"] .ccard-item[data-slot="1"] > * {
+  transform: rotate(4deg);
+}
+/* the set going out lifts away off the top, together */
+#site .ccard-items--out {
+  pointer-events: none;
+}
+#site .ccard-items--out .ccard-item {
+  animation: ccard-out 0.34s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+#site .ccard-item :is(a, button) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+#site .ccard-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.16));
+  transition: transform 0.2s;
+}
+#site .ccard-item :is(a, button):hover img {
+  transform: translateY(-3px) scale(1.04);
+}
+
+
+@keyframes ccard-pop {
+  0% { transform: scale(0.15); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes ccard-out {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-85%) scale(0.85); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #site .ccard-item {
+    animation: ccard-fade 0.3s ease both;
+  }
+  #site .ccard-items--out .ccard-item {
+    animation: ccard-fade 0.3s ease reverse both;
+  }
+  @keyframes ccard-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* ------------------------------------------------------------ where it sits */
+/* the top of a category's shelf */
+#site .cp-main > .ccard {
+  margin: 4px 0 18px;
+}
+/* on the all-products shelf, a full-width break before each category */
+#site .cp-grid > .ccard-row {
+  grid-column: 1 / -1;
+  margin: 18px 0 6px;
+  list-style: none;
+}
+#site .cp-grid > .ccard-row:first-child {
+  margin-top: 0;
+}
+
+@media (min-width: 901px) {
+  /* the shelf column is wider than a phone: the same card, a little shorter
+     for its width so it doesn't take over the page */
+  /* a set height on wide screens: the shelf column is too wide for a ratio */
+  #site .ccard {
+    aspect-ratio: auto;
+    height: 200px;
+    max-height: none;
+  }
+  #site .ccard .ccard-name {
+    font-size: clamp(2rem, 3.2vw, 3.1rem);
+  }
+  #site .ccard-line,
+  #site .ccard-cta {
+    font-size: 1rem;
+  }
+  #site .ccard-text {
+    padding: 30px 0 26px 40px;
+  }
+  #site .ccard-items[data-n="3"] .ccard-item {
+    margin-inline: -9%;
+  }
+}
+
+/* ------------------------------------------------------------ seven looks */
+/* Each card wears one of seven looks: in Light and Dark a tint of its own
+   (until the seven backgrounds are made); Daydream gives each its own art. */
+#site .ccard[data-v="0"] { --ccard-hue: #d3ab70; }
+#site .ccard[data-v="1"] { --ccard-hue: #4aa8e0; }
+#site .ccard[data-v="2"] { --ccard-hue: #3fb08a; }
+#site .ccard[data-v="3"] { --ccard-hue: #e46a8f; }
+#site .ccard[data-v="4"] { --ccard-hue: #8f72e0; }
+#site .ccard[data-v="5"] { --ccard-hue: #f08a4b; }
+#site .ccard[data-v="6"] { --ccard-hue: #9aa14f; }
+#site .ccard[data-v] {
+  --ccard-bg: color-mix(in srgb, var(--ccard-hue) 18%, var(--color-char));
+}
+html[data-mode="dark"] #site .ccard[data-v] {
+  --ccard-bg: color-mix(in srgb, var(--ccard-hue) 16%, var(--color-iron));
+}
+
+
+#site .cp-head[hidden] {
+  display: none !important;
+}
+
+/* a swap: the new set waits until the old one has gone (the old set's last
+   item leaves by about 0.4s), so the two never overlap */
+#site .ccard-items[data-after] .ccard-item {
+  animation-delay: calc(var(--i, 0) * 70ms + 420ms);
+}
+
+/* ------------------------------------------------------------ the art */
+/* The card's illustration, drawn for this layout: it frames the words and
+   the products and never runs behind them. A cut-out on transparency, so the
+   same art sits on every look's own card colour (Light, Dark, Daydream).
+   card-bg-1 for now on every card; the seven looks get one each. */
+#site .ccard[data-v] {
+  background-image: url("../assets/themes/card-bg-1.webp");
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-color: var(--ccard-bg);
+}
+/* wide screens: the same art re-composed for the long strip (not
+   stretched): the moon and its wind ribbon along the top past the title,
+   the sea and boats low in the open stretch before the products, and the
+   sunrise in the top-right corner curling down the right edge */
+@media (min-width: 901px) {
+  #site .ccard[data-v] {
+    background-image:
+      url("../assets/themes/card-bg-1-sun.webp"),
+      url("../assets/themes/card-bg-1-moon.webp"),
+      url("../assets/themes/card-bg-1-waves.webp");
+    background-position:
+      right 6px top 4px,
+      left 300px top 6px,
+      left 340px bottom -6px;
+    background-size:
+      auto 92%,
+      auto 34%,
+      auto 46%;
+  }
+}

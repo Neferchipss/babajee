@@ -7,6 +7,7 @@ import AddressPicker from "@/components/address/AddressPicker";
 import { useAuth } from "@/lib/auth";
 import { clearCart, useCart } from "@/lib/cart";
 import { track } from "@/lib/track";
+import { useCartStock } from "@/lib/cart-stock";
 
 // Checkout: pick where it goes, add a note, place the order. There is no
 // payment step yet. The order goes in unpaid, and the shop confirms payment
@@ -16,6 +17,7 @@ const FIELDS = ["recipient_name", "phone", "line1", "line2", "landmark", "city",
 export default function CheckoutForm() {
   const router = useRouter();
   const cart = useCart();
+  const stock = useCartStock(cart);
   const { status } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -35,6 +37,10 @@ export default function CheckoutForm() {
     }
     if (!cart.length) {
       setErr("Your jar is empty.");
+      return;
+    }
+    if (stock.blocked) {
+      setErr(stock.blocked);
       return;
     }
     const unpriced = cart.find((l) => l.price === undefined);
@@ -86,6 +92,11 @@ export default function CheckoutForm() {
         <p className="max-w-[60ch] text-muted">Place your order now. We&apos;ll get in touch to confirm payment before we pack it.</p>
       </section>
 
+      {stock.blocked && !err ? (
+        <p role="alert" className="text-red-soft">
+          {stock.blocked} <Link href="/cart" className="underline">Go to your cart</Link>
+        </p>
+      ) : null}
       {err && (
         <p role="alert" className="text-red-soft">
           {err}
@@ -93,7 +104,7 @@ export default function CheckoutForm() {
       )}
 
       {status === "in" ? (
-        <button className="btn btn-primary w-full sm:w-auto" disabled={busy || cart.length === 0}>
+        <button className="btn btn-primary w-full sm:w-auto" disabled={busy || cart.length === 0 || !!stock.blocked}>
           {busy ? "Placing your order" : "Place order"}
         </button>
       ) : (

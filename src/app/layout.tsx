@@ -20,6 +20,7 @@ import "./themes/baba.css";
 import "./themes/baba-night.css";
 import "./themes/baba-poster.css";
 import "./themes/modes.css";
+import "./themes/daydream-look.css";
 import "./themes/type.css";
 import "./themes/shelf-side.css";
 import "./themes/motion.css";

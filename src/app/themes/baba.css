@@ -69,9 +69,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
 
   /* ---------------------------------------------------- header bar */
   & .hdr {
-    background: var(--bb-hdr-bg);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    background: rgb(var(--bb-bg));
     border-bottom: 1.5px solid var(--bb-ink);
   }
   & .hdr-stripe {
@@ -648,28 +646,6 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     text-underline-offset: 5px;
   }
 
-  /* ---------------------------------------------------- footer */
-  & .ftr {
-    margin-top: 40px;
-    border-top: 3px solid var(--bb-ink);
-    background: var(--bb-maroon-dk);
-  }
-  & .ftr-inner {
-    max-width: 90rem;
-    padding: 36px 40px 100px;
-  }
-  & .ftr-note,
-  & .ftr-nav a {
-    color: #f3e1dc;
-  }
-  & .ftr-nav {
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  & .ftr-nav a:hover {
-    color: #fff;
-  }
 
   @media (max-width: 1100px) {
     & .si-grid {
@@ -705,9 +681,6 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     }
     & .cp-values {
       grid-template-columns: repeat(2, 1fr);
-    }
-    & .ftr-inner {
-      padding-inline: 20px;
     }
   }
 }

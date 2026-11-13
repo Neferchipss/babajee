@@ -12,6 +12,7 @@ import CartRecs, { type RecGroup } from "./CartRecs";
 import { JarArt } from "./CartJar";
 import ProductArt from "./ProductArt";
 import "./cart.css";
+import { useCartStock } from "@/lib/cart-stock";
 
 export type { RecGroup };
 
@@ -39,6 +40,8 @@ const Bin = () => (
 export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
   const cart = useCart();
   const sums = cartSums(cart);
+  // sold out since it went in, or more than are left
+  const stock = useCartStock(cart);
   const [undo, setUndo] = useState<Undo | null>(null);
   const [clearing, setClearing] = useState(false);
   const undoTimer = useRef(0);
@@ -122,6 +125,17 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
     </div>
   );
 
+  // checking out waits until nothing in the jar is sold out or short
+  const payLink = stock.blocked ? (
+    <span className="cv-pay" aria-disabled="true" data-blocked="true">
+      Pay {rs(sums.total)}
+    </span>
+  ) : (
+    <Link href="/checkout" className="cv-pay">
+      Pay {rs(sums.total)}
+    </Link>
+  );
+
   return (
     <div className="cv">
       {top}
@@ -151,8 +165,9 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
             {cart.map((line) => {
 
               const meta = [line.variant !== "Standard" ? line.variant : null, line.unit].filter(Boolean).join(" · ");
+              const short = stock.of.get(line.key);
               return (
-                <li key={line.key} className="cv-line">
+                <li key={line.key} className="cv-line" data-out={short && "out" in short ? true : undefined}>
                   <Link href={line.href} className="cv-thumb" tabIndex={-1} aria-hidden="true">
                     <ProductArt name={line.name} tone={line.tone} slug={line.slug} option={line.variant} />
                   </Link>
@@ -161,6 +176,11 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
                       {line.name}
                     </Link>
                     {meta && <p className="cv-meta">{meta}</p>}
+                    {short ? (
+                      <p className="cv-stock" role="status">
+                        {"out" in short ? "Out of stock" : `Only ${short.left} left`}
+                      </p>
+                    ) : null}
                     <button type="button" className="cv-wish" onClick={() => toWishlist(line)}>
                       Move to wishlist
                     </button>
@@ -185,6 +205,7 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
                       </span>
                       <button
                         type="button"
+                        disabled={!!short}
                         aria-label={`One more ${line.name}`}
                         onClick={() => {
                           buzz(5);
@@ -226,20 +247,26 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
             <dd>{rs(sums.total)}</dd>
           </div>
         </dl>
+        {stock.blocked ? (
+          <p className="cv-blocked" role="alert">
+            {stock.blocked}
+          </p>
+        ) : null}
         <div className="cv-go">
           {payWith}
-          <Link href="/checkout" className="cv-pay">
-            Pay {rs(sums.total)}
-          </Link>
+          {payLink}
         </div>
       </aside>
 
       {/* phones: how to pay and the pay button stay in reach */}
       <div className="cv-bar">
+        {stock.blocked ? (
+          <p className="cv-blocked cv-blocked--bar" role="alert">
+            {stock.blocked}
+          </p>
+        ) : null}
         {payWith}
-        <Link href="/checkout" className="cv-pay">
-          Pay {rs(sums.total)}
-        </Link>
+        {payLink}
       </div>
       {toast}
     </div>

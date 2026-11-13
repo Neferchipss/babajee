@@ -7,17 +7,18 @@ import { MODE_KEY } from "./mode-boot";
 // keeps following it if it changes (sunset, say). The choice is kept in this
 // browser; <html data-mode> carries what is showing, set before the first
 // paint by the layout's boot script, so a page never flashes the wrong one.
-export type ModePref = "system" | "light" | "dark";
+// "daydream" is the light layout dressed in the Daydream art (data-look).
+export type ModePref = "system" | "light" | "dark" | "daydream";
 const EVENT = "bj-mode-change";
 // the browser's own bars, matched to the page
-const BAR = { dark: "#000000", light: "#ffffff" };
+const BAR = { dark: "#000000", light: "#ffffff", daydream: "#faf6ec" };
 
 const prefersLight = () => window.matchMedia("(prefers-color-scheme: light)").matches;
 
 function readPref(): ModePref {
   try {
     const p = localStorage.getItem(MODE_KEY);
-    if (p === "light" || p === "dark") return p;
+    if (p === "light" || p === "dark" || p === "daydream") return p;
     // "earthy" was folded into dark
     if (p === "earthy") return "dark";
   } catch {}
@@ -26,11 +27,13 @@ function readPref(): ModePref {
 
 export function applyMode() {
   const pref = readPref();
-  const mode = pref === "system" ? (prefersLight() ? "light" : "dark") : pref;
+  const mode = pref === "system" ? (prefersLight() ? "light" : "dark") : pref === "daydream" ? "light" : pref;
   const root = document.documentElement;
   root.dataset.mode = mode;
+  if (pref === "daydream") root.dataset.look = "daydream";
+  else delete root.dataset.look;
   root.dataset.modePref = pref;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", BAR[mode]);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", pref === "daydream" ? BAR.daydream : BAR[mode]);
 }
 
 export function setModePref(pref: ModePref) {

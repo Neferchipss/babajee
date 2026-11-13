@@ -16,6 +16,8 @@ import DaydreamBloom from "./daydream/DaydreamBloom";
 import DaydreamHero from "./daydream/DaydreamHero";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import ProductCard, { type CardProduct } from "./ProductCard";
+import CategoryCard from "./CategoryCard";
+import SoldOutRow, { isSoldOut } from "./SoldOutRow";
 import ShelfFilter, { ActiveFilters, applyFilters, filterCount, NO_FILTERS, sortProducts, type Filters, type Sort } from "./ShelfFilter";
 import ProductSheet from "./ProductSheet";
 import ProductDesk from "./ProductDesk";
@@ -156,8 +158,11 @@ export default function CategoryView({ category, products: snapshot, categories:
   const searched = words.length
     ? inSub.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""} ${p.sub ?? ""}`.toLowerCase().includes(w)))
     : inSub;
-  // then Sort & filter's choices
-  const filtered = applyFilters(searched, filters);
+  // then Sort & filter's choices; what's out of stock goes to the end of the
+  // shelf, in its own row, unless the shopper filtered for it
+  const picked = applyFilters(searched, filters);
+  const soldOut = picked.filter(isSoldOut);
+  const filtered = soldOut.length ? picked.filter((p) => !isSoldOut(p)) : picked;
   const narrowed = q !== "" || filterCount(filters) > 0;
   const sortFilter = { products: searched, sort, onSort: setSort, filters, onFilters: setFilters };
   // Featured on the all-products shelf lists it category by category, under
@@ -170,12 +175,18 @@ export default function CategoryView({ category, products: snapshot, categories:
       ? filtered
       : sortProducts(filtered, sort);
 
+  // a category's own shelf or a collection's (not all products or a search):
+  // it opens with its card
+  const own = !everything;
+  const slugOf = new Map(categories.map((c) => [c.name, c.slug]));
+
   // a few of the shelf's own products, for the search bar to suggest
   const hints = products.slice(0, 8).map((p) => p.name);
 
   const openSlug = useSyncExternalStore(onSheet, sheetSlug, () => null);
   const desk = useSyncExternalStore(onDeskChange, isDesk, () => false);
-  const sheetItems = shown.filter((p) => p.slug && p.variants);
+  // the sheet turns through the shelf, then what is out of stock at its end
+  const sheetItems = [...shown, ...soldOut].filter((p) => p.slug && p.variants);
   const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
 
   // the browser tab names the open product, as its own address would; back
@@ -253,12 +264,18 @@ export default function CategoryView({ category, products: snapshot, categories:
         <div className="cp-main">
           {/* the shelf's header: how many, the name, its line (on phones the
               name is already in the bar above, so just the line and count) */}
-          <header className="cp-head">
+          {/* a category's own shelf opens with its one card; the all-products
+              shelf has one ahead of each category in the grid */}
+          {own ? (
+            <CategoryCard name={category.name} slug={category.slug} count={products.length} line={category.tagline} products={products} onOpen={openSheet} variant={Math.max(0, categories.findIndex((c) => c.slug === category.slug))} />
+          ) : null}
+          <header className="cp-head" hidden={own || category.slug === "all"}>
             <p className="cp-head-count">
               {narrowed ? `${shown.length} of ` : ""}
               {products.length} product{products.length === 1 ? "" : "s"}
             </p>
-            <h2 className="cp-head-name">{category.name}</h2>
+            {/* the all-products shelf: its carousel says it, no "All" title */}
+            {category.slug === "all" ? null : <h2 className="cp-head-name">{category.name}</h2>}
             {category.tagline ? <p className="cp-head-line">{category.tagline}</p> : null}
           </header>
           {subs.length > 0 && (
@@ -288,7 +305,7 @@ export default function CategoryView({ category, products: snapshot, categories:
             <ShelfFilter {...sortFilter} className="cp-sort" label />
           </div>
 
-          {order && !catalog ? null : shown.length === 0 ? (
+          {order && !catalog ? null : shown.length === 0 && !soldOut.length ? (
             <p className="cp-empty">
               {q ? (
                 <>No product matches &ldquo;{query}&rdquo;. Try a shorter word, or clear the search.</>
@@ -299,7 +316,11 @@ export default function CategoryView({ category, products: snapshot, categories:
           ) : (
             <ul className="cp-grid">
               {(brands ?? [{ brand: undefined, items: shown }]).map((g) => [
-                brands && (
+                brands && category.slug === "all" && g.brand && slugOf.get(g.brand) ? (
+                  <li key={`card-${g.brand}`} className="ccard-row">
+                    <CategoryCard name={g.brand} slug={slugOf.get(g.brand)!} count={g.items.length} products={g.items} onOpen={(s) => openSheet(s)} link variant={Math.max(0, categories.findIndex((c) => c.name === g.brand))} />
+                  </li>
+                ) : brands && (
                   <li key={`brand-${g.brand ?? ""}`} className="cp-brand">
                     <h2>{g.brand ?? "More"}</h2>
                     <span>{g.items.length}</span>
@@ -327,6 +348,7 @@ export default function CategoryView({ category, products: snapshot, categories:
               ])}
             </ul>
           )}
+          <SoldOutRow products={soldOut} onOpen={openSheet} />
 
           <ul className="cp-values" aria-label="What we stand for">
             {VALUES.map(({ Icon, label }) => (

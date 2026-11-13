@@ -923,11 +923,9 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       position: absolute;
       inset: 0;
       z-index: -1;
-      background: rgb(var(--bb-bg) / 0.96);
-      box-shadow: 0 0 0 100vmax rgb(var(--bb-bg) / 0.96);
+      background: rgb(var(--bb-bg));
+      box-shadow: 0 0 0 100vmax rgb(var(--bb-bg));
       clip-path: inset(0 -100vmax);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
     }
     & .sb-top {
       display: contents;

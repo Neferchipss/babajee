@@ -7,9 +7,7 @@
   width: 100%;
   padding: env(safe-area-inset-top) 0 0;
   /* the same solid bar as on wide screens */
-  background: rgb(var(--bb-bg) / 0.96);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgb(var(--bb-bg));
   color: var(--color-paper, #f4efff);
 }
 
@@ -285,26 +283,30 @@
     transform: scale(1);
   }
 }
-/* the new shelf's cards come in from the side the tab was on */
-[data-bb-slide="next"] .cp-grid {
-  animation: sb-in-next 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+/* the new shelf (its card and its products, together) comes in from the
+   side the tab was on, fading up from where the old one dimmed to */
+[data-bb-slide="next"] #site .cp-main {
+  animation: sb-in-next 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-[data-bb-slide="prev"] .cp-grid {
-  animation: sb-in-prev 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+[data-bb-slide="prev"] #site .cp-main {
+  animation: sb-in-prev 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes sb-in-next {
   from {
-    opacity: 0.3;
-    transform: translateX(28px);
+    opacity: 0.25;
+    transform: translateX(36px);
   }
 }
 @keyframes sb-in-prev {
   from {
-    opacity: 0.3;
-    transform: translateX(-28px);
+    opacity: 0.25;
+    transform: translateX(-36px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  [data-bb-slide] #site .cp-main {
+    animation: none;
+  }
   .sb-ink,
   .sb-cat,
   .sb-cat svg {
@@ -546,9 +548,7 @@
   padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   /* the shelf bar's top row */
   min-height: calc(58px + env(safe-area-inset-top));
-  background: rgb(var(--bb-bg) / 0.96);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgb(var(--bb-bg));
   border-bottom: 1px solid var(--color-line, #2d2860);
   color: var(--color-paper, #f4efff);
 }
@@ -623,3 +623,4 @@
 .lb .sb-me {
   margin-left: auto;
 }
+

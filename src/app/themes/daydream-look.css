@@ -1,0 +1,123 @@
+/* Daydream look (preview): Light's layout, Daydream's art language.
+   Applied over data-mode="light"; nothing here moves or resizes UI, except the
+   art slots marked SLOT, which sit in space the layout already leaves empty. */
+@font-face { font-family: "DD Display"; src: url("../../assets/themes/daydream-display.woff2") format("woff2"); }
+@font-face { font-family: "DD Body"; src: url("../../assets/themes/daydream-body.woff2") format("woff2"); font-weight: 300 900; }
+
+html[data-look="daydream"] {
+  --dd-ink: #181916;
+  --dd-paper: #faf6ec;
+  --dd-pink: #f65baf;
+  --dd-cyan: #16b8df;
+  --dd-green: #169d75;
+  --dd-gold: #ffcf33;
+  --dd-off: -2px 1.5px 0 rgb(246 91 175 / 0.8), 2px -1.5px 0 rgb(22 184 223 / 0.75);
+  --dd-off-big: -4px 3px 0 rgb(246 91 175 / 0.8), 4px -3px 0 rgb(22 184 223 / 0.75);
+}
+/* the channels the bars, sheets and the header's backdrop draw with; as
+   specific as Light's own (:root[data-mode]), and later, so these win */
+:root[data-mode][data-look="daydream"] {
+  --bb-fg: 24 25 22;
+  --bb-bg: 250 246 236;
+  --bb-sheet: #fffdf7;
+  --bb-scrim: rgb(24 25 22 / 0.4);
+}
+html[data-look="daydream"] body,
+html[data-look="daydream"][data-mode="light"] #site,
+html[data-look="daydream"][data-mode="light"] #site[data-scope="shop"] {
+  --color-char: #faf6ec;
+  --color-iron: #fffdf7;
+  --color-ash: #f1ebdc;
+  --color-line: #ddd5c3;
+  --color-paper: #181916;
+  --color-muted: #6a6656;
+  --color-plate: #f3eee2;
+  --color-ink: #181916;
+  --color-rasta-gold: #ffcf33;
+  --plate-ink: #181916;
+  --bb-ink: #181916;
+  --bb-hot: #ffcf33;
+  --bb-maroon: #f65baf;
+  --bb-maroon-dk: #d94394;
+  --bb-rose: #f65baf;
+  --bb-green: #169d75;
+  --bb-on-accent: #181916;
+  --bb-hdr-bg: rgb(250 246 236 / 0.92);
+  --bbn-edge: #ddd5c3;
+  background: #faf6ec;
+  font-family: "DD Body", system-ui, sans-serif;
+}
+
+html[data-look="daydream"] #site { isolation: isolate; }
+html[data-look="daydream"] #site :is(.cp-hero, .sb, .cp-top) { background: transparent !important; }
+
+/* ---------------------------------------------------------------- type */
+html[data-look="daydream"] #site :is(.cp-head-line, .cp-head-name, .si-title, .cp-title, .ps-name, .ps-title, .pd-title, h1, h2) {
+  font-family: "DD Display", system-ui; font-weight: 400; letter-spacing: 0;
+}
+/* the printed-twice titles */
+html[data-look="daydream"] #site :is(h1, h2, .cp-title, .si-title) { text-shadow: var(--dd-off); }
+html[data-look="daydream"] #site .cp-head-name { text-shadow: var(--dd-off-big); letter-spacing: 0; }
+html[data-look="daydream"] #site .cp-head-line { font-family: "DD Body", system-ui; font-weight: 700; }
+html[data-look="daydream"] #site .pc-price { font-family: "DD Display", system-ui; font-weight: 400; letter-spacing: 0.01em; }
+html[data-look="daydream"] #site .pc-name { font-weight: 600; }
+
+/* ---------------------------------------------------------------- bars and chips */
+html[data-look="daydream"] #site .sb-search {
+  background: #fffdf7;
+}
+html[data-look="daydream"] #site .sb-cat[aria-current="page"],
+html[data-look="daydream"] #site .sb-cat[aria-current="true"] { color: var(--dd-pink); }
+html[data-look="daydream"] #site .sb-cat[aria-current] svg { color: var(--dd-pink); }
+html[data-look="daydream"] #site .sb-where-kicker { color: var(--dd-green); }
+
+/* cards: clean photos on a soft white plate */
+html[data-look="daydream"] #site .pc-img {
+  background: #fffdf7;
+}
+html[data-look="daydream"] #site :is(.pa, .ps-stage, .ps-photos) { background: #fffdf7 !important; }
+html[data-look="daydream"] #site .pc-add {
+  outline: 0 !important; border-radius: 10px !important; background: var(--dd-gold); color: var(--dd-ink); background: var(--dd-gold) !important; color: var(--dd-ink) !important;
+}
+html[data-look="daydream"] .cbar { background: var(--dd-gold); color: var(--dd-ink); }
+
+/* ---------------------------------------------------------------- SLOT: category art
+   The category card (category-card.css) is the banner: Daydream puts the
+   category's illustration behind the plate the products stand in. Until each
+   category has its own, the landscape stands in for all of them. */
+html[data-look="daydream"] #site .ccard {
+  --ccard-bg: #f3ead3;
+  --ccard-splat: #fffdf7;
+}
+html[data-look="daydream"] #site .ccard .ccard-name {
+  font-family: "DD Display", system-ui; font-weight: 400; letter-spacing: 0;
+  text-shadow: var(--dd-off);
+}
+html[data-look="daydream"] #site .ccard-cta { background: #fffdf7; color: var(--dd-ink); }
+
+/* ---------------------------------------------------------------- SLOT: the flower
+   Desktop: in the empty space under the category list. Phones: none. */
+@media (min-width: 901px) {
+  html[data-look="daydream"] #site .cp-side::after {
+    content: ""; display: block; height: 300px; margin-top: 24px;
+    background: url("../../assets/themes/daydream-bloom.webp") left bottom / contain no-repeat;
+  }
+}
+
+/* ---------------------------------------------------------------- SLOT: footer art
+   The shared footer (site-footer.css), with the landscape rising out of the
+   page's own paper above it: the art is drawn on the same ivory, so no seam. */
+html[data-look="daydream"] #site .ftr { border-top: 0; position: relative; z-index: 2; }
+html[data-look="daydream"] #site .ftr::before {
+  content: ""; display: block;
+  height: clamp(140px, 22vw, 360px);
+  background: url("../../assets/themes/daydream-landscape.webp") center bottom / cover no-repeat;
+  -webkit-mask-image: linear-gradient(transparent, #000 30%); mask-image: linear-gradient(transparent, #000 30%);
+}
+html[data-look="daydream"] #site .ftr-h { color: var(--dd-pink); }
+html[data-look="daydream"] #site .ftr-col a:hover { color: var(--dd-pink); }
+
+html[data-look="daydream"] :is(#site, .ps-card, .pd) :is(.pd-price, .ps-price, [class*="price"]) { color: var(--dd-ink) !important; }
+html[data-look="daydream"] :is(.ps-add, .pd-add, .ps-buy button, .pd-buy button) { background: var(--dd-gold) !important; color: var(--dd-ink) !important; }
+
+

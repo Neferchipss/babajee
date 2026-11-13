@@ -7,10 +7,13 @@
 const NOTE = "babajee:start-inside";
 
 // from: the category page being left (its slug), to step back out of its shelf
+export const SHOP_NOTE_EVENT = "babajee:shop-note";
 export function enterShop(from?: string) {
   try {
     sessionStorage.setItem(NOTE, from || "-");
   } catch {}
+  // the landing may already be open: tell it
+  window.dispatchEvent(new Event(SHOP_NOTE_EVENT));
 }
 
 // the logo, clicked on the landing itself: the scene walks back out to the street

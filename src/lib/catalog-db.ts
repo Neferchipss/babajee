@@ -81,12 +81,20 @@ function localProductDetail(categorySlug: string, productSlug: string) {
   };
 }
 
+// How many can be bought. Stock is only counted where the admin turned on
+// "Count stock" for the option (track_stock); an option that isn't counted is
+// always available, whatever its number says (most sit at 0, never set).
+export const UNCOUNTED = 999;
+function stockOf(v: { stock_qty: unknown; track_stock?: boolean | null }) {
+  return v.track_stock ? toNumber(v.stock_qty) : UNCOUNTED;
+}
+
 function normalizeVariants(
-  rows: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null,
+  rows: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown }[] | null,
 ): DbVariant[] {
   if (!rows?.length) return [{ id: "default", label: "Default", stockQty: 0 }];
   return rows.slice().sort((a, b) => a.sort_order - b.sort_order).map((v) => ({
-    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: toNumber(v.stock_qty), compareAt: toNumber(v.compare_at) || undefined,
+    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: stockOf(v), compareAt: toNumber(v.compare_at) || undefined,
   }));
 }
 
@@ -107,7 +115,7 @@ function toCard(row: {
   subcategory?: string | null;
   brand?: string | null;
   created_at?: string | null;
-  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; sort_order: number; compare_at?: unknown }[] | null;
+  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown }[] | null;
 }): DbCardProduct {
   const variants = normalizeVariants(row.product_variants);
   return {
@@ -183,7 +191,7 @@ async function liveCategoryDetail(slug: string) {
   if (!category) return null;
   const { data: products } = await sb
     .from("products")
-    .select("slug, name, sort_order, seo_title, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
+    .select("slug, name, sort_order, seo_title, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
     .eq("category_id", category.id)
     .order("sort_order");
   return {
@@ -215,7 +223,7 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
   if (!category) return null;
   const { data: product } = await sb
     .from("products")
-    .select("id, slug, name, description, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
+    .select("id, slug, name, description, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
     .eq("category_id", category.id)
     .eq("slug", productSlug)
     .maybeSingle();
@@ -223,7 +231,7 @@ async function liveProductDetail(categorySlug: string, productSlug: string) {
   if (!product) return null;
   const { data: moreRows } = await sb
     .from("products")
-    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, sort_order, compare_at)")
+    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
     .eq("category_id", category.id)
     .neq("slug", productSlug)
     .order("sort_order")
@@ -268,7 +276,7 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   if (!sb) return null;
   const { data, error } = await sb
     .from("products")
-    .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, sort_order, compare_at), categories!inner(slug, name)")
+    .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
   return (data ?? [])
@@ -320,12 +328,12 @@ export function getSeoCatalog(): Promise<SeoProduct[]> {
   return (seoCache ??= (async () => {
     const sb = client();
     const data = sb
-      ? (await sb.from("products").select("slug, name, description, brand, seo_title, seo_description, categories!inner(slug, name), product_variants(price, stock_qty)")).data
+      ? (await sb.from("products").select("slug, name, description, brand, seo_title, seo_description, categories!inner(slug, name), product_variants(price, stock_qty, track_stock)")).data
       : null;
     if (data?.length)
       return data.map((p) => {
         const c = p.categories as unknown as { slug: string; name: string };
-        const vs = (p.product_variants ?? []) as { price: unknown; stock_qty: unknown }[];
+        const vs = (p.product_variants ?? []) as { price: unknown; stock_qty: unknown; track_stock?: boolean | null }[];
         const prices = vs.map((v) => toNumber(v.price)).filter((x) => x > 0);
         return {
           slug: p.slug,
@@ -338,7 +346,7 @@ export function getSeoCatalog(): Promise<SeoProduct[]> {
           seoDescription: p.seo_description ?? "",
           minPrice: prices.length ? Math.min(...prices) : undefined,
           maxPrice: prices.length ? Math.max(...prices) : undefined,
-          inStock: vs.some((v) => v.stock_qty == null || toNumber(v.stock_qty) > 0),
+          inStock: vs.some((v) => stockOf(v) > 0),
         };
       });
     if (!useLocal) return [];

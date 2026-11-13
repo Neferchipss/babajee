@@ -1,0 +1,133 @@
+/* The end of a shelf: what's out of stock (SoldOutRow.tsx). A panel with a
+   heading in the warning colour, a line under it, and square tiles: the
+   first few products, faded, then one with how many more. */
+#site .so {
+  margin: 28px 0 8px;
+  padding: 20px 18px 18px;
+  border-radius: 16px;
+  background: var(--color-iron);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+#site .so .so-title {
+  margin: 0;
+  color: #d9534f;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-shadow: none;
+}
+#site .so-sub {
+  margin: 4px 0 16px;
+  color: var(--color-paper);
+  font-size: 0.9rem;
+}
+#site .so-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#site .so-item {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#site .so-img {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-plate);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+#site .so-img img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  /* not to be had right now: faded and grey */
+  filter: grayscale(0.85);
+  opacity: 0.6;
+}
+#site .so-name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+#site .so-more .so-img {
+  background: none;
+  color: var(--color-paper);
+}
+#site .so-more .so-name {
+  display: grid;
+  justify-items: center;
+  color: var(--color-paper);
+  text-align: center;
+}
+#site .so-all {
+  color: var(--bb-green, #23a55a);
+  font-weight: 700;
+}
+@media (min-width: 901px) {
+  #site .so {
+    padding: 24px 28px;
+  }
+  #site .so .so-title {
+    font-size: 1.6rem;
+  }
+  #site .so-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* held in place whatever the page around it does to headings, lists and
+   buttons (the themes style those inside the shelf) */
+html #site .so,
+html #site .so * {
+  text-align: left;
+}
+html #site .so-row > li {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+html #site .so-row .so-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  height: auto;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+html #site .so-row .so-img {
+  position: static;
+  display: grid;
+  width: 100%;
+  height: auto;
+  order: 0;
+}
+html #site .so-row .so-name {
+  position: static;
+  order: 1;
+}
+html #site .so-more .so-name {
+  text-align: center;
+}

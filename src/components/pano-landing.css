@@ -1,0 +1,366 @@
+/* The landing's painted shop (PanoLanding.tsx): the panorama under the entry
+   film, the shelf labels over it, and a way on to every product. The page
+   frame, the words and the cue are shop-scene.css's. */
+.pano .pano-canvas,
+.pano .pano-film {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pano .pano-canvas {
+  cursor: grab;
+  /* a sideways drag looks around; up and down still scrolls the page */
+  touch-action: pan-y;
+}
+.pano .pano-canvas:active {
+  cursor: grabbing;
+}
+.pano .pano-canvas:focus-visible {
+  outline: 3px solid var(--color-rasta-gold);
+  outline-offset: -3px;
+}
+.pano .pano-film {
+  pointer-events: none;
+}
+/* the street's darkened left edge and frame go with the words */
+.pano .scene-landing {
+  transition: none;
+}
+
+/* a shelf's label: a small pill on the painted shelf */
+.pano-spot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  padding: 2px 8px;
+  border: 1px solid #181916;
+  border-radius: 999px;
+  background: #fffdf7;
+  color: #181916;
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition:
+    opacity 0.25s,
+    background-color 0.15s,
+    color 0.15s;
+}
+/* aimed at (the dot, the eye, or a hover): lit, a little bigger, a ring */
+.pano-spot:hover,
+.pano-spot:focus-visible,
+.pano-spot[data-aim] {
+  background: #ffcf33;
+}
+.pano-spot[data-aim] {
+  z-index: 3;
+  --aim-scale: 1.15;
+  box-shadow:
+    0 0 0 3px rgb(24 25 22 / 0.35),
+    0 0 18px #ffcf33;
+}
+.pano-spot {
+  transition:
+    opacity 0.25s,
+    --aim-scale 0.2s cubic-bezier(0.3, 1.5, 0.5, 1),
+    background-color 0.15s,
+    box-shadow 0.15s;
+}
+/* the mouse is the eye over the view */
+@media (hover: hover) and (pointer: fine) {
+  .pano[data-inside] .pano-canvas,
+  .pano[data-inside] .pano-canvas:active {
+    cursor: none;
+  }
+}
+
+.pano-hint[data-hidden="true"] {
+  opacity: 0;
+}
+/* inside: the plain list, a tap away */
+.pano-all {
+  position: absolute;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 3;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #181916;
+  color: #fffdf7;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.3);
+}
+.pano-all:hover,
+.pano-all:focus-visible {
+  background: #f65baf;
+}
+
+/* phones: the list button sits left, the gyro (shop-scene.css's .scene-gyro) right */
+@media (max-width: 760px) {
+  .pano-all {
+    left: calc(12px + env(safe-area-inset-left));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    transform: none;
+  }
+}
+
+/* the eye and the dot, in the shop's colours: round, ink-edged, gold when aimed */
+.pano .scene-cursor::before,
+.pano .scene-cursor::after,
+.pano .scene-dot {
+  border-radius: 50%;
+}
+.pano .scene-cursor::before {
+  border-color: #181916;
+  box-shadow: 0 0 0 1.5px rgb(255 253 247 / 0.9), 0 0 10px rgb(0 0 0 / 0.25);
+}
+.pano .scene-cursor::after {
+  background: #181916;
+  box-shadow: 0 0 0 1.5px rgb(255 253 247 / 0.9);
+}
+.pano .scene-cursor[data-on="true"]::before {
+  background: rgb(255 207 51 / 0.25);
+  border-color: #181916;
+  box-shadow: 0 0 0 1.5px rgb(255 253 247 / 0.9), 0 0 16px #ffcf33;
+}
+.pano .scene-dot[data-aim="true"] {
+  background: #ffcf33;
+}
+
+/* ------------------------------------------------ the shopfront
+   One painted still, filling the view: the shop on its left, and on its
+   right the logo, a line and the two ways on. "Explore the shop" lifts it
+   away to the shop inside. */
+.pano .scene-stage {
+  position: relative;
+  top: auto;
+}
+.pano-front {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: #faf6ec;
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pano[data-inside] .pano-front {
+  opacity: 0;
+  transform: scale(1.12);
+  pointer-events: none;
+}
+.pano-front-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 30% 60%;
+}
+.pano-front-copy {
+  position: absolute;
+  top: 0;
+  right: clamp(24px, 6vw, 110px);
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(30rem, 42vw);
+  text-align: center;
+}
+.pano-front-logo {
+  width: min(16rem, 30vw);
+  filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.25));
+}
+.pano-front-tag {
+  max-width: 26ch;
+  margin-top: 18px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgb(250 246 236 / 0.85);
+  color: #181916;
+  font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.pano-front-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+.pano-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 11rem;
+  padding: 13px 22px;
+  border: 2px solid #181916;
+  border-radius: 12px;
+  background: #fffdf7;
+  color: #181916;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.18);
+  transition:
+    transform 0.15s,
+    background-color 0.15s;
+}
+.pano-btn--go {
+  background: #ffcf33;
+}
+.pano-btn:hover,
+.pano-btn:focus-visible {
+  transform: translateY(-2px);
+  background: #f65baf;
+  color: #fff;
+}
+/* inside: back out front */
+.pano-out {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #181916;
+  border-radius: 999px;
+  background: #fffdf7;
+  color: #181916;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+}
+/* phones (any tall screen): the tall shopfront fills it; the logo and line
+   sit in its sky, the two buttons on its pavement, and the shop between is
+   left clear */
+@media (max-aspect-ratio: 4/5) {
+  .pano-front-art {
+    object-position: 50% 100%;
+  }
+  .pano-front-copy {
+    position: static;
+    display: contents;
+  }
+  .pano-front-logo {
+    position: absolute;
+    top: calc(9svh + env(safe-area-inset-top));
+    left: 50%;
+    width: min(9.5rem, 38vw);
+    transform: translateX(-50%);
+  }
+  .pano-front-tag {
+    position: absolute;
+    top: calc(9svh + env(safe-area-inset-top) + min(9.5rem, 38vw) + 10px);
+    left: 50%;
+    width: max-content;
+    max-width: min(24ch, calc(100% - 48px));
+    margin: 0;
+    font-size: 0.9rem;
+    text-wrap: balance;
+    transform: translateX(-50%);
+  }
+  .pano-front-actions {
+    position: absolute;
+    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    left: 16px;
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin: 0;
+  }
+  .pano-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 13px 10px;
+    font-size: 0.95rem;
+  }
+  .pano-front[data-walking] :is(.pano-front-logo, .pano-front-tag, .pano-front-actions) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pano-front-logo,
+  .pano-front-tag,
+  .pano-front-actions {
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* out front the landing is the whole screen: no bar on top, no footer;
+   inside the shop the bar comes back, and the view fits under it */
+body:has(.pano) .ftr,
+body:has(.pano:not([data-inside])) :is(.hdr, .lb) {
+  display: none !important;
+}
+.pano .scene-stage {
+  height: 100svh;
+}
+.pano[data-inside] .scene-stage {
+  height: calc(100svh - var(--pano-bar, 0px));
+}
+
+/* a shelf's products, in the shop's colours */
+.pano-peek .scene-peek-item {
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fffdf7;
+  box-shadow: 0 0 0 1.5px #181916, 0 8px 18px rgb(0 0 0 / 0.25);
+}
+.pano-peek[data-open="true"] .scene-peek-item:hover,
+.pano-peek[data-open="true"] .scene-peek-item:focus-visible {
+  box-shadow: 0 0 0 2px #181916, 0 12px 26px rgb(0 0 0 / 0.3), 0 0 22px #ffcf33;
+}
+
+/* the walk in: over the shopfront still, shown only while it plays */
+.pano-walk {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+}
+.pano-front[data-walking] .pano-walk {
+  opacity: 1;
+}
+.pano-front[data-walking] .pano-front-copy {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+.pano-front-copy {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+/* while walking in, no zoom-away: the film's last frame is the shop's first */
+.pano[data-inside] .pano-front[data-walking] {
+  transform: none;
+}
+
+/* walking (either way): the front comes and goes without the zoom */
+.pano-front[data-walking] {
+  transition: opacity 0.2s ease;
+}
+
+/* dark mode: the shopfront's backing (seen for a moment before its picture) is night, not paper */
+html[data-mode="dark"]:not([data-look="daydream"]) .pano-front {
+  background: #1d1f22;
+}

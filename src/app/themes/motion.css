@@ -236,7 +236,11 @@ img[data-fade] {
   transition: opacity var(--dur-2) var(--ease-out);
 }
 html[data-shelf-leaving] #site .cp-main {
-  opacity: 0.4;
+  opacity: 0.25;
+  transform: scale(0.99);
+  transition:
+    opacity var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {

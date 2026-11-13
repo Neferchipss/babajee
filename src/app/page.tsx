@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ShopScene from "@/components/ShopScene";
+import PanoLanding from "@/components/PanoLanding";
 import { getIndexCategories, getShelfPicks } from "@/lib/catalog-db";
 import { absUrl } from "@/lib/site";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/` },
 };
 
-// The landing: the storefront, then scrolling walks you in to the shop floor.
+// The landing: the street, then scrolling walks you in to the painted shop.
 export default async function Home() {
   const categories = await getIndexCategories();
   const shelves = await getShelfPicks(categories.map((c) => c.slug));
@@ -28,7 +28,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
-      <ShopScene intro shelves={shelves} categories={categories.map(({ slug, name, count }) => ({ slug, name, count }))} />
+      <PanoLanding shelves={shelves} categories={categories.map(({ slug, name, count }) => ({ slug, name, count }))} />
     </>
   );
 }

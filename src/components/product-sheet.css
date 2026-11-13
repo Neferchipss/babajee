@@ -902,3 +902,21 @@ html #site[data-scope] .ps .pa-initial {
     animation: none;
   }
 }
+
+/* an option that's out of stock: still pickable (to see it), faded, struck */
+.ps-opt[data-out],
+.pdk-opt[data-out] {
+  opacity: 0.45;
+}
+.ps-opt[data-out] .ps-opt-label,
+.pdk-opt[data-out] span {
+  text-decoration: line-through;
+}
+.ps-opt[data-out] .ps-swatch,
+.pdk-opt[data-out] img {
+  filter: grayscale(1);
+}
+.ps-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -133,6 +133,8 @@ export default function ProductSheet({
   const variant = p.variants[v] ?? { label: "Standard", stockQty: 1 };
   const showOptions = p.variants.length > 1;
   const deal = dealFor(variant.price, p.mrp);
+  // stock is only counted where the admin turned it on (catalog-db stockOf)
+  const out = variant.stockQty <= 0;
 
   // lock the page behind, hide the floating third eye, Escape closes
   useEffect(() => {
@@ -371,6 +373,7 @@ export default function ProductSheet({
 
 
   function add() {
+    if (out) return;
     buzz([10, 40, 10]);
     addToCart({ slug: p.slug, href: p.href, name: p.name, tone: p.tone, variant: variant.label, price: variant.price, unit: p.unit });
     tossIntoJar(card.current?.querySelector(".ps-art") ?? null);
@@ -443,6 +446,7 @@ export default function ProductSheet({
                     role="radio"
                     aria-checked={k === v}
                     className="ps-opt"
+                    data-out={o.stockQty <= 0 || undefined}
                     aria-label={hasOptionPhotos(p.slug) ? o.label : undefined}
                     title={hasOptionPhotos(p.slug) ? o.label : undefined}
                     onClick={() => {
@@ -479,8 +483,8 @@ export default function ProductSheet({
               <Price className="ps-bar-price" value={variant.price} />
             )}
             </div>
-            <button type="button" className="ps-add" data-added={added === p.slug} onClick={add}>
-              <AddLabel text={added === p.slug ? "Added" : "Add"} done={added === p.slug} />
+            <button type="button" className="ps-add" data-added={added === p.slug} onClick={add} disabled={out}>
+              <AddLabel text={out ? "Out of stock" : added === p.slug ? "Added" : "Add"} done={added === p.slug} />
             </button>
           </footer>
         </section>

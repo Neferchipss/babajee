@@ -1,0 +1,113 @@
+/* The footer, the same in every look: brand on the left, three link columns,
+   a hairline and a closing line. Colours come from the page's tokens:
+   the page's own background, muted links that light up to the text colour,
+   and the accent for the small column headings. */
+/* the same side margins as the header: its logo and the profile icon line
+   up with the footer's first and last columns */
+#site .ftr {
+  --ftr-x: 16px;
+  margin-top: 64px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  box-shadow: none;
+  background: var(--color-char);
+  color: var(--color-paper);
+}
+#site .ftr-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+  gap: 48px;
+  padding: 64px var(--ftr-x) 48px;
+}
+#site .ftr-logo-img {
+  width: 76px;
+}
+#site .ftr-blurb {
+  max-width: 34ch;
+  margin-top: 18px;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+#site .ftr-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+}
+/* small spaced capitals; the looks' own heading styles (display faces,
+   Daydream's off-register print) don't reach these */
+#site .ftr .ftr-h {
+  margin: 0 0 18px;
+  color: var(--bb-hot);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace !important;
+  font-size: 0.72rem;
+  font-weight: 500 !important;
+  letter-spacing: 0.2em !important;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-shadow: none !important;
+}
+#site .ftr-col ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#site .ftr-col a {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  transition: color 0.15s;
+}
+#site .ftr-col a:hover,
+#site .ftr-col a:focus-visible {
+  color: var(--color-paper);
+}
+#site .ftr-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin: 0 var(--ftr-x);
+  padding: 20px 0 calc(28px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+#site .ftr-bottom p {
+  margin: 0;
+}
+/* room for the View cart pill comes from #site's own bottom padding (cart-bar.css) */
+
+@media (max-width: 767px) {
+  #site .ftr-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding-top: 48px;
+  }
+  #site .ftr-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px 20px;
+  }
+  /* Help sits under the other two, full width */
+  #site .ftr-col:last-child {
+    grid-column: 1 / -1;
+  }
+  #site .ftr-bottom {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 901px) {
+  #site .ftr {
+    --ftr-x: 40px;
+  }
+  /* evenly spread, the last column ending where the header's icons do */
+  #site .ftr-cols {
+    display: flex;
+    justify-content: space-between;
+  }
+}

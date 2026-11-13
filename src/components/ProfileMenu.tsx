@@ -9,7 +9,7 @@ import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
 import { setModePref, useModePref, type ModePref } from "@/lib/mode";
 import { JarIcon, UserIcon } from "./icons";
 import SceneLink from "./SceneLink";
-import { enterShop } from "./scene-note";
+import { enterShop, TO_STREET } from "./scene-note";
 import "./shop-bar.css";
 import "./profile-panel.css";
 import { useFocusTrap } from "@/lib/use-focus-trap";
@@ -27,8 +27,9 @@ const JAR = "M7 4h10M8 4v3l-2 3v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9l-2-3V4M6 11h
 const HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z";
 
 const LIST: { href: string; label: string; d: string }[] = [
-  // the shop is the 3D one
-  { href: "/", label: "Shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
+  // the painted shop to walk around, and the plain list of every product
+  { href: "/", label: "Explore the shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
+  { href: "/shop", label: "Shop products", d: "M4 6h16M4 12h16M4 18h10" },
   { href: "/about", label: "About Babajee", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
   { href: "/support", label: "Help and support", d: "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z" },
   { href: "/contact", label: "Contact us", d: "M4 6h16v12H4zM4 7l8 6 8-6" },
@@ -252,6 +253,20 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
           <ModeSwitch />
 
           <nav className="pp-list" aria-label="Pages">
+            <Link
+              href="/"
+              className="pp-row"
+              onClick={(e) => {
+                // home is the shopfront; already on it (maybe inside the shop): walk back out
+                if (path !== "/") return;
+                e.preventDefault();
+                window.dispatchEvent(new Event(TO_STREET));
+                shut();
+              }}
+            >
+              <I d="M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5" />
+              <span>Home</span>
+            </Link>
             {signedIn && (
               <Link href="/account" className="pp-row" onClick={go("/account")}>
                 <UserIcon size={22} />
@@ -273,8 +288,8 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
                   href={r.href}
                   className="pp-row"
                   onClick={() => {
-                    // Shop: straight into the shop, not the street (already there, nothing to do)
-                    if (r.href === "/" && path !== "/") enterShop();
+                    // Explore: straight into the shop, not out front
+                    if (r.href === "/") enterShop();
                     go(r.href)();
                   }}
                 >
@@ -314,6 +329,7 @@ const MODES: { id: ModePref; label: string; d: string }[] = [
   { id: "system", label: "System", d: "M4 5h16v11H4zM9 20h6M12 16v4" },
   { id: "light", label: "Light", d: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { id: "dark", label: "Dark", d: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
+  { id: "daydream", label: "Daydream", d: "M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 10V5a2.5 2.5 0 0 1 0 5zM12 14v5a2.5 2.5 0 0 0 0-5zM10 12H5a2.5 2.5 0 0 0 5 0zM14 12h5a2.5 2.5 0 0 1-5 0z" },
 ];
 
 // Light, dark, or as the device is set (the default)

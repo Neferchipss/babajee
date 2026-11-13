@@ -195,6 +195,7 @@ export default function ProductDesk({
                       role="radio"
                       aria-checked={k === v}
                       className="pdk-opt"
+                      data-out={o.stockQty <= 0 || undefined}
                       title={o.label}
                       aria-label={swatches ? o.label : undefined}
                       onClick={() => setChoice({ slug: p.slug, v: k })}

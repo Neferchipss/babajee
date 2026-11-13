@@ -546,3 +546,35 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
     animation: none;
   }
 }
+
+/* a line that sold out since it went in the jar, or asks for more than are
+   left: said under its name; a sold-out one fades */
+#site .cv-stock {
+  margin-top: 4px;
+  color: #d9534f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+#site .cv-line[data-out] :is(.cv-thumb, .cv-name, .cv-price) {
+  opacity: 0.45;
+}
+#site .cv-step button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+#site .cv-blocked {
+  margin: 0 0 12px;
+  color: #d9534f;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+#site .cv-pay[data-blocked] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* in the phone's bottom bar, across the top of it */
+#site .cv-blocked--bar {
+  flex-basis: 100%;
+  margin: 0 0 8px;
+}
