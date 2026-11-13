@@ -83,6 +83,11 @@ export default function TrafficPage() {
                   { name: "Ordered", value: a.orders },
                 ]}
               />
+              {a.orders > 0 && (
+                <p className="adm-muted adm-small">
+                  {count(a.orders_linked)} of {count(a.orders)} orders are tied to the visit they came from; the source, device and first-page tables count only those.
+                </p>
+              )}
             </section>
             <section className="adm-card">
               <h2>When people visit</h2>
@@ -93,7 +98,7 @@ export default function TrafficPage() {
 
           {places && <CustomerMap cities={places.cities} customers={places.customers} />}
 
-          <GroupTable title="Where visitors come from" about="The site that sent each visit. Compare how often each source's visitors reach the cart and checkout." rows={a.sources} total={a.sessions} name={sourceName} first="Source" />
+          <GroupTable title="Where visitors come from" about="The site that sent each visit, and how many of its visits ended in an order (orders placed since visits were tied to orders)." rows={a.sources} total={a.sessions} name={sourceName} first="Source" />
           <GroupTable title="Devices" about="What people visit on." rows={a.devices} total={a.sessions} name={devName} first="Device" />
 
           <div className="adm-pair">
@@ -245,6 +250,8 @@ function GroupTable({ title, about, rows, total, name, first }: { title: string;
     bounce: { get: (r) => share(r.bounced, r.sessions) },
     cart: { get: (r) => share(r.cart, r.sessions) },
     checkout: { get: (r) => share(r.checkout, r.sessions) },
+    ordered: { get: (r) => share(r.ordered, r.sessions) },
+    sales: { get: (r) => r.sales },
   });
   const max = Math.max(1, ...rows.map((r) => r.sessions));
   return (
@@ -268,6 +275,8 @@ function GroupTable({ title, about, rows, total, name, first }: { title: string;
                 <SortTh k="bounce" label="Bounce" sort={sort} onSort={toggle} right />
                 <SortTh k="cart" label="Reached cart" sort={sort} onSort={toggle} right />
                 <SortTh k="checkout" label="Reached checkout" sort={sort} onSort={toggle} right />
+                <SortTh k="ordered" label="Ordered" sort={sort} onSort={toggle} right />
+                <SortTh k="sales" label="Sales" sort={sort} onSort={toggle} right />
               </tr>
             </thead>
             <tbody>
@@ -286,6 +295,10 @@ function GroupTable({ title, about, rows, total, name, first }: { title: string;
                   <td className="r">{pct(share(r.bounced, r.sessions))}</td>
                   <td className="r">{pct(share(r.cart, r.sessions))}</td>
                   <td className="r">{pct(share(r.checkout, r.sessions))}</td>
+                  <td className="r">
+                    {pct(share(r.ordered, r.sessions))} <span className="adm-muted adm-small">{count(r.ordered)}</span>
+                  </td>
+                  <td className="r">{money(r.sales)}</td>
                 </tr>
               ))}
             </tbody>
@@ -302,6 +315,7 @@ function LandingTable({ rows }: { rows: Traffic["landing"] }) {
     sessions: { get: (r) => r.sessions },
     bounce: { get: (r) => share(r.bounced, r.sessions) },
     checkout: { get: (r) => share(r.checkout, r.sessions) },
+    ordered: { get: (r) => share(r.ordered, r.sessions) },
   });
   return (
     <section className="adm-card rpt">
@@ -322,6 +336,7 @@ function LandingTable({ rows }: { rows: Traffic["landing"] }) {
                 <SortTh k="sessions" label="Visits" sort={sort} onSort={toggle} right />
                 <SortTh k="bounce" label="Bounce" sort={sort} onSort={toggle} right />
                 <SortTh k="checkout" label="To checkout" sort={sort} onSort={toggle} right />
+                <SortTh k="ordered" label="Ordered" sort={sort} onSort={toggle} right />
               </tr>
             </thead>
             <tbody>
@@ -331,6 +346,7 @@ function LandingTable({ rows }: { rows: Traffic["landing"] }) {
                   <td className="r">{count(r.sessions)}</td>
                   <td className="r">{pct(share(r.bounced, r.sessions))}</td>
                   <td className="r">{pct(share(r.checkout, r.sessions))}</td>
+                  <td className="r">{pct(share(r.ordered, r.sessions))}</td>
                 </tr>
               ))}
             </tbody>

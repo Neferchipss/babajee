@@ -3,13 +3,19 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { ADDED_EVENT, LANDED_EVENT, type CartItem } from "@/lib/cart";
-import { track } from "@/lib/track";
+import { useAuth } from "@/lib/auth";
+import { markStaffDevice, track } from "@/lib/track";
 
 // Counts a page view on every route change, and an add to cart whenever
 // something lands in Baba's jar (see src/lib/track.ts); every add is also
 // recorded with the product's name, for the customer's activity.
 export default function SiteTracker() {
   const path = usePathname();
+  const { profile } = useAuth();
+  const staff = profile?.role === "admin";
+  useEffect(() => {
+    if (staff) markStaffDevice();
+  }, [staff]);
   useEffect(() => {
     track("view");
   }, [path]);

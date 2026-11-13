@@ -153,6 +153,10 @@ export async function placeOrder(lines: CheckoutLine[], address: CheckoutAddress
   const { data, error } = await db().rpc("place_order", { p_items: lines, p_address: address, p_notes: notes });
   if (error) throw error;
   const row = (data as { order_id: string; order_number: string }[])[0];
+  // tie the order to the visit it came from (0048); analytics only, never blocks the order
+  const { visitId } = await import("./track");
+  const visit = visitId();
+  if (row && visit) void db().rpc("link_order_session", { p_order: row.order_id, p_session: visit }).then(() => {});
   return row;
 }
 
@@ -384,7 +388,7 @@ export async function analytics(from: string, to: string): Promise<Analytics> {
 
 // Visits grouped into sessions. A bounce is a visit that saw one page and
 // went no further; "cart" and "checkout" count visits that reached them.
-export type TrafficGroup = { name: string; sessions: number; views: number; bounced: number; cart: number; checkout: number };
+export type TrafficGroup = { name: string; sessions: number; views: number; bounced: number; cart: number; checkout: number; ordered: number; sales: number };
 export type Traffic = {
   sessions: number;
   views: number;
@@ -393,11 +397,12 @@ export type Traffic = {
   cart_sessions: number;
   checkout_sessions: number;
   orders: number;
+  orders_linked: number;
   first_visit: string | null;
   daily: { day: string; sessions: number; views: number }[];
   sources: TrafficGroup[];
   devices: TrafficGroup[];
-  landing: { name: string; sessions: number; bounced: number; checkout: number }[];
+  landing: { name: string; sessions: number; bounced: number; checkout: number; ordered: number }[];
   pages: { name: string; views: number; visitors: number }[];
   hours: { dow: number; hour: number; sessions: number }[];
   categories: { name: string; views: number; visitors: number; units: number; sales: number }[];

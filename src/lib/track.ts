@@ -6,13 +6,41 @@
 // cart and reaching checkout are each one row in public.site_events, plus
 // one row per product opened and per add to cart, with the product's name.
 // For a signed-in customer the database ties the visit to their account
-// (migration 0036; the privacy policy says so). Admin pages and developer
-// machines are never counted.
+// (migration 0036; the privacy policy says so). Admin pages, developer
+// machines and staff are never counted: the database drops an admin's rows
+// (0048), and a device an admin has signed in on stays uncounted even signed
+// out (markStaffDevice). An order placed during a visit carries its id (0048).
 import { getSupabase } from "./supabase";
 
 const SESSION_KEY = "bj-visit";
 const REF_KEY = "bj-visit-ref";
 const SENT_KEY = "bj-visit-sent";
+const STAFF_KEY = "bj-staff";
+
+// called when an admin is signed in on this browser
+export function markStaffDevice() {
+  try {
+    localStorage.setItem(STAFF_KEY, "1");
+  } catch {}
+}
+
+function staffDevice() {
+  try {
+    return localStorage.getItem(STAFF_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+// this visit's id, for tying an order to the visit (empty when not counted)
+export function visitId(): string {
+  if (!counted(location.pathname)) return "";
+  try {
+    return sessionStorage.getItem(SESSION_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
 
 function session(): string {
   try {
@@ -42,7 +70,7 @@ function device(): string {
 }
 
 function counted(path: string) {
-  return process.env.NODE_ENV === "production" && !/\/admin(\/|$)/.test(path);
+  return process.env.NODE_ENV === "production" && !/\/admin(\/|$)/.test(path) && !staffDevice();
 }
 
 // cart and checkout: once per visit, for the funnel. product and add: every
