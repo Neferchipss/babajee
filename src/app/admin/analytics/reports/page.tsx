@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AnalyticsTabs, RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { dayLabel } from "@/lib/dates";
+import { getReceipt, listReceipts } from "@/lib/stock-in/db";
+import { purchasesCsv } from "@/lib/stock-in/purchases-csv";
 import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
 
 // Report tables: one date range, one report at a time, every column sortable,
@@ -255,6 +257,29 @@ export default function ReportsPage() {
     URL.revokeObjectURL(a.href);
   }
 
+  // Purchases: one row per posted supplier-bill line, fetched on demand
+  const [buying, setBuying] = useState(false);
+  const [buyErr, setBuyErr] = useState("");
+  async function downloadPurchases() {
+    setBuying(true);
+    setBuyErr("");
+    try {
+      const bills = (await listReceipts(range.from, range.to)).filter((r) => r.status === "posted" && r.kind === "bill");
+      const full = [];
+      for (let i = 0; i < bills.length; i += 8) full.push(...(await Promise.all(bills.slice(i, i + 8).map((b) => getReceipt(b.id)))));
+      const blob = new Blob([purchasesCsv(full)], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `babajee-purchases-${range.from}-to-${range.to}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setBuyErr(errText(e));
+    } finally {
+      setBuying(false);
+    }
+  }
+
   const by = (key: string) => setSort((s) => (s?.key === key ? (s.desc ? { key, desc: false } : null) : { key, desc: true }));
 
   return (
@@ -351,6 +376,21 @@ export default function ReportsPage() {
             </div>
           )
         )}
+      </section>
+
+      <section className="adm-card rpt">
+        <div className="rpt-head">
+          <div>
+            <h2>Purchases</h2>
+            <p className="adm-muted adm-small">
+              One row per line on each posted supplier bill dated in the range: supplier and GSTIN, bill number, product, quantity, price, taxable value, GST rate and the CGST, SGST and IGST, and whether the credit is claimable. Voided bills are left out. Dates are YYYY-MM-DD and numbers are plain, for joining in a spreadsheet.
+            </p>
+          </div>
+          <button type="button" className="adm-btn" disabled={buying} onClick={downloadPurchases}>
+            {buying ? "Preparing." : "Download CSV"}
+          </button>
+        </div>
+        {buyErr && <p className="adm-err">{buyErr}</p>}
       </section>
     </div>
   );

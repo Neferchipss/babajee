@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect, useState } from "react";
 import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
+import { purchaseGst, type PurchaseGstMonth } from "@/lib/stock-in/db";
 import { analytics, errText, failedDeliveries, profit, salesByAge, salesByCategory, savedProducts, type AgeSales, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
 
 // The stats page. One date range drives every card, and each number is
 // compared with the period just before it (the same number of days).
 const count = (n: number) => n.toLocaleString("en-IN");
+const MONTH = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 const pct = (n: number) => `${n.toFixed(1)}%`;
 const shortMoney = (n: number) => (n >= 1e5 ? `₹${(n / 1e5).toFixed(n >= 1e6 ? 0 : 1)}L` : n >= 1e3 ? `₹${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : `₹${n}`);
 
@@ -71,6 +73,16 @@ export default function AnalyticsPage() {
       () => {},
     );
   }, [from, to]);
+  // GST paid on supplier bills (0050); an error here must not take the page down
+  const [bills, setBills] = useState<{ key: string; rows?: PurchaseGstMonth[]; err?: string } | null>(null);
+  useEffect(() => {
+    const key = `${from}|${to}`;
+    purchaseGst(from, to).then(
+      (rows) => setBills({ key, rows }),
+      (e) => setBills({ key, err: errText(e) }),
+    );
+  }, [from, to]);
+  const billsNow = bills?.key === `${from}|${to}` ? bills : null;
   const failedNow = failed?.key === `${from}|${to}` ? failed.n : 0;
 
   const a = cur;
@@ -236,7 +248,7 @@ export default function AnalyticsPage() {
                 <span>{money(Math.round(pc.gst_collected))}</span>
                 {pc.input_credit && (
                   <>
-                    <span>GST paid on stock</span>
+                    <span>GST inside the cost of what sold</span>
                     <span>−{money(Math.round(pc.gst_paid))}</span>
                   </>
                 )}
@@ -253,6 +265,50 @@ export default function AnalyticsPage() {
               </p>
             </section>
           </div>
+          <section className="adm-card">
+            <h2>GST paid on supplier bills</h2>
+            {!billsNow ? (
+              <p className="adm-muted adm-small">Loading.</p>
+            ) : billsNow.err ? (
+              <p className="adm-err">Couldn&apos;t load the GST on supplier bills. {billsNow.err}</p>
+            ) : (
+              <>
+                {(() => {
+                  const rows = billsNow.rows ?? [];
+                  const sum = (k: "claimable_gst" | "cgst" | "sgst" | "igst") => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+                  const m2 = (n: number) => money(Math.round(n * 100) / 100);
+                  return (
+                    <>
+                      <div className="adm-kv anx-kv">
+                        <span className="tot">Input credit to claim</span>
+                        <span className="tot">{m2(sum("claimable_gst"))}</span>
+                        <span>CGST</span>
+                        <span>{m2(sum("cgst"))}</span>
+                        <span>SGST</span>
+                        <span>{m2(sum("sgst"))}</span>
+                        <span>IGST</span>
+                        <span>{m2(sum("igst"))}</span>
+                      </div>
+                      {rows.length > 0 && (
+                        <div className="adm-kv anx-kv">
+                          <span className="adm-muted adm-small">By month of bill</span>
+                          <span />
+                          {rows.map((r) => (
+                            <Fragment key={r.month}>
+                              <span>{MONTH.format(new Date(`${r.month}-01T12:00:00Z`))}</span>
+                              <span>{m2(Number(r.claimable_gst))}</span>
+                            </Fragment>
+                          ))}
+                        </div>
+                      )}
+                      {rows.length === 0 && <p className="adm-muted adm-small">No supplier bills in this range.</p>}
+                    </>
+                  );
+                })()}
+                <p className="adm-muted adm-small anx-foot">This is the input credit to claim on GSTR-3B. Opening stock and entries without a bill aren&apos;t included.</p>
+              </>
+            )}
+          </section>
           <section className="adm-card">
             <div className="anx-card-head">
               <h2>Most saved for later</h2>
