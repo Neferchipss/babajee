@@ -85,7 +85,7 @@ export default function TrafficPage() {
 
           <div className="adm-pair">
             <section className="adm-card">
-              <h2>From visit to order</h2>
+              <h2>Conversion rate</h2>
               <Funnel
                 steps={[
                   { name: "Visited", value: a.sessions },
@@ -426,7 +426,7 @@ function CategoryTable({ rows }: { rows: Traffic["categories"] }) {
     <section className="adm-card rpt">
       <div className="rpt-head">
         <div>
-          <h2>Browsing vs buying</h2>
+          <h2>Browse-to-buy rate</h2>
           <p className="adm-muted adm-small">
             Views of each category&apos;s shelf against what sold from it. Many views per sale means people look but don&apos;t buy: check the prices and photos there.
           </p>

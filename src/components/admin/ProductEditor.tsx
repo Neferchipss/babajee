@@ -12,6 +12,7 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
 import { costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
 import { photosFor, shootPhotos } from "@/lib/product-photos";
+import ProductStock from "@/components/admin/stock/ProductStock";
 
 type Api = ReturnType<typeof adminApi>;
 
@@ -215,9 +216,15 @@ export default function ProductEditor({
   });
 
   const many = product.variants.length > 1;
-  const single = product.variants[0];
-  // stock is tracked for the product as a whole: every option, or none
   const tracked = product.variants.some((v) => v.track_stock);
+  // the shop's GST rate, the default for stock bought in a product with no bracket of its own
+  const [shopRate, setShopRate] = useState(18);
+  useEffect(() => {
+    import("@/lib/orders-db")
+      .then((m) => m.getSettings())
+      .then((s) => setShopRate(s.gst_rate))
+      .catch(() => {});
+  }, []);
 
   // The photos are in groups: the product's own, then one per option (with no
   // options, just the one). A photo's group is the option it shows.
@@ -372,16 +379,23 @@ export default function ProductEditor({
           />
         </section>
 
+        {/* stock, before the price: add stock, correct a count, what moved */}
+        <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
+
+        <section className="ape-fields">
+          {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
+          <StockHistory variants={product.variants} />
+        </section>
+
         {/* price: buying price, GST, cost price, selling price, profit (per size or colour when it has them) */}
         <Pricing
           product={product}
-          tracked={tracked}
           onPatch={(patch) => run(() => api.updateProduct(product.id, patch))}
           onVariant={(v, patch) => run(() => api.upsertVariant(product.id, { ...v, ...patch }))}
           onDeleteVariant={(v) => run(() => api.deleteVariant(v.id))}
           onAdd={() =>
             run(() =>
-              api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), stock_qty: 0, track_stock: tracked, is_visible: true, sort_order: product.variants.length }),
+              api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), is_visible: true, sort_order: product.variants.length }),
             )
           }
           photos={(v) => (
@@ -396,12 +410,8 @@ export default function ProductEditor({
           )}
         />
 
-        {/* stock and category, plainly */}
+        {/* category, plainly */}
         <section className="ape-fields ape-plain">
-          <div className="ape-line">
-            <span className="ape-line-label">Stock</span>
-            <StockLine product={product} tracked={tracked} onSave={(patch) => single && run(() => api.upsertVariant(product.id, { ...single, ...patch }))} onCount={() => run(() => Promise.all(product.variants.map((v) => api.upsertVariant(product.id, { id: v.id, track_stock: true }))))} />
-          </div>
           <label className="ape-line">
             <span className="ape-line-label">Category</span>
             <select className="ape-line-input" value={product.category_id} onChange={(e) => run(() => api.updateProduct(product.id, { category_id: e.target.value }))}>
@@ -460,27 +470,9 @@ export default function ProductEditor({
             </label>
             <SubcategoryField key={`sub-${product.id}`} product={product} onSave={(subcategory) => run(() => api.updateProduct(product.id, { subcategory }))} />
             <div className="ape-field ape-field--wide">
-              <span id="ape-tags-label">Tags, for finding it</span>
+              <span id="ape-tags-label">Tags (for search)</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
             </div>
-          </section>
-
-          <section className="ape-fields">
-            <h3>Stock counting</h3>
-            <button
-              type="button"
-              className={`ape-switch ${tracked ? "is-on" : ""}`}
-              aria-pressed={tracked}
-              onClick={() => run(() => Promise.all(product.variants.map((v) => api.upsertVariant(product.id, { id: v.id, track_stock: !tracked }))))}
-            >
-              <i aria-hidden="true" />
-              {tracked ? "Counting stock" : "Not counting stock"}
-            </button>
-            <p className="ape-hint">
-              {tracked ? "Each order takes its pieces off the stock, and at 0 it can't be ordered." : "Always orderable. Turn this on to count stock down with each order and stop orders at 0."}
-            </p>
-            {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
-            {tracked && <StockHistory variants={product.variants} />}
           </section>
 
           <SpecsEditor key={`specs-${product.id}`} specs={product.specs} onSave={(specs) => run(() => api.updateProduct(product.id, { specs }))} />
@@ -657,7 +649,6 @@ const SHOWN_BRACKETS = GST_BRACKETS.filter((b) => b > 0);
 
 function Pricing({
   product,
-  tracked,
   onPatch,
   onVariant,
   onDeleteVariant,
@@ -665,7 +656,6 @@ function Pricing({
   photos,
 }: {
   product: AdminProduct;
-  tracked: boolean;
   onPatch: (patch: { gst_rate?: number | null }) => void;
   onVariant: (v: AdminVariant, patch: Partial<AdminVariant>) => void;
   onDeleteVariant: (v: AdminVariant) => void;
@@ -674,6 +664,8 @@ function Pricing({
 }) {
   const variants = product.variants;
   const ids = variants.map((v) => v.id).join(",");
+  // stock in moves the average buying price, so read again when a count moves
+  const counts = variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const [costs, setCosts] = useState<Map<string, Purchase> | null>(null);
   const [shop, setShop] = useState<Rules | null>(null);
   const [err, setErr] = useState("");
@@ -688,7 +680,7 @@ function Pricing({
         setShop({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit });
       })
       .catch(() => setCosts(new Map()));
-  }, [ids, product.gst_rate]);
+  }, [ids, product.gst_rate, counts]);
 
   const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false };
   const many = variants.length > 1;
@@ -711,8 +703,10 @@ function Pricing({
 
   const gst = (
     <div className="ape-line ape-line--gst">
-      <span className="ape-line-label">GST</span>
-      <div className="ape-chips" role="group" aria-label="GST">
+      <span className="ape-line-label">
+        GST rate <small>this product&apos;s slab, charged on sales</small>
+      </span>
+      <div className="ape-chips" role="group" aria-label="GST rate">
         {SHOWN_BRACKETS.map((b) => (
           <button key={b} type="button" className={rules.rate === b ? "is-on" : ""} aria-pressed={rules.rate === b} onClick={() => product.gst_rate !== b && onPatch({ gst_rate: b })}>
             {b}%
@@ -736,7 +730,6 @@ function Pricing({
                 key={v.id}
                 variant={v}
                 card
-                tracked={tracked}
                 have={costs.get(v.id)}
                 rules={rules}
                 onBuying={(n) => saveBuying(v.id, n)}
@@ -748,7 +741,7 @@ function Pricing({
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} tracked={tracked} have={costs.get(variants[0].id)} rules={rules} gst={gst} onBuying={(n) => saveBuying(variants[0].id, n)} onSave={(patch) => onVariant(variants[0], patch)} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={gst} onBuying={(n) => saveBuying(variants[0].id, n)} onSave={(patch) => onVariant(variants[0], patch)} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -779,7 +772,6 @@ function Money({ value, label, placeholder, onChange, onSave }: { value: string;
 function PriceRow({
   variant: v,
   card = false,
-  tracked,
   have,
   rules,
   gst,
@@ -790,7 +782,6 @@ function PriceRow({
 }: {
   variant: AdminVariant;
   card?: boolean;
-  tracked: boolean;
   have: Purchase | undefined;
   rules: Rules;
   gst?: ReactNode;
@@ -809,10 +800,12 @@ function PriceRow({
     setSell(v.price ? String(v.price) : "");
   }
   const [label, setLabel] = useState(v.label);
-  const [stock, setStock] = useState(String(v.stock_qty));
   const [confirm, setConfirm] = useState(false);
 
-  const b = buy.trim() === "" ? null : Number(buy);
+  // once an option is counted, its buying price is the average kept by stock
+  // in (Add stock, voids), so it is shown here, not typed
+  const fromStock = v.track_stock;
+  const b = fromStock ? start : buy.trim() === "" ? null : Number(buy);
   const s = Number(sell) || 0;
   const cost = b == null ? null : costOf(b, rules.rate);
   const u = cost != null && s > 0 ? unitProfit(s, cost, rules) : null;
@@ -839,107 +832,56 @@ function PriceRow({
         </div>
       )}
 
-      <label className="ape-line">
-        <span className="ape-line-label">
-          Buying price <small>before GST</small>
-        </span>
-        <Money value={buy} label={`${v.label} buying price, before GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
-      </label>
+      {fromStock ? (
+        <div className="ape-line">
+          <span className="ape-line-label">
+            Purchase price (excl. GST) <small>average of the stock bought in</small>
+          </span>
+          <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
+        </div>
+      ) : (
+        <label className="ape-line">
+          <span className="ape-line-label">
+            Purchase price (excl. GST) <small>type it until stock is added</small>
+          </span>
+          <Money value={buy} label={`${v.label} purchase price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
+        </label>
+      )}
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
-          Cost price <small>buying price + {rules.rate}% GST</small>
+          Cost price (incl. GST) <small>purchase price + {rules.rate}% GST</small>
         </span>
         <b className="ape-line-value">{cost != null ? formatPrice(cost, { paise: true }) : "–"}</b>
       </div>
       <label className="ape-line">
         <span className="ape-line-label">
-          Selling price <small>{rules.inclusive ? "with GST, what the customer pays" : "before GST; GST is added at checkout"}</small>
+          {rules.inclusive ? "Selling price (incl. GST)" : "Selling price (excl. GST)"} <small>{rules.inclusive ? "what the customer pays" : "GST is added at checkout"}</small>
         </span>
         <Money value={sell} label={`${v.label} selling price`} placeholder="0" onChange={setSell} onSave={() => s !== v.price && onSave({ price: s })} />
       </label>
-      {card && tracked && (
-        <label className="ape-line">
-          <span className="ape-line-label">In stock</span>
-          <input
-            className="ape-line-input ape-stock-input"
-            inputMode="numeric"
-            aria-label={`${v.label} in stock`}
-            value={stock}
-            onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
-            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-            onBlur={() => Number(stock) !== v.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
-          />
-        </label>
-      )}
 
-      <div className={`ape-profit ${u ? (u.profit < 0 ? "is-neg" : "is-pos") : ""}`}>
+      {/* the headline is what the shop keeps once the GST collected is paid over;
+          gross (with that GST still in it) is shown underneath for reference */}
+      <div className={`ape-profit ${u ? (u.kept < 0 ? "is-neg" : "is-pos") : ""}`}>
         {u ? (
           <>
             <span>
-              <b>{u.profit < 0 ? "Loss" : "Profit"} {formatPrice(Math.abs(u.profit), { paise: true })}</b> per piece · {u.margin.toFixed(0)}%
+              <b>
+                {u.kept < 0 ? "Net loss" : "Net profit"} {formatPrice(Math.abs(u.kept), { paise: true })}
+              </b>{" "}
+              per piece · {u.net > 0 ? ((u.kept / u.net) * 100).toFixed(1) : "0"}% margin
             </span>
-            {u.kept >= 0 ? (
-              <small>{formatPrice(u.kept, { paise: true })} left after paying the GST</small>
-            ) : (
-              <small className="ape-profit-warn">After paying the GST you lose {formatPrice(-u.kept, { paise: true })} on each one</small>
-            )}
+            <small>
+              After GST{rules.credit ? ", with input tax credit claimed" : ", input tax credit not claimed (Settings)"} · gross {formatPrice(u.profit, { paise: true })} before paying the GST collected
+            </small>
           </>
         ) : (
-          <small>{b == null && !s ? "Type the buying and selling price to see the profit." : b == null ? "Type the buying price to see the profit." : "Type the selling price to see the profit."}</small>
+          <small>{b == null && !s ? "Type the purchase and selling price to see the profit." : b == null ? "Type the purchase price to see the profit." : "Type the selling price to see the profit."}</small>
         )}
       </div>
       {photos && <div className="ape-opt-photos">{photos}</div>}
     </li>
-  );
-}
-
-// "50 pieces · 7 sold"; with sizes or colours the counts are on their cards
-function StockLine({ product, tracked, onSave, onCount }: { product: AdminProduct; tracked: boolean; onSave: (patch: Partial<AdminVariant>) => void; onCount: () => void }) {
-  const single = product.variants.length === 1 ? product.variants[0] : null;
-  const [stock, setStock] = useState(String(single?.stock_qty ?? 0));
-  const [sold, setSold] = useState<number | null>(null);
-  useEffect(() => {
-    let live = true;
-    import("@/lib/orders-db")
-      .then((m) => m.unitsSold())
-      .then((u) => live && setSold(u.get(product.id) ?? 0))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [product.id]);
-  const soldText = sold == null ? "" : `${sold} sold`;
-  if (!tracked)
-    return (
-      <span className="ape-line-right">
-        <small>Not counted{soldText && ` · ${soldText}`}</small>
-        <button type="button" className="ape-chip ape-chip--sm" onClick={onCount}>
-          Count stock
-        </button>
-      </span>
-    );
-  if (!single)
-    return (
-      <span className="ape-line-right">
-        <small>
-          {product.variants.reduce((n, v) => n + v.stock_qty, 0)} pieces in all{soldText && ` · ${soldText}`}
-        </small>
-      </span>
-    );
-  return (
-    <span className="ape-line-right">
-      <input
-        className="ape-line-input ape-stock-input"
-        inputMode="numeric"
-        aria-label="In stock"
-        value={stock}
-        onChange={(e) => setStock(e.target.value.replace(/\D/g, ""))}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        onBlur={() => Number(stock) !== single.stock_qty && onSave({ stock_qty: Number(stock) || 0 })}
-      />
-      <small>pieces{soldText && ` · ${soldText}`}</small>
-    </span>
   );
 }
 
@@ -961,17 +903,26 @@ function HsnField({ product, onSave }: { product: AdminProduct; onSave: (hsn: st
 
 // The last stock changes for this product's options: sales, cancelled orders put
 // back, refunds restocked, and counts edited by hand.
-const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund undone", manual: "Edited" } as const;
+const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund reversed", manual: "Manual edit", stock_in: "Purchase", void: "Bill cancelled", correction: "Stock adjustment" } as const;
 type Move = Awaited<ReturnType<typeof import("@/lib/orders-db").stockHistory>>[number];
 function StockHistory({ variants }: { variants: AdminVariant[] }) {
   const [moves, setMoves] = useState<Move[] | null>(null);
+  const [bills, setBills] = useState<Map<string, string>>(new Map());
   // read again whenever a count changes
   const counts = variants.map((v) => `${v.id}:${v.stock_qty}`).join(",");
   useEffect(() => {
     let live = true;
     import("@/lib/orders-db")
       .then((m) => m.stockHistory(counts.split(",").map((x) => x.split(":")[0])))
-      .then((r) => live && setMoves(r.slice(0, 12)))
+      .then(async (r) => {
+        const top = r.slice(0, 12);
+        // "Stock in" rows name their bill
+        const bills = await import("@/lib/stock-in/db").then((d) => d.billNumbers([...new Set(top.flatMap((m) => (m.receipt_id ? [m.receipt_id] : [])))])).catch(() => new Map<string, string>());
+        if (live) {
+          setBills(bills);
+          setMoves(top);
+        }
+      })
       .catch(() => live && setMoves([]));
     return () => {
       live = false;
@@ -986,6 +937,8 @@ function StockHistory({ variants }: { variants: AdminVariant[] }) {
           <span>
             {REASON[m.reason]}
             {m.order_number && ` · ${m.order_number}`}
+            {m.receipt_id && bills.get(m.receipt_id) && ` · bill ${bills.get(m.receipt_id)}`}
+            {m.note && <small> · {m.note}</small>}
             {many && m.label && <small> · {m.label}</small>}
           </span>
           <b className={m.delta < 0 ? "is-down" : "is-up"}>{m.delta > 0 ? `+${m.delta}` : m.delta}</b>
@@ -1301,7 +1254,7 @@ function LowMark({ product, onSave }: { product: AdminProduct; onSave: (n: numbe
   const [v, setV] = useState(product.low_stock_at == null ? "" : String(product.low_stock_at));
   return (
     <label className="ape-field">
-      <span>Low stock at</span>
+      <span>Reorder level</span>
       <input
         inputMode="numeric"
         value={v}

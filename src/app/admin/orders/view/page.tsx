@@ -28,6 +28,7 @@ import {
   setOrderNotes,
   setStep,
   settleBalance,
+  setBuyerGstin,
   soldCosts,
   updateOrder,
   undoRefund,
@@ -171,7 +172,8 @@ function OrderView() {
   const paid = o.paid_total;
   const left = (paid ?? 0) - refunds.amount;
   const openReq = (o.order_requests ?? []).find((r) => r.status === "open");
-  const canEdit = ["pending", "paid", "packed"].includes(o.status) && refunds.amount === 0;
+  // an issued invoice can't change (0051): refund instead, which issues a credit note
+  const canEdit = ["pending", "paid", "packed"].includes(o.status) && refunds.amount === 0 && !o.invoice_number;
   const canRefund = ["paid", "packed", "shipped", "delivered"].includes(o.status) && left > 0;
   const canReturn = ["shipped", "delivered"].includes(o.status) && left > 0 && items.some((i) => i.quantity > (refunds.byItem.get(i.id) ?? 0));
   const balance = paid == null || o.status === "cancelled" || o.status === "refunded" ? 0 : Math.round((o.total - paid) * 100) / 100;
@@ -268,9 +270,9 @@ function OrderView() {
                 {o.invoice_number ? `Invoice ${o.invoice_number}` : "Invoice"}
               </Link>
             )}
-            {o.status !== "cancelled" && (
-              <Link href={`/admin/orders/print?ids=${o.id}&doc=slip`} className="adm-btn" target="_blank">
-                Packing slip
+            {o.invoice_number && (o.order_refunds ?? []).length > 0 && (
+              <Link href={`/admin/orders/print?ids=${o.id}&doc=cn`} className="adm-btn" target="_blank">
+                Credit notes
               </Link>
             )}
             {o.status === "shipped" && !o.delivery_failed_at && (
@@ -334,7 +336,7 @@ function OrderView() {
                 } else setBackConfirm(true);
               }}
             >
-              Came back to us
+              Returned to origin (RTO)
             </button>
           </div>
         </div>
@@ -376,11 +378,11 @@ function OrderView() {
       {balance !== 0 && (
         <div className={`adm-balance ov-balance ${balance > 0 ? "owe" : "back"}`}>
           <span>
-            <b>{balance > 0 ? `${money(balance)} to collect` : `${money(-balance)} to pay back`}</b>
+            <b>{balance > 0 ? `Amount due: ${money(balance)}` : `Amount refundable: ${money(-balance)}`}</b>
             {balance > 0 ? " · the order was edited after it was paid." : " · the order was edited after it was paid."}
           </span>
-          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as collected` : `${money(-balance)} marked as paid back`)}>
-            {balance > 0 ? "Mark as collected" : "Mark as paid back"}
+          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as received` : `${money(-balance)} marked as refunded`)}>
+            {balance > 0 ? "Mark payment received" : "Mark refund paid"}
           </button>
         </div>
       )}
@@ -430,7 +432,8 @@ function OrderView() {
                   <span className="adm-muted">
                     {r.returned ? "Returned" : "Refunded"} {when(r.created_at).toLowerCase()}
                     {r.reason && <span className="adm-small"> · {r.reason}</span>}
-                    {o.status !== "cancelled" && (
+                    {/* a refund on an invoiced order has a credit note, so it stays (0051) */}
+                    {o.status !== "cancelled" && !o.invoice_number && (
                       <>
                         {" · "}
                         <button type="button" className="adm-link" disabled={busy} onClick={() => setUndoing(r)}>
@@ -445,7 +448,7 @@ function OrderView() {
               {refunds.amount > 0 && (
                 <>
                   <span>
-                    <strong>Kept</strong>
+                    <strong>Net profit (after GST)</strong>
                   </span>
                   <span>
                     <strong>{money((paid ?? 0) - refunds.amount)}</strong>
@@ -514,6 +517,7 @@ function OrderView() {
                 ))}
             </p>
             <AddressMap lat={o.address_latitude} lng={o.address_longitude} label={`${o.contact_name}, ${o.address_line1}`} />
+            <BuyerGstin key={`${o.id}-${o.buyer_gstin ?? ""}`} o={o} busy={busy} onSave={(g) => act(() => setBuyerGstin(o.id, g), g ? "Buyer's GSTIN saved" : "Buyer's GSTIN removed")} />
             {ship && (
               <>
                 <h3 className="ov-h3">Courier</h3>
@@ -610,7 +614,7 @@ function OrderView() {
                 Keep it
               </button>
               <button className="adm-btn bad" disabled={busy}>
-                {busy ? "Undoing" : "Undo refund"}
+                {busy ? "Reversing" : "Reverse refund"}
               </button>
             </div>
           </form>
@@ -693,7 +697,7 @@ function OrderView() {
               void act(() => cameBack(o.id, o.delivery_failed_reason ?? ""), `${o.order_number} closed: came back`);
             }}
           >
-            <h2>Came back to us?</h2>
+            <h2>Returned to origin (RTO)?</h2>
             <p className="adm-muted" style={{ margin: 0 }}>
               Nothing is left to refund on this order, so it&apos;s simply closed as came back undelivered.
             </p>
@@ -1076,7 +1080,7 @@ function OrderProfit({ order: o }: { order: Order }) {
       ) : (
         <>
           <div className="adm-kv">
-            <span>Sales with GST</span>
+            <span>Gross sales (incl. GST)</span>
             <span>{money(Math.round(sale * 100) / 100)}</span>
             <span>Cost price with GST</span>
             <span>−{money(Math.round(cost * 100) / 100)}</span>
@@ -1085,7 +1089,7 @@ function OrderProfit({ order: o }: { order: Order }) {
               {money(Math.round(profit * 100) / 100)}
               {sale > 0 && <small className="adm-muted"> · {((profit / sale) * 100).toFixed(1)}%</small>}
             </span>
-            <span>After paying the GST</span>
+            <span>Net profit (after GST)</span>
             <span>{money(Math.round(kept * 100) / 100)}</span>
           </div>
           <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>
@@ -1093,7 +1097,7 @@ function OrderProfit({ order: o }: { order: Order }) {
             {rs.length > 0 && "Refunded items are taken off; returned items that went back in stock cost nothing. "}
             {missing > 0 && `${missing} item${missing === 1 ? " has" : "s have"} no cost price and ${missing === 1 ? "is" : "are"} left out. `}
             {later > 0 && `${later === 1 ? "One item uses" : `${later} items use`} today's cost, entered after the sale. `}
-            Delivery charges are not counted.
+            Shipping charges are not counted.
           </p>
         </>
       )}
@@ -1117,4 +1121,33 @@ function rememberCourier(name: string) {
     const mine = JSON.parse(localStorage.getItem(COURIER_KEY) ?? "[]") as string[];
     localStorage.setItem(COURIER_KEY, JSON.stringify([c, ...mine.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 6)));
   } catch {}
+}
+
+// The buyer's GSTIN for a business (B2B) sale: printed on the invoice and
+// reported in GSTR-1. It can change only until the invoice is issued.
+function BuyerGstin({ o, busy, onSave }: { o: Order; busy: boolean; onSave: (gstin: string) => void }) {
+  const [g, setG] = useState(o.buyer_gstin ?? "");
+  const clean = g.trim().toUpperCase();
+  const ok = clean === "" || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(clean);
+  const locked = !!o.invoice_number;
+  return (
+    <>
+      <h3 className="ov-h3">Buyer&apos;s GSTIN (B2B)</h3>
+      {locked ? (
+        <p className="adm-small ov-addr">
+          <span>{o.buyer_gstin || "None: a consumer (B2C) sale"}</span>
+          <span className="adm-muted">Locked: invoice {o.invoice_number} is issued.</span>
+        </p>
+      ) : (
+        <div className="ov-reach">
+          <input className="adm-input" maxLength={15} placeholder="Only for a business buyer" aria-label="Buyer's GSTIN" aria-invalid={!ok} value={g} onChange={(e) => setG(e.target.value.toUpperCase())} />
+          <button type="button" className="adm-btn" disabled={busy || !ok || clean === (o.buyer_gstin ?? "")} onClick={() => onSave(clean)}>
+            Save
+          </button>
+        </div>
+      )}
+      {!locked && <p className="adm-muted adm-small">Enter it before the order is paid: the invoice is issued on payment, and the GSTIN can&apos;t change after that.</p>}
+      {!ok && <p className="adm-err">That GSTIN doesn&apos;t look right: it&apos;s 15 characters, like 27ABCDE1234F1Z5.</p>}
+    </>
+  );
 }

@@ -5,13 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import { AnalyticsTabs, RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { dayLabel } from "@/lib/dates";
+import { getReceipt, listReceipts } from "@/lib/stock-in/db";
+import { purchasesCsv } from "@/lib/stock-in/purchases-csv";
 import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
 
 // Report tables: one date range, one report at a time, every column sortable,
 // totals at the foot, and the whole table downloadable as CSV for a
 // spreadsheet or the accountant.
 type Fmt = "text" | "money" | "count" | "num" | "pct" | "day" | "month";
-type Col = { key: string; label: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string; href?: (r: ReportRow) => string };
+// csv: the column's header in the download when it differs from the screen
+// label (downloads keep their original headers so saved analyses still work)
+type Col = { key: string; label: string; csv?: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string; href?: (r: ReportRow) => string };
 
 const marginOf = (profit: unknown, sales: unknown) => (profit == null || !Number(sales) ? null : (Number(profit) / Number(sales)) * 100);
 
@@ -25,10 +29,10 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "option", label: "Option", fmt: "text" },
       { key: "gst_rate", label: "GST %", fmt: "count" },
       { key: "sold", label: "Units sold", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
-      { key: "sales", label: "Sales with GST", fmt: "money", total: true },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
+      { key: "sales", label: "Gross sales (incl. GST)", csv: "Sales with GST", fmt: "money", total: true },
       { key: "sales_ex_gst", label: "Without GST", fmt: "money", total: true },
       { key: "cost", label: "Cost price", fmt: "money", total: true, empty: "No cost" },
       { key: "profit", label: "Profit", fmt: "money", total: true },
@@ -45,10 +49,10 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "phone", label: "Phone", fmt: "text" },
       { key: "orders", label: "Orders", fmt: "count", total: true },
       { key: "items", label: "Items", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
-      { key: "average", label: "Average order", fmt: "money" },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
+      { key: "average", label: "Average order value", csv: "Average order", fmt: "money" },
       { key: "first_order", label: "First order", fmt: "day" },
       { key: "last_order", label: "Last order", fmt: "day" },
     ],
@@ -70,19 +74,19 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
   {
     id: "finance",
     label: "Finance by month",
-    about: "One row per month. Collected is what customers paid: net sales, delivery and any GST added on top.",
+    about: "One row per month. Payment received is what customers paid: net sales, delivery and any GST added on top.",
     cols: [
       { key: "month", label: "Month", fmt: "month" },
       { key: "orders", label: "Orders", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
       { key: "delivery", label: "Delivery", fmt: "money", total: true },
       { key: "gst", label: "GST", fmt: "money", total: true },
-      { key: "collected", label: "Collected", fmt: "money", total: true },
+      { key: "collected", label: "Payment received", csv: "Collected", fmt: "money", total: true },
       { key: "cost", label: "Cost", fmt: "money", total: true },
       { key: "profit", label: "Gross profit", fmt: "money", total: true },
-      { key: "gst_to_pay", label: "GST to pay", fmt: "money", total: true },
+      { key: "gst_to_pay", label: "Net GST payable", csv: "GST to pay", fmt: "money", total: true },
     ],
   },
   {
@@ -113,7 +117,7 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "on_the_way", label: "On the way", fmt: "count", total: true },
       { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
       { key: "failed", label: "Failed", fmt: "count", total: true },
-      { key: "came_back", label: "Came back", fmt: "count", total: true },
+      { key: "came_back", label: "Returned to origin (RTO)", csv: "Came back", fmt: "count", total: true },
       { key: "avg_days", label: "Avg days", fmt: "num" },
       { key: "slowest", label: "Slowest (days)", fmt: "num" },
     ],
@@ -190,7 +194,7 @@ function csv(rows: ReportRow[], cols: Col[]) {
     if (c.fmt === "month") return String(v).slice(0, 7);
     return v;
   };
-  return "﻿" + [cols.map((c) => cell(c.label)), ...rows.map((r) => cols.map((c) => cell(raw(r, c))))].map((l) => l.join(",")).join("\r\n");
+  return "﻿" + [cols.map((c) => cell(c.csv ?? c.label)), ...rows.map((r) => cols.map((c) => cell(raw(r, c))))].map((l) => l.join(",")).join("\r\n");
 }
 
 export default function ReportsPage() {
@@ -253,6 +257,53 @@ export default function ReportsPage() {
     a.download = `babajee-${kind}-${range.from}-to-${range.to}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  // Purchases: one row per posted supplier-bill line, fetched on demand
+  const [buying, setBuying] = useState(false);
+  const [buyErr, setBuyErr] = useState("");
+  async function downloadPurchases() {
+    setBuying(true);
+    setBuyErr("");
+    try {
+      const bills = (await listReceipts(range.from, range.to)).filter((r) => r.status === "posted");
+      const full = [];
+      for (let i = 0; i < bills.length; i += 8) full.push(...(await Promise.all(bills.slice(i, i + 8).map((b) => getReceipt(b.id)))));
+      const blob = new Blob([purchasesCsv(full)], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `babajee-purchases-${range.from}-to-${range.to}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setBuyErr(errText(e));
+    } finally {
+      setBuying(false);
+    }
+  }
+
+  // GST returns and Tally registers for the range, as zips
+  const [making, setMaking] = useState<"" | "returns" | "registers">("");
+  const [retErr, setRetErr] = useState("");
+  const [retWarn, setRetWarn] = useState<string[]>([]);
+  async function downloadReturns(which: "returns" | "registers") {
+    setMaking(which);
+    setRetErr("");
+    try {
+      const m = await import("@/lib/gst-returns-load");
+      const d = await m.loadReturns(range.from, range.to);
+      setRetWarn(d.warnings);
+      const blob = which === "returns" ? m.returnsZip(d, range.from, range.to) : m.registersZip(d, range.from, range.to);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `babajee-${which === "returns" ? "gst-returns" : "tally-registers"}-${range.from}-to-${range.to}.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setRetErr(errText(e));
+    } finally {
+      setMaking("");
+    }
   }
 
   const by = (key: string) => setSort((s) => (s?.key === key ? (s.desc ? { key, desc: false } : null) : { key, desc: true }));
@@ -350,6 +401,48 @@ export default function ReportsPage() {
               </table>
             </div>
           )
+        )}
+      </section>
+
+      <section className="adm-card rpt">
+        <div className="rpt-head">
+          <div>
+            <h2>Purchases</h2>
+            <p className="adm-muted adm-small">
+              One row per line on each posted stock entry dated in the range (supplier bills, opening stock and quick adds, told apart by the last column): supplier and GSTIN, bill number, product, quantity, price, taxable value, GST rate and the CGST, SGST and IGST, and whether the credit is claimable. Voided entries are left out. Dates are YYYY-MM-DD and numbers are plain, for joining in a spreadsheet.
+            </p>
+          </div>
+          <button type="button" className="adm-btn" disabled={buying} onClick={downloadPurchases}>
+            {buying ? "Preparing." : "Download CSV"}
+          </button>
+        </div>
+        {buyErr && <p className="adm-err">{buyErr}</p>}
+      </section>
+
+      <section className="adm-card rpt">
+        <div className="rpt-head">
+          <div>
+            <h2>GST returns and Tally registers</h2>
+            <p className="adm-muted adm-small">
+              For the range above (usually one month). <b>GST returns</b>: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, HSN summary, document summary) and a GSTR-3B summary with ITC from bills ticked as in GSTR-2B. <b>Tally registers</b>: sales and purchase registers. Built from the invoices, credit notes and supplier bills here; check with the CA before filing.
+            </p>
+          </div>
+          <div className="rpt-btns">
+            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("returns")}>
+              {making === "returns" ? "Preparing." : "GST returns (zip)"}
+            </button>
+            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("registers")}>
+              {making === "registers" ? "Preparing." : "Tally registers (zip)"}
+            </button>
+          </div>
+        </div>
+        {retErr && <p className="adm-err">{retErr}</p>}
+        {retWarn.length > 0 && (
+          <ul className="adm-small rpt-warn">
+            {retWarn.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

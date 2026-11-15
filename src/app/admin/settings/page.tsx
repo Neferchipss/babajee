@@ -118,12 +118,12 @@ export default function SettingsPage() {
       {/* jump to a section */}
       <div className="adm-chips" style={{ marginBottom: 16 }}>
         {[
-          ["store", "Store details"],
+          ["store", "Business details"],
           ["delivery", "Delivery"],
           ["gst", "GST"],
           ["returns", "Returns"],
           ["stock", "Low stock"],
-          ["data", "Your data"],
+          ["data", "Data export"],
         ].map(([id, label]) => (
           <a key={id} href={`#set-${id}`} className="adm-chip">
             {label}
@@ -142,9 +142,9 @@ export default function SettingsPage() {
 
       <form className="adm-stack" style={{ maxWidth: 560 }} onSubmit={save}>
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 id="set-store" style={{ margin: 0, scrollMarginTop: 140 }}>Store details</h2>
+          <h2 id="set-store" style={{ margin: 0, scrollMarginTop: 140 }}>Business details (for invoices)</h2>
           <p className="adm-muted adm-small" style={{ margin: "-8px 0 0" }}>
-            Printed on every invoice and packing slip.
+            Printed on every invoice.
           </p>
           <label className="adm-label">
             Shop name
@@ -195,9 +195,9 @@ export default function SettingsPage() {
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 id="set-delivery" style={{ margin: 0, scrollMarginTop: 140 }}>Delivery charges</h2>
+          <h2 id="set-delivery" style={{ margin: 0, scrollMarginTop: 140 }}>Shipping charges</h2>
           <label className="adm-label">
-            Delivery charge per order (₹)
+            Shipping charges per order (₹)
             <input className="adm-input" inputMode="decimal" value={ship} disabled={!loaded} onChange={(e) => setShip(e.target.value.replace(/[^\d.]/g, ""))} />
           </label>
           <label className="adm-label">
@@ -248,17 +248,17 @@ export default function SettingsPage() {
           </div>
 
           <div className="adm-label">
-            GST on supplier bills
+            Input tax credit (ITC)
             <button type="button" className={`adm-switch ${credit ? "is-on" : ""}`} aria-pressed={credit} disabled={!loaded} onClick={() => setCredit(!credit)}>
               <i aria-hidden />
-              {credit ? "Claimed back (input tax credit)" : "Not claimed back"}
+              {credit ? "Claim input tax credit" : "Not claiming input tax credit"}
             </button>
             <span className="adm-muted adm-small">
               {credit
-                ? "The GST inside each cost price is set against the GST collected, so Analytics shows less GST left to pay."
-                : "All GST collected is owed. Turn this on if the shop is GST-registered and claims input tax credit."}{" "}
-              Example at {g.rate}%: bought for {money(500)} + GST = cost price {money(exCost)}, sold for {money(u.sale)} with GST: profit {money(u.profit)}. After paying the
-              GST, {money(u.kept)} is left.
+                ? "GST paid on purchases is set off against GST collected on sales, so Net GST payable is lower."
+                : "All GST collected on sales is payable. Turn this on if the shop is GST-registered and claims ITC."}{" "}
+              Example at {g.rate}%: purchase price {money(500)} + GST = cost price {money(exCost)}, selling price {money(u.sale)} incl. GST: gross profit {money(u.profit)}, net profit
+              after GST {money(u.kept)}.
             </span>
           </div>
         </section>
@@ -322,7 +322,7 @@ function DataExport() {
   }
   return (
     <section className="adm-card" style={{ display: "grid", gap: 12, maxWidth: 560, marginTop: 16 }}>
-      <h2 id="set-data" style={{ margin: 0, scrollMarginTop: 140 }}>Your data</h2>
+      <h2 id="set-data" style={{ margin: 0, scrollMarginTop: 140 }}>Data export</h2>
       <p className="adm-muted adm-small" style={{ margin: 0 }}>
         Everything the shop has recorded, one CSV file per table in a zip, with a README describing every column: orders, customers, products,
         stock history, visits, searches, sign-ins and the activity log. It holds every customer&apos;s name, phone and address, so keep the file

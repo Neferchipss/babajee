@@ -93,7 +93,7 @@ export default function AdminHome() {
 
       <div className="adm-two">
         <section className="adm-card">
-          <h2>Things to do</h2>
+          <h2>Pending actions</h2>
           {!counts ? (
             <p className="adm-muted">Loading.</p>
           ) : (

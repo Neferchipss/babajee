@@ -27,7 +27,7 @@ const setShopLowAt = (n: number) => {
 const stockOf = (p: AdminProduct) => {
   const t = p.variants.filter((v) => v.track_stock && v.is_visible);
   const mark = p.low_stock_at ?? shopLowAt;
-  return { out: t.length > 0 && t.some((v) => v.stock_qty === 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
+  return { out: t.length > 0 && t.some((v) => v.stock_qty <= 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
 };
 
 // what each filter is, and what to do about it, for the page's head
@@ -198,8 +198,8 @@ function ProductsAdmin() {
     const v = made?.variants[0];
     await Promise.all([
       d.brand || d.type || !d.visible ? api.updateProduct(id, { brand: d.brand, product_type: d.type, is_visible: d.visible }) : null,
-      v && (d.price || d.stock != null || !d.visible)
-        ? api.upsertVariant(id, { ...v, price: d.price, stock_qty: d.stock ?? 0, track_stock: d.stock != null, is_visible: d.visible })
+      v && (d.price || !d.visible)
+        ? api.upsertVariant(id, { id: v.id, price: d.price, is_visible: d.visible })
         : null,
     ]);
     const fresh = await api.getProduct(id);

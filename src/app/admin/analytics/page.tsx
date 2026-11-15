@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect, useState } from "react";
 import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
+import { itc, unpaidBills, type ItcMonth, type UnpaidBill } from "@/lib/stock-in/db";
 import { analytics, errText, failedDeliveries, profit, salesByAge, salesByCategory, savedProducts, type AgeSales, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
 
 // The stats page. One date range drives every card, and each number is
 // compared with the period just before it (the same number of days).
 const count = (n: number) => n.toLocaleString("en-IN");
+const MONTH = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 const pct = (n: number) => `${n.toFixed(1)}%`;
 const shortMoney = (n: number) => (n >= 1e5 ? `₹${(n / 1e5).toFixed(n >= 1e6 ? 0 : 1)}L` : n >= 1e3 ? `₹${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : `₹${n}`);
 
@@ -71,6 +73,16 @@ export default function AnalyticsPage() {
       () => {},
     );
   }, [from, to]);
+  // GST paid on supplier bills (0050); an error here must not take the page down
+  const [bills, setBills] = useState<{ key: string; rows?: ItcMonth[]; unpaid?: UnpaidBill[]; err?: string } | null>(null);
+  useEffect(() => {
+    const key = `${from}|${to}`;
+    Promise.all([itc(from, to), unpaidBills(180)]).then(
+      ([rows, unpaid]) => setBills({ key, rows, unpaid }),
+      (e) => setBills({ key, err: errText(e) }),
+    );
+  }, [from, to]);
+  const billsNow = bills?.key === `${from}|${to}` ? bills : null;
   const failedNow = failed?.key === `${from}|${to}` ? failed.n : 0;
 
   const a = cur;
@@ -115,24 +127,24 @@ export default function AnalyticsPage() {
                 </div>
                 <Legend columns label={label} />
               </div>
-              <LineChart columns height={282} label="Gross sales per day" labels={days.map(dayLabel)} cur={a.daily.map((d) => d.gross)} prev={b.daily.map((d) => d.gross)} fmt={shortMoney} />
+              <LineChart columns height={282} label="Gross sales (incl. GST) per day" labels={days.map(dayLabel)} cur={a.daily.map((d) => d.gross)} prev={b.daily.map((d) => d.gross)} fmt={shortMoney} />
             </section>
 
             <div className="anx-kpis">
               <Kpi label="Orders" value={count(a.orders)} now={a.orders} before={b.orders} spark={a.daily.map((d) => d.orders)} />
-              <Kpi label="Average order" value={money(Math.round(aov(a)))} now={aov(a)} before={aov(b)} spark={a.daily.map((d) => (d.orders ? d.gross / d.orders : 0))} />
+              <Kpi label="Average order value (AOV)" value={money(Math.round(aov(a)))} now={aov(a)} before={aov(b)} spark={a.daily.map((d) => (d.orders ? d.gross / d.orders : 0))} />
               {pc.costed_sales ? (
                 <Kpi
-                  label="Gross profit"
-                  value={money(Math.round(pc.profit))}
-                  note={`${pct(margin(pc))} margin`}
-                  now={pc.profit}
-                  before={pp.profit}
+                  label="Net profit (after GST)"
+                  value={money(Math.round(pc.kept))}
+                  note={!pc.uncosted_lines && pc.net_sales ? `${pct((pc.kept / pc.net_sales) * 100)} margin on net sales` : `gross ${money(Math.round(pc.profit))}`}
+                  now={pc.kept}
+                  before={pp.kept}
                   spark={pc.daily.map((d) => d.profit)}
                 />
               ) : (
                 <a className="adm-card anx-kpi anx-kpi-empty" href="#profit">
-                  <span className="anx-lab">Gross profit</span>
+                  <span className="anx-lab">Net profit (after GST)</span>
                   <span className="anx-mid">Not yet</span>
                   <span className="adm-muted adm-small">Add cost prices to products to see profit and margin.</span>
                 </a>
@@ -154,12 +166,12 @@ export default function AnalyticsPage() {
             <section className="adm-card">
               <h2>Sales breakdown</h2>
               <div className="adm-kv anx-kv">
-                <span>Gross sales</span>
+                <span>Gross sales (incl. GST)</span>
                 <span>{money(a.gross)}</span>
                 <span>Returns</span>
                 <span>{a.returns ? `−${money(a.returns)}` : money(0)}</span>
                 <span>
-                  <strong>Net sales</strong>
+                  <strong>Net sales (excl. GST)</strong>
                 </span>
                 <span>
                   <strong>{money(net(a))}</strong>
@@ -216,31 +228,31 @@ export default function AnalyticsPage() {
               />
             </section>
             <section className="adm-card">
-              <h2>Profit and GST</h2>
+              <h2>Profit &amp; GST summary</h2>
               <div className="adm-kv anx-kv">
-                <span>Sales with GST</span>
+                <span>Gross sales (incl. GST)</span>
                 <span>{money(Math.round(pc.costed_sales))}</span>
-                <span>Cost price with GST</span>
+                <span>Cost price (incl. GST)</span>
                 <span>{pc.cost ? `−${money(Math.round(pc.cost))}` : money(0)}</span>
-                <span>
-                  <strong>Gross profit</strong>
-                </span>
-                <span>
-                  <strong className={pc.profit < 0 ? "adm-profit-neg" : pc.profit > 0 ? "adm-profit-pos" : ""}>{money(Math.round(pc.profit))}</strong>
-                </span>
-                <span>Margin</span>
+                <span>Gross profit (before paying GST)</span>
+                <span>{money(Math.round(pc.profit))}</span>
+                <span>Gross margin</span>
                 <span>{pc.costed_sales ? pct(margin(pc)) : "–"}</span>
-                <span>After paying the GST</span>
-                <span>{money(Math.round(pc.kept))}</span>
+                <span>
+                  <strong>Net profit (after GST)</strong>
+                </span>
+                <span>
+                  <strong className={pc.kept < 0 ? "adm-profit-neg" : pc.kept > 0 ? "adm-profit-pos" : ""}>{money(Math.round(pc.kept))}</strong>
+                </span>
                 <span>GST collected</span>
                 <span>{money(Math.round(pc.gst_collected))}</span>
                 {pc.input_credit && (
                   <>
-                    <span>GST paid on stock</span>
+                    <span>GST inside the cost of what sold</span>
                     <span>−{money(Math.round(pc.gst_paid))}</span>
                   </>
                 )}
-                <span className="tot">GST to pay</span>
+                <span className="tot">Net GST payable</span>
                 <span className="tot">{money(Math.round(Math.max(0, pc.gst_collected - (pc.input_credit ? pc.gst_paid : 0))))}</span>
               </div>
               <p className="adm-muted adm-small anx-foot">
@@ -249,13 +261,79 @@ export default function AnalyticsPage() {
                   : pc.uncosted_lines > 0
                     ? `${count(pc.uncosted_lines)} of ${count(pc.lines)} items sold have no cost price, so profit counts the other ${count(pc.lines - pc.uncosted_lines)}. `
                     : ""}
-                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;After paying the GST&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
+                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;Net profit (after GST)&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
               </p>
             </section>
           </div>
           <section className="adm-card">
+            <h2>Input tax credit (ITC)</h2>
+            {!billsNow ? (
+              <p className="adm-muted adm-small">Loading.</p>
+            ) : billsNow.err ? (
+              <p className="adm-err">Couldn&apos;t load the GST on supplier bills. {billsNow.err}</p>
+            ) : (
+              <>
+                {(() => {
+                  const rows = billsNow.rows ?? [];
+                  const sum = (k: "on_bills" | "in_2b" | "cgst" | "sgst" | "igst") => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+                  const waiting = rows.reduce((t, r) => t + (Number(r.not_in_2b_bills) || 0), 0);
+                  const unpaid = billsNow.unpaid ?? [];
+                  const m2 = (n: number) => money(Math.round(n * 100) / 100);
+                  return (
+                    <>
+                      <div className="adm-kv anx-kv">
+                        <span className="tot">ITC available (bills in GSTR-2B)</span>
+                        <span className="tot">{m2(sum("in_2b"))}</span>
+                        <span>CGST</span>
+                        <span>{m2(sum("cgst"))}</span>
+                        <span>SGST</span>
+                        <span>{m2(sum("sgst"))}</span>
+                        <span>IGST</span>
+                        <span>{m2(sum("igst"))}</span>
+                        <span>GST on all supplier bills</span>
+                        <span>{m2(sum("on_bills"))}</span>
+                      </div>
+                      {waiting > 0 && (
+                        <p className="adm-muted adm-small">
+                          {waiting} bill{waiting === 1 ? " isn't" : "s aren't"} ticked as in GSTR-2B yet; {waiting === 1 ? "its" : "their"} GST counts once ticked on the bill.
+                        </p>
+                      )}
+                      {unpaid.length > 0 && (
+                        <div className="adm-err">
+                          <b>ITC to reverse: unpaid over 180 days</b>
+                          {unpaid.map((u) => (
+                            <div key={u.id}>
+                              <Link href={`/admin/products/stock-in/bill?id=${u.id}`}>
+                                Bill {u.bill_no} · {u.supplier ?? "supplier"}
+                              </Link>{" "}
+                              · {u.days} days · {m2(Number(u.gst) || 0)} GST
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {rows.length > 0 && (
+                        <div className="adm-kv anx-kv">
+                          <span className="adm-muted adm-small">By month of bill</span>
+                          <span />
+                          {rows.map((r) => (
+                            <Fragment key={r.month}>
+                              <span>{MONTH.format(new Date(`${r.month}-01T12:00:00Z`))}</span>
+                              <span>{m2(Number(r.in_2b) || 0)}</span>
+                            </Fragment>
+                          ))}
+                        </div>
+                      )}
+                      {rows.length === 0 && <p className="adm-muted adm-small">No supplier bills in this range.</p>}
+                    </>
+                  );
+                })()}
+                <p className="adm-muted adm-small anx-foot">ITC available is what can be claimed on GSTR-3B: claimable bills ticked as in GSTR-2B. Opening stock and entries without a bill aren&apos;t included.</p>
+              </>
+            )}
+          </section>
+          <section className="adm-card">
             <div className="anx-card-head">
-              <h2>Most saved for later</h2>
+              <h2>Most wishlisted</h2>
               <span className="adm-muted adm-small">All time · signed-in customers</span>
             </div>
             {saved === null ? (
@@ -276,7 +354,7 @@ export default function AnalyticsPage() {
           <SectionTitle>Visitors</SectionTitle>
           <div className="adm-pair">
             <section className="adm-card">
-              <h2>From visit to order</h2>
+              <h2>Conversion rate</h2>
               <Funnel
                 steps={[
                   { name: "Visited", value: a.sessions },

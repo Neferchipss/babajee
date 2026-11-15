@@ -1,0 +1,288 @@
+/* Stock in page and its line editor. Admin tokens (--adm-*), Light and Dark.
+   Phone first: one column, 44px targets. */
+.sti-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sti-top .adm-btn,
+.sti-form .adm-btn,
+.sti-confirm .adm-btn {
+  min-height: 44px;
+}
+.sti-stack {
+  display: grid;
+  gap: 12px;
+}
+.sti-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 380px) {
+  .sti-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sti-form .adm-input,
+.sti-lines .adm-input {
+  min-height: 44px;
+}
+.sti-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.sti-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 14px;
+  background: var(--adm-panel);
+  color: inherit;
+  text-decoration: none;
+}
+.sti-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.sti-item-head b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sti-item-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sti-item.is-void b,
+.sti-struck {
+  text-decoration: line-through;
+  color: var(--adm-muted);
+}
+.sti-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sti-item-actions .adm-btn {
+  min-height: 44px;
+  flex: 1 1 120px;
+}
+.sti-find {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+.sti-hits {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  background: var(--adm-panel);
+  display: grid;
+}
+.sti-hits button {
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sti-hits button:hover,
+.sti-hits button:focus-visible {
+  background: color-mix(in srgb, var(--adm-gold) 16%, transparent);
+}
+.sti-none {
+  padding: 10px;
+}
+.sti-lines {
+  display: grid;
+  gap: 12px;
+}
+.sti-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.sti-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 14px;
+}
+.sti-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sti-row-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sti-x {
+  min-height: 36px;
+  flex: none;
+  font-size: 0.82rem;
+}
+.sti-row-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 0.9fr);
+  gap: 8px;
+}
+@media (max-width: 380px) {
+  .sti-row-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.sti-totals {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-line);
+  border-radius: 14px;
+  background: var(--adm-panel);
+  font-variant-numeric: tabular-nums;
+}
+.sti-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sti-totals .is-total {
+  padding-top: 6px;
+  border-top: 1px solid var(--adm-line);
+  font-size: 1.1rem;
+}
+.sti-totals p {
+  margin: 4px 0 0;
+}
+.sti-table-wrap {
+  overflow-x: auto;
+}
+.sti-preview {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: 100%;
+}
+.sti-preview th,
+.sti-preview td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--adm-line);
+  text-align: left;
+}
+.sti-table-wrap .sti-preview {
+  min-width: 520px;
+}
+.sti-confirm {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--adm-bad);
+  border-radius: 14px;
+}
+.sti-confirm p {
+  margin: 0;
+}
+.sti-voidnote {
+  color: var(--adm-bad);
+  font-weight: 600;
+}
+.sti-drop {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 22px 14px;
+  border: 2px dashed var(--adm-line);
+  border-radius: 14px;
+  text-align: center;
+}
+.sti-drop.is-over {
+  border-color: var(--adm-gold);
+  background: color-mix(in srgb, var(--adm-gold) 10%, transparent);
+}
+.sti-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.sti-review .adm-btn,
+.sti-card .adm-btn {
+  min-height: 44px;
+}
+.sti-preview td,
+.sti-preview th {
+  white-space: nowrap;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sti-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--adm-gold);
+  border-radius: 14px;
+  background: var(--adm-panel);
+}
+.sti-card p {
+  margin: 0;
+}
+
+/* the GST-return ticks on a supplier bill */
+.sti-ticks {
+  display: grid;
+  gap: 12px;
+}
+.sti-ticks h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.sti-tick {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;
+  cursor: pointer;
+}
+.sti-tick input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--adm-accent, currentColor);
+}
+.sti-tick span {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+.sti-tick small {
+  color: var(--adm-muted);
+  font-weight: 400;
+}

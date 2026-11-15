@@ -11,7 +11,7 @@ import { photosFor } from "@/lib/product-photos";
 
 type Api = ReturnType<typeof adminApi>;
 
-export type NewRow = { name: string; categoryId: string; brand: string; type: string; price: number; stock: number | null; visible: boolean };
+export type NewRow = { name: string; categoryId: string; brand: string; type: string; price: number; visible: boolean };
 
 // The catalogue as a sheet, for people who'd rather work in rows: every
 // cell edits in place and saves when you leave it (or press Enter, which
@@ -168,15 +168,15 @@ export default function ProductTable({
                     </td>
                     <td className="r c-stock">
                       {one ? (
-                        <StockCell v={one} name={p.name} onSave={(patch) => save(() => api.upsertVariant(p.id, { ...one, ...patch }))} />
+                        <StockCell v={one} />
                       ) : stockTotal(p) != null ? (
                         <span className="apt-static">{stockTotal(p)}</span>
                       ) : (
-                        <span className="apt-static apt-muted">Not counted</span>
+                        <span className="apt-static apt-muted">Not tracked</span>
                       )}
                     </td>
                     <td className="r c-sold">
-                      <span className={`apt-static ${sold?.get(p.id) ? "" : "apt-muted"}`} title="Units sold, all time (cancelled orders and returns left out)">
+                      <span className={`apt-static ${sold?.get(p.id) ? "" : "apt-muted"}`} title="Units sold (net of returns and cancellations), all time">
                         {sold ? (sold.get(p.id) ?? 0) : "…"}
                       </span>
                     </td>
@@ -209,7 +209,7 @@ export default function ProductTable({
                         }
                       />
                     ))}
-                  {expanded && !selecting && <AddOptionRow product={p} onAdd={(label, price) => save(() => api.upsertVariant(p.id, { label, price, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length }), `Option ${label} added to ${p.name}`)} />}
+                  {expanded && !selecting && <AddOptionRow product={p} onAdd={(label, price) => save(() => api.upsertVariant(p.id, { label, price, is_visible: true, sort_order: p.variants.length }), `Option ${label} added to ${p.name}`)} />}
                 </Fragment>
               );
             })}
@@ -245,7 +245,7 @@ function OptionRow({ v, product: p, selecting, showCat, onSave }: { v: AdminVari
         <Cell col="price" num value={v.price ? String(v.price) : ""} placeholder={main ? String(main) : "Add"} label={`Price of the ${v.label} option`} onSave={(x) => onSave({ price: Number(x) || 0 })} />
       </td>
       <td className="r c-stock">
-        <StockCell v={v} name={`${p.name} ${v.label}`} onSave={onSave} />
+        <StockCell v={v} />
       </td>
       <td className="c-sold" />
       <td className="c-shop">
@@ -301,22 +301,10 @@ function AddOptionRow({ product: p, onAdd }: { product: AdminProduct; onAdd: (la
   );
 }
 
-// Stock: a number when it's counted, with a way to start or stop counting.
-function StockCell({ v, name, onSave }: { v: AdminVariant; name: string; onSave: (patch: Partial<AdminVariant>) => Promise<void> }) {
-  if (!v.track_stock)
-    return (
-      <button type="button" className="apt-count" onClick={() => onSave({ track_stock: true })} title="Start counting stock: checkout then refuses more than you have">
-        Not counted
-      </button>
-    );
-  return (
-    <span className="apt-stock">
-      <Cell col="stock" num value={String(v.stock_qty)} label={`Stock of ${name}`} onSave={(x) => onSave({ stock_qty: Math.max(0, Math.round(Number(x) || 0)) })} />
-      <button type="button" className="apt-uncount" onClick={() => onSave({ track_stock: false })} aria-label={`Stop counting stock of ${name}`} title="Stop counting stock">
-        ×
-      </button>
-    </span>
-  );
+// Stock: the count, read-only here; it changes from the product's Stock section.
+function StockCell({ v }: { v: AdminVariant }) {
+  if (!v.track_stock) return <span className="apt-static apt-muted">Not tracked</span>;
+  return <span className={`apt-static ${v.stock_qty <= 0 ? "apt-out" : ""}`}>{v.stock_qty}</span>;
 }
 
 function Switch({ on, label, onFlip }: { on: boolean; label: string; onFlip: () => void }) {
@@ -370,10 +358,10 @@ function Cell({ value, onSave, label, col, num = false, list, placeholder }: { v
 }
 
 // The sheet's first row is always empty, ready for a new product: fill in
-// what you know and press Create (or Enter in any of its cells). Leave stock
-// empty to not count it. It lands in the sheet like any other row.
+// what you know and press Create (or Enter in any of its cells). Stock
+// comes in through Add stock. It lands in the sheet like any other row.
 function NewProductRow({ categories, category, showCat, onCreate }: { categories: AdminCategory[]; category: string; showCat: boolean; onCreate: (d: NewRow) => Promise<void> }) {
-  const blank = { name: "", brand: "", type: "", price: "", stock: "" };
+  const blank = { name: "", brand: "", type: "", price: "" };
   const [d, setD] = useState(blank);
   const [cat, setCat] = useState(category || categories[0]?.id || "");
   const [visible, setVisible] = useState(true);
@@ -397,7 +385,6 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         brand: d.brand.trim(),
         type: d.type.trim(),
         price: Number(d.price) || 0,
-        stock: d.stock.trim() === "" ? null : Math.max(0, Math.round(Number(d.stock) || 0)),
         visible,
       });
       setD(blank);
@@ -448,7 +435,7 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         <td className="c-brand">{field("brand", "Brand", { list: "apt-brands" })}</td>
         <td className="c-type">{field("type", "Type")}</td>
         <td className="r c-price">{field("price", "Price", { num: true })}</td>
-        <td className="r c-stock">{field("stock", "Stock", { num: true, placeholder: "Not counted" })}</td>
+        <td className="r c-stock" />
         <td className="c-sold" />
         <td className="c-shop">
           <Switch on={visible} label="the new product" onFlip={() => setVisible((v) => !v)} />

@@ -48,3 +48,5 @@ __pycache__/
 
 # local https certs for phone testing
 certificates/
+.email-preview/
+supabase/.temp/

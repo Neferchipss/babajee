@@ -131,7 +131,8 @@ function makeDemo(): Api {
           sort_order: -1,
           category_slug: cat.slug,
           category_name: cat.name,
-          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: 0, sku: null, barcode: null, compare_at: null }],
+          // counted from 0 once every option in the shop is counted, as the real one does
+          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, track_stock: products.every((x) => x.variants.every((v) => v.track_stock)), is_visible: true, sort_order: 0, sku: null, barcode: null, compare_at: null }],
           images: [],
         },
         ...products,
@@ -164,8 +165,17 @@ function makeDemo(): Api {
     },
     async upsertVariant(productId, variant) {
       const p = find(productId);
-      if (variant.id) Object.assign(p.variants.find((v) => v.id === variant.id)!, variant);
-      else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
+      if (variant.id) {
+        const { stock_qty: _q, track_stock: _t, ...patch } = variant;
+        void _q;
+        void _t;
+        Object.assign(p.variants.find((v) => v.id === variant.id)!, patch);
+      }
+      else {
+        // counts stock (from 0) when another option of the product does, as the real one does
+        const track = variant.track_stock ?? p.variants.some((v) => v.track_stock);
+        p.variants.push({ id: uid(), label: "Option", price: 0, is_visible: true, sort_order: p.variants.length, ...variant, track_stock: track, stock_qty: track ? 0 : (variant.stock_qty ?? 0) } as AdminVariant);
+      }
     },
     async deleteProduct(product) {
       products = products.filter((p) => p.id !== product.id);

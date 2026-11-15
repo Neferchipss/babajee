@@ -32,6 +32,8 @@ export default function NewOrderPage() {
   const [addr, setAddr] = useState<Addr>(NO_ADDR);
   const [notes, setNotes] = useState("");
   const [paid, setPaid] = useState(false);
+  const [gstin, setGstin] = useState("");
+  const gstinOk = gstin === "" || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -122,7 +124,7 @@ export default function NewOrderPage() {
           : "";
 
   async function create() {
-    if (problem || !settings) return;
+    if (problem || !settings || !gstinOk) return;
     setBusy(true);
     setErr("");
     try {
@@ -134,6 +136,7 @@ export default function NewOrderPage() {
         shipping: ship == null ? null : shipping,
         notes,
         paid,
+        gstin,
       });
       toast(`Order ${o.number} created${paid ? " as paid" : ""}`);
       router.push(`/admin/orders/view?id=${o.id}`);
@@ -218,7 +221,7 @@ export default function NewOrderPage() {
                 <input
                   className="adm-input no-ship"
                   inputMode="decimal"
-                  aria-label="Delivery charge"
+                  aria-label="Shipping charges"
                   value={ship ?? String(autoShip)}
                   onChange={(e) => setShip(e.target.value.replace(/[^\d.]/g, ""))}
                 />
@@ -237,6 +240,15 @@ export default function NewOrderPage() {
                 Delivery follows Settings: free on {money(settings.free_shipping_over)} or more. Type to change it for this order.
               </p>
             )}
+          </section>
+
+          <section className="adm-card">
+            <h2>Buyer&apos;s GSTIN (B2B)</h2>
+            <input className="adm-input" maxLength={15} placeholder="Only for a business buyer" aria-label="Buyer's GSTIN" aria-invalid={!gstinOk} value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase().trim())} />
+            {!gstinOk && <p className="adm-err">That GSTIN doesn&apos;t look right: it&apos;s 15 characters, like 27ABCDE1234F1Z5.</p>}
+            <p className="adm-muted adm-small" style={{ margin: "8px 0 0" }}>
+              Printed on the invoice and reported as a B2B sale. It can&apos;t change once the invoice is issued (on payment).
+            </p>
           </section>
 
           <section className="adm-card">

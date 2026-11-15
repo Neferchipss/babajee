@@ -45,6 +45,7 @@ export async function auditLog(opts: { areas?: string[]; actor?: string; before?
 // how each part of the shop is named in the log, and grouped in its filter
 export const AREAS: { id: string; label: string; tables: string[] }[] = [
   { id: "products", label: "Products", tables: ["products", "product_variants", "product_images", "variant_costs", "product_reviews"] },
+  { id: "stock", label: "Purchases and suppliers", tables: ["suppliers", "stock_receipts", "stock_receipt_lines"] },
   { id: "categories", label: "Categories and collections", tables: ["categories", "collections", "collection_items"] },
   { id: "orders", label: "Orders", tables: ["orders", "order_refunds"] },
   { id: "customers", label: "Customers", tables: ["profiles", "customer_notes", "customer_segments"] },
@@ -57,6 +58,9 @@ export const AREA_NAME: Record<string, string> = {
   product_images: "photo",
   variant_costs: "buying price",
   product_reviews: "review",
+  suppliers: "supplier",
+  stock_receipts: "stock bill",
+  stock_receipt_lines: "stock bill line",
   categories: "category",
   collections: "collection",
   collection_items: "collection item",

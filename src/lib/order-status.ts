@@ -8,9 +8,9 @@ export const STEPS: OrderStatus[] = ["pending", "paid", "packed", "shipped", "de
 
 // what the admin reads on a pill, and its colour: warm = waiting on the shop
 export const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: "Unpaid",
+  pending: "Payment pending",
   paid: "To pack",
-  packed: "To ship",
+  packed: "Ready to dispatch",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",

@@ -2,6 +2,7 @@
 // browser session. The database decides what each person may do: customers
 // see only their own orders, and every admin call below is refused for
 // anyone but role = 'admin' (supabase/migrations/0013_orders_admin.sql).
+import type { CreditNoteRow } from "./credit-note";
 import { toNumber } from "./currency";
 import type { OrderStatus } from "./order-status";
 import { getSupabase } from "./supabase";
@@ -29,6 +30,7 @@ export type OrderItem = {
   quantity: number;
   // the GST bracket this line sold at, and the product's HSN code today (0030)
   gst_rate?: number;
+  // the HSN it was sold under (0051 copies it onto the line); before that, the product's
   hsn?: string;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
   slug?: string | null;
@@ -94,6 +96,8 @@ export type Order = {
   // its GST invoice, once one has been made (0029)
   invoice_number?: string | null;
   invoice_date?: string | null;
+  // the buyer's GSTIN for a B2B sale, '' for a consumer (0051)
+  buyer_gstin?: string;
   created_at: string;
   updated_at?: string;
   order_items?: OrderItem[];
@@ -126,7 +130,7 @@ function toOrder(row: Record<string, unknown>): Order {
         pv && p?.slug && pv.label !== undefined && pv.price !== undefined
           ? { slug: p.slug, category: p.categories?.slug ?? "", label: pv.label, price: toNumber(pv.price), ok: !!(pv.is_visible && p.is_visible && toNumber(pv.price) > 0) }
           : null;
-      return { ...rest, unit_price: toNumber(i.unit_price), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), ...(p?.hsn ? { hsn: p.hsn } : {}), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
+      return { ...rest, unit_price: toNumber(i.unit_price), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), hsn: (i.hsn as string | undefined) || (o.invoice_number ? "" : (p?.hsn ?? "")), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
     }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
@@ -172,12 +176,61 @@ export async function listMyOrders(profileId: string): Promise<Order[]> {
   return (data ?? []).map(toOrder);
 }
 
-// several orders in full, for printing invoices and packing slips; oldest first
+// several orders in full, for printing invoices; oldest first
 export async function getOrders(ids: string[]): Promise<Order[]> {
   if (!ids.length) return [];
   const { data, error } = await db().from("orders").select(FULL).in("id", ids).order("created_at");
   if (error) throw error;
   return (data ?? []).map(toOrder);
+}
+
+// the buyer's GSTIN on a B2B order; only before its invoice is issued (0051)
+export async function setBuyerGstin(orderId: string, gstin: string) {
+  const { error } = await db().rpc("admin_set_buyer_gstin", { p_order: orderId, p_gstin: gstin });
+  if (error) throw error;
+}
+
+// credit notes for every refund on these invoiced orders that has none yet,
+// then all their notes (0051)
+export async function issueCreditNotes(ids: string[]): Promise<CreditNoteRow[]> {
+  const { error } = await db().rpc("admin_issue_credit_notes", { p_orders: ids });
+  if (error) throw error;
+  const { data, error: e2 } = await db().from("credit_notes").select("*").in("order_id", ids).order("issued_at");
+  if (e2) throw e2;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), shipping: toNumber(r.shipping) }) as CreditNoteRow);
+}
+
+// IST day range [from, to] as timestamps, for invoice and credit-note dates
+const istRange = (from: string, to: string) => [new Date(`${from}T00:00:00+05:30`).toISOString(), new Date(new Date(`${to}T00:00:00+05:30`).getTime() + 86400000).toISOString()];
+
+// orders whose invoice is dated in the range, in full, oldest first (paged past
+// PostgREST's row cap)
+export async function invoicedOrders(from: string, to: string): Promise<Order[]> {
+  const [a, b] = istRange(from, to);
+  const out: Order[] = [];
+  for (let at = 0; ; at += 500) {
+    const { data, error } = await db().from("orders").select(FULL).not("invoice_number", "is", null).gte("invoice_date", a).lt("invoice_date", b).order("invoice_date").order("id").range(at, at + 499);
+    if (error) throw error;
+    out.push(...(data ?? []).map(toOrder));
+    if ((data ?? []).length < 500) return out;
+  }
+}
+
+// paid orders placed up to the end of the range that still have no invoice
+// (paid before invoices were issued automatically)
+export async function uninvoicedPaid(from: string, to: string): Promise<number> {
+  const [, b] = istRange(from, to);
+  const { count, error } = await db().from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).lt("created_at", b);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// credit notes issued in the range (0051)
+export async function creditNotesIn(from: string, to: string): Promise<CreditNoteRow[]> {
+  const [a, b] = istRange(from, to);
+  const { data, error } = await db().from("credit_notes").select("*").gte("issued_at", a).lt("issued_at", b).order("issued_at");
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), shipping: toNumber(r.shipping) }) as CreditNoteRow);
 }
 
 // invoice numbers for these orders (paid ones without one get the next in the series)
@@ -687,7 +740,9 @@ export type StockMove = {
   variant_id: string;
   delta: number;
   qty_after: number;
-  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "undo" | "manual";
+  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "undo" | "manual" | "stock_in" | "void" | "correction";
+  receipt_id: string | null;
+  note: string;
   order_id: string | null;
   created_at: string;
   product_name: string;
@@ -698,7 +753,7 @@ export type StockMove = {
 export async function stockHistory(variantIds?: string[]): Promise<StockMove[]> {
   let q = db()
     .from("stock_movements")
-    .select("id, variant_id, delta, qty_after, reason, order_id, created_at, product_variants(label, products(name)), orders(order_number)")
+    .select("id, variant_id, delta, qty_after, reason, order_id, receipt_id, note, created_at, product_variants(label, products(name)), orders(order_number)")
     .order("created_at", { ascending: false })
     .limit(200);
   if (variantIds) q = q.in("variant_id", variantIds);
@@ -729,7 +784,7 @@ export type StoreSettings = {
   return_days: number;
   // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
   low_stock_at: number;
-  // printed on invoices and packing slips (0029)
+  // printed on invoices (0029)
   store_name: string;
   legal_name: string;
   gstin: string;
@@ -925,19 +980,14 @@ export type NewOrder = {
   shipping: number | null;
   notes: string;
   paid: boolean;
+  // a business buyer's GSTIN (0051), '' for a consumer
+  gstin?: string;
 };
 
 // An order taken by the shop (phone, WhatsApp, counter); see 0018.
 export async function createOrder(n: NewOrder): Promise<{ id: string; number: string }> {
-  const { data, error } = await db().rpc("admin_create_order", {
-    p_customer: n.customer,
-    p_contact: n.contact,
-    p_address: n.address,
-    p_lines: n.lines,
-    p_shipping: n.shipping,
-    p_notes: n.notes,
-    p_paid: n.paid,
-  });
+  const args = { p_customer: n.customer, p_contact: n.contact, p_address: n.address, p_lines: n.lines, p_shipping: n.shipping, p_notes: n.notes, p_paid: n.paid };
+  const { data, error } = n.gstin ? await db().rpc("admin_create_order_b2b", { ...args, p_gstin: n.gstin }) : await db().rpc("admin_create_order", args);
   if (error) throw error;
   const row = (data as { order_id: string; order_number: string }[])[0];
   return { id: row.order_id, number: row.order_number };
