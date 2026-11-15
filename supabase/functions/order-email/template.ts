@@ -37,21 +37,36 @@ export type Shop = { store_name: string; legal_name: string; store_address: stri
 export type Cfg = { site: string; assets: string; instagram: string; photo: (slug: string, option: string) => string | null };
 export type Mail = { kind: string; subject: string; html: string };
 
-// the site's dark theme (src/app/themes/modes.css): black, dark-grey surfaces,
-// brass gold as the one accent, green for good news. The rasta colours belong
-// to the logo only.
-const C = { bg: "#000000", card: "#121213", surface: "#1b1b1c", line: "#272729", text: "#f2f3f5", muted: "#96979d", gold: "#d3ab70", green: "#23a55a" };
+// The site's own light and dark themes (src/app/themes/modes.css), following
+// the reader's system setting. Inline styles carry the light theme; the dark
+// one swaps each colour in a prefers-color-scheme block (Apple Mail, iOS,
+// Outlook for Mac). Gmail ignores that block and adapts the light one itself.
+// The rasta colours belong to the logo only.
+const C = { bg: "#f0f2f5", card: "#ffffff", surface: "#f5f6f8", line: "#e7eaee", text: "#0c0f14", muted: "#686f78", gold: "#d3ab70", goldText: "#9c7a3c", green: "#0f8a5f" };
+const DARK: [string, string][] = [
+  [C.bg, "#000000"],
+  [C.card, "#121213"],
+  [C.surface, "#1b1b1c"],
+  [C.line, "#272729"],
+  [C.text, "#f2f3f5"],
+  [C.muted, "#96979d"],
+  [C.goldText, "#d3ab70"],
+  [C.green, "#23a55a"],
+];
+const DARK_CSS = `@media (prefers-color-scheme: dark){${DARK.map(
+  ([l, d]) => `[style*="background:${l}"],[bgcolor="${l}"]{background:${d}!important}[style*="color:${l}"]{color:${d}!important}[style*="solid ${l}"],[style*="dashed ${l}"]{border-color:${d}!important}`,
+).join("")}}`;
 // the site's type: Geist, Geist Mono for prices (mail apps without web fonts fall back)
 const FONT = "Geist,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const MONO = "'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
 // accent per message
 const TONE = {
   confirmed: { accent: C.green },
-  shipped: { accent: C.gold },
-  refund: { accent: C.gold },
-  return: { accent: C.gold },
+  shipped: { accent: C.goldText },
+  refund: { accent: C.goldText },
+  return: { accent: C.goldText },
   cancelled: { accent: C.muted },
-  "new-order": { accent: C.gold },
+  "new-order": { accent: C.goldText },
 } as const;
 type Kind = keyof typeof TONE;
 
@@ -75,7 +90,7 @@ function hero(cfg: Cfg, kind: Kind, kicker: string, title: string) {
   const t = TONE[kind];
   return `<tr><td style="padding:0 0 14px">${T(
     `<tr><td bgcolor="${C.card}" style="background:${C.card};padding:22px 20px">${T(
-      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.text}">${esc(title)}</div></td><td width="96" align="right" valign="middle"><img src="${cfg.assets}/${kind}.png" width="88" height="88" alt="" style="display:block;width:88px;height:88px;border:0"></td></tr>`,
+      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.text}">${esc(title)}</div></td><td width="96" align="right" valign="middle"><div style="width:88px;height:88px;border-radius:44px;background:${C.surface};text-align:center"><img src="${cfg.assets}/${kind}.png" width="52" height="52" alt="" style="display:inline-block;width:52px;height:52px;margin-top:18px;border:0"></div></td></tr>`,
     )}</td></tr>`,
     `style="border-radius:16px;overflow:hidden;border:1px solid ${C.line}"`,
   )}</td></tr>`;
@@ -93,7 +108,7 @@ function tracker(at: number) {
     const style = done
       ? `background:${C.gold};color:#000000;border:2px solid ${C.gold}`
       : now
-        ? `background:${C.card};color:${C.gold};border:2px solid ${C.gold};box-shadow:0 0 0 4px rgba(211,171,112,0.18)`
+        ? `background:${C.card};color:${C.goldText};border:2px solid ${C.gold};box-shadow:0 0 0 4px rgba(211,171,112,0.18)`
         : `background:${C.surface};color:${C.muted};border:2px solid ${C.line}`;
     return `<td valign="middle" style="padding:0"><div style="width:26px;height:26px;line-height:26px;border-radius:15px;text-align:center;font-size:12px;font-weight:700;${style}">${done ? "&#10003;" : i + 1}</div></td>`;
   };
@@ -101,7 +116,7 @@ function tracker(at: number) {
     (_, i) => `<td width="25%" align="center" valign="middle" style="padding:0">${T(`<tr>${half(i <= at, i > 0)}${dot(i)}${half(i < at, i < STEPS.length - 1)}</tr>`)}</td>`,
   ).join("");
   const labels = STEPS.map(
-    (s, i) => `<td width="25%" align="center" style="padding:10px 2px 0;font-size:12px;line-height:1.3;font-weight:${i === at ? 700 : 500};color:${i === at ? C.gold : i < at ? C.text : C.muted}">${s}</td>`,
+    (s, i) => `<td width="25%" align="center" style="padding:10px 2px 0;font-size:12px;line-height:1.3;font-weight:${i === at ? 700 : 500};color:${i === at ? C.goldText : i < at ? C.text : C.muted}">${s}</td>`,
   ).join("");
   return `<div style="border-top:1px solid ${C.line};margin:6px 0 18px;font-size:0;line-height:0">&nbsp;</div>${T(`<tr>${cells}</tr><tr>${labels}</tr>`)}`;
 }
@@ -140,7 +155,7 @@ function footer(cfg: Cfg, shop: Shop, to: "customer" | "shop") {
   ].filter(Boolean) as [string, string, string][];
   const support = [
     shop.store_phone && `<span style="color:${C.muted}">Customer support:</span> <b style="color:${C.text}">${esc(shop.store_phone)}</b>`,
-    shop.store_email && `<span style="color:${C.muted}">Write to us at</span> <a href="mailto:${esc(shop.store_email)}" style="color:${C.gold};text-decoration:none;font-weight:700">${esc(shop.store_email)}</a>`,
+    shop.store_email && `<span style="color:${C.muted}">Write to us at</span> <a href="mailto:${esc(shop.store_email)}" style="color:${C.goldText};text-decoration:none;font-weight:700">${esc(shop.store_email)}</a>`,
   ].filter(Boolean);
   const auto =
     to === "customer"
@@ -149,7 +164,7 @@ function footer(cfg: Cfg, shop: Shop, to: "customer" | "shop") {
   return `<tr><td bgcolor="${C.surface}" style="background:${C.surface};border-radius:16px;padding:26px 20px 22px;text-align:center">
 <a href="${cfg.site}/"><img src="${cfg.assets}/logo.png" width="170" alt="Babajee · The Smoke Shop" style="display:block;margin:0 auto 14px;width:170px;height:auto;border:0"></a>
 <p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:${C.muted}">Rolling papers, grinders and smoking accessories, packed with care and delivered across India.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 16px"><tr>${icons.map(([href, icon, alt]) => `<td style="padding:0 6px"><a href="${href}"><img src="${cfg.assets}/${icon}.png" width="38" height="38" alt="${alt}" style="display:block;width:38px;height:38px;border:0"></a></td>`).join("")}</tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 16px"><tr>${icons.map(([href, icon, alt]) => `<td style="padding:0 6px"><a href="${href}" style="display:block;width:38px;height:38px;border-radius:19px;border:1px solid ${C.line};background:${C.card};text-align:center"><img src="${cfg.assets}/${icon}.png" width="20" height="20" alt="${alt}" style="display:inline-block;width:20px;height:20px;margin-top:9px;border:0"></a></td>`).join("")}</tr></table>
 ${support.map((s) => `<p style="margin:0 0 6px;font-size:14px;line-height:1.5">${s}</p>`).join("")}
 <div style="border-top:1px solid ${C.line};margin:16px 0 14px;font-size:0;line-height:0">&nbsp;</div>
 <p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:${C.muted}">${auto}</p>
@@ -160,7 +175,7 @@ ${shop.store_address ? `<p style="margin:0 0 4px;font-size:12px;line-height:1.6;
 }
 
 function shell(cfg: Cfg, shop: Shop, to: "customer" | "shop", title: string, rows: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet"><title>${esc(title)}</title></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><style>:root{color-scheme:light dark}${DARK_CSS}</style><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg}" bgcolor="${C.bg}">
 ${T(`<tr><td align="center" style="padding:20px 12px 28px">${T(`<tr><td align="center" style="padding:6px 0 20px"><a href="${cfg.site}/"><img src="${cfg.assets}/logo.png" width="150" alt="Babajee · The Smoke Shop" style="display:block;width:150px;height:auto;border:0"></a></td></tr>${rows}${footer(cfg, shop, to)}`, `style="max-width:560px;font-family:${FONT}"`)}</td></tr>`, `bgcolor="${C.bg}" style="background:${C.bg}"`)}
 </body></html>`;
@@ -172,7 +187,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
   const o = e.orders;
   const hi = p(`Hi <b>${esc(first(o.contact_name))}</b>,`);
   const view = button(`${cfg.site}/orders/view/?id=${o.id}`, "View your order");
-  const details = card("Order details", kv([["Order", `<b style="color:${C.gold}">${esc(o.order_number)}</b>`], ["Placed on", day(o.created_at)], ["Deliver to", `<b>${esc(o.contact_name)}</b><br>${address(o)}`]]));
+  const details = card("Order details", kv([["Order", `<b style="color:${C.goldText}">${esc(o.order_number)}</b>`], ["Placed on", day(o.created_at)], ["Deliver to", `<b>${esc(o.contact_name)}</b><br>${address(o)}`]]));
   switch (e.status) {
     case "paid":
       return {
@@ -198,7 +213,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
       if (!r) return null;
       const cn = o.credit_notes.find((n) => n.refund_id === r.id);
       const ret = e.status === "return";
-      const amount = card("Refund", `${T(`<tr><td style="font-size:15px;color:${C.muted}">Amount refunded</td><td align="right" style="font-size:26px;font-weight:700;color:${C.gold};white-space:nowrap;font-family:${MONO}">${inr(r.amount)}</td></tr>`)}${kv([...(r.reason ? ([["Reason", esc(r.reason)]] as [string, string][]) : []), ...(cn ? ([["Credit note", `<b>${esc(cn.number)}</b>`]] as [string, string][]) : []), ["Order", `<b style="color:${C.gold}">${esc(o.order_number)}</b>`]])}`);
+      const amount = card("Refund", `${T(`<tr><td style="font-size:15px;color:${C.muted}">Amount refunded</td><td align="right" style="font-size:26px;font-weight:700;color:${C.goldText};white-space:nowrap;font-family:${MONO}">${inr(r.amount)}</td></tr>`)}${kv([...(r.reason ? ([["Reason", esc(r.reason)]] as [string, string][]) : []), ...(cn ? ([["Credit note", `<b>${esc(cn.number)}</b>`]] as [string, string][]) : []), ["Order", `<b style="color:${C.goldText}">${esc(o.order_number)}</b>`]])}`);
       return {
         kind: "refund",
         subject: `Refund of ${inr(r.amount)} on order ${o.order_number}`,
@@ -217,7 +232,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
 
 // the shop's own alert for a new paid order
 export function alertMail(o: Order, shop: Shop, cfg: Cfg): Mail {
-  const who = card("Customer", kv([["Name", `<b>${esc(o.contact_name)}</b>`], ["Email", `<a href="mailto:${esc(o.contact_email)}" style="color:${C.gold}">${esc(o.contact_email)}</a>`], ["Deliver to", address(o)]]));
+  const who = card("Customer", kv([["Name", `<b>${esc(o.contact_name)}</b>`], ["Email", `<a href="mailto:${esc(o.contact_email)}" style="color:${C.goldText}">${esc(o.contact_email)}</a>`], ["Deliver to", address(o)]]));
   return {
     kind: "new-order",
     subject: `New order ${o.order_number} · ${inr(o.total)}`,
