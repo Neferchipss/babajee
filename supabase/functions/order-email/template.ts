@@ -162,7 +162,7 @@ ${shop.store_address ? `<p style="margin:0 0 4px;font-size:12px;line-height:1.6;
 function shell(cfg: Cfg, shop: Shop, to: "customer" | "shop", title: string, rows: string) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg}" bgcolor="${C.bg}">
-${T(`<tr><td align="center" style="padding:20px 12px 28px">${T(`${rows}${footer(cfg, shop, to)}`, `style="max-width:560px;font-family:${FONT}"`)}</td></tr>`, `bgcolor="${C.bg}" style="background:${C.bg}"`)}
+${T(`<tr><td align="center" style="padding:20px 12px 28px">${T(`<tr><td align="center" style="padding:6px 0 20px"><a href="${cfg.site}/"><img src="${cfg.assets}/logo.png" width="150" alt="Babajee · The Smoke Shop" style="display:block;width:150px;height:auto;border:0"></a></td></tr>${rows}${footer(cfg, shop, to)}`, `style="max-width:560px;font-family:${FONT}"`)}</td></tr>`, `bgcolor="${C.bg}" style="background:${C.bg}"`)}
 </body></html>`;
 }
 
