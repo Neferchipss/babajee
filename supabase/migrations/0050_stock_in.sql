@@ -5,7 +5,8 @@
 --    is a supplier bill (kind 'bill'), the opening stock count ('opening') or a
 --    quick add with no paperwork ('quick'). Each line keeps the price paid
 --    (before GST), the GST on it and how it splits into CGST/SGST/IGST.
---    Only bills can be claimed back as input tax credit.
+--    Only bills from a supplier with a GSTIN can be claimed back as input tax
+--    credit. Prices are kept to the paisa before GST and the average.
 -- 3. stock_movements gains receipt_id and note, and three reasons: stock_in,
 --    void and correction. log_stock_movement() reads them from the same
 --    transaction-local settings as the order id.
@@ -21,7 +22,8 @@
 --    admin_purchase_gst read and manage it. All admins only.
 -- 6. Stock can now go below zero: a sale that was entered before the bill
 --    reached the system, or a void after the goods were sold, leaves a negative
---    count for the shop to correct, instead of blocking the change.
+--    count for the shop to correct, instead of blocking the change. Checkout
+--    and the dashboard count 0 or less as out of stock.
 -- 7. The three new tables join the audit log and the data download.
 --
 -- Also: bill lines keep their option for good (an option or product with stock
@@ -70,7 +72,7 @@ create table if not exists public.stock_receipt_lines (
   variant_id uuid not null references public.product_variants (id) on delete restrict,
   qty int not null check (qty > 0),
   unit_price numeric(10, 2) not null check (unit_price >= 0),
-  gst_rate numeric(5, 2) not null default 0,
+  gst_rate numeric(5, 2) not null default 0 check (gst_rate between 0 and 100),
   gst numeric(10, 2) not null default 0,
   cgst numeric(10, 2) not null default 0,
   sgst numeric(10, 2) not null default 0,
@@ -78,6 +80,10 @@ create table if not exists public.stock_receipt_lines (
   claimable boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- (a table made by an earlier run of this file gets the rate check too)
+alter table public.stock_receipt_lines drop constraint if exists stock_receipt_lines_gst_rate_check;
+alter table public.stock_receipt_lines add constraint stock_receipt_lines_gst_rate_check
+  check (gst_rate between 0 and 100);
 create index if not exists stock_receipt_lines_receipt_idx on public.stock_receipt_lines (receipt_id);
 create index if not exists stock_receipt_lines_variant_idx on public.stock_receipt_lines (variant_id);
 
@@ -285,7 +291,7 @@ declare
   shop text := '';
   inter boolean;
   known boolean;
-  claim boolean := (p_kind = 'bill');
+  claim boolean;
   e jsonb;
   v record;
   qty int;
@@ -325,6 +331,8 @@ begin
       bno := '';
     end if;
   end if;
+  -- input credit needs a bill from a GST-registered supplier
+  claim := p_kind = 'bill' and btrim(coalesce(sup, '')) <> '';
   select coalesce(st.gstin, '') into shop from public.store_settings st where st.id = 1;
   known := length(coalesce(sup, '')) >= 2 and length(shop) >= 2;
   inter := known and left(sup, 2) <> left(shop, 2);
@@ -342,7 +350,8 @@ begin
 
   for e in select x from jsonb_array_elements(p_lines) x loop
     qty := (e ->> 'qty')::int;
-    price := (e ->> 'unit_price')::numeric;
+    -- to the paisa before GST and the average are worked out
+    price := round((e ->> 'unit_price')::numeric, 2);
     if qty is null or qty <= 0 then
       raise exception 'Each line needs a quantity above zero.' using errcode = '22023';
     end if;
@@ -355,6 +364,9 @@ begin
       raise exception 'An option on this bill no longer exists.' using errcode = 'P0002';
     end if;
     rate := coalesce((e ->> 'gst_rate')::numeric, public.product_gst(v.product_id), 0);
+    if rate < 0 or rate > 100 then
+      raise exception 'GST must be between 0%% and 100%%.' using errcode = '22023';
+    end if;
     g := round(qty * price * rate / 100, 2);
     if not known then
       c := 0; s := 0; i := 0;
@@ -453,6 +465,7 @@ set search_path = ''
 as $$
 declare
   nt text := btrim(coalesce(p_note, ''));
+  was record;
 begin
   if not public.is_admin() then
     raise exception 'Admins only.' using errcode = '42501';
@@ -463,13 +476,19 @@ begin
   if p_count is null or p_count < 0 then
     raise exception 'The count cannot be below zero.' using errcode = '22023';
   end if;
-  perform 1 from public.product_variants where id = p_variant for update;
+  select pv.stock_qty, pv.track_stock into was from public.product_variants pv where pv.id = p_variant for update;
   if not found then
     raise exception 'Option not found.' using errcode = 'P0002';
   end if;
   perform set_config('babajee.stock_reason', 'correction', true);
   perform set_config('babajee.stock_note', nt, true);
   update public.product_variants set stock_qty = p_count, track_stock = true where id = p_variant;
+  -- starting to count at the number already there changes no stock, so the
+  -- trigger logs nothing: log the count (and its reason) here
+  if not was.track_stock and was.stock_qty = p_count then
+    insert into public.stock_movements (variant_id, delta, qty_after, reason, note, actor_id, created_at)
+    values (p_variant, 0, p_count, 'correction', nt, (select auth.uid()), clock_timestamp());
+  end if;
   perform set_config('babajee.stock_reason', '', true);
   perform set_config('babajee.stock_note', '', true);
 end;
@@ -547,7 +566,7 @@ begin
   return coalesce((
     select jsonb_agg(jsonb_build_object(
              'id', r.id, 'kind', r.kind, 'status', r.status,
-             'supplier', s.name, 'bill_no', r.bill_no, 'bill_date', r.bill_date,
+             'supplier_id', r.supplier_id, 'supplier', s.name, 'bill_no', r.bill_no, 'bill_date', r.bill_date,
              'lines', coalesce(t.n, 0), 'qty', coalesce(t.q, 0),
              'taxable', coalesce(t.taxable, 0), 'gst', coalesce(t.gst, 0))
            order by r.bill_date desc, r.created_at desc)
@@ -621,8 +640,14 @@ begin
   if not public.is_admin() then
     raise exception 'Admins only.' using errcode = '42501';
   end if;
-  update public.product_variants set track_stock = true where not track_stock;
+  -- an old hand-typed count was never logged, so every option starts from 0
+  -- and each nonzero count leaves a correction to 0 in its history
+  perform set_config('babajee.stock_reason', 'correction', true);
+  perform set_config('babajee.stock_note', 'Started counting', true);
+  update public.product_variants set track_stock = true, stock_qty = 0 where not track_stock;
   get diagnostics n = row_count;
+  perform set_config('babajee.stock_reason', '', true);
+  perform set_config('babajee.stock_note', '', true);
   return n;
 end;
 $$;
@@ -655,6 +680,164 @@ begin
            and (p_from is null or r.bill_date >= p_from) and (p_to is null or r.bill_date <= p_to)
          group by to_char(r.bill_date, 'YYYY-MM')) x
   ), '[]'::jsonb);
+end;
+$$;
+
+-- ---------------------------------------------------------------- 6b. stock below zero
+-- Now that stock can go below zero (see 6 above), "out of stock" means 0 or
+-- less. Copied from 0030 (place_order) and 0043 (admin_home_counts); only the
+-- `stock_qty = 0` tests change to `<= 0`.
+
+create or replace function public.place_order(p_items jsonb, p_address jsonb, p_notes text default '')
+returns table (order_id uuid, order_number text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  uid uuid := (select auth.uid());
+  email text;
+  item jsonb;
+  v record;
+  n int;
+  sub numeric(10, 2) := 0;
+  ship numeric(10, 2) := 0;
+  tax numeric(10, 2) := 0;
+  rate numeric(5, 2) := 0;
+  incl boolean := true;
+  oi_id uuid;
+  s record;
+  o_id uuid;
+  o_no text;
+  lines jsonb := '[]'::jsonb;
+begin
+  if uid is null then
+    raise exception 'Log in to place an order.' using errcode = '28000';
+  end if;
+  select u.email into email from auth.users u where u.id = uid;
+
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
+    raise exception 'Your cart is empty.';
+  end if;
+  if jsonb_array_length(p_items) > 50 then
+    raise exception 'Too many lines in one order.';
+  end if;
+  if coalesce(trim(p_address ->> 'recipient_name'), '') = '' or coalesce(trim(p_address ->> 'phone'), '') = ''
+     or coalesce(trim(p_address ->> 'line1'), '') = '' or coalesce(trim(p_address ->> 'city'), '') = ''
+     or coalesce(trim(p_address ->> 'state'), '') = '' or coalesce(trim(p_address ->> 'pincode'), '') = '' then
+    raise exception 'Add a full delivery address.';
+  end if;
+
+  -- resolve every line to a visible option, priced from the catalogue, and
+  -- lock the stock rows so two checkouts cannot sell the same last item
+  for item in select * from jsonb_array_elements(p_items) loop
+    n := coalesce((item ->> 'qty')::int, 0);
+    if n < 1 or n > 99 then
+      raise exception 'Quantities must be between 1 and 99.';
+    end if;
+
+    select pv.id, pv.label, pv.sku, pv.price, pv.stock_qty, pv.track_stock, p.name,
+           (select vc.cost from public.variant_costs vc where vc.variant_id = pv.id) as cost
+      into v
+      from public.product_variants pv
+      join public.products p on p.id = pv.product_id
+     where p.slug = item ->> 'slug' and p.is_visible and pv.is_visible
+       and (pv.label = coalesce(item ->> 'variant', '')
+            or (coalesce(item ->> 'variant', '') in ('', 'Default', 'Standard')
+                and (select count(*) from public.product_variants x where x.product_id = p.id and x.is_visible) = 1))
+     order by (pv.label = coalesce(item ->> 'variant', '')) desc
+     limit 1
+     for update of pv;
+
+    if v.id is null then
+      raise exception '% is no longer available.', coalesce(item ->> 'slug', 'An item');
+    end if;
+    if v.price <= 0 then
+      raise exception '% has no price yet, so it cannot be ordered.', v.name;
+    end if;
+    if v.track_stock and v.stock_qty < n then
+      if v.stock_qty <= 0 then
+        raise exception '% is out of stock.', v.name;
+      end if;
+      raise exception 'Only % left of %.', v.stock_qty, v.name;
+    end if;
+
+    sub := sub + v.price * n;
+    lines := lines || jsonb_build_object(
+      'variant_id', v.id, 'name', v.name, 'label', case when v.label = 'Default' then '' else v.label end,
+      'sku', v.sku, 'price', v.price, 'qty', n, 'track', v.track_stock, 'cost', v.cost);
+  end loop;
+
+  select st.shipping, st.free_shipping_over, st.gst_rate, st.gst_inclusive into s from public.store_settings st where st.id = 1;
+  ship := case when s.free_shipping_over is not null and sub >= s.free_shipping_over then 0 else coalesce(s.shipping, 0) end;
+  -- GST on the goods: already inside the shelf price, or added on top
+  rate := coalesce(s.gst_rate, 0);
+  incl := coalesce(s.gst_inclusive, true);
+  tax := case when incl then round(sub * rate / (100 + rate), 2) else round(sub * rate / 100, 2) end;
+
+  insert into public.orders (
+    profile_id, contact_name, contact_email, contact_phone,
+    address_line1, address_line2, address_landmark, address_city, address_state, address_pincode,
+    address_latitude, address_longitude, subtotal, shipping, tax, total, notes, gst_rate, gst_inclusive)
+  values (
+    uid, trim(p_address ->> 'recipient_name'), coalesce(email, ''), trim(p_address ->> 'phone'),
+    trim(p_address ->> 'line1'), coalesce(trim(p_address ->> 'line2'), ''), coalesce(trim(p_address ->> 'landmark'), ''),
+    trim(p_address ->> 'city'), trim(p_address ->> 'state'), trim(p_address ->> 'pincode'),
+    nullif(p_address ->> 'latitude', '')::double precision, nullif(p_address ->> 'longitude', '')::double precision,
+    sub, ship, tax, sub + ship + case when incl then 0 else tax end, left(coalesce(p_notes, ''), 1000), rate, incl)
+  returning id, orders.order_number into o_id, o_no;
+
+  perform set_config('babajee.stock_reason', 'sale', true);
+  perform set_config('babajee.order_id', o_id::text, true);
+  for item in select * from jsonb_array_elements(lines) loop
+    insert into public.order_items (order_id, variant_id, product_name, variant_label, sku, unit_price, quantity)
+    values (o_id, (item ->> 'variant_id')::uuid, item ->> 'name', item ->> 'label', item ->> 'sku',
+            (item ->> 'price')::numeric, (item ->> 'qty')::int)
+    returning id into oi_id;
+    -- what it cost the shop at the time of sale, kept away from the customer
+    if item ->> 'cost' is not null then
+      insert into public.order_item_costs (order_item_id, unit_cost) values (oi_id, (item ->> 'cost')::numeric);
+    end if;
+    if (item ->> 'track')::boolean then
+      update public.product_variants set stock_qty = stock_qty - (item ->> 'qty')::int
+       where id = (item ->> 'variant_id')::uuid;
+    end if;
+  end loop;
+  perform set_config('babajee.stock_reason', '', true);
+  perform set_config('babajee.order_id', '', true);
+
+  -- GST from each line's own bracket
+  perform public.order_retax(o_id);
+
+  return query select o_id, o_no;
+end;
+$$;
+
+create or replace function public.admin_home_counts()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  shop_mark int := coalesce((select low_stock_at from public.store_settings where id = 1), 3);
+begin
+  if not public.is_admin() then
+    raise exception 'Admins only.' using errcode = '42501';
+  end if;
+  return jsonb_build_object(
+    'requests', (select count(*) from public.order_requests where status = 'open'),
+    'unpaid', (select count(*) from public.orders where status = 'pending'),
+    'to_pack', (select count(*) from public.orders where status = 'paid'),
+    'to_ship', (select count(*) from public.orders where status = 'packed'),
+    'in_transit', (select count(*) from public.orders where status = 'shipped'),
+    'out_of_stock', (select count(*) from public.product_variants where track_stock and is_visible and stock_qty <= 0),
+    'low_stock', (select count(*) from public.product_variants v join public.products p on p.id = v.product_id
+                   where v.track_stock and v.is_visible and v.stock_qty between 1 and coalesce(p.low_stock_at, shop_mark)),
+    'unpriced', (select count(*) from public.product_variants where is_visible and price = 0)
+  );
 end;
 $$;
 
@@ -702,3 +885,7 @@ grant execute on function public.admin_uncounted() to authenticated;
 grant execute on function public.admin_track_all_stock() to authenticated;
 grant execute on function public.admin_purchase_gst(date, date) to authenticated;
 grant execute on function public.export_table_list() to authenticated;
+revoke all on function public.place_order(jsonb, jsonb, text) from public, anon;
+grant execute on function public.place_order(jsonb, jsonb, text) to authenticated;
+revoke all on function public.admin_home_counts() from public, anon;
+grant execute on function public.admin_home_counts() to authenticated;

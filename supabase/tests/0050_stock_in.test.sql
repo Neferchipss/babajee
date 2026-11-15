@@ -11,6 +11,7 @@ declare
   s1 uuid; s2 uuid;
   r_open uuid; r_bill uuid; r_inter uuid; r_a uuid; r_b uuid; r_c uuid; r_d uuid;
   r_neg uuid; r_new uuid; v10 uuid; r_unt uuid;
+  v11 uuid; v12 uuid; v13 uuid; v14 uuid; s3 uuid; r_nogst uuid; r_p uuid;
   l record;
   n int;
   m jsonb;
@@ -40,9 +41,44 @@ begin
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V9', 500, 0, false) returning id into v9;
 
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V10', 500, 12, false) returning id into v10;
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V11', 500, 115, false) returning id into v11;
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V12', 500, 0, false) returning id into v12;
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V13', 500, 7, false) returning id into v13;
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V14', 500, 0, false) returning id into v14;
 
   s1 := public.admin_save_supplier(jsonb_build_object('name', 'Same State Traders', 'gstin', '27BBBBB1111B1Z5'));
   s2 := public.admin_save_supplier(jsonb_build_object('name', 'Other State Traders', 'gstin', '29CCCCC2222C1Z5'));
+  s3 := public.admin_save_supplier(jsonb_build_object('name', 'Unregistered Traders'));
+
+  -- bill_without_supplier_gstin_not_claimable: GST still recorded, no split, no credit
+  r_nogst := public.admin_post_receipt('bill', s3, 'U-1', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v14, 'qty', 2, 'unit_price', 100, 'gst_rate', 18)));
+  select * into l from public.stock_receipt_lines where receipt_id = r_nogst;
+  if not (not l.claimable and l.gst = 36.00 and l.cgst = 0 and l.sgst = 0 and l.igst = 0) then raise exception 'FAIL: bill_without_supplier_gstin_not_claimable line'; end if;
+
+  -- prices_rounded_to_paisa: 1.005 -> 1.01 before GST and the average
+  r_p := public.admin_post_receipt('quick', null, '', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v12, 'qty', 100, 'unit_price', 1.005, 'gst_rate', 18)));
+  select * into l from public.stock_receipt_lines where receipt_id = r_p;
+  if not (l.unit_price = 1.01 and l.gst = 18.18) then raise exception 'FAIL: prices_rounded_to_paisa line (% / %)', l.unit_price, l.gst; end if;
+  if not ((select purchase from public.variant_costs where variant_id = v12) = 1.01) then raise exception 'FAIL: prices_rounded_to_paisa first average'; end if;
+  -- 0.995 -> 1.00: (100 * 1.01 + 100 * 1.00) / 200 = 1.005 -> 1.01 (unrounded it would be 1.00)
+  perform public.admin_post_receipt('quick', null, '', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v12, 'qty', 100, 'unit_price', 0.995, 'gst_rate', 18)));
+  if not ((select purchase from public.variant_costs where variant_id = v12) = 1.01) then raise exception 'FAIL: prices_rounded_to_paisa average'; end if;
+
+  -- gst_rate_out_of_range_refused
+  got := false;
+  begin
+    perform public.admin_post_receipt('quick', null, '', current_date, '',
+      jsonb_build_array(jsonb_build_object('variant_id', v12, 'qty', 1, 'unit_price', 1, 'gst_rate', 150)));
+  exception when others then got := (sqlerrm like 'GST must be between%'); end;
+  if not got then raise exception 'FAIL: gst_rate_out_of_range_refused'; end if;
+
+  -- correction_starting_count_unchanged_is_logged: untracked 7, counted at 7
+  perform public.admin_correct_stock(v13, 7, 'first count');
+  if not (select stock_qty = 7 and track_stock from public.product_variants where id = v13) then raise exception 'FAIL: correction_starting_count_unchanged stock'; end if;
+  if not ((select count(*) from public.stock_movements where variant_id = v13 and reason = 'correction' and note = 'first count' and delta = 0 and qty_after = 7) = 1) then raise exception 'FAIL: correction_starting_count_unchanged movement'; end if;
 
   -- untracked_starts_from_zero
   r_unt := public.admin_post_receipt('quick', null, '', current_date, '',
@@ -115,6 +151,11 @@ begin
   select coalesce(sum(sl.gst), 0) into gst_all from public.stock_receipt_lines sl join public.stock_receipts r on r.id = sl.receipt_id where r.status = 'posted' and to_char(r.bill_date, 'YYYY-MM') = mon;
   select coalesce(sum(sl.gst), 0) into claim_expected from public.stock_receipt_lines sl join public.stock_receipts r on r.id = sl.receipt_id where r.status = 'posted' and sl.claimable and to_char(r.bill_date, 'YYYY-MM') = mon;
   if not ((select (e ->> 'claimable_gst')::numeric from jsonb_array_elements(m) e where e ->> 'month' = mon) = claim_expected) then raise exception 'FAIL: purchase_gst_by_month claimable'; end if;
+  -- the GSTIN-less bill's GST is counted as paid but not as claimable
+  if not (claim_expected = (select coalesce(sum(sl.gst), 0) from public.stock_receipt_lines sl join public.stock_receipts r on r.id = sl.receipt_id
+                             join public.suppliers su on su.id = r.supplier_id
+                            where r.status = 'posted' and r.kind = 'bill' and su.gstin <> '' and to_char(r.bill_date, 'YYYY-MM') = mon))
+  then raise exception 'FAIL: purchase_gst_by_month excludes supplier without GSTIN'; end if;
   if not ((select (e ->> 'gst')::numeric from jsonb_array_elements(m) e where e ->> 'month' = mon) = gst_all and gst_all > claim_expected) then raise exception 'FAIL: purchase_gst_by_month excludes opening'; end if;
 
   -- void_recomputes
@@ -156,13 +197,31 @@ begin
   begin perform public.admin_post_receipt('bill', s1, '  ', current_date, '', jsonb_build_array(jsonb_build_object('variant_id', v6, 'qty', 1, 'unit_price', 1, 'gst_rate', 0))); exception when others then got := true; end;
   if not got then raise exception 'FAIL: bill_needs_supplier_and_no (no bill no)'; end if;
 
-  -- track_all_idempotent (v7 was never counted)
-  n := public.admin_track_all_stock();
-  if not (n >= 1) then raise exception 'FAIL: track_all_idempotent first'; end if;
+  -- track_all_idempotent (v7 was never counted; v11 had a hand-typed 115)
+  n := (select count(*) from public.product_variants where not track_stock);
+  if not (public.admin_track_all_stock() = n and n >= 2) then raise exception 'FAIL: track_all_idempotent first'; end if;
+  if not (select stock_qty = 0 and track_stock from public.product_variants where id = v11) then raise exception 'FAIL: track_all_zeroes_old_count stock'; end if;
+  if not ((select count(*) from public.stock_movements where variant_id = v11 and reason = 'correction' and note = 'Started counting' and delta = -115 and qty_after = 0) = 1) then raise exception 'FAIL: track_all_zeroes_old_count movement'; end if;
+  if exists (select 1 from public.stock_movements where variant_id = v7) then raise exception 'FAIL: track_all_zero_count_logs_nothing'; end if;
   if not (public.admin_track_all_stock() = 0 and public.admin_uncounted() = 0) then raise exception 'FAIL: track_all_idempotent second'; end if;
 
   -- listing and detail shapes
   if not (jsonb_array_length(public.admin_receipts(current_date - 1, current_date + 1)) >= 5) then raise exception 'FAIL: admin_receipts'; end if;
+  if not ((select (e ->> 'supplier_id')::uuid from jsonb_array_elements(public.admin_receipts(current_date - 1, null)) e where (e ->> 'id')::uuid = r_a) = s1) then raise exception 'FAIL: admin_receipts supplier_id'; end if;
+
+  -- out_of_stock_counts_below_zero (v5 sits at -3, tracked)
+  if not ((public.admin_home_counts() ->> 'out_of_stock')::int
+          = (select count(*) from public.product_variants where track_stock and is_visible and stock_qty <= 0)
+          and (select stock_qty from public.product_variants where id = v5) < 0)
+  then raise exception 'FAIL: out_of_stock_counts_below_zero'; end if;
+  if not (pg_get_functiondef('public.place_order(jsonb, jsonb, text)'::regprocedure) like '%if v.stock_qty <= 0 then%') then raise exception 'FAIL: checkout_out_of_stock_below_zero'; end if;
+
+  -- gst_rate_check_on_table
+  got := false;
+  begin
+    insert into public.stock_receipt_lines (receipt_id, variant_id, qty, unit_price, gst_rate) values (r_a, v3, 1, 1, 101);
+  exception when check_violation then got := true; end;
+  if not got then raise exception 'FAIL: gst_rate_check_on_table'; end if;
   if not (jsonb_array_length(public.admin_receipt(r_a) -> 'lines') = 2) then raise exception 'FAIL: admin_receipt'; end if;
   if not ((select count(*) from public.admin_suppliers() where id in (s1, s2)) = 2) then raise exception 'FAIL: admin_suppliers'; end if;
 
