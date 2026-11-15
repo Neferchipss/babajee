@@ -664,6 +664,8 @@ function Pricing({
 }) {
   const variants = product.variants;
   const ids = variants.map((v) => v.id).join(",");
+  // stock in moves the average buying price, so read again when a count moves
+  const counts = variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const [costs, setCosts] = useState<Map<string, Purchase> | null>(null);
   const [shop, setShop] = useState<Rules | null>(null);
   const [err, setErr] = useState("");
@@ -678,7 +680,7 @@ function Pricing({
         setShop({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit });
       })
       .catch(() => setCosts(new Map()));
-  }, [ids, product.gst_rate]);
+  }, [ids, product.gst_rate, counts]);
 
   const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false };
   const many = variants.length > 1;
@@ -798,7 +800,10 @@ function PriceRow({
   const [label, setLabel] = useState(v.label);
   const [confirm, setConfirm] = useState(false);
 
-  const b = buy.trim() === "" ? null : Number(buy);
+  // once an option is counted, its buying price is the average kept by stock
+  // in (Add stock, voids), so it is shown here, not typed
+  const fromStock = v.track_stock;
+  const b = fromStock ? start : buy.trim() === "" ? null : Number(buy);
   const s = Number(sell) || 0;
   const cost = b == null ? null : costOf(b, rules.rate);
   const u = cost != null && s > 0 ? unitProfit(s, cost, rules) : null;
@@ -825,12 +830,21 @@ function PriceRow({
         </div>
       )}
 
-      <label className="ape-line">
-        <span className="ape-line-label">
-          Buying price <small>before GST</small>
-        </span>
-        <Money value={buy} label={`${v.label} buying price, before GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
-      </label>
+      {fromStock ? (
+        <div className="ape-line">
+          <span className="ape-line-label">
+            Buying price <small>average from stock in, excl. GST</small>
+          </span>
+          <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
+        </div>
+      ) : (
+        <label className="ape-line">
+          <span className="ape-line-label">
+            Buying price <small>excl. GST, until stock is added</small>
+          </span>
+          <Money value={buy} label={`${v.label} buying price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
+        </label>
+      )}
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
