@@ -248,17 +248,17 @@ export default function SettingsPage() {
           </div>
 
           <div className="adm-label">
-            GST on supplier bills
+            Input tax credit (ITC)
             <button type="button" className={`adm-switch ${credit ? "is-on" : ""}`} aria-pressed={credit} disabled={!loaded} onClick={() => setCredit(!credit)}>
               <i aria-hidden />
-              {credit ? "Claimed back (input tax credit)" : "Not claimed back"}
+              {credit ? "Claim input tax credit" : "Not claiming input tax credit"}
             </button>
             <span className="adm-muted adm-small">
               {credit
-                ? "The GST inside each cost price is set against the GST collected, so Analytics shows less GST left to pay."
-                : "All GST collected is owed. Turn this on if the shop is GST-registered and claims input tax credit."}{" "}
-              Example at {g.rate}%: bought for {money(500)} + GST = cost price {money(exCost)}, sold for {money(u.sale)} with GST: profit {money(u.profit)}. After paying the
-              GST, {money(u.kept)} is left.
+                ? "GST paid on purchases is set off against GST collected on sales, so Net GST payable is lower."
+                : "All GST collected on sales is payable. Turn this on if the shop is GST-registered and claims ITC."}{" "}
+              Example at {g.rate}%: purchase price {money(500)} + GST = cost price {money(exCost)}, selling price {money(u.sale)} incl. GST: gross profit {money(u.profit)}, net profit
+              after GST {money(u.kept)}.
             </span>
           </div>
         </section>

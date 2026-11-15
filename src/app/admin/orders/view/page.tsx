@@ -376,10 +376,10 @@ function OrderView() {
       {balance !== 0 && (
         <div className={`adm-balance ov-balance ${balance > 0 ? "owe" : "back"}`}>
           <span>
-            <b>{balance > 0 ? `${money(balance)} to collect` : `${money(-balance)} to pay back`}</b>
+            <b>{balance > 0 ? `Amount due: ${money(balance)}` : `Amount refundable: ${money(-balance)}`}</b>
             {balance > 0 ? " · the order was edited after it was paid." : " · the order was edited after it was paid."}
           </span>
-          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as collected` : `${money(-balance)} marked as paid back`)}>
+          <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as received` : `${money(-balance)} marked as refunded`)}>
             {balance > 0 ? "Mark payment received" : "Mark refund paid"}
           </button>
         </div>

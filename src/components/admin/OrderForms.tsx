@@ -133,7 +133,7 @@ export function RefundForm({
               </button>
             </>
           ) : (
-            " It can no longer be edited, so mark the balance as settled or refund what was paid."
+            " It can no longer be edited, so mark the amount due as received or refund what was paid."
           )}
         </div>
       )}
@@ -203,7 +203,7 @@ export function RefundForm({
 
       <label className="adm-label">
         Reason (for the timeline)
-        <input className="adm-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={mode === "return" ? "Damaged, wrong size, changed mind…" : "Goodwill, late delivery…"} />
+        <input className="adm-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={mode === "return" ? "Damaged, wrong size, changed mind…" : "Discount / goodwill credit, late delivery…"} />
       </label>
 
       <p className="adm-muted adm-small" style={{ margin: 0 }}>

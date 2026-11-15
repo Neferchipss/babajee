@@ -268,7 +268,7 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
                 <details className="stk-how">
                   <summary>How?</summary>
                   <small>
-                    ({from} × {r(average)} + {q} × {r(p)}) ÷ {from + q}
+                    ({from} units × {r(average)} + {q} units × {r(p)}) ÷ {from + q} units
                   </small>
                 </details>
               ) : (
