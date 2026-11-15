@@ -1,0 +1,398 @@
+"use client";
+
+import Link from "next/link";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import LineEditor, { type Line, lineTotals } from "@/components/admin/stock/LineEditor";
+import { RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
+import { toast, toastError } from "@/components/admin/Toaster";
+import { listProducts } from "@/lib/admin-data";
+import { formatPrice } from "@/lib/currency";
+import { dayLabel } from "@/lib/dates";
+import { errText, getSettings } from "@/lib/orders-db";
+import { listReceipts, listSuppliers, postReceipt, saveSupplier, stockCatalogue, type ReceiptKind, type ReceiptRow, type Supplier } from "@/lib/stock-in/db";
+import type { Candidate } from "@/lib/stock-in/match";
+import "@/components/admin/stock/stockin.css";
+
+// The same wording and check as Settings › Store, and the database checks too.
+const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+const GSTIN_MSG = "That GSTIN doesn't look right: it's 15 characters, like 27ABCDE1234F1Z5.";
+const today = () => new Date().toLocaleDateString("en-CA");
+const NEW_SUPPLIER = "__new";
+
+type Tab = "bills" | "suppliers";
+type Draft = { kind: ReceiptKind } | null;
+
+// Stock in: the supplier bills posted so far, a way to enter a new one, and
+// the suppliers. Posting a bill adds its lines to stock and records the GST
+// paid on them.
+export default function StockInPage() {
+  const [tab, setTab] = useState<Tab>("bills");
+  const [draft, setDraft] = useState<Draft>(null);
+  const [loaded, setLoaded] = useState<{ key: string; rows: ReceiptRow[] } | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
+  const [err, setErr] = useState("");
+  const [range, setRange] = useRange("30");
+
+  const key = `${range.from}~${range.to}`;
+  const bills = loaded?.key === key ? loaded.rows : null;
+  const loadBills = useCallback(() => {
+    listReceipts(range.from, range.to).then(
+      (rows) => setLoaded({ key, rows }),
+      (e) => (setErr(errText(e)), setLoaded({ key, rows: [] })),
+    );
+  }, [range.from, range.to, key]);
+  const loadSuppliers = useCallback(() => listSuppliers().then(setSuppliers, (e) => (setErr(errText(e)), setSuppliers([]))), []);
+
+  useEffect(() => {
+    loadBills();
+  }, [loadBills]);
+  useEffect(() => {
+    void loadSuppliers();
+  }, [loadSuppliers]);
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      <Link href="/admin/products" className="adm-back adm-only-narrow">
+        ← Products
+      </Link>
+      <header className="adm-pagehead">
+        <h1>Stock in</h1>
+        <p>Bills from your suppliers. Posting one adds its products to stock and records the GST you paid.</p>
+      </header>
+      {err && <p className="adm-err">{err}</p>}
+
+      {draft ? (
+        <NewBill
+          kind={draft.kind}
+          suppliers={(suppliers ?? []).filter((s) => s.active)}
+          onSupplier={loadSuppliers}
+          onCancel={() => setDraft(null)}
+          onPosted={() => {
+            setDraft(null);
+            setTab("bills");
+            loadBills();
+          }}
+        />
+      ) : (
+        <>
+          <div className="adm-seg" role="group" aria-label="Stock in">
+            <button type="button" className={tab === "bills" ? "is-on" : ""} aria-pressed={tab === "bills"} onClick={() => setTab("bills")}>
+              Bills
+            </button>
+            <button type="button" className={tab === "suppliers" ? "is-on" : ""} aria-pressed={tab === "suppliers"} onClick={() => setTab("suppliers")}>
+              Suppliers
+            </button>
+          </div>
+          <div style={{ height: 14 }} />
+          {tab === "bills" ? (
+            <Bills bills={bills} range={range} setRange={setRange} onNew={(kind) => setDraft({ kind })} />
+          ) : (
+            <Suppliers list={suppliers} onChanged={loadSuppliers} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- bills
+
+function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; range: ReturnType<typeof useRange>[0]; setRange: ReturnType<typeof useRange>[1]; onNew: (k: ReceiptKind) => void }) {
+  const live = (bills ?? []).filter((b) => b.status === "posted");
+  const sum = live.reduce((a, b) => ({ taxable: a.taxable + Number(b.taxable), gst: a.gst + Number(b.gst) }), { taxable: 0, gst: 0 });
+  return (
+    <div className="sti-stack">
+      <div className="sti-top">
+        <button type="button" className="adm-btn pri" onClick={() => onNew("bill")}>
+          New bill
+        </button>
+        <button type="button" className="adm-btn" onClick={() => onNew("opening")}>
+          Opening count
+        </button>
+        {/* Task 6: an "Upload a sheet" button goes here, next to New bill. */}
+      </div>
+      <RangePicker value={range} onChange={setRange} />
+      {bills === null ? (
+        <p className="adm-muted adm-small">Loading.</p>
+      ) : bills.length === 0 ? (
+        <p className="adm-muted">No bills for {rangeLabel(range).toLowerCase()}.</p>
+      ) : (
+        <>
+          <p className="adm-muted adm-small">
+            {live.length} bill{live.length === 1 ? "" : "s"} · {formatPrice(sum.taxable, { paise: true })} before GST · GST {formatPrice(sum.gst, { paise: true })}
+          </p>
+          <ul className="sti-list">
+            {bills.map((b) => (
+              <li key={b.id}>
+                <Link href={`/admin/products/stock-in/bill?id=${b.id}`} className={`sti-item ${b.status === "void" ? "is-void" : ""}`}>
+                  <div className="sti-item-head">
+                    <b>{b.kind === "opening" ? "Opening count" : b.kind === "quick" ? "Stock added" : `Bill ${b.bill_no || "(no number)"}`}</b>
+                    <span className={`adm-pill ${b.status === "void" ? "off" : "done"}`}>{b.status === "void" ? "Voided" : "Posted"}</span>
+                  </div>
+                  <div className="sti-item-sub">
+                    <span>{b.supplier || "No supplier"}</span>
+                    <span>{dayLabel(b.bill_date)}</span>
+                    <span>
+                      {b.lines} line{b.lines === 1 ? "" : "s"}, {b.qty} item{b.qty === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="sti-item-sub">
+                    <span>{formatPrice(b.taxable, { paise: true })} before GST</span>
+                    <span>GST {formatPrice(b.gst, { paise: true })}</span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- new bill
+
+function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: ReceiptKind; suppliers: Supplier[]; onSupplier: () => void; onCancel: () => void; onPosted: () => void }) {
+  const opening = kind === "opening";
+  const [supplier, setSupplier] = useState("");
+  const [newName, setNewName] = useState("");
+  const [billNo, setBillNo] = useState("");
+  const [date, setDate] = useState(today());
+  const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<Line[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [catalogue, setCatalogue] = useState<Candidate[] | null>(null);
+  const [rates, setRates] = useState<Map<string, number>>(new Map());
+  const [shopRate, setShopRate] = useState(18);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    stockCatalogue().then(setCatalogue, (e) => (setErr(errText(e)), setCatalogue([])));
+    listProducts().then(
+      (ps) => setRates(new Map(ps.flatMap((p) => (p.gst_rate != null ? p.variants.map((v) => [v.id, p.gst_rate as number] as const) : [])))),
+      () => {},
+    );
+    getSettings().then((s) => setShopRate(s.gst_rate), () => {});
+  }, []);
+
+  const gstOf = useCallback((id: string) => rates.get(id) ?? shopRate, [rates, shopRate]);
+  const t = useMemo(() => lineTotals(lines), [lines]);
+
+  const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
+  const linesOk = lines.length > 0 && lines.every((l) => l.qty > 0 && l.unit_price >= 0);
+  // a bill is a supplier and a number; without them it can only be an opening count
+  const valid = linesOk && (opening || (hasSupplier && billNo.trim() !== ""));
+
+  async function post(e: FormEvent) {
+    e.preventDefault();
+    if (!valid || busy) return;
+    setBusy(true);
+    try {
+      let supplierId: string | null = !opening && supplier && supplier !== NEW_SUPPLIER ? supplier : null;
+      if (!opening && supplier === NEW_SUPPLIER) {
+        supplierId = await saveSupplier({ name: newName.trim() });
+        onSupplier();
+      }
+      await postReceipt({
+        kind,
+        supplier_id: supplierId,
+        bill_no: opening ? "" : billNo.trim(),
+        bill_date: date || undefined,
+        notes: notes.trim(),
+        lines,
+      });
+      toast(opening ? "Opening count posted" : `Bill ${billNo.trim()} posted`);
+      onPosted();
+    } catch (x) {
+      toastError(x);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="adm-card sti-form sti-stack" onSubmit={post}>
+      <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{opening ? "Opening count" : "New bill"}</h2>
+      {opening && <p className="adm-muted adm-small">What you already have on the shelf, with what you paid for it. No supplier or bill number needed.</p>}
+      {err && <p className="adm-err">{err}</p>}
+      {!opening && (
+        <>
+          <label className="adm-label">
+            Supplier
+            <select className="adm-input" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+              <option value="">Choose a supplier</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+              <option value={NEW_SUPPLIER}>New supplier…</option>
+            </select>
+          </label>
+          {supplier === NEW_SUPPLIER && (
+            <label className="adm-label">
+              New supplier name
+              <input className="adm-input" value={newName} placeholder="Supplier name" onChange={(e) => setNewName(e.target.value)} />
+            </label>
+          )}
+          <div className="sti-grid">
+            <label className="adm-label">
+              Bill no.
+              <input className="adm-input" value={billNo} placeholder="e.g. 4471" onChange={(e) => setBillNo(e.target.value)} />
+            </label>
+            <label className="adm-label">
+              Date
+              <input className="adm-input" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+            </label>
+          </div>
+        </>
+      )}
+      {opening && (
+        <label className="adm-label">
+          Date
+          <input className="adm-input" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+        </label>
+      )}
+      <label className="adm-label">
+        Notes
+        <input className="adm-input" value={notes} placeholder="Optional" onChange={(e) => setNotes(e.target.value)} />
+      </label>
+
+      {catalogue === null ? <p className="adm-muted adm-small">Loading your products.</p> : <LineEditor catalogue={catalogue} lines={lines} onChange={setLines} gstOf={gstOf} />}
+
+      <div className="adm-actions">
+        <button className="adm-btn pri" disabled={!valid || busy} style={{ flex: 1 }}>
+          {busy ? "Posting" : `Post ${opening ? "opening count" : "bill"}${lines.length ? ` · ${formatPrice(t.total, { paise: true })}` : ""}`}
+        </button>
+        <button type="button" className="adm-btn" disabled={busy} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ---------------------------------------------------------------- suppliers
+
+type Form = { id?: string; name: string; gstin: string; phone: string; notes: string };
+const BLANK: Form = { name: "", gstin: "", phone: "", notes: "" };
+
+function Suppliers({ list, onChanged }: { list: Supplier[] | null; onChanged: () => void }) {
+  const [form, setForm] = useState<Form | null>(null);
+  return (
+    <div className="sti-stack">
+      {!form && (
+        <div className="sti-top">
+          <button type="button" className="adm-btn pri" onClick={() => setForm(BLANK)}>
+            Add a supplier
+          </button>
+        </div>
+      )}
+      {form && <SupplierForm key={form.id ?? "new"} start={form} onDone={() => (setForm(null), onChanged())} onCancel={() => setForm(null)} />}
+      {list === null ? (
+        <p className="adm-muted adm-small">Loading.</p>
+      ) : list.length === 0 ? (
+        <p className="adm-muted">No suppliers yet.</p>
+      ) : (
+        <ul className="sti-list">
+          {list.map((s) => (
+            <li key={s.id} className="sti-item">
+              <div className="sti-item-head">
+                <b className={s.active ? "" : "sti-struck"}>{s.name}</b>
+                {!s.active && <span className="adm-pill off">Deactivated</span>}
+              </div>
+              <div className="sti-item-sub">
+                <span>{s.gstin || "No GSTIN"}</span>
+                {s.phone && <span>{s.phone}</span>}
+              </div>
+              {s.notes && <small className="adm-muted">{s.notes}</small>}
+              <SupplierActions s={s} onEdit={() => setForm({ id: s.id, name: s.name, gstin: s.gstin, phone: s.phone, notes: s.notes })} onChanged={onChanged} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SupplierActions({ s, onEdit, onChanged }: { s: Supplier; onEdit: () => void; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  async function flip() {
+    setBusy(true);
+    try {
+      await saveSupplier({ ...s, active: !s.active });
+      toast(s.active ? `${s.name} deactivated` : `${s.name} is active again`);
+      onChanged();
+    } catch (x) {
+      toastError(x);
+    }
+    setBusy(false);
+  }
+  return (
+    <div className="sti-item-actions">
+      <button type="button" className="adm-btn" onClick={onEdit}>
+        Edit
+      </button>
+      <button type="button" className="adm-btn" disabled={busy} onClick={flip}>
+        {s.active ? "Deactivate" : "Reactivate"}
+      </button>
+    </div>
+  );
+}
+
+function SupplierForm({ start, onDone, onCancel }: { start: Form; onDone: () => void; onCancel: () => void }) {
+  const [f, setF] = useState(start);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!f.name.trim() || busy) return;
+    const gstin = f.gstin.trim().toUpperCase();
+    if (gstin && !GSTIN_RE.test(gstin)) {
+      setErr(GSTIN_MSG);
+      return;
+    }
+    setErr("");
+    setBusy(true);
+    try {
+      await saveSupplier({ id: f.id, name: f.name.trim(), gstin, phone: f.phone.trim(), notes: f.notes.trim() });
+      toast(f.id ? "Supplier saved" : `${f.name.trim()} added`);
+      onDone();
+    } catch (x) {
+      setErr(errText(x));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="adm-card sti-form sti-stack" onSubmit={save}>
+      <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{f.id ? "Edit supplier" : "Add a supplier"}</h2>
+      {err && <p className="adm-err" role="alert" style={{ margin: 0 }}>{err}</p>}
+      <label className="adm-label">
+        Name
+        <input className="adm-input" value={f.name} placeholder="Supplier name" autoFocus onChange={(e) => setF({ ...f, name: e.target.value })} />
+      </label>
+      <label className="adm-label">
+        GSTIN
+        <input className="adm-input" value={f.gstin} placeholder="27ABCDE1234F1Z5" maxLength={15} spellCheck={false} autoCapitalize="characters" onChange={(e) => setF({ ...f, gstin: e.target.value.toUpperCase().replace(/\s/g, "") })} />
+        <span className="adm-muted adm-small">Needed to claim the GST on their bills. Leave empty if they have none.</span>
+      </label>
+      <label className="adm-label">
+        Phone
+        <input className="adm-input" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+      </label>
+      <label className="adm-label">
+        Notes
+        <input className="adm-input" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+      </label>
+      <div className="adm-actions">
+        <button className="adm-btn pri" disabled={!f.name.trim() || busy} style={{ flex: 1 }}>
+          {busy ? "Saving" : "Save supplier"}
+        </button>
+        <button type="button" className="adm-btn" disabled={busy} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
