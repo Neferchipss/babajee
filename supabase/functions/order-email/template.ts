@@ -4,7 +4,7 @@
 // cards, a Swiggy-style bill, a progress tracker, and a brand footer.
 import { trackLink } from "../../../src/lib/tracking.ts";
 
-export type Item = { product_name: string; variant_label: string; quantity: number; unit_price: number };
+export type Item = { product_name: string; variant_label: string; quantity: number; unit_price: number; product_variants?: { products?: { slug?: string } | null } | null };
 export type Shipment = { carrier: string | null; tracking_number: string | null; shipped_at: string | null };
 export type Refund = { id: string; amount: number; reason: string; created_at: string };
 export type Note = { number: string; refund_id: string | null };
@@ -33,20 +33,25 @@ export type Order = {
 };
 export type Event = { id: string; status: string; note: string; created_at: string; orders: Order };
 export type Shop = { store_name: string; legal_name: string; store_address: string; gstin: string; store_phone: string; store_email: string };
-export type Cfg = { site: string; assets: string; instagram: string };
+// photo: the product photo path for a slug and option, or null (product-photos maps)
+export type Cfg = { site: string; assets: string; instagram: string; photo: (slug: string, option: string) => string | null };
 export type Mail = { kind: string; subject: string; html: string };
 
-// the site's dark theme, plus the rasta stripe from the logo
-const C = { bg: "#000000", card: "#121213", surface: "#1b1b1c", line: "#2c2c2f", text: "#f2f3f5", muted: "#96979d", gold: "#d3ab70", red: "#ff6b6b", green: "#3ccf7a", r: "#ff1e1e", y: "#ffe600", g: "#00c853" };
-const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-// banner tint and accent per message
+// the site's dark theme (src/app/themes/modes.css): black, dark-grey surfaces,
+// brass gold as the one accent, green for good news. The rasta colours belong
+// to the logo only.
+const C = { bg: "#000000", card: "#121213", surface: "#1b1b1c", line: "#272729", text: "#f2f3f5", muted: "#96979d", gold: "#d3ab70", green: "#23a55a" };
+// the site's type: Geist, Geist Mono for prices (mail apps without web fonts fall back)
+const FONT = "Geist,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const MONO = "'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
+// accent per message
 const TONE = {
-  confirmed: { bg: "#0d2418", accent: C.green },
-  shipped: { bg: "#2a2012", accent: C.gold },
-  refund: { bg: "#2a2012", accent: C.gold },
-  return: { bg: "#2a2012", accent: C.gold },
-  cancelled: { bg: "#2b1213", accent: C.red },
-  "new-order": { bg: "#2a2012", accent: C.gold },
+  confirmed: { accent: C.green },
+  shipped: { accent: C.gold },
+  refund: { accent: C.gold },
+  return: { accent: C.gold },
+  cancelled: { accent: C.muted },
+  "new-order": { accent: C.gold },
 } as const;
 type Kind = keyof typeof TONE;
 
@@ -68,10 +73,9 @@ function card(heading: string, inner: string) {
 
 function hero(cfg: Cfg, kind: Kind, kicker: string, title: string) {
   const t = TONE[kind];
-  const stripe = `<tr><td height="5" style="font-size:0;line-height:0">${T(`<tr><td height="5" bgcolor="${C.r}" style="background:${C.r};font-size:0">&nbsp;</td><td height="5" bgcolor="${C.y}" style="background:${C.y};font-size:0">&nbsp;</td><td height="5" bgcolor="${C.g}" style="background:${C.g};font-size:0">&nbsp;</td></tr>`)}</td></tr>`;
   return `<tr><td style="padding:0 0 14px">${T(
-    `${stripe}<tr><td bgcolor="${t.bg}" style="background:${t.bg};padding:22px 20px">${T(
-      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:26px;line-height:1.2;font-weight:800;color:${C.text}">${esc(title)}</div></td><td width="96" align="right" valign="middle"><img src="${cfg.assets}/${kind}.png" width="88" height="88" alt="" style="display:block;width:88px;height:88px;border:0"></td></tr>`,
+    `<tr><td bgcolor="${C.card}" style="background:${C.card};padding:22px 20px">${T(
+      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.text}">${esc(title)}</div></td><td width="96" align="right" valign="middle"><img src="${cfg.assets}/${kind}.png" width="88" height="88" alt="" style="display:block;width:88px;height:88px;border:0"></td></tr>`,
     )}</td></tr>`,
     `style="border-radius:16px;overflow:hidden;border:1px solid ${C.line}"`,
   )}</td></tr>`;
@@ -86,12 +90,22 @@ function tracker(at: number) {
 }
 
 // the bill, Swiggy-style: items, dashed rule, charges, dashed rule, big total
-function bill(o: Order, totalLabel: string) {
-  const row = (l: string, r: string, rc = C.text) => `<tr><td style="padding:7px 0;font-size:15px;line-height:1.4;color:${C.muted}">${l}</td><td align="right" valign="top" style="padding:7px 0 7px 12px;font-size:15px;color:${rc};white-space:nowrap">${r}</td></tr>`;
-  const dash = `<tr><td colspan="2" style="padding:6px 0"><div style="border-top:1px dashed ${C.line};font-size:0;line-height:0">&nbsp;</div></td></tr>`;
-  const items = o.order_items.map((i) => row(`<span style="color:${C.text}">${esc(i.product_name)}</span>${i.variant_label ? ` · ${esc(i.variant_label)}` : ""} x${i.quantity}`, inr(i.unit_price * i.quantity))).join("");
+function bill(o: Order, totalLabel: string, cfg: Cfg) {
+  const row = (l: string, r: string, rc = C.text) => `<tr><td colspan="2" style="padding:7px 0;font-size:15px;line-height:1.4;color:${C.muted}">${l}</td><td align="right" valign="top" style="padding:7px 0 7px 12px;font-size:15px;color:${rc};white-space:nowrap;font-family:${MONO}">${r}</td></tr>`;
+  const dash = `<tr><td colspan="3" style="padding:6px 0"><div style="border-top:1px dashed ${C.line};font-size:0;line-height:0">&nbsp;</div></td></tr>`;
+  const items = o.order_items
+    .map((i) => {
+      const slug = i.product_variants?.products?.slug ?? "";
+      const ph = slug ? cfg.photo(slug, i.variant_label) : null;
+      const src = ph ? (/^https?:/.test(ph) ? ph : `${cfg.site}${ph}`) : "";
+      const thumb = src
+        ? `<img src="${src}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;border-radius:10px;object-fit:cover;background:${C.surface};border:0">`
+        : `<div style="width:56px;height:56px;line-height:56px;border-radius:10px;background:${C.surface};color:${C.muted};text-align:center;font-size:20px;font-weight:700">${esc((i.product_name || "?").trim()[0].toUpperCase())}</div>`;
+      return `<tr><td width="68" valign="top" style="padding:8px 12px 8px 0">${thumb}</td><td valign="top" style="padding:8px 0;font-size:15px;line-height:1.4;color:${C.text}">${esc(i.product_name)}${i.variant_label ? `<br><span style="color:${C.muted};font-size:13px">${esc(i.variant_label)}</span>` : ""}<br><span style="color:${C.muted};font-size:13px">Qty ${i.quantity}</span></td><td align="right" valign="top" style="padding:8px 0 8px 12px;font-size:15px;color:${C.text};white-space:nowrap;font-family:${MONO}">${inr(i.unit_price * i.quantity)}</td></tr>`;
+    })
+    .join("");
   const charges = [row("Shipping", o.shipping > 0 ? inr(o.shipping) : "<b>FREE</b>", o.shipping > 0 ? C.text : C.green), ...(o.gst_inclusive ? [] : [row("GST", inr(o.tax))])].join("");
-  const total = `<tr><td style="padding:10px 0 0;font-size:16px;font-weight:600;color:${C.text}">${esc(totalLabel)}${o.gst_inclusive ? `<br><span style="font-size:12px;font-weight:400;color:${C.muted}">incl. GST</span>` : ""}</td><td align="right" valign="top" style="padding:8px 0 0 12px;font-size:26px;font-weight:800;color:${C.text};white-space:nowrap">${inr(o.total)}</td></tr>`;
+  const total = `<tr><td colspan="2" style="padding:10px 0 0;font-size:16px;font-weight:600;color:${C.text}">${esc(totalLabel)}${o.gst_inclusive ? `<br><span style="font-size:12px;font-weight:400;color:${C.muted}">incl. GST</span>` : ""}</td><td align="right" valign="top" style="padding:8px 0 0 12px;font-size:24px;font-weight:700;color:${C.text};white-space:nowrap;font-family:${MONO}">${inr(o.total)}</td></tr>`;
   return card("Bill details", T(`${items}${dash}${charges}${dash}${total}`));
 }
 
@@ -129,7 +143,7 @@ ${shop.store_address ? `<p style="margin:0 0 4px;font-size:12px;line-height:1.6;
 }
 
 function shell(cfg: Cfg, shop: Shop, to: "customer" | "shop", title: string, rows: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(title)}</title></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg}" bgcolor="${C.bg}">
 ${T(`<tr><td align="center" style="padding:20px 12px 28px">${T(`${rows}${footer(cfg, shop, to)}`, `style="max-width:560px;font-family:${FONT}"`)}</td></tr>`, `bgcolor="${C.bg}" style="background:${C.bg}"`)}
 </body></html>`;
@@ -147,7 +161,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
       return {
         kind: "confirmed",
         subject: `Order ${o.order_number} confirmed`,
-        html: shell(cfg, shop, "customer", "Order confirmed", `${hero(cfg, "confirmed", "Order confirmed", "Thanks! Your order is confirmed")}${card("", `${hi}${p("We've received your payment and we're getting your order ready. We'll email you again when it ships.", C.muted)}${tracker(STEP_OF.paid)}`)}${bill(o, "Total paid")}${details}${view}`),
+        html: shell(cfg, shop, "customer", "Order confirmed", `${hero(cfg, "confirmed", "Order confirmed", "Thanks! Your order is confirmed")}${card("", `${hi}${p("We've received your payment and we're getting your order ready. We'll email you again when it ships.", C.muted)}${tracker(STEP_OF.paid)}`)}${bill(o, "Total paid", cfg)}${details}${view}`),
       };
     case "shipped": {
       const s = [...o.shipments].sort((a, b) => (b.shipped_at ?? "").localeCompare(a.shipped_at ?? ""))[0];
@@ -158,7 +172,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
       return {
         kind: "shipped",
         subject: `Order ${o.order_number} is on its way`,
-        html: shell(cfg, shop, "customer", "Order shipped", `${hero(cfg, "shipped", "Order shipped", "Your order is on its way")}${card("", `${hi}${p("Good news: your order has left our shop and is with the courier.", C.muted)}${tracker(STEP_OF.shipped)}`)}${track}${t ? button(t.url, `Track on ${t.site}`) : ""}${bill(o, "Total paid")}${details}${t ? "" : view}`),
+        html: shell(cfg, shop, "customer", "Order shipped", `${hero(cfg, "shipped", "Order shipped", "Your order is on its way")}${card("", `${hi}${p("Good news: your order has left our shop and is with the courier.", C.muted)}${tracker(STEP_OF.shipped)}`)}${track}${t ? button(t.url, `Track on ${t.site}`) : ""}${bill(o, "Total paid", cfg)}${details}${t ? "" : view}`),
       };
     }
     case "refund":
@@ -167,7 +181,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
       if (!r) return null;
       const cn = o.credit_notes.find((n) => n.refund_id === r.id);
       const ret = e.status === "return";
-      const amount = card("Refund", `${T(`<tr><td style="font-size:15px;color:${C.muted}">Amount refunded</td><td align="right" style="font-size:28px;font-weight:800;color:${C.gold};white-space:nowrap">${inr(r.amount)}</td></tr>`)}${kv([...(r.reason ? ([["Reason", esc(r.reason)]] as [string, string][]) : []), ...(cn ? ([["Credit note", `<b>${esc(cn.number)}</b>`]] as [string, string][]) : []), ["Order", `<b style="color:${C.gold}">${esc(o.order_number)}</b>`]])}`);
+      const amount = card("Refund", `${T(`<tr><td style="font-size:15px;color:${C.muted}">Amount refunded</td><td align="right" style="font-size:26px;font-weight:700;color:${C.gold};white-space:nowrap;font-family:${MONO}">${inr(r.amount)}</td></tr>`)}${kv([...(r.reason ? ([["Reason", esc(r.reason)]] as [string, string][]) : []), ...(cn ? ([["Credit note", `<b>${esc(cn.number)}</b>`]] as [string, string][]) : []), ["Order", `<b style="color:${C.gold}">${esc(o.order_number)}</b>`]])}`);
       return {
         kind: "refund",
         subject: `Refund of ${inr(r.amount)} on order ${o.order_number}`,
@@ -178,7 +192,7 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
       return {
         kind: "cancelled",
         subject: `Order ${o.order_number} cancelled`,
-        html: shell(cfg, shop, "customer", "Order cancelled", `${hero(cfg, "cancelled", "Order cancelled", "Your order was cancelled")}${card("", `${hi}${p(`Your order has been cancelled.${e.note ? ` ${esc(e.note)}` : ""}`, C.muted)}${p("If you'd already paid, your refund follows separately and we'll email you when it's issued.", C.muted).replace("margin:0 0 12px", "margin:0")}`)}${bill(o, "Order total")}${details}${view}`),
+        html: shell(cfg, shop, "customer", "Order cancelled", `${hero(cfg, "cancelled", "Order cancelled", "Your order was cancelled")}${card("", `${hi}${p(`Your order has been cancelled.${e.note ? ` ${esc(e.note)}` : ""}`, C.muted)}${p("If you'd already paid, your refund follows separately and we'll email you when it's issued.", C.muted).replace("margin:0 0 12px", "margin:0")}`)}${bill(o, "Order total", cfg)}${details}${view}`),
       };
   }
   return null;
@@ -190,6 +204,6 @@ export function alertMail(o: Order, shop: Shop, cfg: Cfg): Mail {
   return {
     kind: "new-order",
     subject: `New order ${o.order_number} · ${inr(o.total)}`,
-    html: shell(cfg, shop, "shop", "New order", `${hero(cfg, "new-order", "New order", `${o.order_number} · ${inr(o.total)}`)}${bill(o, "Total paid")}${who}${button(`${cfg.site}/admin/orders/view/?id=${o.id}`, "Open in admin")}`),
+    html: shell(cfg, shop, "shop", "New order", `${hero(cfg, "new-order", "New order", `${o.order_number} · ${inr(o.total)}`)}${bill(o, "Total paid", cfg)}${who}${button(`${cfg.site}/admin/orders/view/?id=${o.id}`, "Open in admin")}`),
   };
 }

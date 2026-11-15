@@ -4,11 +4,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { photoOf } from "../supabase/functions/order-email/photos.ts";
 import { alertMail, compose } from "../supabase/functions/order-email/template.ts";
 
 const out = resolve(process.argv[2] ?? ".email-preview");
 mkdirSync(out, { recursive: true });
-const cfg = { site: "https://neferchipss.github.io/babajee", assets: pathToFileURL(resolve("brand/email")).href, instagram: "https://instagram.com/" };
+const cfg = { site: "https://neferchipss.github.io/babajee", assets: pathToFileURL(resolve("brand/email")).href, instagram: "https://instagram.com/", photo: photoOf };
 const shop = { store_name: "Babajee", legal_name: "Babajee The Smoke Shop", store_address: "Shop 4, Example Road\nMumbai, Maharashtra 400001", gstin: "27ABCDE1234F1Z5", store_phone: "+91 98765 43210", store_email: "help@babajee.in" };
 const at = "2026-11-15T10:00:00Z";
 const base = {
@@ -30,8 +31,8 @@ const base = {
   total: 1198,
   gst_inclusive: true,
   order_items: [
-    { product_name: "3 in 1 Aluminium Grinder", variant_label: "Black", quantity: 1, unit_price: 899 },
-    { product_name: "King Size Rolling Papers", variant_label: "", quantity: 2, unit_price: 149.5 },
+    { product_name: "3 in 1 Aluminium Grinder", variant_label: "Black", quantity: 1, unit_price: 899, product_variants: { products: { slug: "3-in-1-aluminium-grinder" } } },
+    { product_name: "King Size Rolling Papers", variant_label: "", quantity: 2, unit_price: 149.5, product_variants: { products: { slug: "no-photo-yet" } } },
   ],
   shipments: [{ carrier: "Delhivery", tracking_number: "1490817263541", shipped_at: at }],
   order_refunds: [{ id: "r1", amount: 299, reason: "One pack arrived damaged", created_at: at }],

@@ -19,6 +19,7 @@
 //   SHOP_INSTAGRAM    the shop's Instagram link, shown in the footer if set
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 
+import { photoOf } from "./photos.ts";
 import { alertMail, compose, type Event, type Shop } from "./template.ts";
 
 const env = (k: string) => Deno.env.get(k) ?? "";
@@ -29,6 +30,7 @@ const cfg = {
   site: (env("SITE_URL") || "https://neferchipss.github.io/babajee").replace(/\/$/, ""),
   assets: (env("EMAIL_ASSETS_URL") || `${env("SUPABASE_URL")}/storage/v1/object/public/email`).replace(/\/$/, ""),
   instagram: env("SHOP_INSTAGRAM"),
+  photo: photoOf,
 };
 
 async function db<T>(path: string, init?: RequestInit): Promise<T> {
@@ -65,7 +67,7 @@ Deno.serve(async (req) => {
   }
   if (!/^[0-9a-f-]{36}$/i.test(eventId)) return new Response("event_id needed", { status: 400 });
 
-  const rows = await db<Event[]>(`order_events?id=eq.${eventId}&select=id,status,note,created_at,orders(*,order_items(product_name,variant_label,quantity,unit_price),shipments(carrier,tracking_number,shipped_at),order_refunds(id,amount,reason,created_at),credit_notes(number,refund_id))`);
+  const rows = await db<Event[]>(`order_events?id=eq.${eventId}&select=id,status,note,created_at,orders(*,order_items(product_name,variant_label,quantity,unit_price,product_variants(products(slug))),shipments(carrier,tracking_number,shipped_at),order_refunds(id,amount,reason,created_at),credit_notes(number,refund_id))`);
   const e = rows[0];
   if (!e?.orders) return new Response("no such event", { status: 404 });
   if (Date.now() - new Date(e.created_at).getTime() > 15 * 60 * 1000) return new Response("too old", { status: 200 });
