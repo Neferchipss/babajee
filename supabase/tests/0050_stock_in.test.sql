@@ -10,7 +10,7 @@ declare
   v1 uuid; v2 uuid; v3 uuid; v4 uuid; v5 uuid; v6 uuid; v7 uuid; v8 uuid; v9 uuid;
   s1 uuid; s2 uuid;
   r_open uuid; r_bill uuid; r_inter uuid; r_a uuid; r_b uuid; r_c uuid; r_d uuid;
-  r_neg uuid; r_new uuid;
+  r_neg uuid; r_new uuid; v10 uuid; r_unt uuid;
   l record;
   n int;
   m jsonb;
@@ -39,8 +39,17 @@ begin
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V8', 500, 0, false) returning id into v8;
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V9', 500, 0, false) returning id into v9;
 
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V10', 500, 12, false) returning id into v10;
+
   s1 := public.admin_save_supplier(jsonb_build_object('name', 'Same State Traders', 'gstin', '27BBBBB1111B1Z5'));
   s2 := public.admin_save_supplier(jsonb_build_object('name', 'Other State Traders', 'gstin', '29CCCCC2222C1Z5'));
+
+  -- untracked_starts_from_zero
+  r_unt := public.admin_post_receipt('quick', null, '', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v10, 'qty', 5, 'unit_price', 100, 'gst_rate', 18)));
+  if not (select stock_qty = 5 and track_stock from public.product_variants where id = v10) then raise exception 'FAIL: untracked_starts_from_zero stock/track'; end if;
+  if not ((select purchase from public.variant_costs where variant_id = v10) = 100.00) then raise exception 'FAIL: untracked_starts_from_zero purchase'; end if;
+  if not (select delta = 5 and qty_after = 5 from public.stock_movements where variant_id = v10 and receipt_id = r_unt) then raise exception 'FAIL: untracked_starts_from_zero movement'; end if;
 
   -- opening_sets_stock_and_avg
   r_open := public.admin_post_receipt('opening', null, '', current_date, '',
@@ -94,8 +103,8 @@ begin
     jsonb_build_array(jsonb_build_object('variant_id', v8, 'qty', 10, 'unit_price', 120, 'gst_rate', 18)));
   if not ((select purchase from public.variant_costs where variant_id = v8) = 120.00) then raise exception 'FAIL: sale_between_receipts'; end if;
 
-  -- existing_count_and_price: stock 20, hand-typed price 80, first bill 10 @ 120 -> 93.33
-  update public.product_variants set stock_qty = 20 where id = v9;
+  -- existing_count_and_price: counted stock 20, hand-typed price 80, first bill 10 @ 120 -> 93.33
+  update public.product_variants set stock_qty = 20, track_stock = true where id = v9;
   insert into public.variant_costs (variant_id, cost, purchase) values (v9, 0, 80);
   perform public.admin_post_receipt('bill', s1, 'E-1', current_date, '',
     jsonb_build_array(jsonb_build_object('variant_id', v9, 'qty', 10, 'unit_price', 120, 'gst_rate', 18)));

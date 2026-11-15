@@ -402,12 +402,16 @@ export default function ProductEditor({
           )}
         />
 
-        {/* stock and category, plainly */}
+        {/* stock, straight under the price: add stock, correct a count, what moved */}
+      <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
+
+      <section className="ape-fields">
+        {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
+        <StockHistory variants={product.variants} />
+      </section>
+
+        {/* category, plainly */}
         <section className="ape-fields ape-plain">
-          <div className="ape-line">
-            <span className="ape-line-label">Stock</span>
-            <StockLine product={product} tracked={tracked} />
-          </div>
           <label className="ape-line">
             <span className="ape-line-label">Category</span>
             <select className="ape-line-input" value={product.category_id} onChange={(e) => run(() => api.updateProduct(product.id, { category_id: e.target.value }))}>
@@ -469,13 +473,6 @@ export default function ProductEditor({
               <span id="ape-tags-label">Tags, for finding it</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
             </div>
-          </section>
-
-          <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
-
-          <section className="ape-fields">
-            {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
-            <StockHistory variants={product.variants} />
           </section>
 
           <SpecsEditor key={`specs-${product.id}`} specs={product.specs} onSave={(specs) => run(() => api.updateProduct(product.id, { specs }))} />
@@ -866,30 +863,6 @@ function PriceRow({
       </div>
       {photos && <div className="ape-opt-photos">{photos}</div>}
     </li>
-  );
-}
-
-// "50 pieces · 7 sold", or "Not counted yet"; changed in the Stock section below
-function StockLine({ product, tracked }: { product: AdminProduct; tracked: boolean }) {
-  const [sold, setSold] = useState<number | null>(null);
-  useEffect(() => {
-    let live = true;
-    import("@/lib/orders-db")
-      .then((m) => m.unitsSold())
-      .then((u) => live && setSold(u.get(product.id) ?? 0))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [product.id]);
-  const soldText = sold == null ? "" : `${sold} sold`;
-  return (
-    <span className="ape-line-right">
-      <small>
-        {tracked ? `${product.variants.filter((v) => v.track_stock).reduce((n, v) => n + v.stock_qty, 0)} pieces in all` : "Not counted yet"}
-        {soldText && ` · ${soldText}`}
-      </small>
-    </span>
   );
 }
 

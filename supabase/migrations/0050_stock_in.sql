@@ -349,7 +349,7 @@ begin
     if price is null or price < 0 then
       raise exception 'Each line needs a price.' using errcode = '22023';
     end if;
-    select pv.id, pv.product_id, pv.stock_qty into v
+    select pv.id, pv.product_id, pv.stock_qty, pv.track_stock into v
       from public.product_variants pv where pv.id = (e ->> 'variant_id')::uuid for update;
     if v.id is null then
       raise exception 'An option on this bill no longer exists.' using errcode = 'P0002';
@@ -367,7 +367,8 @@ begin
     values (rid, v.id, qty, price, rate, g, c, s, i, claim, clock_timestamp());
 
     -- the average moves with the stock actually on the shelf, before this lot is added
-    stock_now := greatest(v.stock_qty, 0);
+    -- an option not counting stock yet holds nothing: its stock_qty is meaningless
+    stock_now := case when v.track_stock then greatest(v.stock_qty, 0) else 0 end;
     select vc.purchase into old_price from public.variant_costs vc where vc.variant_id = v.id;
     new_price := case when old_price is null then price
                       else round((stock_now * old_price + qty * price) / (stock_now + qty), 2) end;
@@ -378,7 +379,22 @@ begin
     perform set_config('babajee.stock_reason', 'stock_in', true);
     perform set_config('babajee.receipt_id', rid::text, true);
     perform set_config('babajee.stock_note', '', true);
-    update public.product_variants set stock_qty = stock_qty + qty, track_stock = true where id = v.id;
+    if v.track_stock then
+      update public.product_variants set stock_qty = stock_qty + qty where id = v.id;
+    else
+      -- first stock in: the count starts at exactly this lot, and the movement
+      -- reads +qty, qty after = qty (a start from 0), not the old meaningless number
+      update public.product_variants set stock_qty = qty, track_stock = true where id = v.id;
+      if v.stock_qty = qty then
+        insert into public.stock_movements (variant_id, delta, qty_after, reason, receipt_id, note, actor_id, created_at)
+        values (v.id, qty, qty, 'stock_in', rid, '', (select auth.uid()), clock_timestamp());
+      else
+        update public.stock_movements set delta = qty
+         where id = (select sm.id from public.stock_movements sm
+                      where sm.variant_id = v.id and sm.receipt_id = rid and sm.reason = 'stock_in'
+                      order by sm.created_at desc, sm.id desc limit 1);
+      end if;
+    end if;
     perform set_config('babajee.stock_reason', '', true);
     perform set_config('babajee.receipt_id', '', true);
   end loop;

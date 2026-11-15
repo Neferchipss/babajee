@@ -198,8 +198,8 @@ function ProductsAdmin() {
     const v = made?.variants[0];
     await Promise.all([
       d.brand || d.type || !d.visible ? api.updateProduct(id, { brand: d.brand, product_type: d.type, is_visible: d.visible }) : null,
-      v && (d.price || d.stock != null || !d.visible)
-        ? api.upsertVariant(id, { ...v, price: d.price, stock_qty: d.stock ?? 0, track_stock: d.stock != null, is_visible: d.visible })
+      v && (d.price || !d.visible)
+        ? api.upsertVariant(id, { id: v.id, price: d.price, is_visible: d.visible })
         : null,
     ]);
     const fresh = await api.getProduct(id);

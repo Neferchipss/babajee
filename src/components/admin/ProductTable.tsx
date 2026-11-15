@@ -11,7 +11,7 @@ import { photosFor } from "@/lib/product-photos";
 
 type Api = ReturnType<typeof adminApi>;
 
-export type NewRow = { name: string; categoryId: string; brand: string; type: string; price: number; stock: number | null; visible: boolean };
+export type NewRow = { name: string; categoryId: string; brand: string; type: string; price: number; visible: boolean };
 
 // The catalogue as a sheet, for people who'd rather work in rows: every
 // cell edits in place and saves when you leave it (or press Enter, which
@@ -358,10 +358,10 @@ function Cell({ value, onSave, label, col, num = false, list, placeholder }: { v
 }
 
 // The sheet's first row is always empty, ready for a new product: fill in
-// what you know and press Create (or Enter in any of its cells). Leave stock
-// empty to not count it. It lands in the sheet like any other row.
+// what you know and press Create (or Enter in any of its cells). Stock
+// comes in through Add stock. It lands in the sheet like any other row.
 function NewProductRow({ categories, category, showCat, onCreate }: { categories: AdminCategory[]; category: string; showCat: boolean; onCreate: (d: NewRow) => Promise<void> }) {
-  const blank = { name: "", brand: "", type: "", price: "", stock: "" };
+  const blank = { name: "", brand: "", type: "", price: "" };
   const [d, setD] = useState(blank);
   const [cat, setCat] = useState(category || categories[0]?.id || "");
   const [visible, setVisible] = useState(true);
@@ -385,7 +385,6 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         brand: d.brand.trim(),
         type: d.type.trim(),
         price: Number(d.price) || 0,
-        stock: d.stock.trim() === "" ? null : Math.max(0, Math.round(Number(d.stock) || 0)),
         visible,
       });
       setD(blank);
@@ -436,7 +435,7 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         <td className="c-brand">{field("brand", "Brand", { list: "apt-brands" })}</td>
         <td className="c-type">{field("type", "Type")}</td>
         <td className="r c-price">{field("price", "Price", { num: true })}</td>
-        <td className="r c-stock">{field("stock", "Stock", { num: true, placeholder: "Not counted" })}</td>
+        <td className="r c-stock" />
         <td className="c-sold" />
         <td className="c-shop">
           <Switch on={visible} label="the new product" onFlip={() => setVisible((v) => !v)} />

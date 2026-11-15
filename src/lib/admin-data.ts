@@ -284,7 +284,11 @@ const skuTaken = (e: { code?: string; message?: string }) =>
 
 export async function upsertVariant(productId: string, variant: Partial<AdminVariant> & { id?: string }) {
   if (variant.id) {
-    const { id, ...patch } = variant;
+    // stock_qty and track_stock are not written here: a stale copy would undo
+    // sales and stock in. Stock moves only through the stock functions.
+    const { id, stock_qty: _q, track_stock: _t, ...patch } = variant;
+    void _q;
+    void _t;
     const { error } = await db().from("product_variants").update(patch).eq("id", id);
     if (error) throw skuTaken(error);
   } else {

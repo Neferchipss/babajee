@@ -164,7 +164,12 @@ function makeDemo(): Api {
     },
     async upsertVariant(productId, variant) {
       const p = find(productId);
-      if (variant.id) Object.assign(p.variants.find((v) => v.id === variant.id)!, variant);
+      if (variant.id) {
+        const { stock_qty: _q, track_stock: _t, ...patch } = variant;
+        void _q;
+        void _t;
+        Object.assign(p.variants.find((v) => v.id === variant.id)!, patch);
+      }
       else p.variants.push({ id: uid(), label: "Option", price: 0, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length, ...variant } as AdminVariant);
     },
     async deleteProduct(product) {
