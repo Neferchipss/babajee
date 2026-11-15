@@ -9,9 +9,12 @@
 -- 3. stock_movements gains receipt_id and note, and three reasons: stock_in,
 --    void and correction. log_stock_movement() reads them from the same
 --    transaction-local settings as the order id.
--- 4. The buying price (variant_costs.purchase) becomes a running average:
---    recost_variant() replays a variant's posted lines (opening first, then by
---    bill date) so a void or a late bill always lands on the right figure.
+-- 4. The buying price (variant_costs.purchase) becomes a running average that
+--    follows the real stock on the shelf:
+--      new = (max(stock, 0) * old + qty * price) / (max(stock, 0) + qty)
+--    admin_post_receipt applies it as stock comes in. After a void,
+--    recost_variant() replays the option's stock movements in time order, so
+--    sales in between count and the cancelled bill drops out.
 -- 5. admin_post_receipt / admin_void_receipt / admin_correct_stock change the
 --    stock count; admin_suppliers / admin_save_supplier / admin_receipts /
 --    admin_receipt / admin_uncounted / admin_track_all_stock /
@@ -21,7 +24,10 @@
 --    count for the shop to correct, instead of blocking the change.
 -- 7. The three new tables join the audit log and the data download.
 --
--- Depends on 0049. Safe to re-run.
+-- Also: bill lines keep their option for good (an option or product with stock
+-- bills cannot be deleted, only hidden).
+--
+-- Depends on 0049, 0023. Safe to re-run.
 
 -- ---------------------------------------------------------------- 1. tables
 
@@ -61,7 +67,7 @@ create index if not exists stock_receipts_date_idx on public.stock_receipts (bil
 create table if not exists public.stock_receipt_lines (
   id uuid primary key default gen_random_uuid(),
   receipt_id uuid not null references public.stock_receipts (id) on delete cascade,
-  variant_id uuid not null references public.product_variants (id) on delete cascade,
+  variant_id uuid not null references public.product_variants (id) on delete restrict,
   qty int not null check (qty > 0),
   unit_price numeric(10, 2) not null check (unit_price >= 0),
   gst_rate numeric(5, 2) not null default 0,
@@ -113,7 +119,7 @@ set search_path = ''
 as $$
 begin
   if new.stock_qty is distinct from old.stock_qty then
-    insert into public.stock_movements (variant_id, delta, qty_after, reason, order_id, receipt_id, note, actor_id)
+    insert into public.stock_movements (variant_id, delta, qty_after, reason, order_id, receipt_id, note, actor_id, created_at)
     values (
       new.id,
       new.stock_qty - old.stock_qty,
@@ -122,7 +128,8 @@ begin
       nullif(current_setting('babajee.order_id', true), '')::uuid,
       nullif(current_setting('babajee.receipt_id', true), '')::uuid,
       coalesce(current_setting('babajee.stock_note', true), ''),
-      (select auth.uid())
+      (select auth.uid()),
+      clock_timestamp()
     );
   end if;
   return new;
@@ -131,11 +138,13 @@ $$;
 
 -- ---------------------------------------------------------------- 3. average buying price
 
--- Replays the variant's posted lines: opening stock first, then by bill date.
---   avg := (max(running, 0) * avg + qty * price) / (max(running, 0) + qty)
--- and writes it as the buying price (before GST); the cost with GST follows
--- from variant_costs_from_purchase. No posted lines: the price already there
--- (typed by hand) stays.
+-- Replays the option's stock movements in time order. At each stock_in that
+-- belongs to a receipt still posted, the average moves by
+--   new = (max(stock before, 0) * old + qty * price) / (max(stock before, 0) + qty)
+-- (the first receipt sets it; several lines of one receipt for the same option
+-- in a row count together). Sales, refunds and corrections only change the
+-- stock before the next receipt. No posted receipt left: the price already
+-- there stays.
 create or replace function public.recost_variant(p_variant uuid)
 returns void
 language plpgsql
@@ -143,27 +152,61 @@ security definer
 set search_path = ''
 as $$
 declare
-  l record;
-  running numeric := 0;
-  avg numeric := 0;
+  m record;
+  g_receipt uuid;
+  g_stock numeric := 0;
+  g_qty numeric := 0;
+  g_sum numeric := 0;
+  avg numeric;
   seen boolean := false;
 begin
-  for l in
-    select sl.qty, sl.unit_price
-      from public.stock_receipt_lines sl
-      join public.stock_receipts r on r.id = sl.receipt_id
-     where sl.variant_id = p_variant and r.status = 'posted'
-     order by (r.kind <> 'opening'), r.bill_date, sl.created_at, sl.id
+  for m in
+    with mv as (
+      select sm.id, sm.created_at, sm.reason, sm.receipt_id, sm.delta, sm.qty_after,
+             row_number() over (partition by sm.receipt_id, sm.reason order by sm.created_at, sm.id) rn
+        from public.stock_movements sm
+       where sm.variant_id = p_variant),
+    ln as (
+      select sl.receipt_id, sl.qty, sl.unit_price,
+             row_number() over (partition by sl.receipt_id order by sl.created_at, sl.id) rn
+        from public.stock_receipt_lines sl
+       where sl.variant_id = p_variant)
+    select mv.created_at, mv.id, mv.delta, mv.qty_after, mv.receipt_id,
+           coalesce(mv.reason = 'stock_in' and r.status = 'posted' and ln.qty is not null, false) as live,
+           ln.qty, ln.unit_price
+      from mv
+      left join public.stock_receipts r on r.id = mv.receipt_id
+      left join ln on ln.receipt_id = mv.receipt_id and ln.rn = mv.rn and mv.reason = 'stock_in'
+     order by mv.created_at, mv.id
   loop
-    avg := (greatest(running, 0) * avg + l.qty * l.unit_price) / (greatest(running, 0) + l.qty);
-    running := running + l.qty;
-    seen := true;
+    if m.live and g_receipt is not distinct from m.receipt_id then
+      g_qty := g_qty + m.qty;
+      g_sum := g_sum + m.qty * m.unit_price;
+      continue;
+    end if;
+    if g_receipt is not null then
+      avg := round(case when avg is null then g_sum / g_qty
+                        else (g_stock * avg + g_sum) / (g_stock + g_qty) end, 2);
+      seen := true;
+      g_receipt := null;
+    end if;
+    if m.live then
+      g_receipt := m.receipt_id;
+      g_stock := greatest(m.qty_after - m.delta, 0);
+      g_qty := m.qty;
+      g_sum := m.qty * m.unit_price;
+    end if;
   end loop;
+  if g_receipt is not null then
+    avg := round(case when avg is null then g_sum / g_qty
+                      else (g_stock * avg + g_sum) / (g_stock + g_qty) end, 2);
+    seen := true;
+  end if;
   if not seen then
     return;
   end if;
   insert into public.variant_costs (variant_id, cost, purchase)
-  values (p_variant, 0, round(avg, 2))
+  values (p_variant, 0, avg)
   on conflict (variant_id) do update set purchase = excluded.purchase;
 end;
 $$;
@@ -252,8 +295,9 @@ declare
   c numeric;
   s numeric;
   i numeric;
-  touched uuid[] := '{}';
-  tv uuid;
+  stock_now int;
+  old_price numeric;
+  new_price numeric;
 begin
   if not public.is_admin() then
     raise exception 'Admins only.' using errcode = '42501';
@@ -305,7 +349,7 @@ begin
     if price is null or price < 0 then
       raise exception 'Each line needs a price.' using errcode = '22023';
     end if;
-    select pv.id, pv.product_id into v
+    select pv.id, pv.product_id, pv.stock_qty into v
       from public.product_variants pv where pv.id = (e ->> 'variant_id')::uuid for update;
     if v.id is null then
       raise exception 'An option on this bill no longer exists.' using errcode = 'P0002';
@@ -322,20 +366,21 @@ begin
     insert into public.stock_receipt_lines (receipt_id, variant_id, qty, unit_price, gst_rate, gst, cgst, sgst, igst, claimable, created_at)
     values (rid, v.id, qty, price, rate, g, c, s, i, claim, clock_timestamp());
 
+    -- the average moves with the stock actually on the shelf, before this lot is added
+    stock_now := greatest(v.stock_qty, 0);
+    select vc.purchase into old_price from public.variant_costs vc where vc.variant_id = v.id;
+    new_price := case when old_price is null then price
+                      else round((stock_now * old_price + qty * price) / (stock_now + qty), 2) end;
+    insert into public.variant_costs (variant_id, cost, purchase)
+    values (v.id, 0, new_price)
+    on conflict (variant_id) do update set purchase = excluded.purchase;
+
     perform set_config('babajee.stock_reason', 'stock_in', true);
     perform set_config('babajee.receipt_id', rid::text, true);
     perform set_config('babajee.stock_note', '', true);
     update public.product_variants set stock_qty = stock_qty + qty, track_stock = true where id = v.id;
     perform set_config('babajee.stock_reason', '', true);
     perform set_config('babajee.receipt_id', '', true);
-
-    if not (v.id = any (touched)) then
-      touched := touched || v.id;
-    end if;
-  end loop;
-
-  foreach tv in array touched loop
-    perform public.recost_variant(tv);
   end loop;
   return rid;
 end;
@@ -411,6 +456,62 @@ begin
   update public.product_variants set stock_qty = p_count, track_stock = true where id = p_variant;
   perform set_config('babajee.stock_reason', '', true);
   perform set_config('babajee.stock_note', '', true);
+end;
+$$;
+
+-- ---------------------------------------------------------------- 5b. no deleting what a bill names
+
+-- A bill line keeps its option for good (the claimable GST lives on it), so an
+-- option or product with stock bills is hidden, never deleted.
+create or replace function public.guard_variant_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.stock_receipt_lines where variant_id = old.id) then
+    raise exception 'This option has stock bills against it, so it cannot be deleted. Hide it instead.'
+      using errcode = 'P0001';
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists product_variants_guard_delete on public.product_variants;
+create trigger product_variants_guard_delete
+  before delete on public.product_variants
+  for each row execute function public.guard_variant_delete();
+
+-- admin_delete_product (0023) with the same refusal
+create or replace function public.admin_delete_product(p_product uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Admins only.' using errcode = '42501';
+  end if;
+  if exists (
+    select 1 from public.order_items oi
+    join public.product_variants v on v.id = oi.variant_id
+    where v.product_id = p_product
+  ) then
+    raise exception 'product_ordered' using errcode = 'P0001', hint = 'This product has been ordered. Hide it instead.';
+  end if;
+  if exists (
+    select 1 from public.stock_receipt_lines sl
+    join public.product_variants v on v.id = sl.variant_id
+    where v.product_id = p_product
+  ) then
+    raise exception 'This product has stock bills against it, so it cannot be deleted. Hide it instead.'
+      using errcode = 'P0001';
+  end if;
+  delete from public.cart_items ci using public.product_variants v
+  where ci.variant_id = v.id and v.product_id = p_product;
+  delete from public.products where id = p_product;
 end;
 $$;
 
@@ -560,6 +661,9 @@ $$;
 -- ---------------------------------------------------------------- 8. who may call what
 
 revoke all on function public.recost_variant(uuid) from public, anon, authenticated;
+revoke all on function public.guard_variant_delete() from public, anon, authenticated;
+revoke all on function public.admin_delete_product(uuid) from public, anon;
+grant execute on function public.admin_delete_product(uuid) to authenticated;
 revoke all on function public.admin_suppliers() from public, anon;
 revoke all on function public.admin_save_supplier(jsonb) from public, anon;
 revoke all on function public.admin_post_receipt(text, uuid, text, date, text, jsonb) from public, anon;

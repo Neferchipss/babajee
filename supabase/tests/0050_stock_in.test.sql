@@ -7,7 +7,7 @@ declare
   adm uuid;
   cat uuid;
   prod uuid;
-  v1 uuid; v2 uuid; v3 uuid; v4 uuid; v5 uuid; v6 uuid; v7 uuid;
+  v1 uuid; v2 uuid; v3 uuid; v4 uuid; v5 uuid; v6 uuid; v7 uuid; v8 uuid; v9 uuid;
   s1 uuid; s2 uuid;
   r_open uuid; r_bill uuid; r_inter uuid; r_a uuid; r_b uuid; r_c uuid; r_d uuid;
   r_neg uuid; r_new uuid;
@@ -35,6 +35,9 @@ begin
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V5', 500, 0, false) returning id into v5;
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V6', 500, 0, false) returning id into v6;
   insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V7', 500, 0, false) returning id into v7;
+
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V8', 500, 0, false) returning id into v8;
+  insert into public.product_variants (product_id, label, price, stock_qty, track_stock) values (prod, 'V9', 500, 0, false) returning id into v9;
 
   s1 := public.admin_save_supplier(jsonb_build_object('name', 'Same State Traders', 'gstin', '27BBBBB1111B1Z5'));
   s2 := public.admin_save_supplier(jsonb_build_object('name', 'Other State Traders', 'gstin', '29CCCCC2222C1Z5'));
@@ -71,13 +74,32 @@ begin
     jsonb_build_array(jsonb_build_object('variant_id', v3, 'qty', 1, 'unit_price', 10, 'gst_rate', 18)));
   if not (r_c <> r_a) then raise exception 'FAIL: same_bill_no_joins different supplier'; end if;
 
-  -- negative_stock_average
-  perform public.admin_correct_stock(v4, 0, 'start');
+  -- negative_stock_average: stock 4 @ 80, driven to -3, then a bill 5 @ 50: max(stock,0) = 0, so the average is the new price
+  perform public.admin_post_receipt('bill', s1, 'N-0', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v4, 'qty', 4, 'unit_price', 80, 'gst_rate', 18)));
+  if not ((select purchase from public.variant_costs where variant_id = v4) = 80.00) then raise exception 'FAIL: negative_stock_average setup'; end if;
   update public.product_variants set stock_qty = -3 where id = v4;
   r_neg := public.admin_post_receipt('bill', s1, 'N-1', current_date, '',
     jsonb_build_array(jsonb_build_object('variant_id', v4, 'qty', 5, 'unit_price', 50, 'gst_rate', 18)));
   if not ((select purchase from public.variant_costs where variant_id = v4) = 50.00) then raise exception 'FAIL: negative_stock_average purchase'; end if;
   if not ((select stock_qty from public.product_variants where id = v4) = 2) then raise exception 'FAIL: negative_stock_average stock'; end if;
+
+  -- sale_between_receipts: opening 10 @ 100, all 10 sold, bill 10 @ 120 -> 120
+  perform public.admin_post_receipt('opening', null, '', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v8, 'qty', 10, 'unit_price', 100, 'gst_rate', 18)));
+  perform set_config('babajee.stock_reason', 'sale', true);
+  update public.product_variants set stock_qty = 0 where id = v8;
+  perform set_config('babajee.stock_reason', '', true);
+  perform public.admin_post_receipt('bill', s1, 'S-1', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v8, 'qty', 10, 'unit_price', 120, 'gst_rate', 18)));
+  if not ((select purchase from public.variant_costs where variant_id = v8) = 120.00) then raise exception 'FAIL: sale_between_receipts'; end if;
+
+  -- existing_count_and_price: stock 20, hand-typed price 80, first bill 10 @ 120 -> 93.33
+  update public.product_variants set stock_qty = 20 where id = v9;
+  insert into public.variant_costs (variant_id, cost, purchase) values (v9, 0, 80);
+  perform public.admin_post_receipt('bill', s1, 'E-1', current_date, '',
+    jsonb_build_array(jsonb_build_object('variant_id', v9, 'qty', 10, 'unit_price', 120, 'gst_rate', 18)));
+  if not ((select purchase from public.variant_costs where variant_id = v9) = 93.33) then raise exception 'FAIL: existing_count_and_price'; end if;
 
   -- purchase_gst_by_month (before the void, while the 120 bill still counts)
   m := public.admin_purchase_gst(current_date - 40, current_date + 40);
@@ -94,6 +116,13 @@ begin
   r_new := public.admin_post_receipt('bill', s1, 'B-120', current_date, '',
     jsonb_build_array(jsonb_build_object('variant_id', v1, 'qty', 1, 'unit_price', 100, 'gst_rate', 18)));
   if not (r_new <> r_bill) then raise exception 'FAIL: void_recomputes bill_no reusable'; end if;
+
+  -- void replay with a sale in between: voiding the S-1 bill leaves the opening only
+  perform public.admin_void_receipt((select id from public.stock_receipts where bill_no = 'S-1' and status = 'posted'));
+  if not ((select purchase from public.variant_costs where variant_id = v8) = 100.00) then raise exception 'FAIL: void_recomputes replay'; end if;
+  -- no receipt left: the typed price stays (v9 had none before E-1)
+  perform public.admin_void_receipt((select id from public.stock_receipts where bill_no = 'E-1' and status = 'posted'));
+  if not ((select purchase from public.variant_costs where variant_id = v9) = 93.33) then raise exception 'FAIL: void_recomputes no receipts left'; end if;
 
   -- void_after_sale_goes_negative
   r_d := public.admin_post_receipt('bill', s1, 'D-1', current_date, '',
@@ -127,6 +156,16 @@ begin
   if not (jsonb_array_length(public.admin_receipts(current_date - 1, current_date + 1)) >= 5) then raise exception 'FAIL: admin_receipts'; end if;
   if not (jsonb_array_length(public.admin_receipt(r_a) -> 'lines') = 2) then raise exception 'FAIL: admin_receipt'; end if;
   if not ((select count(*) from public.admin_suppliers() where id in (s1, s2)) = 2) then raise exception 'FAIL: admin_suppliers'; end if;
+
+  -- deletes refused for options and products with stock bills; fine without
+  got := false;
+  begin delete from public.product_variants where id = v1; exception when others then got := (sqlerrm like '%Hide it instead%'); end;
+  if not got then raise exception 'FAIL: variant_delete_refused'; end if;
+  got := false;
+  begin perform public.admin_delete_product(prod); exception when others then got := (sqlerrm like '%Hide it instead%'); end;
+  if not got then raise exception 'FAIL: product_delete_refused'; end if;
+  delete from public.product_variants where id = v7;
+  if exists (select 1 from public.product_variants where id = v7) then raise exception 'FAIL: unbilled_variant_deletable'; end if;
 
   -- export_lists_new_tables
   if not ('suppliers' = any (public.export_table_list()) and 'stock_receipts' = any (public.export_table_list()) and 'stock_receipt_lines' = any (public.export_table_list())) then raise exception 'FAIL: export_lists_new_tables'; end if;
