@@ -3,13 +3,14 @@
 do $$
 declare
   admin uuid;
+  v uuid;
   o uuid;
   o2 uuid;
+  it uuid;
+  it2 uuid;
   rf uuid;
-  t numeric;
-  tot numeric;
-  sg numeric;
   cn record;
+  inv text;
   n int;
   sup uuid;
   rc uuid;
@@ -17,37 +18,23 @@ declare
 begin
   select id into admin from public.profiles where role = 'admin' limit 1;
   perform set_config('request.jwt.claims', json_build_object('sub', admin, 'role', 'authenticated')::text, true);
+  select pv.id into v from public.product_variants pv limit 1;
+  update public.products set hsn = '4813' where id = (select product_id from public.product_variants where id = v);
 
-  -- an order with items at 5% and 18%, shipping 100, GST-inclusive prices
+  -- a pending order: HSN copied onto its line
   insert into public.orders (profile_id, status, contact_name, contact_email, contact_phone, address_line1, address_city, address_state, address_pincode, subtotal, shipping, tax, total, gst_inclusive)
-  values (admin, 'pending', 'T', 't@example.com', '9999999999', 'x', 'Pune', 'Maharashtra', '411001', 300, 100, 0, 400, true)
+  values (admin, 'pending', 'T', 't@example.com', '9999999999', 'x', 'Pune', 'Maharashtra', '411001', 300, 50, 0, 350, true)
   returning id into o;
+  insert into public.order_items (order_id, variant_id, product_name, variant_label, unit_price, quantity, gst_rate)
+  values (o, v, 'A', '', 100, 1, 5) returning id into it;
   insert into public.order_items (order_id, product_name, variant_label, unit_price, quantity, gst_rate)
-  values (o, 'A', '', 100, 1, 5), (o, 'B', '', 200, 1, 18);
+  values (o, 'B', '', 200, 1, 18) returning id into it2;
+  if (select hsn from public.order_items where id = it) <> '4813' then raise exception 'FAIL hsn_snapshot'; end if;
   perform public.order_retax(o);
-  select tax, total into t, tot from public.orders where id = o;
-  -- goods: 100 @5% incl = 4.76, 200 @18% incl = 30.51; shipping 100 @18% incl = 15.25
-  if public.shipping_gst(o) <> 15.25 then raise exception 'FAIL shipping_gst_highest_rate: %', public.shipping_gst(o); end if;
-  if t <> 50.52 then raise exception 'FAIL tax_includes_shipping: %', t; end if;
-  if tot <> 400 then raise exception 'FAIL inclusive_total_unchanged: %', tot; end if;
+  -- shipping stays untaxed: goods 4.76 + 30.51
+  if (select tax from public.orders where id = o) <> 35.27 then raise exception 'FAIL shipping_untaxed: %', (select tax from public.orders where id = o); end if;
 
-  -- an old order (shipping_taxed false) keeps no shipping GST
-  update public.orders set shipping_taxed = false where id = o;
-  perform public.order_retax(o);
-  select tax into t from public.orders where id = o;
-  if t <> 35.27 then raise exception 'FAIL old_order_untaxed_shipping: %', t; end if;
-  update public.orders set shipping_taxed = true where id = o;
-
-  -- exclusive prices: GST added on top of shipping
-  update public.orders set gst_inclusive = false where id = o;
-  perform public.order_retax(o);
-  select tax, total into t, tot from public.orders where id = o;
-  -- goods 5 + 36 = 41; shipping 18 -> tax 59, total 300 + 100 + 59
-  if t <> 59 or tot <> 459 then raise exception 'FAIL exclusive_shipping_on_top: % %', t, tot; end if;
-  update public.orders set gst_inclusive = true where id = o;
-  perform public.order_retax(o);
-
-  -- buyer GSTIN: format checked, locked once invoiced
+  -- buyer GSTIN: format checked, saved upper-case
   begin
     perform public.admin_set_buyer_gstin(o, 'nonsense');
     raise exception 'FAIL buyer_gstin_format_not_checked';
@@ -55,47 +42,93 @@ begin
   end;
   perform public.admin_set_buyer_gstin(o, '27abcde1234f1z5');
   if (select buyer_gstin from public.orders where id = o) <> '27ABCDE1234F1Z5' then raise exception 'FAIL buyer_gstin_saved_upper'; end if;
-  update public.orders set status = 'paid', paid_total = 400 where id = o;
-  perform public.admin_issue_invoices(array[o]);
+
+  -- paid: invoice issued at the end of the transaction (deferred)
+  update public.orders set status = 'paid', paid_total = 350 where id = o;
+  if (select invoice_number from public.orders where id = o) is not null then raise exception 'FAIL invoice_waits_for_commit'; end if;
+  set constraints all immediate;
+  select invoice_number into inv from public.orders where id = o;
+  if inv is null or inv !~ '/[0-9]{2}-[0-9]{2}/[0-9]{4,}$' then raise exception 'FAIL invoice_on_payment: %', inv; end if;
+  set constraints all deferred;
+
+  -- invoiced: GSTIN, items and address locked
   begin
     perform public.admin_set_buyer_gstin(o, '');
     raise exception 'FAIL buyer_gstin_locked_after_invoice';
   exception when sqlstate '22023' then null;
   end;
+  begin
+    update public.order_items set quantity = 2 where id = it;
+    raise exception 'FAIL items_locked';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    update public.orders set address_city = 'Mumbai' where id = o;
+    raise exception 'FAIL address_locked';
+  exception when sqlstate '22023' then null;
+  end;
+  -- notes and status still change
+  update public.orders set notes = 'ok', status = 'packed' where id = o;
 
-  -- credit note for a refund on an invoiced order, with shipping GST in it
-  insert into public.order_refunds (order_id, amount, subtotal, shipping, tax) values (o, 300, 200, 100, 30.51) returning id into rf;
-  select * into cn from public.admin_issue_credit_notes(array[o]) limit 1;
-  if cn.number !~ '-CN/[0-9]{2}-[0-9]{2}/0001$' then raise exception 'FAIL cn_number_series: %', cn.number; end if;
-  if (select tax from public.credit_notes where id = cn.id) <> 45.76 then raise exception 'FAIL cn_tax_with_shipping: %', (select tax from public.credit_notes where id = cn.id); end if;
-  -- issuing again makes no second note
+  -- a refund through admin_refund gets a credit note with the refund's GST
+  perform public.admin_refund(o, jsonb_build_array(jsonb_build_object('item', it2, 'qty', 1)), 0, 200, false, false, 'damaged');
+  set constraints all immediate;
+  set constraints all deferred;
+  select f.id into rf from public.order_refunds f where f.order_id = o;
+  select * into cn from public.credit_notes where refund_id = rf;
+  if cn.number !~ '^CN/[0-9]{2}-[0-9]{2}/0001$' then raise exception 'FAIL cn_number: %', cn.number; end if;
+  if cn.amount <> 200 or cn.tax <> (select tax from public.order_refunds where id = rf) then raise exception 'FAIL cn_snapshot: % %', cn.amount, cn.tax; end if;
+  if cn.tax <> 30.51 then raise exception 'FAIL cn_tax_item_only: %', cn.tax; end if;
+  if length(cn.number) > 16 or length(inv) > 16 then raise exception 'FAIL doc_number_length'; end if;
+  -- less than an item's value: its GST scaled down (100 @5% refunded 50)
+  perform public.admin_refund(o, jsonb_build_array(jsonb_build_object('item', it, 'qty', 1)), 0, 50, false, false, 'partial');
+  set constraints all immediate;
+  set constraints all deferred;
+  if (select f.tax from public.order_refunds f where f.order_id = o and f.amount = 50) <> 2.38 then raise exception 'FAIL partial_refund_tax: %', (select f.tax from public.order_refunds f where f.order_id = o and f.amount = 50); end if;
+  -- the print page call makes no second note
   perform public.admin_issue_credit_notes(array[o]);
   select count(*) into n from public.credit_notes where order_id = o;
-  if n <> 1 then raise exception 'FAIL cn_idempotent: %', n; end if;
-  -- undoing the refund keeps the note, unlinked
-  delete from public.order_refunds where id = rf;
-  if (select refund_id from public.credit_notes where id = cn.id) is not null then raise exception 'FAIL cn_survives_undo'; end if;
+  if n <> 2 then raise exception 'FAIL cn_idempotent: %', n; end if;
+  -- a refund with a credit note can't be undone
+  begin
+    perform public.admin_undo_refund(rf);
+    raise exception 'FAIL undo_blocked';
+  exception when sqlstate '22023' then null;
+  end;
 
-  -- an order without an invoice gets no credit note
+  -- refunded before its invoice: the note comes with the invoice
   insert into public.orders (profile_id, status, contact_name, contact_email, contact_phone, address_line1, address_city, address_state, address_pincode, subtotal, shipping, tax, total)
   values (admin, 'pending', 'T', 't@example.com', '9999999999', 'x', 'Pune', 'Maharashtra', '411001', 100, 0, 0, 100) returning id into o2;
-  insert into public.order_refunds (order_id, amount, subtotal) values (o2, 50, 50);
-  perform public.admin_issue_credit_notes(array[o2]);
+  insert into public.order_items (order_id, product_name, variant_label, unit_price, quantity, gst_rate) values (o2, 'C', '', 100, 1, 18) returning id into it;
+  perform public.order_retax(o2);
+  update public.orders set status = 'paid', paid_total = 100 where id = o2;
+  perform public.admin_refund(o2, '[]'::jsonb, 0, 20, false, false, 'goodwill');
   if exists (select 1 from public.credit_notes where order_id = o2) then raise exception 'FAIL cn_needs_invoice'; end if;
+  set constraints all immediate;
+  if not exists (select 1 from public.credit_notes where order_id = o2) then raise exception 'FAIL cn_with_late_invoice'; end if;
+  -- goodwill on an 18% order: GST inside the credit
+  if (select tax from public.credit_notes where order_id = o2) <> 3.05 then raise exception 'FAIL goodwill_tax: %', (select tax from public.credit_notes where order_id = o2); end if;
+  set constraints all deferred;
 
-  -- purchase bill ticks and ITC
+  -- purchase bill ticks and ITC by GSTR-2B month
   insert into public.suppliers (name, gstin) values ('TEST sup', '27ABCDE1234F1Z5') returning id into sup;
   insert into public.stock_receipts (kind, supplier_id, bill_no, bill_date) values ('bill', sup, 'T-1', current_date - 200) returning id into rc;
   insert into public.stock_receipt_lines (receipt_id, variant_id, qty, unit_price, gst_rate, gst, cgst, sgst, igst, claimable)
-  values (rc, (select id from public.product_variants limit 1), 1, 100, 18, 18, 9, 9, 0, true);
+  values (rc, v, 1, 100, 18, 18, 9, 9, 0, true), (rc, v, 1, 100, 18, 18, 9, 9, 0, false);
   j := public.admin_itc(current_date - 400, current_date);
-  if (j->0->>'on_bills')::numeric <> 18 or coalesce((j->0->>'in_2b')::numeric, 0) <> 0 then raise exception 'FAIL itc_needs_2b: %', j; end if;
-  perform public.admin_set_receipt_flags(rc, true, null);
-  j := public.admin_itc(current_date - 400, current_date);
-  if (j->0->>'in_2b')::numeric <> 18 then raise exception 'FAIL itc_after_2b: %', j; end if;
+  if (select sum((e->>'on_bills')::numeric) from jsonb_array_elements(j) e) <> 18 then raise exception 'FAIL itc_claimable_lines_only: %', j; end if;
+  if (select sum((e->>'in_2b')::numeric) from jsonb_array_elements(j) e) <> 0 then raise exception 'FAIL itc_needs_2b: %', j; end if;
+  begin
+    perform public.admin_set_receipt_flags(rc, true, null, current_date - 300);
+    raise exception 'FAIL paid_before_bill_rejected';
+  exception when sqlstate '22023' then null;
+  end;
+  perform public.admin_set_receipt_flags(rc, true, (current_date - 10), null);
+  j := public.admin_itc(current_date - 30, current_date);
+  if (select sum((e->>'in_2b')::numeric) from jsonb_array_elements(j) e) <> 18 then raise exception 'FAIL itc_in_2b_month: %', j; end if;
   j := public.admin_unpaid_bills(180);
   if not exists (select 1 from jsonb_array_elements(j) e where (e->>'id')::uuid = rc) then raise exception 'FAIL unpaid_180_listed: %', j; end if;
-  perform public.admin_set_receipt_flags(rc, true, current_date);
+  perform public.admin_set_receipt_flags(rc, true, (current_date - 10), current_date);
   j := public.admin_unpaid_bills(180);
   if exists (select 1 from jsonb_array_elements(j) e where (e->>'id')::uuid = rc) then raise exception 'FAIL paid_not_listed'; end if;
 

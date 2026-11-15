@@ -190,20 +190,22 @@ export async function itc(from: string, to: string): Promise<ItcMonth[]> {
 }
 
 // supplier bills still unpaid 180 days after their date: their credit must be reversed
-export type UnpaidBill = { id: string; bill_no: string; bill_date: string; supplier: string | null; days: number; gst: number | null };
+export type UnpaidBill = { id: string; bill_no: string; bill_date: string; supplier: string | null; days: number; gst: number | null; in_2b: boolean };
 export async function unpaidBills(days = 180): Promise<UnpaidBill[]> {
   const { data, error } = await db().rpc("admin_unpaid_bills", { p_days: days });
   if (error) throw error;
   return (data ?? []) as UnpaidBill[];
 }
 
-// the two ticks on a supplier bill
-export async function getReceiptFlags(id: string): Promise<{ in_2b: boolean; paid_on: string | null }> {
-  const { data, error } = await db().from("stock_receipts").select("in_2b, paid_on").eq("id", id).maybeSingle();
+// the ticks on a supplier bill: in GSTR-2B (and which month's), and paid on
+export type ReceiptFlags = { in_2b: boolean; in_2b_month: string | null; paid_on: string | null };
+export async function getReceiptFlags(id: string): Promise<ReceiptFlags> {
+  const { data, error } = await db().from("stock_receipts").select("in_2b, in_2b_month, paid_on").eq("id", id).maybeSingle();
   if (error) throw error;
-  return { in_2b: !!data?.in_2b, paid_on: (data?.paid_on as string | null) ?? null };
+  return { in_2b: !!data?.in_2b, in_2b_month: (data?.in_2b_month as string | null) ?? null, paid_on: (data?.paid_on as string | null) ?? null };
 }
-export async function setReceiptFlags(id: string, in2b: boolean, paidOn: string | null) {
-  const { error } = await db().rpc("admin_set_receipt_flags", { p_receipt: id, p_in_2b: in2b, p_paid_on: paidOn });
+// in2bMonth: any day of that month (YYYY-MM-DD); null means the bill's own month
+export async function setReceiptFlags(id: string, f: ReceiptFlags) {
+  const { error } = await db().rpc("admin_set_receipt_flags", { p_receipt: id, p_in_2b: f.in_2b, p_2b_month: f.in_2b ? f.in_2b_month : null, p_paid_on: f.paid_on });
   if (error) throw error;
 }

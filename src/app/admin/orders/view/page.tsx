@@ -172,7 +172,8 @@ function OrderView() {
   const paid = o.paid_total;
   const left = (paid ?? 0) - refunds.amount;
   const openReq = (o.order_requests ?? []).find((r) => r.status === "open");
-  const canEdit = ["pending", "paid", "packed"].includes(o.status) && refunds.amount === 0;
+  // an issued invoice can't change (0051): refund instead, which issues a credit note
+  const canEdit = ["pending", "paid", "packed"].includes(o.status) && refunds.amount === 0 && !o.invoice_number;
   const canRefund = ["paid", "packed", "shipped", "delivered"].includes(o.status) && left > 0;
   const canReturn = ["shipped", "delivered"].includes(o.status) && left > 0 && items.some((i) => i.quantity > (refunds.byItem.get(i.id) ?? 0));
   const balance = paid == null || o.status === "cancelled" || o.status === "refunded" ? 0 : Math.round((o.total - paid) * 100) / 100;

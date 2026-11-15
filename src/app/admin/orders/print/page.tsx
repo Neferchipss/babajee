@@ -319,13 +319,8 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
                 <dd>{inr(inv.gst)}</dd>
               </>
             )}
-            {/* taxed shipping is a line in the table; older orders keep it here, untaxed */}
-            {!(o.shipping_taxed && o.shipping > 0) && (
-              <>
-                <dt>Shipping charges</dt>
-                <dd>{inv.shipping > 0 ? inr(inv.shipping) : "Free"}</dd>
-              </>
-            )}
+            <dt>Shipping charges</dt>
+            <dd>{inv.shipping > 0 ? inr(inv.shipping) : "Free"}</dd>
             <dt className="inv-grand">Grand total</dt>
             <dd className="inv-grand">{inr(inv.total)}</dd>
             {o.paid_total != null && (
@@ -415,7 +410,7 @@ function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: Stor
           </div>
           <div>
             <span className="prt-label">Reason</span>
-            {reason || (cn.undone ? "Refund, later reversed" : "Refund")}
+            {reason || "Refund"}
           </div>
         </div>
         <table className="inv-items">

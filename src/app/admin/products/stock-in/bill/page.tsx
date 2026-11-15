@@ -193,7 +193,7 @@ function Bill() {
           {unclaimable && <p className="adm-muted adm-small">{why}</p>}
         </section>
 
-        {!void_ && r.kind === "bill" && <BillTicks id={r.id} />}
+        {!void_ && r.kind === "bill" && <BillTicks id={r.id} billDate={r.bill_date} />}
 
         {!void_ &&
           (asking ? (
@@ -221,47 +221,62 @@ function Bill() {
   );
 }
 
-// Two ticks on a supplier bill: it shows in GSTR-2B (so its credit can be
-// claimed), and when it was paid (credit unpaid after 180 days is reversed).
-function BillTicks({ id }: { id: string }) {
-  const [f, setF] = useState<{ in_2b: boolean; paid_on: string | null } | null>(null);
+// Ticks on a supplier bill for the GST return: it shows in GSTR-2B (its ITC
+// belongs to that 2B month), and when it was paid (ITC on a bill unpaid 180
+// days after its date is reversed).
+function BillTicks({ id, billDate }: { id: string; billDate: string }) {
+  type F = { in_2b: boolean; in_2b_month: string | null; paid_on: string | null };
+  const [f, setF] = useState<F | null>(null);
+  const [paid, setPaid] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let live = true;
     import("@/lib/stock-in/db")
       .then((m) => m.getReceiptFlags(id))
-      .then((x) => live && setF(x), () => live && setF({ in_2b: false, paid_on: null }));
+      .then(
+        (x) => live && (setF(x), setPaid(x.paid_on ?? "")),
+        () => live && setF({ in_2b: false, in_2b_month: null, paid_on: null }),
+      );
     return () => {
       live = false;
     };
   }, [id]);
-  async function save(next: { in_2b: boolean; paid_on: string | null }) {
+  async function save(next: F) {
     setBusy(true);
     try {
       const m = await import("@/lib/stock-in/db");
-      await m.setReceiptFlags(id, next.in_2b, next.paid_on);
+      await m.setReceiptFlags(id, next);
       setF(next);
       toast("Saved");
     } catch (e) {
       toastError(e);
+      setPaid(f?.paid_on ?? "");
     }
     setBusy(false);
   }
   if (!f) return null;
+  const month = (f.in_2b_month ?? billDate).slice(0, 7);
   return (
     <section className="adm-card sti-ticks">
       <h2>For the GST return</h2>
       <label className="sti-tick">
-        <input type="checkbox" checked={f.in_2b} disabled={busy} onChange={(e) => save({ ...f, in_2b: e.target.checked })} />
+        <input type="checkbox" checked={f.in_2b} disabled={busy} onChange={(e) => save({ ...f, in_2b: e.target.checked, in_2b_month: e.target.checked ? `${month}-01` : null })} />
         <span>
           Appears in GSTR-2B
           <small>Tick once the supplier&apos;s filing shows this bill. Only ticked bills count as input tax credit.</small>
         </span>
       </label>
+      {f.in_2b && (
+        <label className="adm-label">
+          In the GSTR-2B for
+          <input className="adm-input" type="month" value={month} disabled={busy} onChange={(e) => e.target.value && save({ ...f, in_2b_month: `${e.target.value}-01` })} />
+          <small className="adm-muted adm-small">The ITC is claimed in that month&apos;s GSTR-3B.</small>
+        </label>
+      )}
       <label className="adm-label">
         Paid to supplier on
-        <input className="adm-input" type="date" value={f.paid_on ?? ""} disabled={busy} onChange={(e) => save({ ...f, paid_on: e.target.value || null })} />
-        <small className="adm-muted adm-small">Credit on a bill still unpaid 180 days after its date has to be reversed.</small>
+        <input className="adm-input" type="date" min={billDate} value={paid} disabled={busy} onChange={(e) => setPaid(e.target.value)} onBlur={() => paid !== (f.paid_on ?? "") && save({ ...f, paid_on: paid || null })} />
+        <small className="adm-muted adm-small">ITC on a bill still unpaid 180 days after its date has to be reversed.</small>
       </label>
     </section>
   );

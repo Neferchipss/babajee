@@ -30,6 +30,7 @@ export type OrderItem = {
   quantity: number;
   // the GST bracket this line sold at, and the product's HSN code today (0030)
   gst_rate?: number;
+  // the HSN it was sold under (0051 copies it onto the line); before that, the product's
   hsn?: string;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
   slug?: string | null;
@@ -95,8 +96,6 @@ export type Order = {
   // its GST invoice, once one has been made (0029)
   invoice_number?: string | null;
   invoice_date?: string | null;
-  // shipping carries GST at the order's highest rate (0051; orders before it don't)
-  shipping_taxed?: boolean;
   // the buyer's GSTIN for a B2B sale, '' for a consumer (0051)
   buyer_gstin?: string;
   created_at: string;
@@ -131,7 +130,7 @@ function toOrder(row: Record<string, unknown>): Order {
         pv && p?.slug && pv.label !== undefined && pv.price !== undefined
           ? { slug: p.slug, category: p.categories?.slug ?? "", label: pv.label, price: toNumber(pv.price), ok: !!(pv.is_visible && p.is_visible && toNumber(pv.price) > 0) }
           : null;
-      return { ...rest, unit_price: toNumber(i.unit_price), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), ...(p?.hsn ? { hsn: p.hsn } : {}), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
+      return { ...rest, unit_price: toNumber(i.unit_price), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), hsn: (i.hsn as string | undefined) || (o.invoice_number ? "" : (p?.hsn ?? "")), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
     }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
@@ -215,6 +214,15 @@ export async function invoicedOrders(from: string, to: string): Promise<Order[]>
     out.push(...(data ?? []).map(toOrder));
     if ((data ?? []).length < 500) return out;
   }
+}
+
+// paid orders placed in the range that still have no invoice (paid before
+// invoices were issued automatically)
+export async function uninvoicedPaid(from: string, to: string): Promise<number> {
+  const [a, b] = istRange(from, to);
+  const { count, error } = await db().from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).gte("created_at", a).lt("created_at", b);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 // credit notes issued in the range (0051)

@@ -1,31 +1,59 @@
 import { strToU8, zipSync } from "fflate";
 import { creditNoteOf } from "./credit-note";
-import { gstr1, gstr3b, purchaseRegister, salesRegister, toCsv, type PurchaseDoc, type SaleDoc, type Table } from "./gst-returns";
+import { gstr1, gstr3b, purchaseRegister, salesRegister, toCsv, type PurchaseDoc, type SaleDoc, type Table, type Tax3 } from "./gst-returns";
 import { invoiceOf, stateCode } from "./invoice";
-import { creditNotesIn, getOrders, getSettings, invoicedOrders, type Order } from "./orders-db";
-import { getReceipt, listReceipts } from "./stock-in/db";
+import { creditNotesIn, getOrders, getSettings, invoicedOrders, uninvoicedPaid, type Order } from "./orders-db";
+import { getReceipt, listReceipts, unpaidBills, type Receipt } from "./stock-in/db";
 import { getSupabase } from "./supabase";
 
 // Everything a GST return needs for one date range, worked out from the
 // documents themselves (invoices, credit notes, supplier bills), and handed
 // back as zips of CSVs: the GSTR-1 tables with a GSTR-3B summary, or the
-// Tally sales and purchase registers.
+// Tally sales and purchase registers. Test orders are left out; invoices
+// later cancelled are listed as cancelled.
 const ist = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const posOf = (state: string) => `${stateCode(state) || "--"}-${state}`;
 
-export type ReturnData = { sales: SaleDoc[]; bills: PurchaseDoc[]; warnings: string[] };
+export type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; warnings: string[] };
+
+async function receipts(ids: string[]): Promise<Receipt[]> {
+  const out: Receipt[] = [];
+  for (let i = 0; i < ids.length; i += 8) out.push(...(await Promise.all(ids.slice(i, i + 8).map((id) => getReceipt(id)))));
+  return out;
+}
 
 export async function loadReturns(from: string, to: string): Promise<ReturnData> {
-  const [shop, invoiced, notes] = await Promise.all([getSettings(), invoicedOrders(from, to), creditNotesIn(from, to)]);
+  const [shop, invoiced, notes, missing] = await Promise.all([getSettings(), invoicedOrders(from, to), creditNotesIn(from, to), uninvoicedPaid(from, to)]);
   const warnings: string[] = [];
-  if (!shop.gstin || !shop.store_state) warnings.push("The shop's GSTIN or state isn't set in Settings, so GST can't be split into CGST/SGST/IGST.");
+  if (!shop.gstin || !shop.store_state) warnings.push("The shop's GSTIN or state isn't set in Settings, so GST can't be split into CGST/SGST/IGST. Set them before filing.");
+  if (missing) warnings.push(`${missing} paid order${missing === 1 ? " placed" : "s placed"} in this range ${missing === 1 ? "has" : "have"} no invoice yet (paid before invoices were automatic). Open their invoices from Orders to issue them.`);
+
+  const posOf = (state: string) => {
+    const code = stateCode(state);
+    return `${code || "--"}-${state}`;
+  };
+  const badPos = new Set<string>();
+  const valueOf = (o: Order) => {
+    const inv = invoiceOf(o, shop.store_state);
+    return r2(inv.taxable + inv.gst + inv.shipping);
+  };
 
   const sales: SaleDoc[] = [];
+  const cancelled: string[] = [];
   const noHsn = new Set<string>();
+  let tests = 0;
   for (const o of invoiced) {
+    if (o.is_test) {
+      tests++;
+      continue;
+    }
+    if (o.status === "cancelled") {
+      cancelled.push(o.invoice_number ?? "");
+      continue;
+    }
     const inv = invoiceOf(o, shop.store_state);
-    for (const l of inv.lines) if (!l.hsn && l.name !== "Shipping charges") noHsn.add(l.name);
+    for (const l of inv.lines) if (!l.hsn) noHsn.add(l.name);
+    if (!stateCode(o.address_state)) badPos.add(o.address_state);
     sales.push({
       kind: "invoice",
       number: o.invoice_number ?? "",
@@ -34,23 +62,26 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
       gstin: o.buyer_gstin ?? "",
       pos: posOf(o.address_state),
       inter: inv.split === "inter",
-      value: r2(inv.taxable + inv.gst + inv.shipping),
+      value: valueOf(o),
       lines: inv.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst })),
     });
   }
-  if (noHsn.size) warnings.push(`${noHsn.size} product${noHsn.size === 1 ? " has" : "s have"} no HSN code (set them in Products › GST & HSN).`);
+  if (tests) warnings.push(`${tests} test order${tests === 1 ? " was" : "s were"} left out.`);
+  if (cancelled.length) warnings.push(`${cancelled.length} invoice${cancelled.length === 1 ? " was" : "s were"} cancelled after issue and ${cancelled.length === 1 ? "is" : "are"} counted as cancelled in the document summary.`);
+  if (noHsn.size) warnings.push(`${noHsn.size} product${noHsn.size === 1 ? " has" : "s have"} no HSN code on its invoice (set them in Products › GST & HSN; new orders pick them up).`);
 
   // credit notes may correct invoices from an earlier period
   const noteOrders = new Map<string, Order>((await getOrders([...new Set(notes.map((n) => n.order_id))])).map((o) => [o.id, o]));
   for (const n of notes) {
     const o = noteOrders.get(n.order_id);
-    if (!o) continue;
+    if (!o || o.is_test) continue;
     const cn = creditNoteOf(n, o, shop.store_state);
+    if (!stateCode(o.address_state)) badPos.add(o.address_state);
     sales.push({
       kind: "credit",
       number: n.number,
       date: ist(n.issued_at),
-      against: { number: o.invoice_number ?? "", date: ist(o.invoice_date ?? o.created_at) },
+      against: { number: o.invoice_number ?? "", date: ist(o.invoice_date ?? o.created_at), value: valueOf(o) },
       party: o.contact_name,
       gstin: o.buyer_gstin ?? "",
       pos: posOf(o.address_state),
@@ -59,30 +90,50 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
       lines: cn.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst })),
     });
   }
+  if (badPos.size) warnings.push(`Unrecognised state on some orders (${[...badPos].join(", ")}): their place of supply shows as "--". Fix before filing.`);
 
-  // supplier bills in the range, with their 2B tick
-  const rows = (await listReceipts(from, to)).filter((r) => r.status === "posted" && r.kind === "bill");
-  const full = [];
-  for (let i = 0; i < rows.length; i += 8) full.push(...(await Promise.all(rows.slice(i, i + 8).map((b) => getReceipt(b.id)))));
-  const flags = new Map<string, boolean>();
-  if (full.length) {
-    const sb = getSupabase();
-    const { data } = sb ? await sb.from("stock_receipts").select("id, in_2b").in("id", full.map((b) => b.id)) : { data: [] };
-    for (const f of (data ?? []) as { id: string; in_2b: boolean }[]) flags.set(f.id, f.in_2b);
-  }
-  const bills: PurchaseDoc[] = full.map((b) => ({
+  const toDoc = (b: Receipt, in2b: boolean): PurchaseDoc => ({
     date: b.bill_date,
     number: b.bill_no,
     supplier: b.supplier ?? "",
     gstin: b.supplier_gstin ?? "",
-    in2b: flags.get(b.id) ?? false,
-    claimable: b.lines.some((l) => l.claimable),
-    lines: b.lines.map((l) => ({ rate: l.gst_rate, taxable: r2(l.qty * l.unit_price), cgst: l.cgst, sgst: l.sgst, igst: l.igst })),
-  }));
-  const waiting = bills.filter((b) => b.claimable && !b.in2b).length;
-  if (waiting) warnings.push(`${waiting} supplier bill${waiting === 1 ? " isn't" : "s aren't"} ticked as in GSTR-2B, so ${waiting === 1 ? "its" : "their"} ITC is left out of 3B.`);
+    in2b,
+    lines: b.lines.map((l) => ({ rate: l.gst_rate, taxable: r2(l.qty * l.unit_price), cgst: l.cgst, sgst: l.sgst, igst: l.igst, claimable: l.claimable })),
+  });
 
-  return { sales, bills, warnings };
+  // purchase register: supplier bills dated in the range
+  const rows = (await listReceipts(from, to)).filter((r) => r.status === "posted" && r.kind === "bill");
+  const sb = getSupabase();
+  const flagOf = new Map<string, boolean>();
+  if (rows.length && sb) {
+    const { data } = await sb.from("stock_receipts").select("id, in_2b").in("id", rows.map((r) => r.id));
+    for (const f of (data ?? []) as { id: string; in_2b: boolean }[]) flagOf.set(f.id, f.in_2b);
+  }
+  const bills = (await receipts(rows.map((r) => r.id))).map((b) => toDoc(b, flagOf.get(b.id) ?? false));
+  const waiting = bills.filter((b) => !b.in2b && b.lines.some((l) => l.claimable)).length;
+  if (waiting) warnings.push(`${waiting} supplier bill${waiting === 1 ? " dated in this range isn't" : "s dated in this range aren't"} ticked as in GSTR-2B yet; ${waiting === 1 ? "its" : "their"} ITC counts in the month ${waiting === 1 ? "it's" : "they're"} ticked for.`);
+
+  // ITC: bills in GSTR-2B for a month in the range, whatever their date
+  let itcBills: PurchaseDoc[] = [];
+  if (sb) {
+    const { data, error } = await sb.from("stock_receipts").select("id").eq("kind", "bill").eq("status", "posted").eq("in_2b", true).gte("in_2b_month", `${from.slice(0, 7)}-01`).lte("in_2b_month", to);
+    if (error) throw error;
+    itcBills = (await receipts(((data ?? []) as { id: string }[]).map((r) => r.id))).map((b) => toDoc(b, true));
+  }
+
+  // reversal: claimed ITC on bills unpaid 180 days after their date
+  const unpaid = (await unpaidBills(180)).filter((u) => u.in_2b);
+  const reversal: Tax3 = { igst: 0, cgst: 0, sgst: 0 };
+  for (const b of await receipts(unpaid.map((u) => u.id))) {
+    for (const l of b.lines.filter((x) => x.claimable)) {
+      reversal.igst = r2(reversal.igst + l.igst);
+      reversal.cgst = r2(reversal.cgst + l.cgst);
+      reversal.sgst = r2(reversal.sgst + l.sgst);
+    }
+  }
+  if (unpaid.length) warnings.push(`${unpaid.length} bill${unpaid.length === 1 ? " is" : "s are"} unpaid 180+ days after ${unpaid.length === 1 ? "its" : "their"} date: the ITC on ${unpaid.length === 1 ? "it" : "them"} is in 4(B)(2) to reverse. It can be reclaimed once paid.`);
+
+  return { sales, cancelled, bills, itcBills, reversal, warnings };
 }
 
 function zipOf(tables: Table[], readme: string) {
@@ -94,19 +145,19 @@ function zipOf(tables: Table[], readme: string) {
 export function returnsZip(d: ReturnData, from: string, to: string) {
   const readme = [
     `Babajee GST return working files, ${from} to ${to}.`,
-    "gstr1-*.csv: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, HSN summary, documents).",
-    "gstr3b-summary.csv: 3.1(a) outward taxable supplies, 4(A)(5) ITC from bills ticked as in GSTR-2B, and the net.",
+    "gstr1-*.csv: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, nil-rated, HSN summary, documents).",
+    "gstr3b-summary.csv: 3.1(a) outward taxable supplies, 3.1(c) nil-rated, 4(A)(5) ITC from bills in this period's GSTR-2B, 4(B)(2) ITC to reverse on bills unpaid 180+ days, and the net.",
     "Built from the invoices, credit notes and supplier bills in the admin. Check with the CA before filing.",
     ...(d.warnings.length ? ["", "Warnings:", ...d.warnings.map((w) => `- ${w}`)] : []),
   ].join("\r\n");
-  return zipOf([...gstr1(d.sales), gstr3b(d.sales, d.bills)], readme);
+  return zipOf([...gstr1(d.sales, d.cancelled), gstr3b(d.sales, d.itcBills, d.reversal)], readme);
 }
 
 export function registersZip(d: ReturnData, from: string, to: string) {
   const readme = [
-    `Babajee sales and purchase registers, ${from} to ${to}, in a layout that imports into Tally.`,
+    `Babajee sales and purchase registers, ${from} to ${to}, as spreadsheets for the accountant to bring into Tally (Tally needs an Excel import mapping or TDL for these).`,
     "sales-register.csv: one row per invoice or credit note (credit notes negative), taxable value by GST rate, CGST/SGST/IGST, total.",
-    "purchase-register.csv: one row per supplier bill, with whether its ITC is claimable and in GSTR-2B.",
+    "purchase-register.csv: one row per supplier bill, with its claimable ITC and whether it's in GSTR-2B.",
     ...(d.warnings.length ? ["", "Warnings:", ...d.warnings.map((w) => `- ${w}`)] : []),
   ].join("\r\n");
   return zipOf([salesRegister(d.sales), purchaseRegister(d.bills)], readme);

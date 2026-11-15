@@ -37,7 +37,6 @@ export type Invoice = {
   cgst: number;
   sgst: number;
   igst: number;
-  // shipping not taxed (orders before 0051); taxed shipping is a line above
   shipping: number;
   total: number;
   refunded: number;
@@ -47,7 +46,7 @@ export type Invoice = {
 export function invoiceOf(o: Order, shopState: string): Invoice {
   const incl = o.gst_inclusive ?? true;
   const split: Invoice["split"] = !shopState ? "unknown" : norm(shopState) === norm(o.address_state) ? "intra" : "inter";
-  const items: InvoiceLine[] = (o.order_items ?? []).map((i) => {
+  const lines = (o.order_items ?? []).map((i) => {
     const rate = i.gst_rate ?? o.gst_rate ?? 0;
     const gross = i.unit_price * i.quantity;
     const gst = lineGst(gross, rate, incl);
@@ -69,31 +68,6 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
       total: r2(taxable + gst),
     };
   });
-  // shipping is part of the supply, taxed at the highest rate in the order (0051)
-  const shipRate = Math.max(0, ...items.map((l) => l.rate));
-  const ship = o.shipping ?? 0;
-  const taxedShip = !!o.shipping_taxed && ship > 0;
-  const lines = items.slice();
-  if (taxedShip) {
-    const gst = lineGst(ship, shipRate, incl);
-    const taxable = incl ? r2(ship - gst) : r2(ship);
-    const half = r2(gst / 2);
-    lines.push({
-      name: "Shipping charges",
-      option: "",
-      sku: null,
-      hsn: "",
-      qty: 1,
-      rate: shipRate,
-      unit: taxable,
-      taxable,
-      gst,
-      cgst: split === "intra" ? half : 0,
-      sgst: split === "intra" ? r2(gst - half) : 0,
-      igst: split === "intra" ? 0 : gst,
-      total: r2(taxable + gst),
-    });
-  }
   const byKey = new Map<string, TaxRow>();
   for (const l of lines) {
     const k = `${l.rate}|${l.hsn}`;
@@ -111,7 +85,7 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
     cgst: r2(lines.reduce((n, l) => n + l.cgst, 0)),
     sgst: r2(lines.reduce((n, l) => n + l.sgst, 0)),
     igst: r2(lines.reduce((n, l) => n + l.igst, 0)),
-    shipping: taxedShip ? 0 : ship,
+    shipping: o.shipping ?? 0,
     total: o.total,
     refunded: (o.order_refunds ?? []).reduce((n, r) => n + Number(r.amount), 0),
     placeOfSupply: `${o.address_state}${stateCode(o.address_state) ? ` (${stateCode(o.address_state)})` : ""}`,
