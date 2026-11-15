@@ -115,3 +115,121 @@
   gap: 2px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Add stock, simple: how many + price (each/total) on one row, GST, an
+   optional supplier bill, then one summary of what happens. */
+.stk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 10px;
+  align-items: end;
+}
+.stk-price > label {
+  font-size: inherit;
+}
+.stk-pricebox {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.stk-pricebox:focus-within {
+  border-color: var(--color-rasta-gold);
+}
+.stk-form .stk-pricebox input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.stk-pricebox input:focus {
+  outline: none;
+}
+.stk-seg {
+  display: flex;
+  border-left: 1px solid var(--ap-line);
+}
+.stk-seg button {
+  min-width: 52px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ap-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.stk-seg button.is-on {
+  background: var(--ap-ink);
+  color: var(--ap-panel);
+}
+.stk-seg button:focus-visible {
+  outline: 2px solid var(--ap-good);
+  outline-offset: -2px;
+}
+.stk-gst select {
+  max-width: 140px;
+}
+.stk-bill {
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+}
+.stk-bill > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.stk-bill > summary small {
+  color: var(--ap-muted);
+  font-weight: 400;
+}
+.stk-bill-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.stk-sumcard {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ap-good) 9%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.stk-sumcard > div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 8px;
+}
+.stk-sumcard dt {
+  color: var(--ap-muted);
+  font-size: 0.85rem;
+}
+.stk-sumcard dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.stk-sumcard dd small {
+  display: block;
+  color: var(--ap-muted);
+  font-size: 0.78rem;
+}
+.stk-how {
+  display: inline;
+  margin-left: 8px;
+}
+.stk-how > summary {
+  display: inline;
+  color: var(--ap-good);
+  font-size: 0.8rem;
+  cursor: pointer;
+}

@@ -57,7 +57,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
                 <span className="stk-name">{many ? v.label : "In stock"}</span>
                 <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not counted yet"}</b>
               </div>
-              <small className="stk-avg">{a != null ? `Average buying price ${formatPrice(a, { paise: true })} before GST` : "No buying price yet"}</small>
+              <small className="stk-avg">{a != null ? `Cost ${formatPrice(a, { paise: true })} each on average, before GST` : "No buying price yet"}</small>
               <div className="stk-actions">
                 <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "add"} onClick={() => toggle(v.id, "add")}>
                   + Add stock
@@ -141,111 +141,128 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
     }
   }
 
+  // rupees, with paise only when there are some
+  const r = (x: number) => formatPrice(x, { paise: Math.round(x * 100) % 100 !== 0 });
+  const before = paisa(q * p);
+  const gst = paisa((before * rate) / 100);
+  const from = Math.max(held, 0);
+  const claimable = bill && !!(suppliers ?? []).find((s) => s.id === supplier)?.gstin;
+
   return (
     <form className="stk-form" onSubmit={submit}>
-      <div className="stk-grid">
-        <label className="ape-field">
-          <span>Quantity</span>
+      {/* 1. how many, and what they cost */}
+      <div className="stk-row">
+        <label className="ape-field stk-qty">
+          <span>How many</span>
           <input inputMode="numeric" value={qty} placeholder="0" autoFocus onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} />
         </label>
-        <label className="ape-field">
-          <span>{per === "each" ? "Buying price per piece, before GST" : `Buying price for all ${q > 0 ? q : ""} pieces, before GST`}</span>
-          <input inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => priceTyping(e.target.value) && setPrice(e.target.value)} />
-        </label>
-      </div>
-      <div className="ape-field">
-        <span id={`stk-per-${v.id}`}>The price is for</span>
-        <div className="ape-chips" role="group" aria-labelledby={`stk-per-${v.id}`}>
-          <button type="button" className={per === "each" ? "is-on" : ""} aria-pressed={per === "each"} onClick={() => setPer("each")}>
-            One piece
-          </button>
-          <button type="button" className={per === "all" ? "is-on" : ""} aria-pressed={per === "all"} onClick={() => setPer("all")}>
-            {q > 0 ? `All ${q} pieces` : "All the pieces"}
-          </button>
+        <div className="ape-field stk-price">
+          <span id={`stk-p-${v.id}`}>Price before GST</span>
+          <div className="stk-pricebox">
+            <input aria-labelledby={`stk-p-${v.id}`} inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => priceTyping(e.target.value) && setPrice(e.target.value)} />
+            <div className="stk-seg" role="group" aria-label="The price is for">
+              <button type="button" className={per === "each" ? "is-on" : ""} aria-pressed={per === "each"} onClick={() => setPer("each")}>
+                each
+              </button>
+              <button type="button" className={per === "all" ? "is-on" : ""} aria-pressed={per === "all"} onClick={() => setPer("all")}>
+                total
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      {valid && (
-        <p className="ape-hint stk-hint">
-          {per === "each"
-            ? `${q} × ${formatPrice(p, { paise: true })} = ${formatPrice(paisa(q * p), { paise: true })} for all ${q}, before GST`
-            : `${formatPrice(typed, { paise: true })} ÷ ${q} = ${formatPrice(p, { paise: true })} per piece, before GST` +
-              (paisa(q * p) !== paisa(typed) ? ` (rounded to the paisa, so ${q} come to ${formatPrice(paisa(q * p), { paise: true })})` : "")}
-        </p>
-      )}
-      <div className="ape-field">
-        <span id={`stk-gst-${v.id}`}>GST %</span>
-        <div className="ape-chips" role="group" aria-labelledby={`stk-gst-${v.id}`}>
+
+      {/* 2. GST */}
+      <label className="ape-field stk-gst">
+        <span>GST</span>
+        <select value={rate} onChange={(e) => setRate(Number(e.target.value))}>
           {BRACKETS.map((b) => (
-            <button key={b} type="button" className={rate === b ? "is-on" : ""} aria-pressed={rate === b} onClick={() => setRate(b)}>
+            <option key={b} value={b}>
               {b}%
-            </button>
-          ))}
-        </div>
-      </div>
-      <label className="ape-field">
-        <span>Supplier</span>
-        <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-          <option value="">No supplier</option>
-          {(suppliers ?? []).map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
             </option>
           ))}
-          <option value={NEW_SUPPLIER}>New supplier…</option>
         </select>
       </label>
-      {supplier === NEW_SUPPLIER && (
-        <label className="ape-field">
-          <span>New supplier name</span>
-          <input value={newName} placeholder="Supplier name" onChange={(e) => setNewName(e.target.value)} />
-        </label>
+
+      {/* 3. the supplier bill, only when there is one */}
+      <details className="stk-bill" open={supplier !== "" || billNo !== ""}>
+        <summary>From a supplier bill? {bill ? <b>{billNo.trim()}</b> : <small>add it to claim the GST</small>}</summary>
+        <div className="stk-bill-body">
+          <label className="ape-field">
+            <span>Supplier</span>
+            <select value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+              <option value="">Choose…</option>
+              {(suppliers ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+              <option value={NEW_SUPPLIER}>New supplier…</option>
+            </select>
+          </label>
+          {supplier === NEW_SUPPLIER && (
+            <label className="ape-field">
+              <span>New supplier name</span>
+              <input value={newName} placeholder="Supplier name" onChange={(e) => setNewName(e.target.value)} />
+            </label>
+          )}
+          <div className="stk-grid">
+            <label className="ape-field">
+              <span>Bill no.</span>
+              <input value={billNo} placeholder="e.g. 4471" onChange={(e) => setBillNo(e.target.value)} />
+            </label>
+            <label className="ape-field">
+              <span>Bill date</span>
+              <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+            </label>
+          </div>
+          {bill && !claimable && <p className="ape-hint stk-hint">This supplier has no GSTIN, so the GST can&apos;t be claimed.</p>}
+        </div>
+      </details>
+
+      {/* 4. what happens, in three lines */}
+      {valid && preview != null && (
+        <dl className="stk-sumcard" aria-live="polite">
+          <div>
+            <dt>You pay</dt>
+            <dd>
+              <b>{r(paisa(before + gst))}</b>
+              <small>
+                {per === "all" ? `${r(p)} each` : `${q} × ${r(p)}`} = {r(before)}, + {r(gst)} GST
+                {per === "all" && paisa(q * p) !== paisa(typed) ? " (rounded to the paisa)" : ""}
+              </small>
+              {gst > 0 && <small>{claimable ? "GST can be claimed" : "GST can't be claimed"}</small>}
+            </dd>
+          </div>
+          <div>
+            <dt>Stock</dt>
+            <dd>
+              {v.track_stock ? held : "not counted"} → <b>{from + q}</b>
+            </dd>
+          </div>
+          <div>
+            <dt>Cost each</dt>
+            <dd>
+              {average != null && from > 0 ? `${r(average)} → ` : ""}
+              <b>{r(preview)}</b>
+              {from > 0 && average != null ? (
+                <details className="stk-how">
+                  <summary>How?</summary>
+                  <small>
+                    ({from} × {r(average)} + {q} × {r(p)}) ÷ {from + q}
+                  </small>
+                </details>
+              ) : (
+                <small>{from > 0 ? "no earlier price, so it's this price" : "nothing in stock before, so it's this price"}</small>
+              )}
+            </dd>
+          </div>
+        </dl>
       )}
-      <div className="stk-grid">
-        <label className="ape-field">
-          <span>Bill no.</span>
-          <input value={billNo} placeholder="e.g. 4471" onChange={(e) => setBillNo(e.target.value)} />
-        </label>
-        <label className="ape-field">
-          <span>Date</span>
-          <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
-        </label>
-      </div>
-      {!bill ? (
-        <p className="ape-hint stk-hint">Without a supplier bill, the GST on this stock can&apos;t be claimed.</p>
-      ) : (
-        !(suppliers ?? []).find((s) => s.id === supplier)?.gstin && <p className="ape-hint stk-hint">This supplier has no GSTIN, so the GST on this stock can&apos;t be claimed.</p>
-      )}
-      {preview != null && (
-        <p className="stk-preview" aria-live="polite">
-          Average buying price after this: {formatPrice(preview, { paise: true })}
-          {average != null && <small> (now {formatPrice(average, { paise: true })})</small>}
-        </p>
-      )}
-      {preview != null && Math.max(held, 0) > 0 && average != null && (
-        <ol className="ape-hint stk-hint stk-sum" aria-label="How the average is worked out">
-          <li>
-            {held} already in stock × {formatPrice(average, { paise: true })} = {formatPrice(held * average, { paise: true })}
-          </li>
-          <li>
-            {q} new × {formatPrice(p, { paise: true })} = {formatPrice(q * p, { paise: true })}
-          </li>
-          <li>
-            {formatPrice(held * average + q * p, { paise: true })} ÷ {held + q} pieces = <b>{formatPrice(preview, { paise: true })}</b>
-          </li>
-        </ol>
-      )}
-      {preview != null && !(Math.max(held, 0) > 0 && average != null) && (
-        <p className="ape-hint stk-hint">
-          {!v.track_stock
-              ? `This option isn't counted yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
-              : average == null
-                ? `No buying price recorded yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
-                : `Nothing in stock right now, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`}
-        </p>
-      )}
+
       <div className="stk-submit">
         <button className="stk-go" disabled={!valid || busy}>
-          {busy ? "Adding" : "Add stock"}
+          {busy ? "Adding" : q > 0 ? `Add ${q} to stock` : "Add stock"}
         </button>
       </div>
     </form>
