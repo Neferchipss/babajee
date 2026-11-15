@@ -14,12 +14,14 @@ const bill = (o: Partial<Receipt>): Receipt => ({
 test("one row per line, voided bill excluded", () => {
   const rows = purchaseRows([
     bill({ lines: [line({}), line({ product: 'Paper "king"', option: "Large", qty: 1, unit_price: 10, claimable: false })] }),
+    bill({ id: "r3", kind: "opening", supplier: null, supplier_gstin: null, bill_no: "", lines: [line({ gst: 0, cgst: 0, sgst: 0, igst: 0, gst_rate: 0, claimable: false })] }),
     bill({ id: "r2", status: "void", bill_no: "B-2", lines: [line({})] }),
   ]);
-  assert.equal(rows.length, 2);
-  assert.deepEqual(rows[0], ["2026-11-03", "Acme, Ltd", "33ABCDE1234F1Z5", "B-1", "Grinder", "", 2, 100.5, 201, 18, 18.09, 18.09, 0, "true"]);
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows[0], ["2026-11-03", "Acme, Ltd", "33ABCDE1234F1Z5", "B-1", "Grinder", "", 2, 100.5, 201, 18, 18.09, 18.09, 0, "true", "bill"]);
   assert.equal(rows[1][8], 10);
   assert.equal(rows[1][13], "false");
+  assert.deepEqual([rows[2][1], rows[2][2], rows[2][3], rows[2][13], rows[2][14]], ["", "", "", "false", "opening"]);
 });
 
 test("csv quotes and has a header", () => {

@@ -264,7 +264,7 @@ export default function ReportsPage() {
     setBuying(true);
     setBuyErr("");
     try {
-      const bills = (await listReceipts(range.from, range.to)).filter((r) => r.status === "posted" && r.kind === "bill");
+      const bills = (await listReceipts(range.from, range.to)).filter((r) => r.status === "posted");
       const full = [];
       for (let i = 0; i < bills.length; i += 8) full.push(...(await Promise.all(bills.slice(i, i + 8).map((b) => getReceipt(b.id)))));
       const blob = new Blob([purchasesCsv(full)], { type: "text/csv;charset=utf-8" });
@@ -383,7 +383,7 @@ export default function ReportsPage() {
           <div>
             <h2>Purchases</h2>
             <p className="adm-muted adm-small">
-              One row per line on each posted supplier bill dated in the range: supplier and GSTIN, bill number, product, quantity, price, taxable value, GST rate and the CGST, SGST and IGST, and whether the credit is claimable. Voided bills are left out. Dates are YYYY-MM-DD and numbers are plain, for joining in a spreadsheet.
+              One row per line on each posted stock entry dated in the range (supplier bills, opening stock and quick adds, told apart by the last column): supplier and GSTIN, bill number, product, quantity, price, taxable value, GST rate and the CGST, SGST and IGST, and whether the credit is claimable. Voided entries are left out. Dates are YYYY-MM-DD and numbers are plain, for joining in a spreadsheet.
             </p>
           </div>
           <button type="button" className="adm-btn" disabled={buying} onClick={downloadPurchases}>
