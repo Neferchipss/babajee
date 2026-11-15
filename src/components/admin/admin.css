@@ -11,8 +11,8 @@
   --adm-gold: var(--color-rasta-gold);
   --adm-good: var(--color-green-soft);
   --adm-bad: var(--color-red-soft);
-  --adm-chart: var(--color-green-soft);
-  /* bars, meters and the customer map in the brass gold (the client's call); the charts stay green */
+  --adm-chart: var(--adm-gold);
+  /* charts, bars, meters and the customer map in the brass gold (the client's call) */
   --adm-meter: var(--adm-gold);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
