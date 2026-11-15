@@ -53,6 +53,7 @@ const SECTIONS: Section[] = [
       { label: "Reorder needed", href: "/admin/products?need=low", count: "low_stock", warn: true },
       { label: "Out of stock", href: "/admin/products?need=out", count: "out_of_stock", warn: true },
       { label: "Purchases", href: "/admin/products/stock-in" },
+      { label: "GST & HSN", href: "/admin/products/tax" },
       { label: "Collections", href: "/admin/products/collections" },
       { label: "Reviews", href: "/admin/products/reviews" },
     ],

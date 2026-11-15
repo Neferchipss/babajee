@@ -1,0 +1,103 @@
+/* GST & HSN page: per-category bulk set, then per-product rows. Phone first. */
+.tax-status {
+  margin: 0 0 14px;
+  color: var(--adm-muted);
+}
+.tax-status b {
+  color: var(--adm-ink, inherit);
+}
+.tax-cats,
+.tax-prods {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.tax-cats h2,
+.tax-prods h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.tax-catlist {
+  display: grid;
+  gap: 10px;
+}
+.tax-cat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 104px auto;
+  gap: 8px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--adm-line);
+}
+.tax-cat:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.tax-catname,
+.tax-name {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tax-catname small,
+.tax-name small {
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+}
+.tax-catbtns {
+  display: flex;
+  gap: 6px;
+}
+.tax-hsn,
+.tax-rate {
+  min-height: 44px;
+  font-variant-numeric: tabular-nums;
+}
+.tax-err {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.tax-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tax-head .adm-input {
+  flex: 1 1 180px;
+}
+.tax-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.tax-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 130px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--adm-line);
+}
+.tax-row:first-child {
+  border-top: 0;
+}
+@media (max-width: 640px) {
+  .tax-cat {
+    grid-template-columns: minmax(0, 1fr) 1fr;
+  }
+  .tax-catname,
+  .tax-catbtns {
+    grid-column: 1 / -1;
+  }
+  .tax-catbtns .adm-btn {
+    flex: 1;
+  }
+  .tax-row {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+  .tax-row .tax-rate {
+    grid-column: 1 / -1;
+  }
+}
