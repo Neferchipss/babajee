@@ -172,7 +172,7 @@ export async function listMyOrders(profileId: string): Promise<Order[]> {
   return (data ?? []).map(toOrder);
 }
 
-// several orders in full, for printing invoices and packing slips; oldest first
+// several orders in full, for printing invoices; oldest first
 export async function getOrders(ids: string[]): Promise<Order[]> {
   if (!ids.length) return [];
   const { data, error } = await db().from("orders").select(FULL).in("id", ids).order("created_at");
@@ -731,7 +731,7 @@ export type StoreSettings = {
   return_days: number;
   // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
   low_stock_at: number;
-  // printed on invoices and packing slips (0029)
+  // printed on invoices (0029)
   store_name: string;
   legal_name: string;
   gstin: string;

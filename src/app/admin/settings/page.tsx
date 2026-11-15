@@ -144,7 +144,7 @@ export default function SettingsPage() {
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
           <h2 id="set-store" style={{ margin: 0, scrollMarginTop: 140 }}>Business details (for invoices)</h2>
           <p className="adm-muted adm-small" style={{ margin: "-8px 0 0" }}>
-            Printed on every invoice and packing slip.
+            Printed on every invoice.
           </p>
           <label className="adm-label">
             Shop name

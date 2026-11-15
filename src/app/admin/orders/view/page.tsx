@@ -268,11 +268,6 @@ function OrderView() {
                 {o.invoice_number ? `Invoice ${o.invoice_number}` : "Invoice"}
               </Link>
             )}
-            {o.status !== "cancelled" && (
-              <Link href={`/admin/orders/print?ids=${o.id}&doc=slip`} className="adm-btn" target="_blank">
-                Packing slip
-              </Link>
-            )}
             {o.status === "shipped" && !o.delivery_failed_at && (
               <button type="button" className="adm-btn" disabled={busy} onClick={() => (setFailWhy(FAIL_REASONS[0]), setFailNote(""), setFailing(true))}>
                 Delivery failed

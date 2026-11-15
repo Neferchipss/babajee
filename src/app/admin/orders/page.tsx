@@ -20,7 +20,7 @@ type Step = { label: string; to: OrderStatus | "ship" | "open"; done: string };
 const TABS: { id: string; label: string; note: string; step?: Step; match: (o: Order) => boolean }[] = [
   { id: "all", label: "All orders", note: "Every order, newest first. Tap one to see it all and act on it.", match: () => true },
   { id: "pending", label: "Payment pending", note: "Waiting for the bank transfer. Mark each one paid once the money is in.", step: { label: "Mark paid", to: "paid", done: "marked as paid" }, match: (o) => o.status === "pending" },
-  { id: "paid", label: "To pack", note: "Paid and ready to pack. Print the packing slips, pack, then mark them packed.", step: { label: "Packed", to: "packed", done: "marked as packed" }, match: (o) => o.status === "paid" },
+  { id: "paid", label: "To pack", note: "Paid and ready to pack. Pack them, then mark them packed.", step: { label: "Packed", to: "packed", done: "marked as packed" }, match: (o) => o.status === "paid" },
   { id: "packed", label: "Ready to dispatch", note: "Packed and waiting for the courier. Ship each with its courier and tracking number.", step: { label: "Ship…", to: "ship", done: "" }, match: (o) => o.status === "packed" },
   { id: "shipped", label: "On the way", note: "With the courier. Mark each delivered when it arrives.", step: { label: "Delivered", to: "delivered", done: "marked as delivered" }, match: (o) => o.status === "shipped" },
   { id: "requests", label: "Customer requests", note: "Customers asking to cancel or return. Open one to accept and refund, or decline with a reply.", step: { label: "Review", to: "open", done: "" }, match: (o) => !!openRequest(o) },
@@ -170,19 +170,10 @@ function Orders() {
         )}
         {picked.size > 0 && (
           <>
-            <Link href={`/admin/orders/print?ids=${[...picked].join(",")}&doc=slip`} className="adm-btn" target="_blank">
-              Packing slips ({picked.size})
-            </Link>
             <Link href={`/admin/orders/print?ids=${[...picked].join(",")}&doc=invoice`} className="adm-btn" target="_blank">
               Invoices ({picked.size})
             </Link>
           </>
-        )}
-        {/* To pack: the whole tab's slips at once, without ticking */}
-        {tab === "paid" && picked.size === 0 && shown.length > 0 && (
-          <Link href={`/admin/orders/print?ids=${shown.map((o) => o.id).join(",")}&doc=slip`} className="adm-btn" target="_blank">
-            Print packing slips ({shown.length})
-          </Link>
         )}
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
