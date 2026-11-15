@@ -687,7 +687,9 @@ export type StockMove = {
   variant_id: string;
   delta: number;
   qty_after: number;
-  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "undo" | "manual";
+  reason: "sale" | "cancel" | "refund" | "return" | "edit" | "undo" | "manual" | "stock_in" | "void" | "correction";
+  receipt_id: string | null;
+  note: string;
   order_id: string | null;
   created_at: string;
   product_name: string;
@@ -698,7 +700,7 @@ export type StockMove = {
 export async function stockHistory(variantIds?: string[]): Promise<StockMove[]> {
   let q = db()
     .from("stock_movements")
-    .select("id, variant_id, delta, qty_after, reason, order_id, created_at, product_variants(label, products(name)), orders(order_number)")
+    .select("id, variant_id, delta, qty_after, reason, order_id, receipt_id, note, created_at, product_variants(label, products(name)), orders(order_number)")
     .order("created_at", { ascending: false })
     .limit(200);
   if (variantIds) q = q.in("variant_id", variantIds);
