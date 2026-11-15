@@ -12,8 +12,8 @@
   --adm-good: var(--color-green-soft);
   --adm-bad: var(--color-red-soft);
   --adm-chart: var(--color-green-soft);
-  /* bars, meters and the customer map (the client's call: blue; the charts stay green) */
-  --adm-meter: #5b9cff;
+  /* bars, meters and the customer map in the brass gold (the client's call); the charts stay green */
+  --adm-meter: var(--adm-gold);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
@@ -2669,7 +2669,7 @@ th[aria-sort="ascending"] .adm-sort .down {
 }
 .geo-core {
   pointer-events: auto !important;
-  background: radial-gradient(circle at 40% 35%, #f4f8ff 0%, color-mix(in srgb, var(--adm-meter) 85%, #fff) 45%, var(--adm-meter) 100%);
+  background: radial-gradient(circle at 40% 35%, #fff8ec 0%, color-mix(in srgb, var(--adm-meter) 85%, #fff) 45%, var(--adm-meter) 100%);
   box-shadow: 0 0 8px 1px color-mix(in srgb, var(--adm-meter) 80%, transparent);
   cursor: pointer;
   transition: transform 0.15s;
@@ -2814,7 +2814,7 @@ th[aria-sort="ascending"] .adm-sort .down {
 }
 .geo-key-lights i {
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #f4f8ff 0%, var(--adm-meter) 70%);
+  background: radial-gradient(circle at 40% 35%, #fff8ec 0%, var(--adm-meter) 70%);
   box-shadow: 0 0 10px 3px color-mix(in srgb, var(--adm-meter) 55%, transparent);
 }
 .geo-tip b {
