@@ -16,6 +16,7 @@ export type Mapping = {
 };
 
 export type MatchRow = {
+  /** 0-based index into the input rows (the UI adds 1 for display). */
   row: number;
   status: "matched" | "unsure" | "missing" | "skip";
   variant_id: string | null;
@@ -29,10 +30,12 @@ export type MatchRow = {
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 export function parseNumber(s: string): number | null {
-  const cleaned = s.replace(/,/g, "").replace(/[^0-9.\-]/g, "");
-  if (cleaned === "" || cleaned === "-" || cleaned === ".") return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : null;
+  const m = /-?\d[\d,]*(?:\.\d+)?(?:[eE][+-]?\d+)?|(?<!\w)-?\.\d+/.exec(s);
+  if (!m) return null;
+  const n = Number(m[0].replace(/,/g, ""));
+  if (!Number.isFinite(n)) return null;
+  const accounting = /^\s*\(.*\)\s*$/.test(s) && n > 0;
+  return accounting ? -n : n;
 }
 
 type Field = "sku" | "gst" | "price" | "qty" | "option" | "name";
@@ -40,7 +43,7 @@ type Field = "sku" | "gst" | "price" | "qty" | "option" | "name";
 const HEADERS: [Field, RegExp][] = [
   ["sku", /sku|barcode|item ?code|product ?code|^code$/],
   ["gst", /gst|tax|vat/],
-  ["price", /rate|price|cost|mrp|buying/],
+  ["price", /rate|price|cost|buying|purchase/],
   ["qty", /qty|quantity|qnty|pcs|pieces|units?$|^nos?$/],
   ["option", /variant|option|size|flavou?r|colou?r|^type$/],
   ["name", /item|product|description|name|particulars|title/],
@@ -81,9 +84,12 @@ export function matchRows(rows: string[][], m: Mapping, catalogue: Candidate[]):
     if (k) skuCount.set(k, (skuCount.get(k) ?? 0) + 1);
   }
   const bySku = new Map<string, Candidate>();
+  const dupSku = new Map<string, Candidate[]>();
   for (const c of catalogue) {
     const k = c.sku ? norm(c.sku) : "";
-    if (k && skuCount.get(k) === 1) bySku.set(k, c);
+    if (!k) continue;
+    if (skuCount.get(k) === 1) bySku.set(k, c);
+    else dupSku.set(k, [...(dupSku.get(k) ?? []), c]);
   }
 
   const out: MatchRow[] = [];
@@ -125,6 +131,17 @@ export function matchRows(rows: string[][], m: Mapping, catalogue: Candidate[]):
       : [];
     if (exact.length === 1) {
       out.push({ ...base, status: "matched", variant_id: exact[0].variant_id, options: [] });
+      continue;
+    }
+
+    const collided = sku ? (dupSku.get(norm(sku)) ?? []) : [];
+    if (collided.length) {
+      out.push({
+        ...base,
+        status: "unsure",
+        variant_id: null,
+        options: collided.slice(0, 5).map((c) => c.variant_id),
+      });
       continue;
     }
 

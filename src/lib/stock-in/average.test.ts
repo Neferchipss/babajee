@@ -18,3 +18,7 @@ test("rounds to the paisa", () => {
   assert.equal(nextAverage(1, 10, 2, 10.01), 10.01);
   assert.equal(nextAverage(2, 10, 1, 10.01), 10);
 });
+test("ties round half away from zero like Postgres numeric", () => {
+  assert.equal(nextAverage(1, 10, 1, 10.01), 10.01);
+  assert.equal(nextAverage(1, 0.1, 1, 0.12), 0.11);
+});

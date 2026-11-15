@@ -10,9 +10,11 @@ export function nextAverage(
   price: number,
 ): number {
   if (qty === 0) return avg ?? price;
+  // Postgres numeric rounds half away from zero; the epsilon absorbs float noise on exact ties.
+  const paisa = (x: number) => (Math.sign(x) * Math.round(Math.abs(x) * 100 + 1e-7)) / 100;
   const held = Math.max(stock, 0);
   const base = avg ?? price;
   const total = held + qty;
-  if (total === 0) return Math.round(price * 100) / 100;
-  return Math.round(((held * base + qty * price) / total) * 100) / 100;
+  if (total === 0) return paisa(price);
+  return paisa((held * base + qty * price) / total);
 }

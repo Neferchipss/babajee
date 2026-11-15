@@ -76,5 +76,25 @@ test("blank qty is skipped", () => {
 
 test("duplicate catalogue SKU never matches by SKU", () => {
   const [r] = matchRows([head, ["", "", "dup", "2", "", ""]], m, catalogue);
-  assert.notEqual(r.status, "matched");
+  assert.equal(r.status, "unsure");
+  assert.equal(r.variant_id, null);
+  assert.deepEqual(r.options, ["v3", "v4"]);
+});
+
+test("parseNumber handles currency prefixes, suffixes, accounting, grouping, scientific", () => {
+  assert.equal(parseNumber("Rs. 99"), 99);
+  assert.equal(parseNumber("Rs.1,250.00/-"), 1250);
+  assert.equal(parseNumber("₹99/-"), 99);
+  assert.equal(parseNumber("(5)"), -5);
+  assert.equal(parseNumber("-5"), -5);
+  assert.equal(parseNumber("1,25,000"), 125000);
+  assert.equal(parseNumber("1E-05"), 0.00001);
+  assert.equal(parseNumber(".5"), 0.5);
+  assert.equal(parseNumber("n/a"), null);
+});
+
+test("guessMapping never reads MRP as the buying price", () => {
+  const g = guessMapping([["Item", "MRP", "Rate", "Qty"]]);
+  assert.equal(g?.price, 2);
+  assert.equal(g?.qty, 3);
 });
