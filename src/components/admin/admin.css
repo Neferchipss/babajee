@@ -2595,156 +2595,63 @@ th[aria-sort="ascending"] .adm-sort .down {
 .geo-mapbox {
   position: relative;
   display: grid;
-  height: 480px;
+  height: 560px;
 }
-.geo-map {
-  position: relative;
-  height: 100%;
+/* India, state by state: gold by the measure, dark where there's nothing */
+.geo-mapbox {
+  padding: 8px 8px 52px;
+  border: 1px solid var(--adm-line);
   border-radius: 14px;
-  overflow: hidden;
-  background: #1b1b1b;
-  border: 1px solid var(--adm-line);
-}
-/* Leaflet's own light-grey background showed through the hairline gaps
-   between tiles at in-between zooms; match it to the tiles instead */
-.geo-map.leaflet-container {
-  background: #262626;
-}
-/* dim the base with a layer above the tiles (a CSS filter on the tiles shows their seams) */
-.geo-map::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 250;
-  pointer-events: none;
-  background: rgb(8 8 8 / 0.38);
-}
-.geo-map::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 700;
-  pointer-events: none;
-  box-shadow: inset 0 0 70px 14px rgb(0 0 0 / 0.6);
-  border-radius: inherit;
-}
-/* a city: a soft glow that adds up where cities crowd, and a bright core */
-.geo-map .leaflet-marker-icon.geo-light {
-  display: grid;
-  place-items: center;
-  /* only the core takes the pointer, so a big glow never hides a small town */
-  pointer-events: none !important;
-}
-.geo-light > i {
-  grid-area: 1 / 1;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.geo-glow {
-  /* white-hot in the middle, falling off smoothly into the green */
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--adm-meter) 55%, #fff) 0%,
-    color-mix(in srgb, var(--adm-meter) 78%, transparent) 12%,
-    color-mix(in srgb, var(--adm-meter) 42%, transparent) 28%,
-    color-mix(in srgb, var(--adm-meter) 18%, transparent) 46%,
-    color-mix(in srgb, var(--adm-meter) 6%, transparent) 60%,
-    transparent 71%
-  );
-  mix-blend-mode: screen;
-  transition: transform 0.25s, filter 0.25s;
-}
-.geo-light > i {
-  animation: geo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms) both;
-}
-@keyframes geo-in {
-  from {
-    transform: scale(0.2);
-    opacity: 0;
-  }
-}
-.geo-light:hover .geo-glow {
-  transform: scale(1.12);
-  filter: brightness(1.35);
-}
-.geo-core {
-  pointer-events: auto !important;
-  background: radial-gradient(circle at 40% 35%, #fff8ec 0%, color-mix(in srgb, var(--adm-meter) 85%, #fff) 45%, var(--adm-meter) 100%);
-  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--adm-meter) 80%, transparent);
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-.geo-light:hover .geo-core {
-  transform: scale(1.3);
-  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.55), 0 0 0 4.5px color-mix(in srgb, var(--adm-meter) 70%, #fff), 0 0 14px 3px var(--adm-meter);
-}
-/* the biggest place breathes */
-.geo-light.is-top::after {
-  content: "";
-  grid-area: 1 / 1;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1.5px solid var(--adm-meter);
-  animation: geo-pulse 2.6s ease-out infinite;
-  pointer-events: none;
-}
-@keyframes geo-pulse {
-  from {
-    transform: scale(0.6);
-    opacity: 0.9;
-  }
-  to {
-    transform: scale(4.5);
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .geo-light.is-top::after {
-    animation: none;
-    display: none;
-  }
-}
-.geo-map .geo-tip {
-  display: grid;
-  gap: 1px;
-  padding: 8px 12px;
   background: var(--adm-panel);
-  color: var(--adm-ink);
+}
+.geo-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.geo-state {
+  fill: var(--adm-meter);
+  stroke: var(--adm-panel);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill-opacity 0.2s, stroke 0.15s;
+}
+.geo-state.is-empty {
+  fill: color-mix(in srgb, var(--adm-ink) 7%, transparent);
+}
+.geo-state.is-hover {
+  stroke: var(--adm-ink);
+  stroke-width: 2.4;
+}
+.geo-svg path:hover {
+  stroke: var(--adm-ink);
+}
+.geo-readout {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  gap: 2px;
+  max-width: 230px;
+  padding: 10px 12px;
   border: 1px solid var(--adm-line);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
-  font: inherit;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--adm-panel) 88%, transparent);
   font-size: 0.8rem;
   line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
-.geo-map .geo-tip::before {
-  display: none;
+.geo-readout b {
+  font-size: 0.95rem;
 }
-.geo-map .leaflet-control-zoom {
-  margin: 0 10px 22px 0;
-  border: 1px solid var(--adm-line);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: none;
-}
-.geo-map.leaflet-container .leaflet-control-zoom a {
-  width: 30px;
-  height: 30px;
-  line-height: 28px;
-  background: rgb(20 20 20 / 0.85);
-  color: var(--adm-ink);
-  border-bottom-color: var(--adm-line);
-  font-weight: 400;
-}
-.geo-map .leaflet-control-zoom a:hover {
-  background: var(--adm-panel);
-}
-.geo-map.leaflet-container .leaflet-control-attribution {
-  background: transparent;
-  color: rgb(255 255 255 / 0.35);
-  font-size: 0.58rem;
-  padding: 0 6px;
+.geo-credit {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  color: var(--adm-muted);
+  font-size: 0.6rem;
 }
 .geo-side {
   display: grid;
@@ -2780,42 +2687,39 @@ th[aria-sort="ascending"] .adm-sort .down {
     grid-template-columns: 1fr;
   }
   .geo-mapbox {
-    height: 380px;
+    height: 460px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .geo-light > i {
-    animation: none;
-  }
-}
-/* the key, bottom-left over the map */
+/* the key, bottom-left: the five steps of gold */
 .geo-key {
   position: absolute;
-  left: 12px;
+  left: 14px;
   bottom: 12px;
-  z-index: 800;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: rgb(12 12 12 / 0.72);
-  border: 1px solid rgb(255 255 255 / 0.08);
-  backdrop-filter: blur(4px);
-  color: var(--adm-ink);
+  display: grid;
+  gap: 4px;
+  color: var(--adm-muted);
   font-size: 0.7rem;
-  line-height: 1.35;
   pointer-events: none;
 }
-.geo-key-lights {
+.geo-key-steps {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
-.geo-key-lights i {
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #fff8ec 0%, var(--adm-meter) 70%);
-  box-shadow: 0 0 10px 3px color-mix(in srgb, var(--adm-meter) 55%, transparent);
+.geo-key-steps i {
+  width: 30px;
+  height: 10px;
+  background: var(--adm-meter);
+}
+.geo-key-steps i:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.geo-key-steps i:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.geo-key-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 .geo-tip b {
   font-size: 0.92rem;
