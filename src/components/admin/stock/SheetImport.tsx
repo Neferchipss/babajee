@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { readSheet } from "@/lib/stock-in/sheet";
 import { guessMapping, matchRows, type Candidate, type Mapping, type MatchRow } from "@/lib/stock-in/match";
+import { paisa } from "@/lib/stock-in/price";
 import { lineName, type Line } from "./LineEditor";
 import "./stockin.css";
 
@@ -97,7 +98,8 @@ export default function SheetImport({
       if (e.status !== "matched" || !e.variant_id) continue;
       const qty = Math.round(m.qty);
       if (qty < 1) continue;
-      const price = m.price !== null && m.price >= 0 ? m.price : NaN;
+      // to the paisa, as the database keeps it
+      const price = m.price !== null && m.price >= 0 ? paisa(m.price) : NaN;
       const gst = m.gst !== null && m.gst >= 0 && m.gst <= 100 ? m.gst : (gstOf?.(e.variant_id) ?? 18);
       const prev = merged.get(e.variant_id);
       rowsOf.set(e.variant_id, [...(rowsOf.get(e.variant_id) ?? []), m.row + 1]);
@@ -319,7 +321,7 @@ function ReviewRow({
   const hits = words.length ? catalogue.filter((c) => words.every((w) => `${c.product} ${c.option} ${c.sku ?? ""}`.toLowerCase().includes(w))).slice(0, 6) : [];
   const target = chosen && chosen !== "leave" ? chosen : m.variant_id;
   const needsPick = (m.status === "unsure" || m.status === "missing") && !chosen;
-  const price = m.price !== null && m.price >= 0 ? `₹${m.price}` : "no price";
+  const price = m.price !== null && m.price >= 0 ? `₹${paisa(m.price)}` : "no price";
 
   return (
     <li className="sti-item sti-review">

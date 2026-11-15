@@ -4,16 +4,14 @@ import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/currency";
 import { GST_BRACKETS } from "@/lib/gst";
 import type { Candidate } from "@/lib/stock-in/match";
+import { paisa, priceOf, priceTyping } from "@/lib/stock-in/price";
 import "./stockin.css";
 
 // unit_price is NaN until a price has been typed: "not entered" is not the same as 0
 export type Line = { variant_id: string; qty: number; unit_price: number; gst_rate: number };
 export const priceEntered = (l: Line) => Number.isFinite(l.unit_price) && l.unit_price >= 0;
-const PRICE_RE = /^\d*(\.\d{0,2})?$/;
-const priceOf = (text: string) => (text === "" || text === "." ? NaN : Number(text));
 
 const BRACKETS: readonly number[] = GST_BRACKETS;
-const paisa = (x: number) => Math.round(x * 100 + 1e-7) / 100;
 
 // What a set of lines comes to: the price before GST, the GST, and the total.
 export function lineTotals(lines: Line[]) {
@@ -38,11 +36,14 @@ export default function LineEditor({
   lines,
   onChange,
   gstOf,
+  noteOf,
 }: {
   catalogue: Candidate[];
   lines: Line[];
   onChange: (l: Line[]) => void;
   gstOf: (variant_id: string) => number;
+  // a warning to show on a line, if any
+  noteOf?: (variant_id: string) => string | null;
 }) {
   const [q, setQ] = useState("");
   const byId = useMemo(() => new Map(catalogue.map((c) => [c.variant_id, c])), [catalogue]);
@@ -106,7 +107,7 @@ export default function LineEditor({
       ) : (
         <ul className="sti-rows">
           {lines.map((l, i) => (
-            <Row key={l.variant_id} line={l} name={lineName(byId.get(l.variant_id))} onPatch={(p) => patch(i, p)} onRemove={() => onChange(lines.filter((_, k) => k !== i))} />
+            <Row key={l.variant_id} line={l} name={lineName(byId.get(l.variant_id))} note={noteOf?.(l.variant_id) ?? null} onPatch={(p) => patch(i, p)} onRemove={() => onChange(lines.filter((_, k) => k !== i))} />
           ))}
         </ul>
       )}
@@ -133,7 +134,7 @@ export default function LineEditor({
   );
 }
 
-function Row({ line, name, onPatch, onRemove }: { line: Line; name: string; onPatch: (p: Partial<Line>) => void; onRemove: () => void }) {
+function Row({ line, name, note, onPatch, onRemove }: { line: Line; name: string; note: string | null; onPatch: (p: Partial<Line>) => void; onRemove: () => void }) {
   // the price is typed as text so "12." and "0.5" survive while typing
   const [price, setPrice] = useState(priceEntered(line) ? String(line.unit_price) : "");
   // a price set from outside (an uploaded sheet) shows in the box
@@ -146,6 +147,7 @@ function Row({ line, name, onPatch, onRemove }: { line: Line; name: string; onPa
           Remove
         </button>
       </div>
+      {note && <p className="adm-small sti-voidnote" style={{ margin: 0 }}>{note}</p>}
       <div className="sti-row-grid">
         <label className="adm-label">
           Qty
@@ -160,7 +162,7 @@ function Row({ line, name, onPatch, onRemove }: { line: Line; name: string; onPa
             placeholder="₹0"
             onChange={(e) => {
               const v = e.target.value;
-              if (!PRICE_RE.test(v)) return;
+              if (!priceTyping(v)) return;
               setPrice(v);
               onPatch({ unit_price: priceOf(v) });
             }}

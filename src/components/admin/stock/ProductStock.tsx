@@ -4,9 +4,11 @@ import { type FormEvent, useEffect, useState } from "react";
 import type { AdminProduct, AdminVariant } from "@/lib/admin-data";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
+import { dayLabel } from "@/lib/dates";
 import { GST_BRACKETS } from "@/lib/gst";
 import { nextAverage } from "@/lib/stock-in/average";
 import type { Supplier } from "@/lib/stock-in/db";
+import { priceOf, priceTyping } from "@/lib/stock-in/price";
 import "./stock.css";
 
 const BRACKETS = GST_BRACKETS;
@@ -97,8 +99,8 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
   }, []);
 
   const q = Math.round(Number(qty));
-  const p = Number(price);
-  const valid = q > 0 && price.trim() !== "" && Number.isFinite(p) && p >= 0;
+  const p = priceOf(price);
+  const valid = q > 0 && Number.isFinite(p) && p >= 0;
   const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
   const bill = hasSupplier && billNo.trim() !== "";
   const held = v.track_stock ? v.stock_qty : 0;
@@ -112,14 +114,22 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
       const m = await import("@/lib/stock-in/db");
       let supplierId: string | null = supplier && supplier !== NEW_SUPPLIER ? supplier : null;
       if (bill && supplier === NEW_SUPPLIER) supplierId = await m.saveSupplier({ name: newName.trim() });
-      await m.postReceipt({
+      const rid = await m.postReceipt({
         kind: bill ? "bill" : "quick",
         supplier_id: bill ? supplierId : null,
         bill_no: bill ? billNo.trim() : "",
         bill_date: date || undefined,
         lines: [{ variant_id: v.id, qty: q, unit_price: p, gst_rate: rate }],
       });
-      toast(bill ? `Added ${q} to bill ${billNo.trim()}` : `Added ${q} to stock`);
+      // one line was posted: more on the receipt means it joined a bill already posted
+      const joined = bill ? await m.getReceipt(rid).then((r) => (r.lines.length > 1 ? r : null), () => null) : null;
+      toast(
+        joined
+          ? `Added ${q} to bill ${joined.bill_no} (posted ${dayLabel(new Date(joined.created_at).toLocaleDateString("en-CA"))})`
+          : bill
+            ? `Added ${q} to bill ${billNo.trim()}`
+            : `Added ${q} to stock`,
+      );
       onDone();
     } catch (x) {
       toastError(x);
@@ -136,7 +146,7 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
         </label>
         <label className="ape-field">
           <span>Buying price before GST</span>
-          <input inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} />
+          <input inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => priceTyping(e.target.value) && setPrice(e.target.value)} />
         </label>
       </div>
       <div className="ape-field">
@@ -177,7 +187,11 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
           <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
-      {!bill && <p className="ape-hint stk-hint">Without a supplier bill, the GST on this stock can&apos;t be claimed.</p>}
+      {!bill ? (
+        <p className="ape-hint stk-hint">Without a supplier bill, the GST on this stock can&apos;t be claimed.</p>
+      ) : (
+        !(suppliers ?? []).find((s) => s.id === supplier)?.gstin && <p className="ape-hint stk-hint">This supplier has no GSTIN, so the GST on this stock can&apos;t be claimed.</p>
+      )}
       {preview != null && (
         <p className="stk-preview" aria-live="polite">
           New average {formatPrice(preview, { paise: true })}
