@@ -103,7 +103,7 @@ function CustomerView() {
             </a>
           )}
           <Link className="adm-btn pri" href={`/admin/orders/new?customer=${c.id}`}>
-            Create an order
+            New order
           </Link>
         </div>
       </header>
@@ -119,7 +119,7 @@ function CustomerView() {
           <div className="val">{c.orders}</div>
         </div>
         <div className="adm-metric">
-          <div className="lab">Average order</div>
+          <div className="lab">Average order value</div>
           <div className="val">{aov ? money(Math.round(aov)) : "–"}</div>
         </div>
         <div className="adm-metric">
@@ -231,7 +231,7 @@ function CustomerView() {
             </Link>
           </section>
           <section className="adm-card">
-            <h2>Saved for later</h2>
+            <h2>Wishlist</h2>
             {!saved.length ? (
               <p className="adm-muted adm-small">Nothing saved with the heart.</p>
             ) : (

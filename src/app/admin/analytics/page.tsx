@@ -127,12 +127,12 @@ export default function AnalyticsPage() {
                 </div>
                 <Legend columns label={label} />
               </div>
-              <LineChart columns height={282} label="Gross sales per day" labels={days.map(dayLabel)} cur={a.daily.map((d) => d.gross)} prev={b.daily.map((d) => d.gross)} fmt={shortMoney} />
+              <LineChart columns height={282} label="Gross sales (incl. GST) per day" labels={days.map(dayLabel)} cur={a.daily.map((d) => d.gross)} prev={b.daily.map((d) => d.gross)} fmt={shortMoney} />
             </section>
 
             <div className="anx-kpis">
               <Kpi label="Orders" value={count(a.orders)} now={a.orders} before={b.orders} spark={a.daily.map((d) => d.orders)} />
-              <Kpi label="Average order" value={money(Math.round(aov(a)))} now={aov(a)} before={aov(b)} spark={a.daily.map((d) => (d.orders ? d.gross / d.orders : 0))} />
+              <Kpi label="Average order value (AOV)" value={money(Math.round(aov(a)))} now={aov(a)} before={aov(b)} spark={a.daily.map((d) => (d.orders ? d.gross / d.orders : 0))} />
               {pc.costed_sales ? (
                 <Kpi
                   label="Gross profit"
@@ -166,12 +166,12 @@ export default function AnalyticsPage() {
             <section className="adm-card">
               <h2>Sales breakdown</h2>
               <div className="adm-kv anx-kv">
-                <span>Gross sales</span>
+                <span>Gross sales (incl. GST)</span>
                 <span>{money(a.gross)}</span>
                 <span>Returns</span>
                 <span>{a.returns ? `−${money(a.returns)}` : money(0)}</span>
                 <span>
-                  <strong>Net sales</strong>
+                  <strong>Net sales (excl. GST)</strong>
                 </span>
                 <span>
                   <strong>{money(net(a))}</strong>
@@ -228,9 +228,9 @@ export default function AnalyticsPage() {
               />
             </section>
             <section className="adm-card">
-              <h2>Profit and GST</h2>
+              <h2>Profit &amp; GST summary</h2>
               <div className="adm-kv anx-kv">
-                <span>Sales with GST</span>
+                <span>Gross sales (incl. GST)</span>
                 <span>{money(Math.round(pc.costed_sales))}</span>
                 <span>Cost price with GST</span>
                 <span>{pc.cost ? `−${money(Math.round(pc.cost))}` : money(0)}</span>
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
                 </span>
                 <span>Margin</span>
                 <span>{pc.costed_sales ? pct(margin(pc)) : "–"}</span>
-                <span>After paying the GST</span>
+                <span>Net profit (after GST)</span>
                 <span>{money(Math.round(pc.kept))}</span>
                 <span>GST collected</span>
                 <span>{money(Math.round(pc.gst_collected))}</span>
@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
                     <span>−{money(Math.round(pc.gst_paid))}</span>
                   </>
                 )}
-                <span className="tot">GST to pay</span>
+                <span className="tot">Net GST payable</span>
                 <span className="tot">{money(Math.round(Math.max(0, pc.gst_collected - (pc.input_credit ? pc.gst_paid : 0))))}</span>
               </div>
               <p className="adm-muted adm-small anx-foot">
@@ -261,12 +261,12 @@ export default function AnalyticsPage() {
                   : pc.uncosted_lines > 0
                     ? `${count(pc.uncosted_lines)} of ${count(pc.lines)} items sold have no cost price, so profit counts the other ${count(pc.lines - pc.uncosted_lines)}. `
                     : ""}
-                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;After paying the GST&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
+                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;Net profit (after GST)&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
               </p>
             </section>
           </div>
           <section className="adm-card">
-            <h2>GST paid on supplier bills</h2>
+            <h2>Input tax credit (ITC)</h2>
             {!billsNow ? (
               <p className="adm-muted adm-small">Loading.</p>
             ) : billsNow.err ? (
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
           </section>
           <section className="adm-card">
             <div className="anx-card-head">
-              <h2>Most saved for later</h2>
+              <h2>Most wishlisted</h2>
               <span className="adm-muted adm-small">All time · signed-in customers</span>
             </div>
             {saved === null ? (
@@ -332,7 +332,7 @@ export default function AnalyticsPage() {
           <SectionTitle>Visitors</SectionTitle>
           <div className="adm-pair">
             <section className="adm-card">
-              <h2>From visit to order</h2>
+              <h2>Conversion rate</h2>
               <Funnel
                 steps={[
                   { name: "Visited", value: a.sessions },

@@ -13,7 +13,9 @@ import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/l
 // totals at the foot, and the whole table downloadable as CSV for a
 // spreadsheet or the accountant.
 type Fmt = "text" | "money" | "count" | "num" | "pct" | "day" | "month";
-type Col = { key: string; label: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string; href?: (r: ReportRow) => string };
+// csv: the column's header in the download when it differs from the screen
+// label (downloads keep their original headers so saved analyses still work)
+type Col = { key: string; label: string; csv?: string; fmt: Fmt; total?: boolean; get?: (r: ReportRow) => string | number | null; empty?: string; href?: (r: ReportRow) => string };
 
 const marginOf = (profit: unknown, sales: unknown) => (profit == null || !Number(sales) ? null : (Number(profit) / Number(sales)) * 100);
 
@@ -27,10 +29,10 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "option", label: "Option", fmt: "text" },
       { key: "gst_rate", label: "GST %", fmt: "count" },
       { key: "sold", label: "Units sold", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
-      { key: "sales", label: "Sales with GST", fmt: "money", total: true },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
+      { key: "sales", label: "Gross sales (incl. GST)", csv: "Sales with GST", fmt: "money", total: true },
       { key: "sales_ex_gst", label: "Without GST", fmt: "money", total: true },
       { key: "cost", label: "Cost price", fmt: "money", total: true, empty: "No cost" },
       { key: "profit", label: "Profit", fmt: "money", total: true },
@@ -47,10 +49,10 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "phone", label: "Phone", fmt: "text" },
       { key: "orders", label: "Orders", fmt: "count", total: true },
       { key: "items", label: "Items", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
-      { key: "average", label: "Average order", fmt: "money" },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
+      { key: "average", label: "Average order value", csv: "Average order", fmt: "money" },
       { key: "first_order", label: "First order", fmt: "day" },
       { key: "last_order", label: "Last order", fmt: "day" },
     ],
@@ -72,19 +74,19 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
   {
     id: "finance",
     label: "Finance by month",
-    about: "One row per month. Collected is what customers paid: net sales, delivery and any GST added on top.",
+    about: "One row per month. Payment received is what customers paid: net sales, delivery and any GST added on top.",
     cols: [
       { key: "month", label: "Month", fmt: "month" },
       { key: "orders", label: "Orders", fmt: "count", total: true },
-      { key: "gross", label: "Gross sales", fmt: "money", total: true },
+      { key: "gross", label: "Gross sales (incl. GST)", csv: "Gross sales", fmt: "money", total: true },
       { key: "returns", label: "Returns", fmt: "money", total: true },
-      { key: "net", label: "Net sales", fmt: "money", total: true },
+      { key: "net", label: "Net sales (excl. GST)", csv: "Net sales", fmt: "money", total: true },
       { key: "delivery", label: "Delivery", fmt: "money", total: true },
       { key: "gst", label: "GST", fmt: "money", total: true },
-      { key: "collected", label: "Collected", fmt: "money", total: true },
+      { key: "collected", label: "Payment received", csv: "Collected", fmt: "money", total: true },
       { key: "cost", label: "Cost", fmt: "money", total: true },
       { key: "profit", label: "Gross profit", fmt: "money", total: true },
-      { key: "gst_to_pay", label: "GST to pay", fmt: "money", total: true },
+      { key: "gst_to_pay", label: "Net GST payable", csv: "GST to pay", fmt: "money", total: true },
     ],
   },
   {
@@ -115,7 +117,7 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "on_the_way", label: "On the way", fmt: "count", total: true },
       { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
       { key: "failed", label: "Failed", fmt: "count", total: true },
-      { key: "came_back", label: "Came back", fmt: "count", total: true },
+      { key: "came_back", label: "Returned to origin (RTO)", csv: "Came back", fmt: "count", total: true },
       { key: "avg_days", label: "Avg days", fmt: "num" },
       { key: "slowest", label: "Slowest (days)", fmt: "num" },
     ],
@@ -192,7 +194,7 @@ function csv(rows: ReportRow[], cols: Col[]) {
     if (c.fmt === "month") return String(v).slice(0, 7);
     return v;
   };
-  return "﻿" + [cols.map((c) => cell(c.label)), ...rows.map((r) => cols.map((c) => cell(raw(r, c))))].map((l) => l.join(",")).join("\r\n");
+  return "﻿" + [cols.map((c) => cell(c.csv ?? c.label)), ...rows.map((r) => cols.map((c) => cell(raw(r, c))))].map((l) => l.join(",")).join("\r\n");
 }
 
 export default function ReportsPage() {

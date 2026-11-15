@@ -55,7 +55,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
             <li key={v.id} className="stk-opt">
               <div className="stk-head">
                 <span className="stk-name">{many ? v.label : "In stock"}</span>
-                <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not counted yet"}</b>
+                <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not tracked"}</b>
               </div>
               <small className="stk-avg">{a != null ? `Purchase price ${formatPrice(a, { paise: true })} (excl. GST), average` : "No buying price yet"}</small>
               <div className="stk-actions">
@@ -63,7 +63,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
                   + Add stock
                 </button>
                 <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "correct"} onClick={() => toggle(v.id, "correct")}>
-                  Correct count
+                  Stock adjustment
                 </button>
               </div>
               {open?.id === v.id && open.mode === "add" && <AddStock key={`add-${v.id}`} variant={v} average={a ?? null} defaultRate={product.gst_rate ?? rules.rate} onDone={done} />}
@@ -301,7 +301,7 @@ function CorrectCount({ variant: v, onDone }: { variant: AdminVariant; onDone: (
     try {
       const m = await import("@/lib/stock-in/db");
       await m.correctStock(v.id, Number(count), note.trim());
-      toast(`Count corrected to ${Number(count)}`);
+      toast(`Stock adjusted to ${Number(count)}`);
       onDone();
     } catch (x) {
       toastError(x);
@@ -321,7 +321,7 @@ function CorrectCount({ variant: v, onDone }: { variant: AdminVariant; onDone: (
       </label>
       <div className="stk-submit">
         <button className="stk-go" disabled={!valid || busy}>
-          {busy ? "Saving" : "Correct count"}
+          {busy ? "Saving" : "Save adjustment"}
         </button>
       </div>
     </form>

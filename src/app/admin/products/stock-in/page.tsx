@@ -62,7 +62,7 @@ export default function StockInPage() {
         ← Products
       </Link>
       <header className="adm-pagehead">
-        <h1>Stock in</h1>
+        <h1>Purchases</h1>
         <p>Bills from your suppliers. Posting one adds its products to stock and records the GST you paid.</p>
       </header>
       {err && <p className="adm-err">{err}</p>}
@@ -87,7 +87,7 @@ export default function StockInPage() {
         />
       ) : (
         <>
-          <div className="adm-seg" role="group" aria-label="Stock in">
+          <div className="adm-seg" role="group" aria-label="Purchases">
             <button type="button" className={tab === "bills" ? "is-on" : ""} aria-pressed={tab === "bills"} onClick={() => setTab("bills")}>
               Bills
             </button>
@@ -119,10 +119,10 @@ function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; 
     <div className="sti-stack">
       <div className="sti-top">
         <button type="button" className="adm-btn pri" onClick={() => onNew("bill")}>
-          New bill
+          New purchase bill
         </button>
         <button type="button" className="adm-btn" onClick={() => onNew("opening")}>
-          Opening count
+          Opening stock
         </button>
         <button type="button" className="adm-btn" onClick={() => onNew("bill", true)}>
           Upload a sheet
@@ -143,7 +143,7 @@ function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; 
               <li key={b.id}>
                 <Link href={`/admin/products/stock-in/bill?id=${b.id}`} className={`sti-item ${b.status === "void" ? "is-void" : ""}`}>
                   <div className="sti-item-head">
-                    <b>{b.kind === "opening" ? "Opening count" : b.kind === "quick" ? "Stock added" : `Bill ${b.bill_no || "(no number)"}`}</b>
+                    <b>{b.kind === "opening" ? "Opening stock" : b.kind === "quick" ? "Stock added (no bill)" : `Bill ${b.bill_no || "(no number)"}`}</b>
                     <span className={`adm-pill ${b.status === "void" ? "off" : "done"}`}>{b.status === "void" ? "Voided" : "Posted"}</span>
                   </div>
                   <div className="sti-item-sub">
@@ -259,7 +259,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
         notes: notes.trim(),
         lines,
       });
-      toast(opening ? "Opening count posted" : `Bill ${billNo.trim()} posted`);
+      toast(opening ? "Opening stock posted" : `Bill ${billNo.trim()} posted`);
       onPosted();
     } catch (x) {
       toastError(x);
@@ -271,7 +271,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
 
   return (
     <form className="adm-card sti-form sti-stack" onSubmit={post}>
-      <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{opening ? "Opening count" : "New bill"}</h2>
+      <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{opening ? "Opening stock" : "New purchase bill"}</h2>
       {opening && <p className="adm-muted adm-small">What you already have on the shelf, with what you paid for it. No supplier or bill number needed. GST isn&apos;t claimed on opening stock.</p>}
       {err && <p className="adm-err">{err}</p>}
       {!opening && (
@@ -394,10 +394,10 @@ function TrackAll({ refresh }: { refresh: unknown }) {
   return (
     <div className="sti-card" style={{ marginBottom: 14 }}>
       <p>
-        {n} option{n === 1 ? " has" : "s have"} no count. Start tracking all stock? {n === 1 ? "It starts" : "They start"} at 0 and show as sold out until you add stock.
+        {n} option{n === 1 ? " has" : "s have"} no stock count. Start stock tracking for all items? {n === 1 ? "It starts" : "They start"} at 0 and show as sold out until you add stock.
       </p>
       {confirming ? (
-        <div className="sti-confirm" role="alertdialog" aria-label="Start tracking all stock">
+        <div className="sti-confirm" role="alertdialog" aria-label="Start stock tracking for all items">
           <p>
             {n} option{n === 1 ? "" : "s"} will start at 0 and show as sold out until you add stock. Any number typed in for {n === 1 ? "it" : "them"} before is cleared, and the history notes it. Start tracking?
           </p>
@@ -412,7 +412,7 @@ function TrackAll({ refresh }: { refresh: unknown }) {
         </div>
       ) : (
         <button type="button" className="adm-btn pri" onClick={() => setConfirming(true)}>
-          Start tracking all stock
+          Start stock tracking for all items
         </button>
       )}
     </div>

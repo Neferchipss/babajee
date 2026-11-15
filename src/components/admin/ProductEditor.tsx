@@ -470,7 +470,7 @@ export default function ProductEditor({
             </label>
             <SubcategoryField key={`sub-${product.id}`} product={product} onSave={(subcategory) => run(() => api.updateProduct(product.id, { subcategory }))} />
             <div className="ape-field ape-field--wide">
-              <span id="ape-tags-label">Tags, for finding it</span>
+              <span id="ape-tags-label">Tags (for search)</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
             </div>
           </section>
@@ -870,7 +870,7 @@ function PriceRow({
             {u.kept >= 0 ? (
               <small>{formatPrice(u.kept, { paise: true })} net, after paying the GST you collect</small>
             ) : (
-              <small className="ape-profit-warn">After paying the GST you lose {formatPrice(-u.kept, { paise: true })} on each one</small>
+              <small className="ape-profit-warn">After GST, net loss of {formatPrice(-u.kept, { paise: true })} on each one</small>
             )}
           </>
         ) : (
@@ -900,7 +900,7 @@ function HsnField({ product, onSave }: { product: AdminProduct; onSave: (hsn: st
 
 // The last stock changes for this product's options: sales, cancelled orders put
 // back, refunds restocked, and counts edited by hand.
-const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund undone", manual: "Edited", stock_in: "Stock in", void: "Bill voided", correction: "Count corrected" } as const;
+const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund reversed", manual: "Manual edit", stock_in: "Purchase", void: "Bill cancelled", correction: "Stock adjustment" } as const;
 type Move = Awaited<ReturnType<typeof import("@/lib/orders-db").stockHistory>>[number];
 function StockHistory({ variants }: { variants: AdminVariant[] }) {
   const [moves, setMoves] = useState<Move[] | null>(null);
@@ -1251,7 +1251,7 @@ function LowMark({ product, onSave }: { product: AdminProduct; onSave: (n: numbe
   const [v, setV] = useState(product.low_stock_at == null ? "" : String(product.low_stock_at));
   return (
     <label className="ape-field">
-      <span>Low stock at</span>
+      <span>Reorder level</span>
       <input
         inputMode="numeric"
         value={v}

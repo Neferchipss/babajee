@@ -172,11 +172,11 @@ export default function ProductTable({
                       ) : stockTotal(p) != null ? (
                         <span className="apt-static">{stockTotal(p)}</span>
                       ) : (
-                        <span className="apt-static apt-muted">Not counted yet</span>
+                        <span className="apt-static apt-muted">Not tracked</span>
                       )}
                     </td>
                     <td className="r c-sold">
-                      <span className={`apt-static ${sold?.get(p.id) ? "" : "apt-muted"}`} title="Units sold, all time (cancelled orders and returns left out)">
+                      <span className={`apt-static ${sold?.get(p.id) ? "" : "apt-muted"}`} title="Units sold (net of returns and cancellations), all time">
                         {sold ? (sold.get(p.id) ?? 0) : "…"}
                       </span>
                     </td>
@@ -303,7 +303,7 @@ function AddOptionRow({ product: p, onAdd }: { product: AdminProduct; onAdd: (la
 
 // Stock: the count, read-only here; it changes from the product's Stock section.
 function StockCell({ v }: { v: AdminVariant }) {
-  if (!v.track_stock) return <span className="apt-static apt-muted">Not counted yet</span>;
+  if (!v.track_stock) return <span className="apt-static apt-muted">Not tracked</span>;
   return <span className={`apt-static ${v.stock_qty <= 0 ? "apt-out" : ""}`}>{v.stock_qty}</span>;
 }
 

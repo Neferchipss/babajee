@@ -334,7 +334,7 @@ function OrderView() {
                 } else setBackConfirm(true);
               }}
             >
-              Came back to us
+              Returned to origin (RTO)
             </button>
           </div>
         </div>
@@ -380,7 +380,7 @@ function OrderView() {
             {balance > 0 ? " · the order was edited after it was paid." : " · the order was edited after it was paid."}
           </span>
           <button type="button" className="adm-btn" disabled={busy} onClick={() => act(() => settleBalance(o.id), balance > 0 ? `${money(balance)} marked as collected` : `${money(-balance)} marked as paid back`)}>
-            {balance > 0 ? "Mark as collected" : "Mark as paid back"}
+            {balance > 0 ? "Mark payment received" : "Mark refund paid"}
           </button>
         </div>
       )}
@@ -445,7 +445,7 @@ function OrderView() {
               {refunds.amount > 0 && (
                 <>
                   <span>
-                    <strong>Kept</strong>
+                    <strong>Net profit (after GST)</strong>
                   </span>
                   <span>
                     <strong>{money((paid ?? 0) - refunds.amount)}</strong>
@@ -610,7 +610,7 @@ function OrderView() {
                 Keep it
               </button>
               <button className="adm-btn bad" disabled={busy}>
-                {busy ? "Undoing" : "Undo refund"}
+                {busy ? "Reversing" : "Reverse refund"}
               </button>
             </div>
           </form>
@@ -693,7 +693,7 @@ function OrderView() {
               void act(() => cameBack(o.id, o.delivery_failed_reason ?? ""), `${o.order_number} closed: came back`);
             }}
           >
-            <h2>Came back to us?</h2>
+            <h2>Returned to origin (RTO)?</h2>
             <p className="adm-muted" style={{ margin: 0 }}>
               Nothing is left to refund on this order, so it&apos;s simply closed as came back undelivered.
             </p>
@@ -1076,7 +1076,7 @@ function OrderProfit({ order: o }: { order: Order }) {
       ) : (
         <>
           <div className="adm-kv">
-            <span>Sales with GST</span>
+            <span>Gross sales (incl. GST)</span>
             <span>{money(Math.round(sale * 100) / 100)}</span>
             <span>Cost price with GST</span>
             <span>−{money(Math.round(cost * 100) / 100)}</span>
@@ -1085,7 +1085,7 @@ function OrderProfit({ order: o }: { order: Order }) {
               {money(Math.round(profit * 100) / 100)}
               {sale > 0 && <small className="adm-muted"> · {((profit / sale) * 100).toFixed(1)}%</small>}
             </span>
-            <span>After paying the GST</span>
+            <span>Net profit (after GST)</span>
             <span>{money(Math.round(kept * 100) / 100)}</span>
           </div>
           <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>
@@ -1093,7 +1093,7 @@ function OrderProfit({ order: o }: { order: Order }) {
             {rs.length > 0 && "Refunded items are taken off; returned items that went back in stock cost nothing. "}
             {missing > 0 && `${missing} item${missing === 1 ? " has" : "s have"} no cost price and ${missing === 1 ? "is" : "are"} left out. `}
             {later > 0 && `${later === 1 ? "One item uses" : `${later} items use`} today's cost, entered after the sale. `}
-            Delivery charges are not counted.
+            Shipping charges are not counted.
           </p>
         </>
       )}

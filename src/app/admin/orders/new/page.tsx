@@ -218,7 +218,7 @@ export default function NewOrderPage() {
                 <input
                   className="adm-input no-ship"
                   inputMode="decimal"
-                  aria-label="Delivery charge"
+                  aria-label="Shipping charges"
                   value={ship ?? String(autoShip)}
                   onChange={(e) => setShip(e.target.value.replace(/[^\d.]/g, ""))}
                 />

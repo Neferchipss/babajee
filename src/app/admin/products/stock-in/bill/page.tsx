@@ -44,7 +44,7 @@ function Bill() {
     setBusy(true);
     try {
       await voidReceipt(id);
-      toast("Bill voided. Its stock has been taken back out.");
+      toast("Bill cancelled, stock reversed.");
       setAsking(false);
       await load();
     } catch (x) {
@@ -55,7 +55,7 @@ function Bill() {
 
   const back = (
     <Link href="/admin/products/stock-in" className="adm-back adm-only-narrow">
-      ← Stock in
+      ← Purchases
     </Link>
   );
   if (r === undefined && id) return <div>{back}<p className="adm-muted">Loading.</p></div>;
@@ -68,7 +68,7 @@ function Bill() {
         </header>
         {err && <p className="adm-err">{err}</p>}
         <Link href="/admin/products/stock-in" className="adm-btn">
-          Back to Stock in
+          Back to Purchases
         </Link>
       </div>
     );
@@ -89,7 +89,7 @@ function Bill() {
         : !r.supplier_gstin
           ? "The supplier has no GSTIN, so the GST on this bill can't be claimed."
           : "Some of the GST on this can't be claimed.";
-  const title = r.kind === "opening" ? "Opening count" : r.kind === "quick" ? "Stock added" : `Bill ${r.bill_no || "(no number)"}`;
+  const title = r.kind === "opening" ? "Opening stock" : r.kind === "quick" ? "Stock added (no bill)" : `Bill ${r.bill_no || "(no number)"}`;
   const items = r.lines.reduce((a, l) => a + l.qty, 0);
 
   return (
@@ -195,8 +195,8 @@ function Bill() {
 
         {!void_ &&
           (asking ? (
-            <div className="sti-confirm" role="alertdialog" aria-label="Void this bill">
-              <p className="sti-voidnote">Void this bill?</p>
+            <div className="sti-confirm" role="alertdialog" aria-label="Cancel bill">
+              <p className="sti-voidnote">Cancel this bill? Its stock will be reversed.</p>
               <p className="adm-small">The {items} item{items === 1 ? "" : "s"} on it are taken back out of stock, and its GST stops counting. The bill stays here, marked as voided.</p>
               <div className="adm-actions">
                 <button type="button" className="adm-btn bad" disabled={busy} onClick={doVoid}>
@@ -210,7 +210,7 @@ function Bill() {
           ) : (
             <div className="adm-actions">
               <button type="button" className="adm-btn bad" onClick={() => setAsking(true)}>
-                Void this bill
+                Cancel bill
               </button>
             </div>
           ))}
