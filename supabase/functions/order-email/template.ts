@@ -81,12 +81,29 @@ function hero(cfg: Cfg, kind: Kind, kicker: string, title: string) {
   )}</td></tr>`;
 }
 
-// Placed → Packed → Shipped → Delivered, lit up to where the order is
+// Confirmed → Packed → Shipped → Delivered: one line through the steps, gold up
+// to where the order is. Each step is a quarter column (dot centred, half a
+// line either side), so the labels sit right under their dots.
 const STEPS = ["Confirmed", "Packed", "Shipped", "Delivered"];
 function tracker(at: number) {
-  const bar = STEPS.map((_, i) => `<td height="4" bgcolor="${i <= at ? C.gold : C.line}" style="background:${i <= at ? C.gold : C.line};font-size:0;line-height:0;${i ? "border-left:3px solid " + C.card + ";" : ""}">&nbsp;</td>`).join("");
-  const labels = STEPS.map((s, i) => `<td align="center" width="25%" style="padding:10px 2px 0;font-size:12px;font-weight:${i === at ? 700 : 500};color:${i <= at ? C.text : C.muted}"><div style="width:22px;height:22px;line-height:22px;border-radius:11px;margin:0 auto 6px;font-size:12px;font-weight:700;background:${i <= at ? C.gold : C.surface};color:${i <= at ? "#000" : C.muted};border:1px solid ${i <= at ? C.gold : C.line}">${i < at ? "✓" : i + 1}</div>${s}</td>`).join("");
-  return T(`<tr>${bar}</tr>`, `style="border-radius:2px"`) + T(`<tr>${labels}</tr>`);
+  const half = (on: boolean, show: boolean) =>
+    `<td width="50%" valign="middle" style="font-size:0;line-height:0">${show ? `<div style="height:3px;background:${on ? C.gold : C.line};font-size:0;line-height:0">&nbsp;</div>` : "&nbsp;"}</td>`;
+  const dot = (i: number) => {
+    const done = i < at, now = i === at;
+    const style = done
+      ? `background:${C.gold};color:#000000;border:2px solid ${C.gold}`
+      : now
+        ? `background:${C.card};color:${C.gold};border:2px solid ${C.gold};box-shadow:0 0 0 4px rgba(211,171,112,0.18)`
+        : `background:${C.surface};color:${C.muted};border:2px solid ${C.line}`;
+    return `<td valign="middle" style="padding:0"><div style="width:26px;height:26px;line-height:26px;border-radius:15px;text-align:center;font-size:12px;font-weight:700;${style}">${done ? "&#10003;" : i + 1}</div></td>`;
+  };
+  const cells = STEPS.map(
+    (_, i) => `<td width="25%" align="center" valign="middle" style="padding:0">${T(`<tr>${half(i <= at, i > 0)}${dot(i)}${half(i < at, i < STEPS.length - 1)}</tr>`)}</td>`,
+  ).join("");
+  const labels = STEPS.map(
+    (s, i) => `<td width="25%" align="center" style="padding:10px 2px 0;font-size:12px;line-height:1.3;font-weight:${i === at ? 700 : 500};color:${i === at ? C.gold : i < at ? C.text : C.muted}">${s}</td>`,
+  ).join("");
+  return `<div style="border-top:1px solid ${C.line};margin:6px 0 18px;font-size:0;line-height:0">&nbsp;</div>${T(`<tr>${cells}</tr><tr>${labels}</tr>`)}`;
 }
 
 // the bill, Swiggy-style: items, dashed rule, charges, dashed rule, big total
