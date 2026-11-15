@@ -861,17 +861,20 @@ function PriceRow({
         <Money value={sell} label={`${v.label} selling price`} placeholder="0" onChange={setSell} onSave={() => s !== v.price && onSave({ price: s })} />
       </label>
 
-      <div className={`ape-profit ${u ? (u.profit < 0 ? "is-neg" : "is-pos") : ""}`}>
+      {/* the headline is what the shop keeps once the GST collected is paid over;
+          gross (with that GST still in it) is shown underneath for reference */}
+      <div className={`ape-profit ${u ? (u.kept < 0 ? "is-neg" : "is-pos") : ""}`}>
         {u ? (
           <>
             <span>
-              <b>{u.profit < 0 ? "Loss" : "Profit"} {formatPrice(Math.abs(u.profit), { paise: true })}</b> per piece · {u.margin.toFixed(0)}% margin
+              <b>
+                {u.kept < 0 ? "Net loss" : "Net profit"} {formatPrice(Math.abs(u.kept), { paise: true })}
+              </b>{" "}
+              per piece · {u.net > 0 ? ((u.kept / u.net) * 100).toFixed(1) : "0"}% margin
             </span>
-            {u.kept >= 0 ? (
-              <small>{formatPrice(u.kept, { paise: true })} net, after paying the GST you collect</small>
-            ) : (
-              <small className="ape-profit-warn">After GST, net loss of {formatPrice(-u.kept, { paise: true })} on each one</small>
-            )}
+            <small>
+              After GST{rules.credit ? ", with input tax credit claimed" : ", input tax credit not claimed (Settings)"} · gross {formatPrice(u.profit, { paise: true })} before paying the GST collected
+            </small>
           </>
         ) : (
           <small>{b == null && !s ? "Type the purchase and selling price to see the profit." : b == null ? "Type the purchase price to see the profit." : "Type the selling price to see the profit."}</small>

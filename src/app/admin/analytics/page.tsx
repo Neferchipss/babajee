@@ -135,16 +135,16 @@ export default function AnalyticsPage() {
               <Kpi label="Average order value (AOV)" value={money(Math.round(aov(a)))} now={aov(a)} before={aov(b)} spark={a.daily.map((d) => (d.orders ? d.gross / d.orders : 0))} />
               {pc.costed_sales ? (
                 <Kpi
-                  label="Gross profit"
-                  value={money(Math.round(pc.profit))}
-                  note={`${pct(margin(pc))} margin`}
-                  now={pc.profit}
-                  before={pp.profit}
+                  label="Net profit (after GST)"
+                  value={money(Math.round(pc.kept))}
+                  note={!pc.uncosted_lines && pc.net_sales ? `${pct((pc.kept / pc.net_sales) * 100)} margin on net sales` : `gross ${money(Math.round(pc.profit))}`}
+                  now={pc.kept}
+                  before={pp.kept}
                   spark={pc.daily.map((d) => d.profit)}
                 />
               ) : (
                 <a className="adm-card anx-kpi anx-kpi-empty" href="#profit">
-                  <span className="anx-lab">Gross profit</span>
+                  <span className="anx-lab">Net profit (after GST)</span>
                   <span className="anx-mid">Not yet</span>
                   <span className="adm-muted adm-small">Add cost prices to products to see profit and margin.</span>
                 </a>
@@ -232,18 +232,18 @@ export default function AnalyticsPage() {
               <div className="adm-kv anx-kv">
                 <span>Gross sales (incl. GST)</span>
                 <span>{money(Math.round(pc.costed_sales))}</span>
-                <span>Cost price with GST</span>
+                <span>Cost price (incl. GST)</span>
                 <span>{pc.cost ? `−${money(Math.round(pc.cost))}` : money(0)}</span>
-                <span>
-                  <strong>Gross profit</strong>
-                </span>
-                <span>
-                  <strong className={pc.profit < 0 ? "adm-profit-neg" : pc.profit > 0 ? "adm-profit-pos" : ""}>{money(Math.round(pc.profit))}</strong>
-                </span>
-                <span>Margin</span>
+                <span>Gross profit (before paying GST)</span>
+                <span>{money(Math.round(pc.profit))}</span>
+                <span>Gross margin</span>
                 <span>{pc.costed_sales ? pct(margin(pc)) : "–"}</span>
-                <span>Net profit (after GST)</span>
-                <span>{money(Math.round(pc.kept))}</span>
+                <span>
+                  <strong>Net profit (after GST)</strong>
+                </span>
+                <span>
+                  <strong className={pc.kept < 0 ? "adm-profit-neg" : pc.kept > 0 ? "adm-profit-pos" : ""}>{money(Math.round(pc.kept))}</strong>
+                </span>
                 <span>GST collected</span>
                 <span>{money(Math.round(pc.gst_collected))}</span>
                 {pc.input_credit && (
