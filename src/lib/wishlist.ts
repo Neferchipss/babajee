@@ -126,7 +126,8 @@ export async function linkSaved(profile: string | null) {
     const { getSupabase } = await import("./supabase");
     const sb = getSupabase();
     if (!sb) return;
-    const { data, error } = await sb.from("saved_products").select("product_slug, item, created_at").order("created_at", { ascending: false });
+    // this account's own (admins may read everyone's: never merge those in)
+    const { data, error } = await sb.from("saved_products").select("product_slug, item, created_at").eq("profile_id", profile).order("created_at", { ascending: false });
     if (error || me !== profile) return;
     const local = read();
     const have = new Set(local.map((i) => i.slug));
