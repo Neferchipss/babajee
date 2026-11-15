@@ -148,10 +148,17 @@ export async function purchaseGst(from: string, to: string): Promise<PurchaseGst
 
 // Every option, for matching bill lines to the shop's products.
 export async function stockCatalogue(): Promise<Candidate[]> {
-  const { data, error } = await db().from("product_variants").select("id, label, sku, products(name)").limit(5000);
-  if (error) throw error;
   type Row = { id: string; label: string | null; sku: string | null; products: { name: string } | { name: string }[] | null };
-  return ((data ?? []) as unknown as Row[]).map((r) => {
+  // PostgREST caps a response at max_rows (1000 by default), so read in pages
+  const rows: Row[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db().from("product_variants").select("id, label, sku, products(name)").order("id").range(from, from + 999);
+    if (error) throw error;
+    const page = (data ?? []) as unknown as Row[];
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows.map((r) => {
     const p = Array.isArray(r.products) ? r.products[0] : r.products;
     return {
       variant_id: r.id,
