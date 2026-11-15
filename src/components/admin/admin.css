@@ -3876,3 +3876,15 @@ body:has(.adm-frame) .ftr {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* GST returns and Tally registers: two downloads, then any warnings */
+.rpt-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rpt-warn {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--adm-warn, #b45309);
+}

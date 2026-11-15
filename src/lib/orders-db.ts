@@ -201,6 +201,30 @@ export async function issueCreditNotes(ids: string[]): Promise<CreditNoteRow[]> 
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), shipping: toNumber(r.shipping) }) as CreditNoteRow);
 }
 
+// IST day range [from, to] as timestamps, for invoice and credit-note dates
+const istRange = (from: string, to: string) => [new Date(`${from}T00:00:00+05:30`).toISOString(), new Date(new Date(`${to}T00:00:00+05:30`).getTime() + 86400000).toISOString()];
+
+// orders whose invoice is dated in the range, in full, oldest first (paged past
+// PostgREST's row cap)
+export async function invoicedOrders(from: string, to: string): Promise<Order[]> {
+  const [a, b] = istRange(from, to);
+  const out: Order[] = [];
+  for (let at = 0; ; at += 500) {
+    const { data, error } = await db().from("orders").select(FULL).not("invoice_number", "is", null).gte("invoice_date", a).lt("invoice_date", b).order("invoice_date").order("id").range(at, at + 499);
+    if (error) throw error;
+    out.push(...(data ?? []).map(toOrder));
+    if ((data ?? []).length < 500) return out;
+  }
+}
+
+// credit notes issued in the range (0051)
+export async function creditNotesIn(from: string, to: string): Promise<CreditNoteRow[]> {
+  const [a, b] = istRange(from, to);
+  const { data, error } = await db().from("credit_notes").select("*").gte("issued_at", a).lt("issued_at", b).order("issued_at");
+  if (error) throw error;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), shipping: toNumber(r.shipping) }) as CreditNoteRow);
+}
+
 // invoice numbers for these orders (paid ones without one get the next in the series)
 export async function issueInvoices(ids: string[]) {
   const { data, error } = await db().rpc("admin_issue_invoices", { p_orders: ids });

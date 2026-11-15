@@ -282,6 +282,30 @@ export default function ReportsPage() {
     }
   }
 
+  // GST returns and Tally registers for the range, as zips
+  const [making, setMaking] = useState<"" | "returns" | "registers">("");
+  const [retErr, setRetErr] = useState("");
+  const [retWarn, setRetWarn] = useState<string[]>([]);
+  async function downloadReturns(which: "returns" | "registers") {
+    setMaking(which);
+    setRetErr("");
+    try {
+      const m = await import("@/lib/gst-returns-load");
+      const d = await m.loadReturns(range.from, range.to);
+      setRetWarn(d.warnings);
+      const blob = which === "returns" ? m.returnsZip(d, range.from, range.to) : m.registersZip(d, range.from, range.to);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `babajee-${which === "returns" ? "gst-returns" : "tally-registers"}-${range.from}-to-${range.to}.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      setRetErr(errText(e));
+    } finally {
+      setMaking("");
+    }
+  }
+
   const by = (key: string) => setSort((s) => (s?.key === key ? (s.desc ? { key, desc: false } : null) : { key, desc: true }));
 
   return (
@@ -393,6 +417,33 @@ export default function ReportsPage() {
           </button>
         </div>
         {buyErr && <p className="adm-err">{buyErr}</p>}
+      </section>
+
+      <section className="adm-card rpt">
+        <div className="rpt-head">
+          <div>
+            <h2>GST returns and Tally registers</h2>
+            <p className="adm-muted adm-small">
+              For the range above (usually one month). <b>GST returns</b>: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, HSN summary, document summary) and a GSTR-3B summary with ITC from bills ticked as in GSTR-2B. <b>Tally registers</b>: sales and purchase registers. Built from the invoices, credit notes and supplier bills here; check with the CA before filing.
+            </p>
+          </div>
+          <div className="rpt-btns">
+            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("returns")}>
+              {making === "returns" ? "Preparing." : "GST returns (zip)"}
+            </button>
+            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("registers")}>
+              {making === "registers" ? "Preparing." : "Tally registers (zip)"}
+            </button>
+          </div>
+        </div>
+        {retErr && <p className="adm-err">{retErr}</p>}
+        {retWarn.length > 0 && (
+          <ul className="adm-small rpt-warn">
+            {retWarn.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
