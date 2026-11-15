@@ -157,21 +157,17 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
           </svg>
         </button>
       )}
-      {/* phones, first step: the brand header (art comes later: the dashed box) */}
+      {/* phones, first step: full-width art up top (a placeholder for now, with
+          the logo on it), and Skip to carry on without logging in */}
       <header className="onb-hero">
-        <button type="button" className="onb-hero-back" onClick={leave} aria-label="Back">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M11 6l-6 6 6 6" />
-          </svg>
+        <button type="button" className="onb-skip" onClick={leave}>
+          Skip
         </button>
-        <span className="onb-hero-logo">
-          <Logo priority />
-        </span>
-        <p className="onb-hero-title">Papers, grinders &amp; more!</p>
-        <p className="onb-hero-sub">Everything for the session, at your door.</p>
-        <span className="onb-hero-rule" aria-hidden="true" />
         <div className="onb-hero-art" aria-hidden="true">
-          <span>Hero art</span>
+          <span className="onb-hero-logo">
+            <Logo priority />
+          </span>
+          <span className="onb-hero-tag">Hero art</span>
         </div>
       </header>
       {/* phones, later steps: a title bar with a round back button */}
@@ -223,13 +219,17 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
       <section className="onb-card" aria-live="polite">
         {step === "email" && (
           <form onSubmit={sendCode} className="onb-form">
+            {/* phones: one line, the delivery apps' way */}
+            <p className="onb-m-title" aria-hidden="true">
+              Everything for the session, at your <em>door</em>
+            </p>
             <div className="onb-head">
               <h1>Log in or sign up</h1>
               <p>We&apos;ll email you a code. No password needed.</p>
             </div>
             <label className="onb-field">
-              <span>Email</span>
-              <input type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+              <span className="onb-email-label">Email</span>
+              <input type="email" inputMode="email" autoComplete="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
             </label>
             {err && <p className="onb-err" role="alert">{err}</p>}
             <div className="onb-actions">

@@ -52,6 +52,9 @@ export default function ProfileMenu({ cart = false }: { cart?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const closed = useCallback(() => setOpen(false), []);
+  // guests see "Login" under the icon (it still opens the same menu)
+  const { status: authStatus } = useAuth();
+  const guest = authStatus === "out";
   const path = usePathname().replace(/\/$/, "");
   // a wobble each time something lands in the cart
   const [plop, setPlop] = useState(0);
@@ -82,13 +85,18 @@ export default function ProfileMenu({ cart = false }: { cart?: boolean } = {}) {
       )}
       <button
         type="button"
-        className="sb-profile"
-        aria-label="Profile and menu"
+        className={`sb-profile${guest ? " sb-profile--guest" : ""}`}
+        aria-label={guest ? "Log in, profile and menu" : "Profile and menu"}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
         <UserIcon size={22} />
+        {guest && (
+          <span className="sb-profile-label" aria-hidden="true">
+            Login
+          </span>
+        )}
       </button>
       {open && <ProfilePanel onClosed={closed} />}
     </div>

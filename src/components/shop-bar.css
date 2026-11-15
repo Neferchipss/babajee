@@ -624,3 +624,18 @@
   margin-left: auto;
 }
 
+
+/* guests: "Login" under the profile icon (the button still opens the menu) */
+.sb-profile.sb-profile--guest {
+  width: auto;
+  height: auto;
+  min-width: 42px;
+  padding: 2px 4px;
+  gap: 1px;
+}
+.sb-profile-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}

@@ -733,3 +733,141 @@ html[data-mode="light"] .onb {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------- phones, first step (Zepto-like) */
+.onb-m-title,
+.onb-skip {
+  display: none;
+}
+@media (max-width: 820px) {
+  .onb.is-email {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    overflow: hidden;
+    background: var(--color-char, #000);
+  }
+  /* full-width art up top, rounded at the bottom */
+  .onb.is-email .onb-hero {
+    position: relative;
+    display: block;
+    flex: none;
+    height: 36svh;
+    min-height: 220px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0 0 24px 24px;
+    background: linear-gradient(170deg, color-mix(in srgb, var(--onb-gold) 85%, #fff) 0%, var(--onb-gold) 55%, color-mix(in srgb, var(--onb-gold) 80%, #000) 100%);
+  }
+  .onb-hero-art {
+    position: absolute;
+    inset: calc(env(safe-area-inset-top) + 12px) 12px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 1.5px dashed rgb(0 0 0 / 0.28);
+    border-radius: 18px;
+    opacity: 1;
+  }
+  .onb-hero-logo {
+    width: 150px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    background: #0b0b0c;
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.25);
+  }
+  .onb-hero-tag {
+    color: rgb(0 0 0 / 0.5);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .onb-skip {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 20px);
+    right: 20px;
+    z-index: 2;
+    display: block;
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: #fffaf0;
+    color: #14110b;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+    cursor: pointer;
+  }
+  /* then a plain page: one headline, the field, Continue, the terms */
+  .onb.is-email .onb-card {
+    flex: 1;
+    margin: 0;
+    padding: 30px 18px calc(20px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 0;
+    background: none;
+    align-items: flex-start;
+  }
+  .onb.is-email .onb-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+  .onb-m-title {
+    display: block;
+    margin: 0 0 6px;
+    font-size: 1.32rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+  .onb-m-title em {
+    color: var(--onb-gold-ink);
+    font-style: normal;
+  }
+  .onb.is-email .onb-head,
+  .onb.is-email .onb-email-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .onb.is-email .onb-actions {
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+  .onb.is-email .onb-terms {
+    position: static;
+    order: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.85rem;
+  }
+  .onb.is-email .onb-terms a {
+    color: var(--onb-gold-ink);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  /* the password link sits quietly under the terms */
+  .onb.is-email .onb-actions .onb-link {
+    order: 2;
+  }
+}
+@media (max-width: 820px) {
+  .onb-m-title {
+    text-wrap: balance;
+  }
+}
