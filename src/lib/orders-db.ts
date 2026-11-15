@@ -279,6 +279,49 @@ export async function setStep(id: string, to: OrderStatus, opts: { note?: string
   if (error) throw error;
 }
 
+// ---------------------------------------------------------------- manual payments (0056)
+
+// "Mark paid": how the money came in. The database records the payment and
+// moves the order to paid (invoice, confirmation email) in one go.
+export async function markPaid(id: string, p: { method: string; reference?: string; received?: string | null; note?: string }) {
+  const { error } = await db().rpc("admin_mark_paid", {
+    p_order: id,
+    p_method: p.method,
+    p_reference: p.reference ?? "",
+    p_received: p.received || null,
+    p_note: p.note ?? "",
+  });
+  if (error) throw error;
+}
+
+export type Payment = { id: string; order_id: string; method: string; reference: string; amount: number; status: string; received_on: string | null; created_at: string; note: string };
+export async function paymentsFor(orderIds: string[]): Promise<Payment[]> {
+  if (!orderIds.length) return [];
+  const { data, error } = await db()
+    .from("payments")
+    .select("id, order_id, method, reference, amount, status, received_on, created_at, note")
+    .in("order_id", orderIds)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ ...(r as Payment), amount: toNumber(r.amount), method: (r.method as string) ?? "", reference: (r.reference as string) ?? "", note: (r.note as string) ?? "" }));
+}
+
+// the contacts logged against unpaid orders, newest first, by order id
+export type OrderContact = { id: string; order_id: string; body: string; channel: SupportChannel; created_at: string; status: "open" | "resolved" | null };
+export async function contactsFor(orderIds: string[]): Promise<Map<string, OrderContact[]>> {
+  const out = new Map<string, OrderContact[]>();
+  if (!orderIds.length) return out;
+  const { data, error } = await db()
+    .from("customer_notes")
+    .select("id, order_id, body, channel, created_at, status")
+    .in("order_id", orderIds)
+    .eq("kind", "contact")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  for (const r of (data ?? []) as OrderContact[]) out.set(r.order_id, [...(out.get(r.order_id) ?? []), r]);
+  return out;
+}
+
 // Failed deliveries (0039): the courier couldn't deliver a shipped order;
 // then it's sent again, or it came back and is closed after its refund.
 export const FAIL_REASONS = ["Customer not home", "Wrong or incomplete address", "Phone unreachable", "Refused the parcel", "Other"];
@@ -784,6 +827,8 @@ export type StoreSettings = {
   return_days: number;
   // hours an unpaid order holds its stock before it cancels itself; 0 = never (0055)
   unpaid_hours: number;
+  // the ways a customer can pay, offered in "Mark paid" (0056)
+  payment_methods: string[];
   // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
   low_stock_at: number;
   // printed on invoices (0029)
@@ -807,7 +852,7 @@ export async function gstRates(slugs: string[]): Promise<Map<string, number | nu
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -818,6 +863,7 @@ export async function getSettings(): Promise<StoreSettings> {
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
     unpaid_hours: data.unpaid_hours ?? 48,
+    payment_methods: (data.payment_methods as string[] | null) ?? ["UPI", "Bank transfer", "Cash"],
     low_stock_at: data.low_stock_at ?? 3,
     store_name: data.store_name ?? "Babajee",
     legal_name: data.legal_name ?? "",

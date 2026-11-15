@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { LogContactForm, MarkPaidForm } from "@/components/admin/PaymentForms";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, SortTh, StatusPill, useSort, when } from "@/components/admin/ui";
 import { isoDay } from "@/lib/dates";
 import { download, itemsCsv, ordersCsv } from "@/lib/orders-csv";
 import { STATUSES, type OrderStatus } from "@/lib/order-status";
-import { errText, listOrders, updateOrder, type Order } from "@/lib/orders-db";
+import { useAuth } from "@/lib/auth";
+import { contactsFor, errText, getSettings, listOrders, updateOrder, type Order, type OrderContact } from "@/lib/orders-db";
 
 // The order list: one tab per kind of work (unpaid, to pack, to ship, ...),
 // a search box, bulk "mark as" for ticked orders, and export to a spreadsheet.
@@ -29,8 +31,25 @@ const TABS: { id: string; label: string; note: string; step?: Step; match: (o: O
   { id: "closed", label: "Cancelled & refunded", note: "Orders that were cancelled or refunded in full.", match: (o) => o.status === "cancelled" || o.status === "refunded" },
 ];
 
-// what a ticked group can be moved to, given the tab they are in
-const BULK: Partial<Record<string, OrderStatus>> = { pending: "paid", paid: "packed", shipped: "delivered" };
+// what a ticked group can be moved to, given the tab they are in (marking
+// paid is one order at a time: each needs how it was paid, 0056)
+const BULK: Partial<Record<string, OrderStatus>> = { paid: "packed", shipped: "delivered" };
+
+// an unpaid order's age and the time left before it cancels itself (0055)
+const H = 3600 * 1000;
+function waiting(o: Order, hold: number) {
+  const age = Date.now() - new Date(o.created_at).getTime();
+  const ago = age < H ? `${Math.max(1, Math.round(age / 60000))} min ago` : age < 48 * H ? `${Math.round(age / H)} h ago` : `${Math.round(age / (24 * H))} days ago`;
+  if (!hold) return { text: `Placed ${ago}`, urgent: false };
+  const left = hold * H - age;
+  const l = left <= 0 ? "due to cancel" : left < H ? `${Math.max(1, Math.round(left / 60000))} min left` : left < 48 * H ? `${Math.round(left / H)} h left` : `${Math.round(left / (24 * H))} days left`;
+  return { text: `${ago} · ${l}`, urgent: left < 6 * H };
+}
+const telOf = (phone: string) => phone.replace(/[^\d+]/g, "");
+const waOf = (phone: string) => {
+  const d = phone.replace(/\D/g, "");
+  return d.length === 10 ? `91${d}` : d;
+};
 
 export default function OrdersPage() {
   return (
@@ -58,13 +77,30 @@ function Orders() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const { user } = useAuth();
+  // manual payment: the hold time, the methods, and the contacts logged on unpaid orders
+  const [hold, setHold] = useState(48);
+  const [methods, setMethods] = useState<string[]>(["UPI", "Bank transfer", "Cash"]);
+  const [contacts, setContacts] = useState<Map<string, OrderContact[]>>(new Map());
+  const [paying, setPaying] = useState<Order | null>(null);
+  const [logging, setLogging] = useState<Order | null>(null);
 
   const load = () =>
     listOrders()
-      .then(setRows)
+      .then(async (list) => {
+        setRows(list);
+        const unpaid = list.filter((o) => o.status === "pending").map((o) => o.id);
+        setContacts(await contactsFor(unpaid).catch(() => new Map()));
+      })
       .catch((e) => setErr(errText(e)));
   useEffect(() => {
     void load();
+    getSettings()
+      .then((s) => {
+        setHold(s.unpaid_hours);
+        setMethods(s.payment_methods);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -78,7 +114,8 @@ function Orders() {
   const shown = useMemo(() => {
     const t = TABS.find((x) => x.id === tab) ?? TABS[0];
     const s = q.trim().toLowerCase();
-    return (rows ?? []).filter(
+    const list = t.id === "pending" ? [...(rows ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)) : (rows ?? []);
+    return list.filter(
       (o) =>
         t.match(o) &&
         (!s || o.order_number.toLowerCase().includes(s) || o.contact_name.toLowerCase().includes(s) || o.contact_phone.replace(/\D/g, "").includes(s.replace(/\D/g, "") || "§") || o.contact_email.toLowerCase().includes(s)),
@@ -101,6 +138,7 @@ function Orders() {
   async function step(o: Order, s: Step) {
     if (s.to === "ship") return router.push(`/admin/orders/view?id=${o.id}&step=shipped`);
     if (s.to === "open") return router.push(`/admin/orders/view?id=${o.id}`);
+    if (s.to === "paid") return setPaying(o);
     setMoving(o.id);
     try {
       await updateOrder(o.id, s.to);
@@ -198,6 +236,35 @@ function Orders() {
         )}
       </Dialog>
 
+      <Dialog open={paying !== null} onClose={() => setPaying(null)}>
+        {paying && (
+          <MarkPaidForm
+            order={paying}
+            methods={methods}
+            onCancel={() => setPaying(null)}
+            onDone={() => {
+              toast(`${paying.order_number} marked as paid`);
+              setPaying(null);
+              void load();
+            }}
+          />
+        )}
+      </Dialog>
+      <Dialog open={logging !== null} onClose={() => setLogging(null)}>
+        {logging && (
+          <LogContactForm
+            order={logging}
+            userId={user?.id}
+            onCancel={() => setLogging(null)}
+            onDone={() => {
+              toast(`Logged on ${logging.order_number}`);
+              setLogging(null);
+              void load();
+            }}
+          />
+        )}
+      </Dialog>
+
       <div className="adm-card adm-tablecard">
         {rows && shown.length === 0 ? (
           <p className="adm-empty">{rows.length === 0 ? "No orders yet. They appear here the moment a customer checks out." : "No orders match."}</p>
@@ -232,10 +299,38 @@ function Orders() {
                       </Link>
                       {o.is_test && <span className="adm-muted adm-small"> · test</span>}
                     </td>
-                    <td className="adm-muted c-date">{when(o.created_at)}</td>
+                    <td className="adm-muted c-date">
+                      {when(o.created_at)}
+                      {o.status === "pending" && !o.is_test && (
+                        <div className={`adm-small pay-left ${waiting(o, hold).urgent ? "is-urgent" : ""}`}>{waiting(o, hold).text}</div>
+                      )}
+                    </td>
                     <td className="c-who">
                       {o.contact_name}
                       <div className="adm-muted adm-small">{o.address_city}</div>
+                      {tab === "pending" && (
+                        <>
+                          <div className="pay-reach">
+                            <a href={`tel:${telOf(o.contact_phone)}`}>Call</a>
+                            <a
+                              href={`https://wa.me/${waOf(o.contact_phone)}?text=${encodeURIComponent(`Hi ${o.contact_name.split(" ")[0]}, this is Babajee about your order ${o.order_number} for ${money(o.total)}.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              WhatsApp
+                            </a>
+                            <button type="button" onClick={() => setLogging(o)}>
+                              Log
+                            </button>
+                          </div>
+                          {contacts.get(o.id)?.[0] && (
+                            <div className="adm-small pay-last" title={contacts.get(o.id)![0].body}>
+                              {when(contacts.get(o.id)![0].created_at)}: {contacts.get(o.id)![0].body.replace(`Payment for ${o.order_number}: `, "")}
+                              {(contacts.get(o.id)?.length ?? 0) > 1 && <span className="adm-muted"> · {contacts.get(o.id)!.length} contacts</span>}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="c-status">
                       <StatusPill status={o.status} />
