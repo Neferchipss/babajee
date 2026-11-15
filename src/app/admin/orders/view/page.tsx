@@ -269,6 +269,11 @@ function OrderView() {
                 {o.invoice_number ? `Invoice ${o.invoice_number}` : "Invoice"}
               </Link>
             )}
+            {o.invoice_number && (o.order_refunds ?? []).length > 0 && (
+              <Link href={`/admin/orders/print?ids=${o.id}&doc=cn`} className="adm-btn" target="_blank">
+                Credit notes
+              </Link>
+            )}
             {o.status === "shipped" && !o.delivery_failed_at && (
               <button type="button" className="adm-btn" disabled={busy} onClick={() => (setFailWhy(FAIL_REASONS[0]), setFailNote(""), setFailing(true))}>
                 Delivery failed

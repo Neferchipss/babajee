@@ -2,6 +2,7 @@
 // browser session. The database decides what each person may do: customers
 // see only their own orders, and every admin call below is refused for
 // anyone but role = 'admin' (supabase/migrations/0013_orders_admin.sql).
+import type { CreditNoteRow } from "./credit-note";
 import { toNumber } from "./currency";
 import type { OrderStatus } from "./order-status";
 import { getSupabase } from "./supabase";
@@ -188,6 +189,16 @@ export async function getOrders(ids: string[]): Promise<Order[]> {
 export async function setBuyerGstin(orderId: string, gstin: string) {
   const { error } = await db().rpc("admin_set_buyer_gstin", { p_order: orderId, p_gstin: gstin });
   if (error) throw error;
+}
+
+// credit notes for every refund on these invoiced orders that has none yet,
+// then all their notes (0051)
+export async function issueCreditNotes(ids: string[]): Promise<CreditNoteRow[]> {
+  const { error } = await db().rpc("admin_issue_credit_notes", { p_orders: ids });
+  if (error) throw error;
+  const { data, error: e2 } = await db().from("credit_notes").select("*").in("order_id", ids).order("issued_at");
+  if (e2) throw e2;
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), shipping: toNumber(r.shipping) }) as CreditNoteRow);
 }
 
 // invoice numbers for these orders (paid ones without one get the next in the series)

@@ -6,10 +6,11 @@ import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import logo from "@/assets/logo.webp";
 import { createPortal } from "react-dom";
 import { amountInWords, invoiceOf, stateCode } from "@/lib/invoice";
-import { errText, getOrders, getSettings, issueInvoices, type Order, type StoreSettings } from "@/lib/orders-db";
+import { creditNoteOf, type CreditNoteRow } from "@/lib/credit-note";
+import { errText, getOrders, getSettings, issueCreditNotes, issueInvoices, type Order, type StoreSettings } from "@/lib/orders-db";
 import "./print.css";
 
-// Invoices for one order or many, as A4 pages: print them,
+// Invoices, or credit notes (&doc=cn), for one order or many, as A4 pages: print them,
 // or "Save as PDF" in the print dialog to download. Opened from an order
 // (/admin/orders/print?ids=<id>&doc=invoice) or from ticked orders in the list.
 // The pages sit on their own layer over the admin, so only they print.
@@ -37,8 +38,9 @@ const onResize = (fn: () => void) => {
 function Print() {
   const sp = useSearchParams();
   const ids = (sp.get("ids") ?? "").split(",").filter(Boolean);
-  const key = ids.join(",");
-  const [data, setData] = useState<{ key: string; orders: Order[]; shop: StoreSettings } | null>(null);
+  const doc: "invoice" | "cn" = sp.get("doc") === "cn" ? "cn" : "invoice";
+  const key = `${doc}:${ids.join(",")}`;
+  const [data, setData] = useState<{ key: string; orders: Order[]; shop: StoreSettings; notes: CreditNoteRow[] } | null>(null);
   const [err, setErr] = useState("");
   const onClient = useSyncExternalStore(noop, () => true, () => false);
   const zoom = useSyncExternalStore(onResize, sheetZoom, () => 1);
@@ -48,13 +50,14 @@ function Print() {
     (async () => {
       // invoices get their numbers first (paid orders only), then everything is read
       await issueInvoices(ids);
+      const notes = doc === "cn" ? await issueCreditNotes(ids) : [];
       const [orders, shop] = await Promise.all([getOrders(ids), getSettings()]);
-      if (!dead) setData({ key, orders, shop });
+      if (!dead) setData({ key, orders, shop, notes });
     })().catch((e) => !dead && setErr(errText(e)));
     return () => {
       dead = true;
     };
-    // key carries the ids
+    // key carries doc and ids
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -62,7 +65,9 @@ function Print() {
   const ready = data?.key === key ? data : null;
   const printable = ready ? ready.orders.filter((o) => o.invoice_number) : [];
   const skipped = ready ? ready.orders.filter((o) => !o.invoice_number) : [];
-  const what = "invoice";
+  const notes = ready && doc === "cn" ? ready.notes : [];
+  const count = doc === "cn" ? notes.length : printable.length;
+  const what = doc === "cn" ? "credit note" : "invoice";
 
   return createPortal(
     <div className="prt" style={{ ["--prt-zoom" as string]: zoom }}>
@@ -71,17 +76,18 @@ function Print() {
           ← Back
         </Link>
         <b>
-          {ready ? printable.length : "…"} {what}
-          {printable.length === 1 ? "" : "s"}
+          {ready ? count : "…"} {what}
+          {count === 1 ? "" : "s"}
         </b>
         <span className="prt-gap" />
-        <button type="button" className="prt-btn is-pri" disabled={!printable.length} onClick={() => window.print()}>
+        <button type="button" className="prt-btn is-pri" disabled={!count} onClick={() => window.print()}>
           Print or save as PDF
         </button>
       </div>
       {err && <p className="prt-note is-bad">{err}</p>}
       {!ready && !err && <p className="prt-note">Getting the {what}s ready…</p>}
-      {skipped.length > 0 && (
+      {ready && doc === "cn" && !notes.length && <p className="prt-note">No credit notes: there are no refunds on invoiced orders here.</p>}
+      {doc === "invoice" && skipped.length > 0 && (
         <p className="prt-note">
           No invoice for {skipped.map((o) => o.order_number).join(", ")}: {skipped.length === 1 ? "it hasn't" : "they haven't"} been paid
           {skipped.some((o) => o.status === "cancelled") ? " or were cancelled" : ""}. An invoice is made once an order is paid.
@@ -93,7 +99,13 @@ function Print() {
           <Link href="/admin/settings">Settings</Link>.
         </p>
       )}
-      {ready && printable.map((o) => <InvoicePage key={o.id} o={o} shop={ready.shop} />)}
+      {ready &&
+        (doc === "cn"
+          ? notes.map((n) => {
+              const o = ready.orders.find((x) => x.id === n.order_id);
+              return o ? <CreditNotePage key={n.id} n={n} o={o} shop={ready.shop} /> : null;
+            })
+          : printable.map((o) => <InvoicePage key={o.id} o={o} shop={ready.shop} />))}
     </div>,
     document.body,
   );
@@ -341,6 +353,150 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
       <footer className="inv-foot">
         {shop.invoice_note && <p>{shop.invoice_note}</p>}
         <p className="prt-small">This is a computer-generated invoice.</p>
+      </footer>
+    </article>
+  );
+}
+
+// A GST credit note for one refund, set out like the invoice it corrects.
+function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: StoreSettings }) {
+  const cn = creditNoteOf(n, o, shop.store_state);
+  const intra = cn.split === "intra";
+  const taxCols = intra ? ["CGST", "SGST"] : [cn.split === "inter" ? "IGST" : "GST"];
+  const taxOf = (x: { cgst: number; sgst: number; igst: number; gst: number }) => (intra ? [x.cgst, x.sgst] : [cn.split === "inter" ? x.igst : x.gst]);
+  const reason = (o.order_refunds ?? []).find((r) => r.id === n.refund_id)?.reason;
+  return (
+    <article className="prt-page prt-inv">
+      {o.is_test && <div className="prt-test">Test order</div>}
+      <div className="inv-title">
+        <h2>Credit note</h2>
+        <span>ORIGINAL FOR RECIPIENT</span>
+      </div>
+      <div className="inv-box">
+        <div className="inv-row inv-head">
+          <div className="inv-seller">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo.src} alt="" className="inv-logo" />
+            <div>
+              <h1>{shop.store_name || "Babajee"}</h1>
+              {shop.legal_name && shop.legal_name !== shop.store_name && <div className="inv-legal">{shop.legal_name}</div>}
+              {shop.store_address && <div className="prt-pre">{shop.store_address}</div>}
+              {shop.gstin && (
+                <div>
+                  <b>GSTIN</b> {shop.gstin}
+                </div>
+              )}
+            </div>
+          </div>
+          <dl className="inv-meta">
+            <dt>Credit note no.</dt>
+            <dd>
+              <b>{n.number}</b>
+            </dd>
+            <dt>Date</dt>
+            <dd>{day(n.issued_at)}</dd>
+            <dt>Against invoice</dt>
+            <dd>{o.invoice_number}</dd>
+            <dt>Invoice date</dt>
+            <dd>{o.invoice_date ? day(o.invoice_date) : ""}</dd>
+            <dt>Place of supply</dt>
+            <dd>{`${o.address_state}${stateCode(o.address_state) ? ` (${stateCode(o.address_state)})` : ""}`}</dd>
+          </dl>
+        </div>
+        <div className="inv-row inv-parties">
+          <div>
+            <span className="prt-label">Issued to</span>
+            <Address o={o} />
+            {o.buyer_gstin && (
+              <div>
+                <b>GSTIN</b> {o.buyer_gstin}
+              </div>
+            )}
+          </div>
+          <div>
+            <span className="prt-label">Reason</span>
+            {reason || (cn.undone ? "Refund, later reversed" : "Refund")}
+          </div>
+        </div>
+        <table className="inv-items">
+          <thead>
+            <tr>
+              <th className="c">#</th>
+              <th>Description of goods</th>
+              <th className="r">Qty</th>
+              <th className="r">Taxable value</th>
+              <th className="r">GST rate</th>
+              {taxCols.map((c) => (
+                <th key={c} className="r">
+                  {c}
+                </th>
+              ))}
+              <th className="r">Amount (incl. GST)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cn.lines.map((l, i) => (
+              <tr key={i}>
+                <td className="c">{i + 1}</td>
+                <td>
+                  {l.name}
+                  {(l.option || l.hsn) && <small>{[l.option, l.hsn && `HSN ${l.hsn}`].filter(Boolean).join(" · ")}</small>}
+                </td>
+                <td className="r">{l.qty}</td>
+                <td className="r">{num(l.taxable)}</td>
+                <td className="r">{l.rate}%</td>
+                {taxOf(l).map((t, k) => (
+                  <td key={k} className="r">
+                    {num(t)}
+                  </td>
+                ))}
+                <td className="r">{num(l.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td />
+              <td>Total</td>
+              <td />
+              <td className="r">{num(cn.taxable)}</td>
+              <td />
+              {taxOf(cn).map((t, k) => (
+                <td key={k} className="r">
+                  {num(t)}
+                </td>
+              ))}
+              <td className="r">{num(cn.total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div className="inv-row inv-bottom">
+          <div className="inv-left">
+            <span className="prt-label">Amount in words</span>
+            <b>{amountInWords(n.amount)}</b>
+          </div>
+          <dl className="inv-totals">
+            <dt>Taxable value</dt>
+            <dd>{inr(cn.taxable)}</dd>
+            <dt>GST</dt>
+            <dd>{inr(cn.gst)}</dd>
+            <dt className="inv-grand">Credit amount</dt>
+            <dd className="inv-grand">{inr(n.amount)}</dd>
+          </dl>
+        </div>
+        <div className="inv-row inv-sign">
+          <div>
+            <span className="prt-label">Declaration</span>
+            This credit note reduces the value of the invoice above by the amount shown.
+          </div>
+          <div className="inv-signbox">
+            <span>For {shop.legal_name || shop.store_name || "Babajee"}</span>
+            <span className="inv-signline">Authorised signatory</span>
+          </div>
+        </div>
+      </div>
+      <footer className="inv-foot">
+        <p className="prt-small">This is a computer-generated credit note.</p>
       </footer>
     </article>
   );
