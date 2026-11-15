@@ -70,8 +70,8 @@ export default function Onboard() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return setErr("Enter your email address, like you@example.com.");
     setBusy(true);
     setErr("");
-    // the email carries a link today (the code shows once the login emails go
-    // through Resend, tools/auth_emails.py); the link brings them back here
+    // the email shows the code (tools/auth_emails.py, sent through Resend);
+    // emailRedirectTo only matters if an older link-style email is used
     const returnTo = `${window.location.origin}${BASE_PATH}/account/login/?next=${encodeURIComponent(next)}`;
     const { error } = await sb().auth.signInWithOtp({ email: to, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
     setBusy(false);
@@ -205,7 +205,7 @@ export default function Onboard() {
             <div className="onb-head">
               <h1>Check your email</h1>
               <p>
-                Tap the link we sent to <b>{email}</b>, or enter the code if the email shows one.{" "}
+                We sent a 6-digit code to <b>{email}</b>.{" "}
                 <button type="button" className="onb-link" onClick={back("email")}>
                   Change
                 </button>
@@ -239,7 +239,7 @@ export default function Onboard() {
                 {wait > 0 ? `Send a new code in 0:${String(wait).padStart(2, "0")}` : "Send a new code"}
               </button>
             </div>
-            <p className="onb-fine">Open the link on this phone or computer. Not there? Check spam or promotions; it works for an hour.</p>
+            <p className="onb-fine">Not there? Check spam or promotions. The code works for an hour.</p>
           </form>
         )}
 
