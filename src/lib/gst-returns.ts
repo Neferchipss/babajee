@@ -139,22 +139,23 @@ export function gstr1(docs: SaleDoc[], cancelled: string[] = []): Table[] {
   return [b2b, b2cl, b2cs, cdnr, cdnur, nil, hsn, docsT];
 }
 
-// itcBills: bills in this period's GSTR-2B; reversal: ITC on bills unpaid 180+ days
-export function gstr3b(docs: SaleDoc[], itcBills: PurchaseDoc[], reversal: Tax3 = { igst: 0, cgst: 0, sgst: 0 }): Table {
+// itcBills: bills in this period's GSTR-2B; reversal: ITC on bills passing
+// 180 days unpaid in this period; reclaim: ITC on such bills paid in it
+export function gstr3b(docs: SaleDoc[], itcBills: PurchaseDoc[], reversal: Tax3 = { igst: 0, cgst: 0, sgst: 0 }, reclaim: Tax3 = { igst: 0, cgst: 0, sgst: 0 }): Table {
   const sign = (d: SaleDoc) => (d.kind === "credit" ? -1 : 1);
   const out = (k: "taxable" | "igst" | "cgst" | "sgst", pick: (l: DocLine) => boolean) => sum(docs, (d) => sign(d) * d.lines.filter(pick).reduce((n, l) => n + l[k], 0));
   const claim = itcBills.filter((b) => b.in2b).flatMap((b) => b.lines.filter((l) => l.claimable));
   const itc = (k: "igst" | "cgst" | "sgst") => sum(claim, (l) => l[k]);
   const o = { taxable: out("taxable", taxed), igst: out("igst", taxed), cgst: out("cgst", taxed), sgst: out("sgst", taxed) };
-  const i = { igst: itc("igst"), cgst: itc("cgst"), sgst: itc("sgst") };
+  const i = { igst: r2(itc("igst") + reclaim.igst), cgst: r2(itc("cgst") + reclaim.cgst), sgst: r2(itc("sgst") + reclaim.sgst) };
   return {
     name: "gstr3b-summary",
     head: ["Section", "Taxable value", "Integrated tax", "Central tax", "State/UT tax", "Cess"],
     rows: [
       ["3.1(a) Outward taxable supplies", o.taxable, o.igst, o.cgst, o.sgst, 0],
       ["3.1(c) Nil rated and exempted supplies", out("taxable", (l) => !taxed(l)), "", "", "", ""],
-      ["4(A)(5) All other ITC (bills in this period's GSTR-2B)", "", i.igst, i.cgst, i.sgst, 0],
-      ["4(B)(2) ITC reversed: bills unpaid 180+ days", "", reversal.igst, reversal.cgst, reversal.sgst, 0],
+      ["4(A)(5) All other ITC (bills in this period's GSTR-2B, plus ITC reclaimed on bills paid after 180 days)", "", i.igst, i.cgst, i.sgst, 0],
+      ["4(B)(2) ITC reversed: bills passing 180 days unpaid in this period", "", reversal.igst, reversal.cgst, reversal.sgst, 0],
       ["Net tax payable (before cross-utilisation)", "", r2(o.igst - i.igst + reversal.igst), r2(o.cgst - i.cgst + reversal.cgst), r2(o.sgst - i.sgst + reversal.sgst), 0],
     ],
   };

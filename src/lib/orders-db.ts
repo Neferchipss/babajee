@@ -216,11 +216,11 @@ export async function invoicedOrders(from: string, to: string): Promise<Order[]>
   }
 }
 
-// paid orders placed in the range that still have no invoice (paid before
-// invoices were issued automatically)
+// paid orders placed up to the end of the range that still have no invoice
+// (paid before invoices were issued automatically)
 export async function uninvoicedPaid(from: string, to: string): Promise<number> {
-  const [a, b] = istRange(from, to);
-  const { count, error } = await db().from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).gte("created_at", a).lt("created_at", b);
+  const [, b] = istRange(from, to);
+  const { count, error } = await db().from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).lt("created_at", b);
   if (error) throw error;
   return count ?? 0;
 }
@@ -980,19 +980,14 @@ export type NewOrder = {
   shipping: number | null;
   notes: string;
   paid: boolean;
+  // a business buyer's GSTIN (0051), '' for a consumer
+  gstin?: string;
 };
 
 // An order taken by the shop (phone, WhatsApp, counter); see 0018.
 export async function createOrder(n: NewOrder): Promise<{ id: string; number: string }> {
-  const { data, error } = await db().rpc("admin_create_order", {
-    p_customer: n.customer,
-    p_contact: n.contact,
-    p_address: n.address,
-    p_lines: n.lines,
-    p_shipping: n.shipping,
-    p_notes: n.notes,
-    p_paid: n.paid,
-  });
+  const args = { p_customer: n.customer, p_contact: n.contact, p_address: n.address, p_lines: n.lines, p_shipping: n.shipping, p_notes: n.notes, p_paid: n.paid };
+  const { data, error } = n.gstin ? await db().rpc("admin_create_order_b2b", { ...args, p_gstin: n.gstin }) : await db().rpc("admin_create_order", args);
   if (error) throw error;
   const row = (data as { order_id: string; order_number: string }[])[0];
   return { id: row.order_id, number: row.order_number };

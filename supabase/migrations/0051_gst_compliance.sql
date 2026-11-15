@@ -57,6 +57,7 @@ revoke all on function public.next_doc_number(text) from public, anon, authentic
 -- ---------------------------------------------------------------- 5. HSN per order line
 
 alter table public.order_items add column if not exists hsn text not null default '';
+drop trigger if exists order_items_lock_invoiced on public.order_items;
 update public.order_items i set hsn = p.hsn
   from public.product_variants v join public.products p on p.id = v.product_id
  where v.id = i.variant_id and i.hsn = '' and coalesce(p.hsn, '') <> '';
@@ -116,6 +117,29 @@ end;
 $$;
 revoke all on function public.admin_set_buyer_gstin(uuid, text) from public, anon;
 grant execute on function public.admin_set_buyer_gstin(uuid, text) to authenticated;
+
+-- An order taken by the shop for a business buyer: created as usual, with
+-- the buyer's GSTIN set in the same transaction, before its invoice is
+-- issued (at commit) when it's created as paid.
+create or replace function public.admin_create_order_b2b(
+  p_customer uuid, p_contact jsonb, p_address jsonb, p_lines jsonb,
+  p_shipping numeric, p_notes text, p_paid boolean, p_gstin text)
+returns table (order_id uuid, order_number text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  r record;
+begin
+  select * into r from public.admin_create_order(p_customer, p_contact, p_address, p_lines, p_shipping, p_notes, p_paid);
+  perform public.admin_set_buyer_gstin(r.order_id, p_gstin);
+  return query select r.order_id, r.order_number;
+end;
+$$;
+revoke all on function public.admin_create_order_b2b(uuid, jsonb, jsonb, jsonb, numeric, text, boolean, text) from public, anon;
+grant execute on function public.admin_create_order_b2b(uuid, jsonb, jsonb, jsonb, numeric, text, boolean, text) to authenticated;
 
 -- ---------------------------------------------------------------- 3. credit notes
 
@@ -395,6 +419,21 @@ $$;
 revoke all on function public.admin_issue_invoices(uuid[]) from public, anon;
 grant execute on function public.admin_issue_invoices(uuid[]) to authenticated;
 
+-- refunds already made on invoiced orders get their notes now
+do $$
+declare
+  f record;
+begin
+  for f in
+    select r.id from public.order_refunds r join public.orders o on o.id = r.order_id
+     where o.invoice_number is not null and not exists (select 1 from public.credit_notes c where c.refund_id = r.id)
+     order by r.created_at
+  loop
+    perform public.issue_credit_note(f.id);
+  end loop;
+end;
+$$;
+
 -- ---------------------------------------------------------------- 4. invoiced orders are locked
 
 create or replace function public.orders_lock_invoiced()
@@ -413,6 +452,11 @@ begin
     or new.address_pincode is distinct from old.address_pincode) then
     raise exception 'Invoice % is issued, so this order can''t be edited. Refund instead: it issues a credit note.', old.invoice_number using errcode = '22023';
   end if;
+  if old.invoice_number is not null and (
+       (new.status in ('cancelled', 'pending') and new.status is distinct from old.status)
+    or (new.paid_total is null and old.paid_total is not null)) then
+    raise exception 'Invoice % is issued, so this order can''t be cancelled or made unpaid. Refund it instead: that issues a credit note.', old.invoice_number using errcode = '22023';
+  end if;
   return new;
 end;
 $$;
@@ -428,6 +472,11 @@ as $$
 declare
   inv text;
 begin
+  -- a product option deleted later only clears the link
+  if tg_op = 'UPDATE' and new.variant_id is null and old.variant_id is not null
+     and (to_jsonb(new) - 'variant_id') = (to_jsonb(old) - 'variant_id') then
+    return new;
+  end if;
   select o.invoice_number into inv from public.orders o where o.id = coalesce(new.order_id, old.order_id);
   if inv is not null then
     raise exception 'Invoice % is issued, so this order''s items can''t change. Refund instead: it issues a credit note.', inv using errcode = '22023';

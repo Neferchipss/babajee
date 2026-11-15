@@ -432,7 +432,8 @@ function OrderView() {
                   <span className="adm-muted">
                     {r.returned ? "Returned" : "Refunded"} {when(r.created_at).toLowerCase()}
                     {r.reason && <span className="adm-small"> · {r.reason}</span>}
-                    {o.status !== "cancelled" && (
+                    {/* a refund on an invoiced order has a credit note, so it stays (0051) */}
+                    {o.status !== "cancelled" && !o.invoice_number && (
                       <>
                         {" · "}
                         <button type="button" className="adm-link" disabled={busy} onClick={() => setUndoing(r)}>
@@ -1145,6 +1146,7 @@ function BuyerGstin({ o, busy, onSave }: { o: Order; busy: boolean; onSave: (gst
           </button>
         </div>
       )}
+      {!locked && <p className="adm-muted adm-small">Enter it before the order is paid: the invoice is issued on payment, and the GSTIN can&apos;t change after that.</p>}
       {!ok && <p className="adm-err">That GSTIN doesn&apos;t look right: it&apos;s 15 characters, like 27ABCDE1234F1Z5.</p>}
     </>
   );

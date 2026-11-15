@@ -69,6 +69,16 @@ begin
   end;
   -- notes and status still change
   update public.orders set notes = 'ok', status = 'packed' where id = o;
+  begin
+    update public.orders set status = 'cancelled' where id = o;
+    raise exception 'FAIL cancel_refused_once_invoiced';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    update public.orders set paid_total = null where id = o;
+    raise exception 'FAIL unpay_refused_once_invoiced';
+  exception when sqlstate '22023' then null;
+  end;
 
   -- a refund through admin_refund gets a credit note with the refund's GST
   perform public.admin_refund(o, jsonb_build_array(jsonb_build_object('item', it2, 'qty', 1)), 0, 200, false, false, 'damaged');

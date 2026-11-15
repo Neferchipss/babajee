@@ -3,7 +3,7 @@ import { creditNoteOf } from "./credit-note";
 import { gstr1, gstr3b, purchaseRegister, salesRegister, toCsv, type PurchaseDoc, type SaleDoc, type Table, type Tax3 } from "./gst-returns";
 import { invoiceOf, stateCode } from "./invoice";
 import { creditNotesIn, getOrders, getSettings, invoicedOrders, uninvoicedPaid, type Order } from "./orders-db";
-import { getReceipt, listReceipts, unpaidBills, type Receipt } from "./stock-in/db";
+import { getReceipt, listReceipts, type Receipt } from "./stock-in/db";
 import { getSupabase } from "./supabase";
 
 // Everything a GST return needs for one date range, worked out from the
@@ -14,7 +14,7 @@ import { getSupabase } from "./supabase";
 const ist = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; warnings: string[] };
+export type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; reclaim: Tax3; warnings: string[] };
 
 async function receipts(ids: string[]): Promise<Receipt[]> {
   const out: Receipt[] = [];
@@ -26,7 +26,7 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
   const [shop, invoiced, notes, missing] = await Promise.all([getSettings(), invoicedOrders(from, to), creditNotesIn(from, to), uninvoicedPaid(from, to)]);
   const warnings: string[] = [];
   if (!shop.gstin || !shop.store_state) warnings.push("The shop's GSTIN or state isn't set in Settings, so GST can't be split into CGST/SGST/IGST. Set them before filing.");
-  if (missing) warnings.push(`${missing} paid order${missing === 1 ? " placed" : "s placed"} in this range ${missing === 1 ? "has" : "have"} no invoice yet (paid before invoices were automatic). Open their invoices from Orders to issue them.`);
+  if (missing) warnings.push(`${missing} paid order${missing === 1 ? "" : "s"} up to this range's end ${missing === 1 ? "has" : "have"} no invoice yet (paid before invoices were automatic). Open their invoices from Orders to issue them.`);
 
   const posOf = (state: string) => {
     const code = stateCode(state);
@@ -121,19 +121,33 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
     itcBills = (await receipts(((data ?? []) as { id: string }[]).map((r) => r.id))).map((b) => toDoc(b, true));
   }
 
-  // reversal: claimed ITC on bills unpaid 180 days after their date
-  const unpaid = (await unpaidBills(180)).filter((u) => u.in_2b);
+  // 180-day rule, for this period only: reverse ITC on claimed bills whose
+  // 180th day falls in the range while still unpaid at its end; reclaim it on
+  // bills paid in the range after their 180th day
+  const day180 = (d: string) => new Date(new Date(`${d}T12:00:00Z`).getTime() + 180 * 86400000).toISOString().slice(0, 10);
   const reversal: Tax3 = { igst: 0, cgst: 0, sgst: 0 };
-  for (const b of await receipts(unpaid.map((u) => u.id))) {
-    for (const l of b.lines.filter((x) => x.claimable)) {
-      reversal.igst = r2(reversal.igst + l.igst);
-      reversal.cgst = r2(reversal.cgst + l.cgst);
-      reversal.sgst = r2(reversal.sgst + l.sgst);
-    }
+  const reclaim: Tax3 = { igst: 0, cgst: 0, sgst: 0 };
+  let nRev = 0;
+  if (sb) {
+    const { data, error } = await sb.from("stock_receipts").select("id, bill_date, paid_on").eq("kind", "bill").eq("status", "posted").eq("in_2b", true);
+    if (error) throw error;
+    const all = (data ?? []) as { id: string; bill_date: string; paid_on: string | null }[];
+    const rev = all.filter((b) => day180(b.bill_date) >= from && day180(b.bill_date) <= to && (!b.paid_on || b.paid_on > to));
+    const back = all.filter((b) => b.paid_on && b.paid_on >= from && b.paid_on <= to && b.paid_on > day180(b.bill_date));
+    const add = (t: Tax3, b: Receipt) => {
+      for (const l of b.lines.filter((x) => x.claimable)) {
+        t.igst = r2(t.igst + l.igst);
+        t.cgst = r2(t.cgst + l.cgst);
+        t.sgst = r2(t.sgst + l.sgst);
+      }
+    };
+    for (const b of await receipts(rev.map((x) => x.id))) add(reversal, b);
+    for (const b of await receipts(back.map((x) => x.id))) add(reclaim, b);
+    nRev = rev.length;
   }
-  if (unpaid.length) warnings.push(`${unpaid.length} bill${unpaid.length === 1 ? " is" : "s are"} unpaid 180+ days after ${unpaid.length === 1 ? "its" : "their"} date: the ITC on ${unpaid.length === 1 ? "it" : "them"} is in 4(B)(2) to reverse. It can be reclaimed once paid.`);
+  if (nRev) warnings.push(`${nRev} bill${nRev === 1 ? " passed" : "s passed"} 180 days unpaid in this range: the ITC on ${nRev === 1 ? "it" : "them"} is in 4(B)(2) to reverse. It's reclaimed in the month it's paid.`);
 
-  return { sales, cancelled, bills, itcBills, reversal, warnings };
+  return { sales, cancelled, bills, itcBills, reversal, reclaim, warnings };
 }
 
 function zipOf(tables: Table[], readme: string) {
@@ -146,11 +160,11 @@ export function returnsZip(d: ReturnData, from: string, to: string) {
   const readme = [
     `Babajee GST return working files, ${from} to ${to}.`,
     "gstr1-*.csv: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, nil-rated, HSN summary, documents).",
-    "gstr3b-summary.csv: 3.1(a) outward taxable supplies, 3.1(c) nil-rated, 4(A)(5) ITC from bills in this period's GSTR-2B, 4(B)(2) ITC to reverse on bills unpaid 180+ days, and the net.",
+    "gstr3b-summary.csv: 3.1(a) outward taxable supplies, 3.1(c) nil-rated, 4(A)(5) ITC from bills in this period's GSTR-2B, ITC reclaimed on bills paid after 180 days, 4(B)(2) ITC reversed on bills passing 180 days unpaid in this period, and the net.",
     "Built from the invoices, credit notes and supplier bills in the admin. Check with the CA before filing.",
     ...(d.warnings.length ? ["", "Warnings:", ...d.warnings.map((w) => `- ${w}`)] : []),
   ].join("\r\n");
-  return zipOf([...gstr1(d.sales, d.cancelled), gstr3b(d.sales, d.itcBills, d.reversal)], readme);
+  return zipOf([...gstr1(d.sales, d.cancelled), gstr3b(d.sales, d.itcBills, d.reversal, d.reclaim)], readme);
 }
 
 export function registersZip(d: ReturnData, from: string, to: string) {
