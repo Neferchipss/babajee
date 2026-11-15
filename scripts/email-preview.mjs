@@ -44,6 +44,7 @@ const mails = {
   "2-shipped": compose(ev("shipped"), shop, cfg),
   "3-shipped-dtdc": compose(ev("shipped", { shipments: [{ carrier: "DTDC", tracking_number: "D7781234", shipped_at: at }] }), shop, cfg),
   "4-shipped-no-tracking": compose(ev("shipped", { shipments: [] }), shop, cfg),
+  "4b-delivered": compose(ev("delivered"), { ...shop, return_days: 7 }, cfg),
   "5-refund": compose(ev("refund"), shop, cfg),
   "6-return": compose(ev("return", { credit_notes: [] }), shop, cfg),
   "7-cancelled": compose(ev("cancelled", { shipping: 49, total: 1247 }), shop, cfg),

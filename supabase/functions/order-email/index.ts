@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   if (Date.now() - new Date(e.created_at).getTime() > 15 * 60 * 1000) return new Response("too old", { status: 200 });
   const testing = !!env("EMAIL_TEST_TO");
   if (e.orders.is_test && !testing) return new Response("test order", { status: 200 });
-  const shop = (await db<Shop[]>(`store_settings?id=eq.1&select=store_name,legal_name,store_address,gstin,store_phone,store_email`))[0] ?? { store_name: "Babajee", legal_name: "", store_address: "", gstin: "", store_phone: "", store_email: "" };
+  const shop = (await db<Shop[]>(`store_settings?id=eq.1&select=store_name,legal_name,store_address,gstin,store_phone,store_email,return_days`))[0] ?? { store_name: "Babajee", legal_name: "", store_address: "", gstin: "", store_phone: "", store_email: "" };
   const mail = compose(e, shop, cfg);
   if (!mail || !e.orders.contact_email) return new Response("nothing to send", { status: 200 });
 

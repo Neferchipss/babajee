@@ -32,7 +32,7 @@ export type Order = {
   credit_notes: Note[];
 };
 export type Event = { id: string; status: string; note: string; created_at: string; orders: Order };
-export type Shop = { store_name: string; legal_name: string; store_address: string; gstin: string; store_phone: string; store_email: string };
+export type Shop = { store_name: string; legal_name: string; store_address: string; gstin: string; store_phone: string; store_email: string; return_days?: number | null };
 // photo: the product photo path for a slug and option, or null (product-photos maps)
 export type Cfg = { site: string; assets: string; instagram: string; photo: (slug: string, option: string) => string | null };
 export type Mail = { kind: string; subject: string; html: string };
@@ -63,6 +63,7 @@ const MONO = "'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 const TONE = {
   confirmed: { accent: C.green },
   shipped: { accent: C.goldText },
+  delivered: { accent: C.green },
   refund: { accent: C.goldText },
   return: { accent: C.goldText },
   cancelled: { accent: C.muted },
@@ -104,7 +105,8 @@ function tracker(at: number) {
   const half = (on: boolean, show: boolean) =>
     `<td width="50%" valign="middle" style="font-size:0;line-height:0">${show ? `<div style="height:3px;background:${on ? C.gold : C.line};font-size:0;line-height:0">&nbsp;</div>` : "&nbsp;"}</td>`;
   const dot = (i: number) => {
-    const done = i < at, now = i === at;
+    // the last step, once reached, is done too (a delivered order is finished)
+    const done = i < at || (i === at && at === STEPS.length - 1), now = i === at && !done;
     const style = done
       ? `background:${C.gold};color:#000000;border:2px solid ${C.gold}`
       : now
@@ -144,6 +146,15 @@ function bill(o: Order, totalLabel: string, cfg: Cfg) {
 const kv = (rows: [string, string][]) => T(rows.map(([k, v]) => `<tr><td valign="top" style="padding:5px 0;font-size:14px;color:${C.muted};white-space:nowrap">${k}</td><td align="right" style="padding:5px 0 5px 14px;font-size:14px;color:${C.text}">${v}</td></tr>`).join(""));
 const address = (o: Order) => [o.address_line1, o.address_line2, `${o.address_city}, ${o.address_state} ${o.address_pincode}`].filter(Boolean).map(esc).join("<br>");
 const button = (href: string, label: string) => `<tr><td align="center" style="padding:4px 0 18px"><a href="${href}" style="display:inline-block;background:${C.gold};color:#000000;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:12px">${esc(label)}</a></td></tr>`;
+
+// a small grid of outlined links, two to a row: label in bold, a muted line under it
+function quickLinks(links: [string, string, string][]) {
+  const cell = ([href, label, sub]: [string, string, string]) =>
+    `<td width="50%" valign="top" style="padding:5px"><a href="${href}" style="display:block;border:1px solid ${C.line};border-radius:12px;background:${C.surface};padding:12px 14px;text-decoration:none"><span style="display:block;font-size:14px;font-weight:700;color:${C.text}">${esc(label)} <span style="color:${C.goldText}">&rarr;</span></span><span style="display:block;font-size:12px;line-height:1.45;color:${C.muted};margin-top:2px">${esc(sub)}</span></a></td>`;
+  const rows: string[] = [];
+  for (let i = 0; i < links.length; i += 2) rows.push(`<tr>${cell(links[i])}${links[i + 1] ? cell(links[i + 1]) : '<td width="50%"></td>'}</tr>`);
+  return card("Quick links", T(rows.join("")));
+}
 
 function footer(cfg: Cfg, shop: Shop, to: "customer" | "shop") {
   const name = shop.legal_name || shop.store_name || "Babajee";
@@ -205,6 +216,22 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
         kind: "shipped",
         subject: `Order ${o.order_number} is on its way`,
         html: shell(cfg, shop, "customer", "Order shipped", `${hero(cfg, "shipped", "Order shipped", "Your order is on its way")}${card("", `${hi}${p("Good news: your order has left our shop and is with the courier.", C.muted)}${tracker(STEP_OF.shipped)}`)}${track}${t ? button(t.url, `Track on ${t.site}`) : ""}${bill(o, "Total paid", cfg)}${details}${t ? "" : view}`),
+      };
+    }
+    case "delivered": {
+      const s = [...o.shipments].sort((a, b) => (b.shipped_at ?? "").localeCompare(a.shipped_at ?? ""))[0];
+      const order = `${cfg.site}/orders/view/?id=${o.id}`;
+      const days = shop.return_days ?? 0;
+      const links: [string, string, string][] = [
+        [order, "Rate your items", "Tell others what you thought"],
+        ...(days > 0 ? ([[order, "Start a return", `Within ${days} day${days === 1 ? "" : "s"} of delivery`]] as [string, string, string][]) : []),
+        [`${cfg.site}/shop/`, "Shop again", "Papers, grinders, trays and more"],
+        [`${cfg.site}/support/`, "Get help", "Missing or damaged? We'll fix it"],
+      ];
+      return {
+        kind: "delivered",
+        subject: `Order ${o.order_number} delivered`,
+        html: shell(cfg, shop, "customer", "Order delivered", `${hero(cfg, "delivered", "Order delivered", "Your order has arrived")}${card("", `${hi}${p(`Your order was delivered${s?.carrier ? ` by ${esc(s.carrier)}` : ""}. We hope you enjoy it.`, C.muted)}${tracker(STEP_OF.delivered)}`)}${quickLinks(links)}${bill(o, "Total paid", cfg)}${details}${view}`),
       };
     }
     case "refund":
