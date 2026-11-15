@@ -1,0 +1,424 @@
+/* Onboarding (log in / sign up): a brand panel and a form card side by side
+   on wide screens; on phones a short banner, the form, and the main button
+   pinned to the bottom. Colours come from the site's light/dark tokens. */
+
+/* the footer would only push the form around here */
+body:has(.onb) .ftr {
+  display: none;
+}
+
+.onb {
+  --onb-r: 28px;
+  --onb-field: var(--color-ash, #1b1b1c);
+  --onb-gold: var(--color-rasta-gold, #d3ab70);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1120px;
+  min-height: calc(100svh - 74px);
+  margin: 0 auto;
+  padding: 24px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left));
+  align-items: stretch;
+}
+
+/* ---------------------------------------------------------------- brand side */
+.onb-brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  overflow: hidden;
+  padding: 32px;
+  border-radius: var(--onb-r);
+  background:
+    radial-gradient(120% 70% at 85% 0%, color-mix(in srgb, var(--onb-gold) 26%, transparent), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, color-mix(in srgb, var(--onb-gold) 12%, transparent), transparent 60%),
+    var(--color-iron, #121213);
+  border: 1px solid var(--color-line, #272729);
+}
+.onb-art {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 260px;
+  border: 1.5px dashed color-mix(in srgb, var(--onb-gold) 45%, transparent);
+  border-radius: 20px;
+  color: color-mix(in srgb, var(--onb-gold) 80%, var(--color-muted, #96979d));
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.onb-pitch h2 {
+  margin: 0 0 18px;
+  max-width: 16ch;
+  font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.onb-pitch ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-muted, #96979d);
+  font-size: 0.95rem;
+}
+.onb-pitch li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.onb-pitch i {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--onb-gold) 16%, transparent);
+  color: var(--onb-gold);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* ---------------------------------------------------------------- the form */
+.onb-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border-radius: var(--onb-r);
+  background: var(--color-iron, #121213);
+  border: 1px solid var(--color-line, #272729);
+}
+.onb-form {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  max-width: 400px;
+}
+.onb-head {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.onb-head h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.onb-head p {
+  margin: 0;
+  color: var(--color-muted, #96979d);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+.onb-head b {
+  color: var(--color-paper, #f2f3f5);
+  font-weight: 600;
+  word-break: break-all;
+}
+.onb-step {
+  color: var(--color-green-soft, #23a55a) !important;
+  font-size: 0.8rem !important;
+  font-weight: 700;
+}
+.onb-back {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -6px 0 0 -8px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.onb-back:hover {
+  background: var(--onb-field);
+}
+
+.onb-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.onb-field > span:first-child,
+.onb-field legend {
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.onb-field small {
+  color: var(--color-muted, #96979d);
+  font-size: 0.78rem;
+}
+.onb input {
+  width: 100%;
+  min-width: 0;
+  height: 56px;
+  padding: 0 16px;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background: var(--onb-field);
+  color: var(--color-paper, #f2f3f5);
+  font: inherit;
+  font-size: 1.02rem;
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.onb input::placeholder {
+  color: color-mix(in srgb, var(--color-muted, #96979d) 75%, transparent);
+}
+.onb input:focus,
+.onb input:focus-visible {
+  border-color: var(--onb-gold);
+  background: var(--color-char, #000);
+  /* the gold border is the focus mark here; the theme's own ring (an id
+     selector, so it wins otherwise) would double it */
+  outline: none !important;
+  box-shadow: none;
+}
+.onb-phone,
+.onb-pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.onb-phone b {
+  position: absolute;
+  left: 16px;
+  padding-right: 12px;
+  border-right: 1px solid var(--color-line, #272729);
+  font-weight: 600;
+  pointer-events: none;
+}
+.onb-phone input {
+  padding-left: 72px;
+  letter-spacing: 0.04em;
+}
+.onb-pw input {
+  padding-right: 72px;
+}
+.onb-pw button {
+  position: absolute;
+  right: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--onb-gold);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.onb-dob {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  gap: 10px;
+}
+.onb-dob input {
+  text-align: center;
+}
+
+/* the code: one real input, drawn as boxes */
+.onb-code {
+  position: relative;
+  display: block;
+  cursor: text;
+}
+.onb-code input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  opacity: 0;
+  caret-color: transparent;
+}
+.onb-slots {
+  display: flex;
+  gap: 8px;
+}
+.onb-slots i {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  max-width: 58px;
+  height: 62px;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background: var(--onb-field);
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s;
+}
+.onb-code:focus-within .onb-slots i.is-at {
+  border-color: var(--onb-gold);
+}
+.onb-slots i.is-full {
+  border-color: color-mix(in srgb, var(--onb-gold) 35%, transparent);
+}
+
+.onb-actions {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+.onb-btn {
+  height: 56px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--onb-gold);
+  color: #14110b;
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.15s;
+}
+.onb-btn:active {
+  transform: scale(0.985);
+}
+.onb-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.onb-link {
+  justify-self: center;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--onb-gold);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.onb-head .onb-link {
+  min-height: 0;
+  padding: 0;
+  display: inline;
+}
+.onb-link:disabled {
+  color: var(--color-muted, #96979d);
+  cursor: default;
+}
+.onb-err {
+  margin: -4px 0 0;
+  color: var(--color-red-soft, #f08b74);
+  font-size: 0.88rem;
+}
+.onb-fine {
+  margin: 0;
+  color: var(--color-muted, #96979d);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: center;
+}
+.onb-fine a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.onb button:focus-visible,
+.onb a:focus-visible {
+  outline: 2px solid var(--onb-gold);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- phones */
+@media (max-width: 820px) {
+  .onb {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    min-height: calc(100svh - 64px);
+    padding: 12px 0 0;
+    align-content: start;
+  }
+  /* a short banner: the art's place and the line, nothing more */
+  .onb-brand {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    margin: 0 16px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+  .onb-art {
+    flex: none;
+    width: 88px;
+    min-height: 0;
+    height: 88px;
+    border-radius: 14px;
+    font-size: 0.6rem;
+  }
+  .onb-pitch h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    max-width: none;
+  }
+  .onb-pitch ul {
+    display: none;
+  }
+  .onb-card {
+    align-items: stretch;
+    padding: 24px 16px 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .onb-form {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    min-height: calc(100svh - 64px - 150px);
+  }
+  /* the main button sits at the bottom, above the home bar */
+  .onb-actions {
+    position: sticky;
+    bottom: 0;
+    margin: auto -16px 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--color-char, #000) 70%, transparent);
+  }
+  .onb-back {
+    align-self: flex-start;
+  }
+  /* the small print sits just above the pinned button, not under it */
+  .onb-form:has(.onb-fine) .onb-fine {
+    order: 1;
+    margin-top: auto;
+  }
+  .onb-form:has(.onb-fine) .onb-actions {
+    order: 2;
+    margin-top: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onb-btn,
+  .onb input,
+  .onb-slots i {
+    transition: none;
+  }
+}
