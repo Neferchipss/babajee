@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import LineEditor, { type Line, lineTotals } from "@/components/admin/stock/LineEditor";
+import LineEditor, { type Line, lineTotals, priceEntered } from "@/components/admin/stock/LineEditor";
 import { RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { listProducts } from "@/lib/admin-data";
@@ -179,7 +179,7 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
   const t = useMemo(() => lineTotals(lines), [lines]);
 
   const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
-  const linesOk = lines.length > 0 && lines.every((l) => l.qty > 0 && l.unit_price >= 0);
+  const linesOk = lines.length > 0 && lines.every((l) => l.qty > 0 && priceEntered(l));
   // a bill is a supplier and a number; without them it can only be an opening count
   const valid = linesOk && (opening || (hasSupplier && billNo.trim() !== ""));
 

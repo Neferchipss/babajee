@@ -6,9 +6,13 @@ import { GST_BRACKETS } from "@/lib/gst";
 import type { Candidate } from "@/lib/stock-in/match";
 import "./stockin.css";
 
+// unit_price is NaN until a price has been typed: "not entered" is not the same as 0
 export type Line = { variant_id: string; qty: number; unit_price: number; gst_rate: number };
+export const priceEntered = (l: Line) => Number.isFinite(l.unit_price) && l.unit_price >= 0;
+const PRICE_RE = /^\d*(\.\d{0,2})?$/;
+const priceOf = (text: string) => (text === "" || text === "." ? NaN : Number(text));
 
-const BRACKETS = GST_BRACKETS.filter((b) => b > 0);
+const BRACKETS: readonly number[] = GST_BRACKETS;
 const paisa = (x: number) => Math.round(x * 100 + 1e-7) / 100;
 
 // What a set of lines comes to: the price before GST, the GST, and the total.
@@ -16,7 +20,7 @@ export function lineTotals(lines: Line[]) {
   let taxable = 0;
   let gst = 0;
   for (const l of lines) {
-    const t = paisa(l.qty * l.unit_price);
+    const t = paisa(l.qty * (priceEntered(l) ? l.unit_price : 0));
     taxable += t;
     gst += paisa((t * l.gst_rate) / 100);
   }
@@ -57,7 +61,7 @@ export default function LineEditor({
   const add = (c: Candidate) => {
     const at = lines.findIndex((l) => l.variant_id === c.variant_id);
     if (at >= 0) onChange(lines.map((l, i) => (i === at ? { ...l, qty: l.qty + 1 } : l)));
-    else onChange([...lines, { variant_id: c.variant_id, qty: 1, unit_price: 0, gst_rate: gstOf(c.variant_id) }]);
+    else onChange([...lines, { variant_id: c.variant_id, qty: 1, unit_price: NaN, gst_rate: gstOf(c.variant_id) }]);
     setQ("");
   };
   const patch = (i: number, p: Partial<Line>) => onChange(lines.map((l, k) => (k === i ? { ...l, ...p } : l)));
@@ -121,6 +125,7 @@ export default function LineEditor({
             <span>Total</span>
             <b>{formatPrice(t.total, { paise: true })}</b>
           </div>
+          {lines.some((l) => !priceEntered(l)) && <p className="adm-small sti-voidnote">Type a price for every line.</p>}
           <p className="adm-muted adm-small">Check this against the paper bill.</p>
         </div>
       )}
@@ -130,7 +135,9 @@ export default function LineEditor({
 
 function Row({ line, name, onPatch, onRemove }: { line: Line; name: string; onPatch: (p: Partial<Line>) => void; onRemove: () => void }) {
   // the price is typed as text so "12." and "0.5" survive while typing
-  const [price, setPrice] = useState(line.unit_price ? String(line.unit_price) : "");
+  const [price, setPrice] = useState(priceEntered(line) ? String(line.unit_price) : "");
+  // a price set from outside (an uploaded sheet) shows in the box
+  if (!Object.is(priceOf(price), line.unit_price)) setPrice(priceEntered(line) ? String(line.unit_price) : "");
   return (
     <li className="sti-row">
       <div className="sti-row-head">
@@ -152,10 +159,10 @@ function Row({ line, name, onPatch, onRemove }: { line: Line; name: string; onPa
             value={price}
             placeholder="₹0"
             onChange={(e) => {
-              const v = e.target.value.replace(/[^\d.]/g, "");
+              const v = e.target.value;
+              if (!PRICE_RE.test(v)) return;
               setPrice(v);
-              const n = Number(v);
-              onPatch({ unit_price: Number.isFinite(n) ? n : 0 });
+              onPatch({ unit_price: priceOf(v) });
             }}
           />
         </label>

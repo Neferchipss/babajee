@@ -9,7 +9,7 @@ import { nextAverage } from "@/lib/stock-in/average";
 import type { Supplier } from "@/lib/stock-in/db";
 import "./stock.css";
 
-const BRACKETS = GST_BRACKETS.filter((b) => b > 0);
+const BRACKETS = GST_BRACKETS;
 const today = () => new Date().toLocaleDateString("en-CA");
 const NEW_SUPPLIER = "__new";
 
