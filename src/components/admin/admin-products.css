@@ -2891,3 +2891,64 @@ select.ape-line-input {
     height: 15px;
   }
 }
+
+/* ---------------------------------------------------------------- correcting a buying price (0057) */
+.ape-linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--adm-gold, #d3ab70);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.ape-fix {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 4px;
+  padding: 14px;
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+}
+.ape-fix p {
+  margin: 0;
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.ape-fix label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.ape-fix label span {
+  color: var(--ap-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.ape-fix input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.ape-fix-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 8rem);
+  gap: 10px;
+}
+.ape-fix-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.ape-fix-actions .ape-chip.is-on {
+  background: var(--ap-ink);
+  border-color: var(--ap-ink);
+  color: var(--ap-panel);
+}

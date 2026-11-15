@@ -32,6 +32,7 @@ import {
   settleBalance,
   setBuyerGstin,
   soldCosts,
+  soldGst,
   updateOrder,
   undoRefund,
   type Order,
@@ -1074,12 +1075,12 @@ function StepForm({
 // recorded. Same rules as Analytics (supabase/migrations/0017).
 function OrderProfit({ order: o }: { order: Order }) {
   const items = o.order_items ?? [];
-  const [data, setData] = useState<{ sold: Map<string, number>; now: Map<string, number>; credit: boolean } | null>(null);
+  const [data, setData] = useState<{ sold: Map<string, number>; now: Map<string, number>; credit: boolean; gst: Map<string, number> } | null>(null);
 
   useEffect(() => {
     const its = o.order_items ?? [];
-    Promise.all([soldCosts(its.map((i) => i.id)), getCosts(its.flatMap((i) => (i.variant_id ? [i.variant_id] : []))), getSettings()])
-      .then(([sold, now, s]) => setData({ sold, now, credit: s.gst_input_credit }))
+    Promise.all([soldCosts(its.map((i) => i.id)), getCosts(its.flatMap((i) => (i.variant_id ? [i.variant_id] : []))), getSettings(), soldGst(its.map((i) => i.id))])
+      .then(([sold, now, s, gst]) => setData({ sold, now, credit: s.gst_input_credit, gst }))
       .catch(() => setData(null));
   }, [o.order_items]);
 
@@ -1112,13 +1113,15 @@ function OrderProfit({ order: o }: { order: Order }) {
       continue;
     }
     if (!data.sold.has(i.id)) later++;
-    const u = unitProfit(i.unit_price, c, { rate: i.gst_rate ?? o.gst_rate ?? 0, inclusive: o.gst_inclusive, credit: data.credit });
+    const r = i.gst_rate ?? o.gst_rate ?? 0;
+    const g = data.gst.get(i.id) ?? (c * r) / (100 + r);
+    const u = unitProfit(i.unit_price, c, { rate: r, inclusive: o.gst_inclusive, credit: data.credit }, g);
     const q = i.quantity - (back.get(i.id) ?? 0);
     const out = i.quantity - (shelved.get(i.id) ?? 0);
     sale += u.sale * q;
     cost += u.cost * out;
     // after GST: the sale without GST less the cost (without its GST if claimed back)
-    kept += u.net * q - (data.credit ? (u.cost * 100) / (100 + (i.gst_rate ?? o.gst_rate ?? 0)) : u.cost) * out;
+    kept += u.net * q - (data.credit ? u.cost - g : u.cost) * out;
   }
   if (missing === 0) {
     sale -= extraG;

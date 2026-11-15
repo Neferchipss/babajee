@@ -643,7 +643,8 @@ function AddPhotos({ label, busy, onFiles }: { label: string; busy: boolean; onF
 // With sizes or colours, one card each, GST chosen once for the product.
 // Buying prices live in an admin-only table (0015, 0030); the database adds
 // the GST to make the cost price, and follows a bracket change.
-type Purchase = { purchase: number | null; cost: number };
+// gst: the GST paid per unit on the supplier bills (0057); null when unknown
+type Purchase = { purchase: number | null; cost: number; gst: number | null };
 type Rules = { rate: number; inclusive: boolean; credit: boolean };
 const SHOWN_BRACKETS = GST_BRACKETS.filter((b) => b > 0);
 
@@ -685,6 +686,13 @@ function Pricing({
   const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false };
   const many = variants.length > 1;
 
+  // correcting a buying price (or setting the opening stock's), with a reason (0057)
+  async function correctBuying(id: string, purchase: number, rate: number, reason: string) {
+    const m = await import("@/lib/orders-db");
+    const cost = await m.correctPurchase(id, purchase, rate, reason);
+    setCosts((c) => new Map(c).set(id, { purchase, cost, gst: Math.round(purchase * rate) / 100 }));
+  }
+
   async function saveBuying(id: string, purchase: number | null) {
     setErr("");
     try {
@@ -693,7 +701,7 @@ function Pricing({
       setCosts((c) => {
         const n = new Map(c);
         if (purchase == null || cost == null) n.delete(id);
-        else n.set(id, { purchase, cost });
+        else n.set(id, { purchase, cost, gst: null });
         return n;
       });
     } catch (e) {
@@ -733,6 +741,7 @@ function Pricing({
                 have={costs.get(v.id)}
                 rules={rules}
                 onBuying={(n) => saveBuying(v.id, n)}
+                onCorrect={(n, r, why) => correctBuying(v.id, n, r, why)}
                 onSave={(patch) => onVariant(v, patch)}
                 onDelete={() => onDeleteVariant(v)}
                 photos={photos(v)}
@@ -741,7 +750,7 @@ function Pricing({
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={gst} onBuying={(n) => saveBuying(variants[0].id, n)} onSave={(patch) => onVariant(variants[0], patch)} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={gst} onBuying={(n) => saveBuying(variants[0].id, n)} onCorrect={(n, r, why) => correctBuying(variants[0].id, n, r, why)} onSave={(patch) => onVariant(variants[0], patch)} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -777,6 +786,7 @@ function PriceRow({
   gst,
   photos,
   onBuying,
+  onCorrect,
   onSave,
   onDelete,
 }: {
@@ -787,6 +797,7 @@ function PriceRow({
   gst?: ReactNode;
   photos?: ReactNode;
   onBuying: (purchase: number | null) => void;
+  onCorrect: (purchase: number, gstRate: number, reason: string) => Promise<void>;
   onSave: (patch: Partial<AdminVariant>) => void;
   onDelete?: () => void;
 }) {
@@ -807,8 +818,41 @@ function PriceRow({
   const fromStock = v.track_stock;
   const b = fromStock ? start : buy.trim() === "" ? null : Number(buy);
   const s = Number(sell) || 0;
-  const cost = b == null ? null : costOf(b, rules.rate);
-  const u = cost != null && s > 0 ? unitProfit(s, cost, rules) : null;
+  // the GST inside the cost: as paid on the bills when known (0057), else the product's rate
+  const billGst = fromStock && have && have.purchase != null && have.gst != null ? have.gst : null;
+  const billRate = billGst != null && have?.purchase ? Math.round((billGst / have.purchase) * 1000) / 10 : null;
+  const cost = b == null ? null : billGst != null ? Math.round((b + billGst) * 100) / 100 : costOf(b, rules.rate);
+  const u = cost != null && s > 0 ? unitProfit(s, cost, rules, billGst) : null;
+  // correcting the price (or setting the opening stock's)
+  const [fixing, setFixing] = useState(false);
+  const [fixPrice, setFixPrice] = useState("");
+  const [fixRate, setFixRate] = useState("");
+  const [fixWhy, setFixWhy] = useState("");
+  const [fixErr, setFixErr] = useState("");
+  const [fixBusy, setFixBusy] = useState(false);
+  function openFix() {
+    setFixPrice(start != null ? String(start) : "");
+    setFixRate(String(billRate ?? rules.rate));
+    setFixWhy(start == null ? "Opening stock" : "");
+    setFixErr("");
+    setFixing(true);
+  }
+  async function saveFix() {
+    const n = Number(fixPrice);
+    const r = Number(fixRate);
+    if (!(fixPrice.trim() !== "" && n >= 0)) return setFixErr("Enter the buying price before GST.");
+    if (!(fixRate.trim() !== "" && r >= 0 && r <= 100)) return setFixErr("Enter the GST rate on the bill, 0 to 100%.");
+    if (fixWhy.trim().length < 3) return setFixErr("Say why, for the activity log.");
+    setFixBusy(true);
+    setFixErr("");
+    try {
+      await onCorrect(n, r, fixWhy.trim());
+      setFixing(false);
+    } catch (e) {
+      setFixErr(errText(e));
+    }
+    setFixBusy(false);
+  }
 
   return (
     <li className={card ? "ape-card" : "ape-one"}>
@@ -833,12 +877,52 @@ function PriceRow({
       )}
 
       {fromStock ? (
-        <div className="ape-line">
-          <span className="ape-line-label">
-            Purchase price (excl. GST) <small>average of the stock bought in</small>
-          </span>
-          <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
-        </div>
+        <>
+          <div className="ape-line">
+            <span className="ape-line-label">
+              Purchase price (excl. GST){" "}
+              <small>
+                average of the stock bought in ·{" "}
+                <button type="button" className="ape-linkbtn" onClick={() => (fixing ? setFixing(false) : openFix())}>
+                  {start == null ? "set the opening stock's price" : "correct it"}
+                </button>
+              </small>
+            </span>
+            <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
+          </div>
+          {fixing && (
+            <div className="ape-fix">
+              <p>
+                {start == null
+                  ? "What the stock already on the shelf cost, before GST. Bills added later average against it."
+                  : "Fix a wrong average, e.g. stock counted in by hand at the wrong price. Bills added later average against the new price; the old one and your reason stay in the activity log."}
+              </p>
+              <div className="ape-fix-row">
+                <label>
+                  <span>Price before GST</span>
+                  <input inputMode="decimal" value={fixPrice} onChange={(e) => setFixPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" />
+                </label>
+                <label>
+                  <span>GST % on the bill</span>
+                  <input inputMode="decimal" value={fixRate} onChange={(e) => setFixRate(e.target.value.replace(/[^\d.]/g, ""))} placeholder={String(rules.rate)} />
+                </label>
+              </div>
+              <label>
+                <span>Why</span>
+                <input value={fixWhy} maxLength={300} onChange={(e) => setFixWhy(e.target.value)} placeholder="e.g. opening count was entered at the wrong price" />
+              </label>
+              {fixErr && <p className="ape-err">{fixErr}</p>}
+              <div className="ape-fix-actions">
+                <button type="button" className="ape-chip" onClick={() => setFixing(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="ape-chip is-on" disabled={fixBusy} onClick={saveFix}>
+                  {fixBusy ? "Saving" : "Save price"}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <label className="ape-line">
           <span className="ape-line-label">
@@ -850,7 +934,8 @@ function PriceRow({
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
-          Cost price (incl. GST) <small>purchase price + {rules.rate}% GST</small>
+          Cost price (incl. GST){" "}
+          <small>{billGst != null ? `purchase price + ${billRate}% GST paid on the bills` : `purchase price + ${rules.rate}% GST`}</small>
         </span>
         <b className="ape-line-value">{cost != null ? formatPrice(cost, { paise: true }) : "–"}</b>
       </div>

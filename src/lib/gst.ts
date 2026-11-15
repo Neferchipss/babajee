@@ -42,11 +42,13 @@ export function gstLabel(inclusive: boolean, rate: number | null | undefined) {
 //   profit = sale - cost
 // and what is left once the GST owed is paid (kept): the sale without GST,
 // less the cost (without its GST only when that GST is claimed back).
-export function unitProfit(price: number, cost: number, g: GstRules) {
+// gstInCost: the GST inside the cost as actually paid on the bills (0057);
+// without it, the cost is taken to carry GST at the selling rate
+export function unitProfit(price: number, cost: number, g: GstRules, gstInCost?: number | null) {
   const sale = g.inclusive ? price : (price * (100 + g.rate)) / 100;
   const net = (sale * 100) / (100 + g.rate);
   const profit = sale - cost;
-  const kept = net - (g.credit ? (cost * 100) / (100 + g.rate) : cost);
+  const kept = net - (g.credit ? cost - (gstInCost ?? (cost * g.rate) / (100 + g.rate)) : cost);
   return { sale: round2(sale), net: round2(net), cost: round2(cost), profit: round2(profit), kept: round2(kept), margin: sale > 0 ? (profit / sale) * 100 : 0 };
 }
 

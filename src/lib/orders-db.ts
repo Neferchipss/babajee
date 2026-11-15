@@ -896,13 +896,26 @@ export async function getCosts(variantIds: string[]): Promise<Map<string, number
   return new Map([...(await getPurchases(variantIds))].map(([id, c]) => [id, c.cost]));
 }
 
-// Purchase price (before GST) and cost price (purchase + GST at the
-// product's bracket), by option id. purchase is null for a cost typed before 0030.
-export async function getPurchases(variantIds: string[]): Promise<Map<string, { purchase: number | null; cost: number }>> {
+// Purchase price (before GST), the GST paid per unit on the bills (null: none
+// known, so the product's own rate is used; 0057) and the cost price (purchase
+// + that GST), by option id. purchase is null for a cost typed before 0030.
+export type PurchaseInfo = { purchase: number | null; cost: number; gst: number | null };
+export async function getPurchases(variantIds: string[]): Promise<Map<string, PurchaseInfo>> {
   if (!variantIds.length) return new Map();
-  const { data, error } = await db().from("variant_costs").select("variant_id, purchase, cost").in("variant_id", variantIds);
+  const { data, error } = await db().from("variant_costs").select("variant_id, purchase, cost, gst_paid").in("variant_id", variantIds);
   if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.variant_id as string, { purchase: r.purchase == null ? null : toNumber(r.purchase), cost: toNumber(r.cost) }]));
+  return new Map(
+    (data ?? []).map((r) => [r.variant_id as string, { purchase: r.purchase == null ? null : toNumber(r.purchase), cost: toNumber(r.cost), gst: r.gst_paid == null ? null : toNumber(r.gst_paid) }]),
+  );
+}
+
+// Correct an option's buying price (0057): the price before GST, the GST rate
+// on the bill, and why. Kept with the reason; later bills average against it.
+// Returns the new cost price.
+export async function correctPurchase(variantId: string, purchase: number, gstRate: number, reason: string): Promise<number> {
+  const { data, error } = await db().rpc("admin_set_purchase", { p_variant: variantId, p_purchase: purchase, p_gst_rate: gstRate, p_reason: reason });
+  if (error) throw error;
+  return toNumber(data);
 }
 
 // The purchase price, before GST; the database adds the GST to make the cost
@@ -914,9 +927,10 @@ export async function setPurchase(variantId: string, purchase: number | null): P
     if (error) throw error;
     return null;
   }
-  const { data, error } = await q.upsert({ variant_id: variantId, purchase, cost: purchase }).select("cost").single();
+  // a typed price is a correction too (0057), at the product's own GST rate
+  const { data, error } = await db().rpc("admin_set_purchase", { p_variant: variantId, p_purchase: purchase, p_gst_rate: null, p_reason: "Typed in the product panel" });
   if (error) throw error;
-  return toNumber(data.cost);
+  return toNumber(data);
 }
 
 // Units each product has sold, all time (cancelled orders and refunded units left out), by product id.
@@ -932,6 +946,14 @@ export async function soldCosts(itemIds: string[]): Promise<Map<string, number>>
   const { data, error } = await db().from("order_item_costs").select("order_item_id, unit_cost").in("order_item_id", itemIds);
   if (error) throw error;
   return new Map((data ?? []).map((r) => [r.order_item_id as string, toNumber(r.unit_cost)]));
+}
+
+// the GST inside each sold line's frozen cost, as paid on the bills (0057); missing when not known
+export async function soldGst(itemIds: string[]): Promise<Map<string, number>> {
+  if (!itemIds.length) return new Map();
+  const { data, error } = await db().from("order_item_costs").select("order_item_id, unit_gst").in("order_item_id", itemIds).not("unit_gst", "is", null);
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.order_item_id as string, toNumber(r.unit_gst)]));
 }
 
 export type Profit = {
