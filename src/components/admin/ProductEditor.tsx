@@ -703,8 +703,10 @@ function Pricing({
 
   const gst = (
     <div className="ape-line ape-line--gst">
-      <span className="ape-line-label">GST</span>
-      <div className="ape-chips" role="group" aria-label="GST">
+      <span className="ape-line-label">
+        GST rate <small>this product&apos;s slab, charged on sales</small>
+      </span>
+      <div className="ape-chips" role="group" aria-label="GST rate">
         {SHOWN_BRACKETS.map((b) => (
           <button key={b} type="button" className={rules.rate === b ? "is-on" : ""} aria-pressed={rules.rate === b} onClick={() => product.gst_rate !== b && onPatch({ gst_rate: b })}>
             {b}%
@@ -833,28 +835,28 @@ function PriceRow({
       {fromStock ? (
         <div className="ape-line">
           <span className="ape-line-label">
-            Buying price <small>average from stock in, excl. GST</small>
+            Purchase price (excl. GST) <small>average of the stock bought in</small>
           </span>
           <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
         </div>
       ) : (
         <label className="ape-line">
           <span className="ape-line-label">
-            Buying price <small>excl. GST, until stock is added</small>
+            Purchase price (excl. GST) <small>type it until stock is added</small>
           </span>
-          <Money value={buy} label={`${v.label} buying price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
+          <Money value={buy} label={`${v.label} purchase price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
         </label>
       )}
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
-          Cost price <small>buying price + {rules.rate}% GST</small>
+          Cost price (incl. GST) <small>purchase price + {rules.rate}% GST</small>
         </span>
         <b className="ape-line-value">{cost != null ? formatPrice(cost, { paise: true }) : "–"}</b>
       </div>
       <label className="ape-line">
         <span className="ape-line-label">
-          Selling price <small>{rules.inclusive ? "with GST, what the customer pays" : "before GST; GST is added at checkout"}</small>
+          {rules.inclusive ? "Selling price (incl. GST)" : "Selling price (excl. GST)"} <small>{rules.inclusive ? "what the customer pays" : "GST is added at checkout"}</small>
         </span>
         <Money value={sell} label={`${v.label} selling price`} placeholder="0" onChange={setSell} onSave={() => s !== v.price && onSave({ price: s })} />
       </label>
@@ -863,16 +865,16 @@ function PriceRow({
         {u ? (
           <>
             <span>
-              <b>{u.profit < 0 ? "Loss" : "Profit"} {formatPrice(Math.abs(u.profit), { paise: true })}</b> per piece · {u.margin.toFixed(0)}%
+              <b>{u.profit < 0 ? "Loss" : "Profit"} {formatPrice(Math.abs(u.profit), { paise: true })}</b> per piece · {u.margin.toFixed(0)}% margin
             </span>
             {u.kept >= 0 ? (
-              <small>{formatPrice(u.kept, { paise: true })} left after paying the GST</small>
+              <small>{formatPrice(u.kept, { paise: true })} net, after paying the GST you collect</small>
             ) : (
               <small className="ape-profit-warn">After paying the GST you lose {formatPrice(-u.kept, { paise: true })} on each one</small>
             )}
           </>
         ) : (
-          <small>{b == null && !s ? "Type the buying and selling price to see the profit." : b == null ? "Type the buying price to see the profit." : "Type the selling price to see the profit."}</small>
+          <small>{b == null && !s ? "Type the purchase and selling price to see the profit." : b == null ? "Type the purchase price to see the profit." : "Type the selling price to see the profit."}</small>
         )}
       </div>
       {photos && <div className="ape-opt-photos">{photos}</div>}

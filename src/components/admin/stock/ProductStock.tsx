@@ -57,7 +57,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
                 <span className="stk-name">{many ? v.label : "In stock"}</span>
                 <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not counted yet"}</b>
               </div>
-              <small className="stk-avg">{a != null ? `Cost ${formatPrice(a, { paise: true })} each on average (excl. GST)` : "No buying price yet"}</small>
+              <small className="stk-avg">{a != null ? `Purchase price ${formatPrice(a, { paise: true })} (excl. GST), average` : "No buying price yet"}</small>
               <div className="stk-actions">
                 <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "add"} onClick={() => toggle(v.id, "add")}>
                   + Add stock
@@ -260,7 +260,7 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
             </dd>
           </div>
           <div>
-            <dt>Cost each</dt>
+            <dt>Purchase price</dt>
             <dd>
               {average != null && from > 0 ? `${r(average)} → ` : ""}
               <b>{r(preview)}</b>
