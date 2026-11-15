@@ -110,29 +110,14 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
     );
   }
 
-  // the one way to pay for now; the bank details come at checkout
-  const payWith = (
-    <div className="cv-paywith">
-      <span className="cv-paywith-icon" aria-hidden="true">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18" />
-        </svg>
-      </span>
-      <span className="cv-paywith-text">
-        <small>Pay using</small>
-        <b>Bank transfer</b>
-      </span>
-    </div>
-  );
-
   // checking out waits until nothing in the jar is sold out or short
   const payLink = stock.blocked ? (
     <span className="cv-pay" aria-disabled="true" data-blocked="true">
-      Pay {rs(sums.total)}
+      Checkout · {rs(sums.total)}
     </span>
   ) : (
     <Link href="/checkout" className="cv-pay">
-      Pay {rs(sums.total)}
+      Checkout · {rs(sums.total)}
     </Link>
   );
 
@@ -253,7 +238,6 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
           </p>
         ) : null}
         <div className="cv-go">
-          {payWith}
           {payLink}
         </div>
       </aside>
@@ -265,7 +249,6 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
             {stock.blocked}
           </p>
         ) : null}
-        {payWith}
         {payLink}
       </div>
       {toast}

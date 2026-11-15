@@ -542,7 +542,7 @@ function OrderView() {
             </div>
             <h3 className="ov-h3">Deliver to</h3>
             <p className="adm-small ov-addr">
-              {[o.address_line1, o.address_line2, o.address_landmark && `Near ${o.address_landmark}`, `${o.address_city}, ${o.address_state} ${o.address_pincode}`]
+              {[o.address_line1, o.address_line2, o.address_landmark && (/^near\b/i.test(o.address_landmark.trim()) ? o.address_landmark.trim() : `Near ${o.address_landmark}`), `${o.address_city}, ${o.address_state} ${o.address_pincode}`]
                 .filter(Boolean)
                 .map((l) => (
                   <span key={String(l)}>{l}</span>

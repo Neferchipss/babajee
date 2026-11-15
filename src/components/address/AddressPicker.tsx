@@ -13,8 +13,10 @@ const db = () => import("@/lib/address-db");
 
 const ONE_OFF = "one-off";
 
-// Checkout's delivery step. Signed in: pick a saved address (the default
-// comes ready picked) or add one, saving it to the account if wanted.
+// Checkout's delivery step. Signed in: the picked address shows on its own
+// (the default comes ready picked), with "Change" opening a compact one-line
+// list of the others, so many saved addresses don't make a long page. Or add
+// one, saving it to the account if wanted.
 // Guests type the address in, with a nudge to log in and keep it. Starts
 // from what was picked in the header's "Delivering to", and picking here
 // updates the header too.
@@ -26,6 +28,8 @@ export default function AddressPicker() {
   const [adding, setAdding] = useState(false);
   const [oneOff, setOneOff] = useState<AddressInput | null>(null);
   const [keep, setKeep] = useState(true);
+  // the list of saved addresses, folded away behind the picked one
+  const [listOpen, setListOpen] = useState(false);
   const where = useDeliverTo();
 
   useEffect(() => {
@@ -78,6 +82,7 @@ export default function AddressPicker() {
   const current = chosen || saved.find((a) => a.id === where?.addressId)?.id || saved[0]?.id || "";
   const pick = (id: string) => {
     setChosen(id);
+    setListOpen(false);
     const a = saved.find((x) => x.id === id);
     if (a) setDeliverTo(deliverToAddress(a));
   };
@@ -102,13 +107,36 @@ export default function AddressPicker() {
 
   return (
     <>
-      {(saved.length > 0 || oneOff) && (
-        <fieldset className="grid gap-3">
+      {picked && !listOpen && (
+        <div className="rounded-[var(--radius)] border border-rasta-gold bg-iron p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <span className="min-w-0 font-medium">
+              {picked.label} <span className="font-normal text-muted">· {picked.recipient_name}</span>
+            </span>
+            {saved.length + (oneOff ? 1 : 0) > 1 && (
+              <button type="button" className="shrink-0 text-sm font-semibold text-rasta-gold underline underline-offset-4" aria-expanded={false} onClick={() => setListOpen(true)}>
+                Change · {saved.length + (oneOff ? 1 : 0)} saved
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            {addressLines(picked).map((l) => (
+              <span key={l} className="block break-words">
+                {l}
+              </span>
+            ))}
+            <span className="block">{picked.phone}</span>
+          </p>
+        </div>
+      )}
+
+      {(listOpen || (!picked && (saved.length > 0 || oneOff))) && (
+        <fieldset className="overflow-hidden rounded-[var(--radius)] border border-line">
           <legend className="sr-only">Choose a delivery address</legend>
           {saved.map((a) => (
             <Choice key={a.id} id={a.id} a={a} chosen={current} onPick={pick} badge={a.is_default ? "Default" : ""} />
           ))}
-          {oneOff && <Choice id={ONE_OFF} a={oneOff} chosen={current} onPick={setChosen} badge="This order only" />}
+          {oneOff && <Choice id={ONE_OFF} a={oneOff} chosen={current} onPick={pick} badge="This order only" />}
         </fieldset>
       )}
 
@@ -137,6 +165,11 @@ export default function AddressPicker() {
         </div>
       ) : (
         <div className="mt-4 flex flex-wrap gap-x-6 text-sm">
+          {listOpen && (
+            <button type="button" className="min-h-11 text-muted underline underline-offset-4 hover:text-paper" onClick={() => setListOpen(false)}>
+              Keep this one
+            </button>
+          )}
           <button type="button" className="min-h-11 underline underline-offset-4 hover:text-paper" onClick={() => setAdding(true)}>
             Deliver somewhere else
           </button>
@@ -169,34 +202,18 @@ function Choice({
   badge: string;
 }) {
   const on = chosen === id;
+  const lines = addressLines(a);
   return (
-    <label
-      className={`flex cursor-pointer gap-3 rounded-[var(--radius)] border bg-iron p-4 transition-colors sm:p-5 ${
-        on ? "border-rasta-gold" : "border-line hover:border-[#3a3a3a]"
-      }`}
-    >
-      <input
-        type="radio"
-        name="address_choice"
-        className="mt-1 size-4 shrink-0 accent-[var(--color-rasta-gold)]"
-        checked={on}
-        onChange={() => onPick(id)}
-      />
+    <label className={`flex min-h-14 cursor-pointer items-center gap-3 border-t border-line px-4 py-3 first:border-t-0 ${on ? "bg-iron" : "hover:bg-iron/60"}`}>
+      <input type="radio" name="address_choice" className="size-4 shrink-0 accent-[var(--color-rasta-gold)]" checked={on} onChange={() => onPick(id)} />
       <span className="min-w-0 flex-1">
-        <span className="flex items-start justify-between gap-3">
-          <span className="font-medium">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="truncate text-sm font-medium">
             {a.label} <span className="font-normal text-muted">· {a.recipient_name}</span>
           </span>
           {badge && <span className="shrink-0 text-xs font-semibold text-rasta-gold">{badge}</span>}
         </span>
-        <span className="mt-1 block text-sm text-muted">
-          {addressLines(a).map((l) => (
-            <span key={l} className="block break-words">
-              {l}
-            </span>
-          ))}
-          <span className="block">{a.phone}</span>
-        </span>
+        <span className="block truncate text-xs text-muted">{[lines[0], lines[lines.length - 1]].filter((l, i, all) => l && all.indexOf(l) === i).join(", ")}</span>
       </span>
     </label>
   );

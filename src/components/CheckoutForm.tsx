@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import SlideToConfirm from "@/components/SlideToConfirm";
 import AddressPicker from "@/components/address/AddressPicker";
 import { useAuth } from "@/lib/auth";
-import { clearCart, useCart } from "@/lib/cart";
+import { cartSums, clearCart, useCart } from "@/lib/cart";
+import { formatPrice } from "@/lib/currency";
 import { track } from "@/lib/track";
 import { useCartStock } from "@/lib/cart-stock";
 
@@ -21,6 +23,8 @@ export default function CheckoutForm() {
   const { status } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const total = cartSums(cart).total;
 
   useEffect(() => {
     track("checkout");
@@ -85,7 +89,7 @@ export default function CheckoutForm() {
   }
 
   return (
-    <form className="space-y-12" onSubmit={submit}>
+    <form ref={formRef} className="space-y-12" onSubmit={submit}>
       <section aria-labelledby="delivery-heading">
         <h2 id="delivery-heading" className="mb-5 text-2xl">
           Delivery address
@@ -121,9 +125,24 @@ export default function CheckoutForm() {
       )}
 
       {status === "in" ? (
-        <button className="btn btn-primary w-full sm:w-auto" disabled={busy || cart.length === 0 || !!stock.blocked}>
-          {busy ? "Placing your order" : "Place order"}
-        </button>
+        <>
+          <div className="co-desk">
+            <button className="btn btn-primary w-full sm:w-auto" disabled={busy || cart.length === 0 || !!stock.blocked}>
+              {busy ? "Placing your order" : "Place order"}
+            </button>
+          </div>
+          {/* phones: slide to confirm, so a stray tap can't place an order */}
+          <div className="co-slide-gap" aria-hidden="true" />
+          <div className="co-slidebar">
+            <SlideToConfirm
+              label={`Slide to confirm order · ${formatPrice(total)}`}
+              disabled={cart.length === 0 || !!stock.blocked}
+              busy={busy}
+              onConfirm={() => formRef.current?.requestSubmit()}
+            />
+            <small>Nothing to pay now: our team will contact you for payment.</small>
+          </div>
+        </>
       ) : (
         <Link href="/account/login" className="btn btn-primary w-full sm:w-auto">
           Log in to place your order
