@@ -233,3 +233,17 @@
   font-size: 0.8rem;
   cursor: pointer;
 }
+.stk-gstrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stk-gstrow select {
+  flex: 0 0 96px;
+}
+.stk-seg--alone {
+  border: 1px solid var(--ap-line);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 44px;
+}

@@ -57,7 +57,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
                 <span className="stk-name">{many ? v.label : "In stock"}</span>
                 <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not counted yet"}</b>
               </div>
-              <small className="stk-avg">{a != null ? `Cost ${formatPrice(a, { paise: true })} each on average, before GST` : "No buying price yet"}</small>
+              <small className="stk-avg">{a != null ? `Cost ${formatPrice(a, { paise: true })} each on average (excl. GST)` : "No buying price yet"}</small>
               <div className="stk-actions">
                 <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "add"} onClick={() => toggle(v.id, "add")}>
                   + Add stock
@@ -81,6 +81,8 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
   const [price, setPrice] = useState("");
   // the typed price is for one piece, or for all the pieces together
   const [per, setPer] = useState<"each" | "all">("each");
+  // the typed price has GST added on top of it, or already inside it
+  const [incl, setIncl] = useState(false);
   const [rate, setRate] = useState(defaultRate);
   const [supplier, setSupplier] = useState("");
   const [newName, setNewName] = useState("");
@@ -103,7 +105,9 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
   const q = Math.round(Number(qty));
   const typed = priceOf(price);
   // the database keeps one piece's price, to the paisa
-  const p = per === "each" ? typed : q > 0 ? paisa(typed / q) : NaN;
+  const typedEach = per === "each" ? typed : q > 0 ? typed / q : NaN;
+  // stock and profit work on the price before GST, so take the GST out when it's inside
+  const p = paisa(incl ? (typedEach * 100) / (100 + rate) : typedEach);
   const valid = q > 0 && Number.isFinite(p) && p >= 0;
   const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
   const bill = hasSupplier && billNo.trim() !== "";
@@ -157,7 +161,7 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
           <input inputMode="numeric" value={qty} placeholder="0" autoFocus onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} />
         </label>
         <div className="ape-field stk-price">
-          <span id={`stk-p-${v.id}`}>Price before GST</span>
+          <span id={`stk-p-${v.id}`}>{incl ? "Price (incl. GST)" : "Price (excl. GST)"}</span>
           <div className="stk-pricebox">
             <input aria-labelledby={`stk-p-${v.id}`} inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => priceTyping(e.target.value) && setPrice(e.target.value)} />
             <div className="stk-seg" role="group" aria-label="The price is for">
@@ -173,16 +177,26 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
       </div>
 
       {/* 2. GST */}
-      <label className="ape-field stk-gst">
-        <span>GST</span>
-        <select value={rate} onChange={(e) => setRate(Number(e.target.value))}>
-          {BRACKETS.map((b) => (
-            <option key={b} value={b}>
-              {b}%
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="ape-field stk-gst">
+        <span id={`stk-g-${v.id}`}>GST</span>
+        <div className="stk-gstrow">
+          <select aria-labelledby={`stk-g-${v.id}`} value={rate} onChange={(e) => setRate(Number(e.target.value))}>
+            {BRACKETS.map((b) => (
+              <option key={b} value={b}>
+                {b}%
+              </option>
+            ))}
+          </select>
+          <div className="stk-seg stk-seg--alone" role="group" aria-label="Is the price inclusive or exclusive of GST?">
+            <button type="button" className={!incl ? "is-on" : ""} aria-pressed={!incl} onClick={() => setIncl(false)}>
+              Exclusive
+            </button>
+            <button type="button" className={incl ? "is-on" : ""} aria-pressed={incl} onClick={() => setIncl(true)}>
+              Inclusive
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* 3. the supplier bill, only when there is one */}
       <details className="stk-bill" open={supplier !== "" || billNo !== ""}>
@@ -228,8 +242,13 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
             <dd>
               <b>{r(paisa(before + gst))}</b>
               <small>
-                {per === "all" ? `${r(p)} each` : `${q} × ${r(p)}`} = {r(before)}, + {r(gst)} GST
-                {per === "all" && paisa(q * p) !== paisa(typed) ? " (rounded to the paisa)" : ""}
+                {r(before)} excl. GST + {r(gst)} GST
+              </small>
+              <small>
+                {r(p)} each excl. GST{q > 1 ? ` × ${q}` : ""}
+                {paisa(Math.abs(paisa(q * typedEach) - (incl ? paisa(before + gst) : before))) > 0
+                  ? ` · ${Math.round(Math.abs(paisa(q * typedEach) - (incl ? paisa(before + gst) : before)) * 100)} paise off from rounding`
+                  : ""}
               </small>
               {gst > 0 && <small>{claimable ? "GST can be claimed" : "GST can't be claimed"}</small>}
             </dd>
