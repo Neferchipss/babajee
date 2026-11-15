@@ -187,7 +187,18 @@
 .sti-table-wrap {
   overflow-x: auto;
 }
-.sti-table-wrap .adm-table {
+.sti-preview {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: 100%;
+}
+.sti-preview th,
+.sti-preview td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--adm-line);
+  text-align: left;
+}
+.sti-table-wrap .sti-preview {
   min-width: 520px;
 }
 .sti-confirm {
@@ -203,4 +214,43 @@
 .sti-voidnote {
   color: var(--adm-bad);
   font-weight: 600;
+}
+.sti-drop {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 22px 14px;
+  border: 2px dashed var(--adm-line);
+  border-radius: 14px;
+  text-align: center;
+}
+.sti-drop.is-over {
+  border-color: var(--adm-gold);
+  background: color-mix(in srgb, var(--adm-gold) 10%, transparent);
+}
+.sti-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.sti-review .adm-btn,
+.sti-card .adm-btn {
+  min-height: 44px;
+}
+.sti-preview td,
+.sti-preview th {
+  white-space: nowrap;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sti-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--adm-gold);
+  border-radius: 14px;
+  background: var(--adm-panel);
+}
+.sti-card p {
+  margin: 0;
 }

@@ -9,7 +9,8 @@ import { listProducts } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/currency";
 import { dayLabel } from "@/lib/dates";
 import { errText, getSettings } from "@/lib/orders-db";
-import { listReceipts, listSuppliers, postReceipt, saveSupplier, stockCatalogue, type ReceiptKind, type ReceiptRow, type Supplier } from "@/lib/stock-in/db";
+import SheetImport from "@/components/admin/stock/SheetImport";
+import { listReceipts, listSuppliers, postReceipt, saveSupplier, stockCatalogue, trackAllStock, uncounted, type ReceiptKind, type ReceiptRow, type Supplier } from "@/lib/stock-in/db";
 import type { Candidate } from "@/lib/stock-in/match";
 import "@/components/admin/stock/stockin.css";
 
@@ -20,7 +21,7 @@ const today = () => new Date().toLocaleDateString("en-CA");
 const NEW_SUPPLIER = "__new";
 
 type Tab = "bills" | "suppliers";
-type Draft = { kind: ReceiptKind } | null;
+type Draft = { kind: ReceiptKind; sheet?: boolean } | null;
 
 // Stock in: the supplier bills posted so far, a way to enter a new one, and
 // the suppliers. Posting a bill adds its lines to stock and records the GST
@@ -64,6 +65,7 @@ export default function StockInPage() {
       {draft ? (
         <NewBill
           kind={draft.kind}
+          startWithSheet={!!draft.sheet}
           suppliers={(suppliers ?? []).filter((s) => s.active)}
           onSupplier={loadSuppliers}
           onCancel={() => setDraft(null)}
@@ -85,7 +87,10 @@ export default function StockInPage() {
           </div>
           <div style={{ height: 14 }} />
           {tab === "bills" ? (
-            <Bills bills={bills} range={range} setRange={setRange} onNew={(kind) => setDraft({ kind })} />
+            <>
+              <TrackAll refresh={loaded} />
+              <Bills bills={bills} range={range} setRange={setRange} onNew={(kind, sheet) => setDraft({ kind, sheet })} />
+            </>
           ) : (
             <Suppliers list={suppliers} onChanged={loadSuppliers} />
           )}
@@ -97,7 +102,7 @@ export default function StockInPage() {
 
 // ---------------------------------------------------------------- bills
 
-function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; range: ReturnType<typeof useRange>[0]; setRange: ReturnType<typeof useRange>[1]; onNew: (k: ReceiptKind) => void }) {
+function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; range: ReturnType<typeof useRange>[0]; setRange: ReturnType<typeof useRange>[1]; onNew: (k: ReceiptKind, sheet?: boolean) => void }) {
   const live = (bills ?? []).filter((b) => b.status === "posted");
   const sum = live.reduce((a, b) => ({ taxable: a.taxable + Number(b.taxable), gst: a.gst + Number(b.gst) }), { taxable: 0, gst: 0 });
   return (
@@ -109,7 +114,9 @@ function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; 
         <button type="button" className="adm-btn" onClick={() => onNew("opening")}>
           Opening count
         </button>
-        {/* Task 6: an "Upload a sheet" button goes here, next to New bill. */}
+        <button type="button" className="adm-btn" onClick={() => onNew("bill", true)}>
+          Upload a sheet
+        </button>
       </div>
       <RangePicker value={range} onChange={setRange} />
       {bills === null ? (
@@ -152,7 +159,7 @@ function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; 
 
 // ---------------------------------------------------------------- new bill
 
-function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: ReceiptKind; suppliers: Supplier[]; onSupplier: () => void; onCancel: () => void; onPosted: () => void }) {
+function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPosted }: { kind: ReceiptKind; startWithSheet: boolean; suppliers: Supplier[]; onSupplier: () => void; onCancel: () => void; onPosted: () => void }) {
   const opening = kind === "opening";
   const [supplier, setSupplier] = useState("");
   const [newName, setNewName] = useState("");
@@ -165,6 +172,9 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
   const [rates, setRates] = useState<Map<string, number>>(new Map());
   const [shopRate, setShopRate] = useState(18);
   const [err, setErr] = useState("");
+  const [sheet, setSheet] = useState(startWithSheet);
+  // set when this supplier and bill number are already posted
+  const [dup, setDup] = useState(false);
 
   useEffect(() => {
     stockCatalogue().then(setCatalogue, (e) => (setErr(errText(e)), setCatalogue([])));
@@ -183,11 +193,35 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
   // a bill is a supplier and a number; without them it can only be an opening count
   const valid = linesOk && (opening || (hasSupplier && billNo.trim() !== ""));
 
-  async function post(e: FormEvent) {
+  const supplierName = (supplier === NEW_SUPPLIER ? newName : (suppliers.find((s) => s.id === supplier)?.name ?? "")).trim();
+
+  // sheet lines join whatever is already on the form
+  function takeLines(incoming: Line[]) {
+    const merged = new Map(lines.map((l) => [l.variant_id, l]));
+    for (const l of incoming) {
+      const prev = merged.get(l.variant_id);
+      merged.set(l.variant_id, prev ? { ...prev, qty: prev.qty + l.qty, unit_price: priceEntered(prev) ? prev.unit_price : l.unit_price } : l);
+    }
+    setLines([...merged.values()]);
+    setSheet(false);
+  }
+
+  async function post(e: { preventDefault(): void }, confirmed = false) {
     e.preventDefault();
     if (!valid || busy) return;
     setBusy(true);
     try {
+      // The database adds lines to a posted bill with the same supplier and
+      // number, which would double the stock if a paper bill is entered twice.
+      if (!opening && !confirmed) {
+        const known = await listReceipts("1970-01-01", today());
+        const same = (a: string | null, b: string) => (a ?? "").trim().toLowerCase() === b.trim().toLowerCase();
+        if (known.some((b) => b.kind === "bill" && b.status === "posted" && same(b.supplier, supplierName) && same(b.bill_no, billNo))) {
+          setDup(true);
+          setBusy(false);
+          return;
+        }
+      }
       let supplierId: string | null = !opening && supplier && supplier !== NEW_SUPPLIER ? supplier : null;
       if (!opening && supplier === NEW_SUPPLIER) {
         supplierId = await saveSupplier({ name: newName.trim() });
@@ -209,16 +243,18 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
     }
   }
 
+  if (sheet && catalogue) return <SheetImport catalogue={catalogue} gstOf={gstOf} onLines={takeLines} onCancel={() => setSheet(false)} />;
+
   return (
     <form className="adm-card sti-form sti-stack" onSubmit={post}>
       <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{opening ? "Opening count" : "New bill"}</h2>
-      {opening && <p className="adm-muted adm-small">What you already have on the shelf, with what you paid for it. No supplier or bill number needed.</p>}
+      {opening && <p className="adm-muted adm-small">What you already have on the shelf, with what you paid for it. No supplier or bill number needed. GST isn&apos;t claimed on opening stock.</p>}
       {err && <p className="adm-err">{err}</p>}
       {!opening && (
         <>
           <label className="adm-label">
             Supplier
-            <select className="adm-input" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+            <select className="adm-input" value={supplier} onChange={(e) => (setSupplier(e.target.value), setDup(false))}>
               <option value="">Choose a supplier</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -231,13 +267,13 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
           {supplier === NEW_SUPPLIER && (
             <label className="adm-label">
               New supplier name
-              <input className="adm-input" value={newName} placeholder="Supplier name" onChange={(e) => setNewName(e.target.value)} />
+              <input className="adm-input" value={newName} placeholder="Supplier name" onChange={(e) => (setNewName(e.target.value), setDup(false))} />
             </label>
           )}
           <div className="sti-grid">
             <label className="adm-label">
               Bill no.
-              <input className="adm-input" value={billNo} placeholder="e.g. 4471" onChange={(e) => setBillNo(e.target.value)} />
+              <input className="adm-input" value={billNo} placeholder="e.g. 4471" onChange={(e) => (setBillNo(e.target.value), setDup(false))} />
             </label>
             <label className="adm-label">
               Date
@@ -257,10 +293,30 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
         <input className="adm-input" value={notes} placeholder="Optional" onChange={(e) => setNotes(e.target.value)} />
       </label>
 
+      {catalogue !== null && (
+        <button type="button" className="adm-btn" onClick={() => setSheet(true)}>
+          Fill from a sheet
+        </button>
+      )}
       {catalogue === null ? <p className="adm-muted adm-small">Loading your products.</p> : <LineEditor catalogue={catalogue} lines={lines} onChange={setLines} gstOf={gstOf} />}
 
+      {dup && (
+        <div className="sti-confirm" role="alertdialog" aria-label="Bill already posted">
+          <p>
+            Bill {billNo.trim()} from {supplierName} is already posted. These lines will be added to it.
+          </p>
+          <div className="adm-actions">
+            <button type="button" className="adm-btn pri" disabled={busy} onClick={(e) => post(e, true)}>
+              Add to it
+            </button>
+            <button type="button" className="adm-btn" disabled={busy} onClick={() => setDup(false)}>
+              Don&apos;t post
+            </button>
+          </div>
+        </div>
+      )}
       <div className="adm-actions">
-        <button className="adm-btn pri" disabled={!valid || busy} style={{ flex: 1 }}>
+        <button className="adm-btn pri" disabled={!valid || busy || dup} style={{ flex: 1 }}>
           {busy ? "Posting" : `Post ${opening ? "opening count" : "bill"}${lines.length ? ` · ${formatPrice(t.total, { paise: true })}` : ""}`}
         </button>
         <button type="button" className="adm-btn" disabled={busy} onClick={onCancel}>
@@ -268,6 +324,73 @@ function NewBill({ kind, suppliers, onSupplier, onCancel, onPosted }: { kind: Re
         </button>
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------- track all stock
+
+// Shown once an opening count is posted and some options still have no count.
+// Switching on counting makes uncounted options sell out, so it says so first
+// and asks again before it does anything.
+function TrackAll({ refresh }: { refresh: unknown }) {
+  const [n, setN] = useState(0);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const opening = (await listReceipts("1970-01-01", today())).some((r) => r.kind === "opening" && r.status === "posted");
+        const left = opening ? await uncounted() : 0;
+        if (live) setN(left);
+      } catch {
+        if (live) setN(0);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [refresh]);
+
+  if (n <= 0) return null;
+  async function go() {
+    setBusy(true);
+    try {
+      const changed = await trackAllStock();
+      toast(`Now tracking ${changed} option${changed === 1 ? "" : "s"}`);
+      setN(await uncounted());
+      setConfirming(false);
+    } catch (x) {
+      toastError(x);
+    }
+    setBusy(false);
+  }
+  return (
+    <div className="sti-card" style={{ marginBottom: 14 }}>
+      <p>
+        {n} option{n === 1 ? " has" : "s have"} no count. Start tracking all stock? They&apos;ll show as sold out until you add stock.
+      </p>
+      {confirming ? (
+        <div className="sti-confirm" role="alertdialog" aria-label="Start tracking all stock">
+          <p>
+            {n} option{n === 1 ? "" : "s"} will show as sold out until you add stock. Start tracking?
+          </p>
+          <div className="adm-actions">
+            <button type="button" className="adm-btn pri" disabled={busy} onClick={go}>
+              {busy ? "Starting" : "Yes, start tracking"}
+            </button>
+            <button type="button" className="adm-btn" disabled={busy} onClick={() => setConfirming(false)}>
+              Not yet
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="adm-btn pri" onClick={() => setConfirming(true)}>
+          Start tracking all stock
+        </button>
+      )}
+    </div>
   );
 }
 
