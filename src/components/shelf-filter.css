@@ -30,7 +30,7 @@
   height: 17px;
   padding: 0 4px;
   border-radius: 999px;
-  background: var(--bb-hot, #bea364);
+  background: var(--bb-hot, #d3ab70);
   color: #111;
   font: 700 0.68rem/1 var(--font-body-face, system-ui), sans-serif;
 }
@@ -41,7 +41,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--bb-hot, #bea364);
+  background: var(--bb-hot, #d3ab70);
 }
 
 /* ---------- the panel ---------- */
@@ -168,8 +168,8 @@
   cursor: pointer;
 }
 .sf-sort[aria-checked="true"] {
-  border-color: var(--bb-hot, #bea364);
-  background: color-mix(in srgb, var(--bb-hot, #bea364) 14%, transparent);
+  border-color: var(--bb-hot, #d3ab70);
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
   color: var(--color-paper, #f2f3f5);
   font-weight: 600;
 }
@@ -200,8 +200,8 @@
   font-variant-numeric: tabular-nums;
 }
 .sf-chip[aria-pressed="true"] {
-  border-color: var(--bb-hot, #bea364);
-  background: color-mix(in srgb, var(--bb-hot, #bea364) 14%, transparent);
+  border-color: var(--bb-hot, #d3ab70);
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
   font-weight: 600;
 }
 .sf-chip:disabled {
@@ -241,7 +241,7 @@
 .sf-go {
   flex: 1;
   border: 0;
-  background: var(--bb-hot, #bea364);
+  background: var(--bb-hot, #d3ab70);
   color: #111;
 }
 
@@ -268,9 +268,9 @@
   gap: 8px;
   height: 32px;
   padding: 0 10px 0 13px;
-  border: 1px solid var(--bb-hot, #bea364);
+  border: 1px solid var(--bb-hot, #d3ab70);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bb-hot, #bea364) 14%, transparent);
+  background: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, transparent);
   color: var(--color-paper, #f2f3f5);
   font: 500 0.82rem/1 var(--font-body-face, system-ui), system-ui, sans-serif;
   cursor: pointer;

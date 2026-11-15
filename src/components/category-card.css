@@ -274,7 +274,7 @@ html[data-mode="dark"] #site .ccard-cta {
 /* ------------------------------------------------------------ seven looks */
 /* Each card wears one of seven looks: in Light and Dark a tint of its own
    (until the seven backgrounds are made); Daydream gives each its own art. */
-#site .ccard[data-v="0"] { --ccard-hue: #bea364; }
+#site .ccard[data-v="0"] { --ccard-hue: #d3ab70; }
 #site .ccard[data-v="1"] { --ccard-hue: #4aa8e0; }
 #site .ccard[data-v="2"] { --ccard-hue: #3fb08a; }
 #site .ccard[data-v="3"] { --ccard-hue: #e46a8f; }

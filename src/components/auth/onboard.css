@@ -12,9 +12,9 @@ body:has(.onb) .ftr {
   --onb-field: var(--color-ash, #1b1b1c);
   /* the site's brass gold, fixed: in light mode the theme token turns rasta
      yellow, and rasta colours belong to the logo only */
-  --onb-gold: #bea364;
+  --onb-gold: #d3ab70;
   /* gold used as text: deeper on light backgrounds so it reads */
-  --onb-gold-ink: #bea364;
+  --onb-gold-ink: #d3ab70;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 20px;
@@ -659,7 +659,7 @@ body:has(.onb) .ftr {
   cursor: pointer;
 }
 .onb-close:hover {
-  border-color: var(--onb-gold, #bea364);
+  border-color: var(--onb-gold, #d3ab70);
 }
 /* the window sits in the middle of the screen (a reset elsewhere zeroes dialog margins) */
 .onb-dialog {
