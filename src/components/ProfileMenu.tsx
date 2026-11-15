@@ -343,7 +343,6 @@ const MODES: { id: ModePref; label: string; d: string }[] = [
   { id: "system", label: "System", d: "M4 5h16v11H4zM9 20h6M12 16v4" },
   { id: "light", label: "Light", d: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { id: "dark", label: "Dark", d: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
-  { id: "daydream", label: "Daydream", d: "M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 10V5a2.5 2.5 0 0 1 0 5zM12 14v5a2.5 2.5 0 0 0 0-5zM10 12H5a2.5 2.5 0 0 0 5 0zM14 12h5a2.5 2.5 0 0 1-5 0z" },
 ];
 
 // Light, dark, or as the device is set (the default)
