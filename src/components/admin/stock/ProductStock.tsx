@@ -194,7 +194,8 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
       )}
       {preview != null && (
         <p className="stk-preview" aria-live="polite">
-          New average {formatPrice(preview, { paise: true })}
+          Average buying price after this: {formatPrice(preview, { paise: true })}
+          {average != null && <small> (now {formatPrice(average, { paise: true })})</small>}
         </p>
       )}
       <div className="stk-submit">
