@@ -1,0 +1,108 @@
+/* Stock section of the product panel. Uses the admin tokens (--ap-*), which
+   follow Light and Dark. Phone first: one column, 44px targets. */
+.stk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.stk-opt {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 14px;
+  background: var(--ap-panel);
+}
+.stk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.stk-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.stk-count {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.stk-count.is-none {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ap-muted);
+}
+.stk-count.is-out {
+  color: var(--ap-hot);
+}
+.stk-avg {
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+}
+.stk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stk-actions .stk-btn,
+.ape-fields .stk-actions .stk-btn {
+  margin: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  justify-content: center;
+  flex: 1 1 120px;
+}
+.stk-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--ap-hot) 14%, transparent);
+  border-color: var(--ap-hot);
+}
+.stk-form {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ap-line);
+}
+.stk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 380px) {
+  .stk-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.stk-form .ape-field input,
+.stk-form .ape-field select {
+  min-height: 44px;
+}
+.stk-hint {
+  margin: 0;
+}
+.stk-preview {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ap-good);
+}
+.stk-submit {
+  display: flex;
+}
+.stk-go {
+  flex: 1;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-rasta-gold);
+  color: var(--color-ink, #111);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.stk-go:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

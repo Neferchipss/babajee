@@ -168,11 +168,11 @@ export default function ProductTable({
                     </td>
                     <td className="r c-stock">
                       {one ? (
-                        <StockCell v={one} name={p.name} onSave={(patch) => save(() => api.upsertVariant(p.id, { ...one, ...patch }))} />
+                        <StockCell v={one} />
                       ) : stockTotal(p) != null ? (
                         <span className="apt-static">{stockTotal(p)}</span>
                       ) : (
-                        <span className="apt-static apt-muted">Not counted</span>
+                        <span className="apt-static apt-muted">Not counted yet</span>
                       )}
                     </td>
                     <td className="r c-sold">
@@ -245,7 +245,7 @@ function OptionRow({ v, product: p, selecting, showCat, onSave }: { v: AdminVari
         <Cell col="price" num value={v.price ? String(v.price) : ""} placeholder={main ? String(main) : "Add"} label={`Price of the ${v.label} option`} onSave={(x) => onSave({ price: Number(x) || 0 })} />
       </td>
       <td className="r c-stock">
-        <StockCell v={v} name={`${p.name} ${v.label}`} onSave={onSave} />
+        <StockCell v={v} />
       </td>
       <td className="c-sold" />
       <td className="c-shop">
@@ -301,22 +301,10 @@ function AddOptionRow({ product: p, onAdd }: { product: AdminProduct; onAdd: (la
   );
 }
 
-// Stock: a number when it's counted, with a way to start or stop counting.
-function StockCell({ v, name, onSave }: { v: AdminVariant; name: string; onSave: (patch: Partial<AdminVariant>) => Promise<void> }) {
-  if (!v.track_stock)
-    return (
-      <button type="button" className="apt-count" onClick={() => onSave({ track_stock: true })} title="Start counting stock: checkout then refuses more than you have">
-        Not counted
-      </button>
-    );
-  return (
-    <span className="apt-stock">
-      <Cell col="stock" num value={String(v.stock_qty)} label={`Stock of ${name}`} onSave={(x) => onSave({ stock_qty: Math.max(0, Math.round(Number(x) || 0)) })} />
-      <button type="button" className="apt-uncount" onClick={() => onSave({ track_stock: false })} aria-label={`Stop counting stock of ${name}`} title="Stop counting stock">
-        ×
-      </button>
-    </span>
-  );
+// Stock: the count, read-only here; it changes from the product's Stock section.
+function StockCell({ v }: { v: AdminVariant }) {
+  if (!v.track_stock) return <span className="apt-static apt-muted">Not counted yet</span>;
+  return <span className={`apt-static ${v.stock_qty <= 0 ? "apt-out" : ""}`}>{v.stock_qty}</span>;
 }
 
 function Switch({ on, label, onFlip }: { on: boolean; label: string; onFlip: () => void }) {

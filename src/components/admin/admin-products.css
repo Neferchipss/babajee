@@ -1735,6 +1735,9 @@ select.apt-in {
   padding-right: 8px;
   white-space: nowrap;
 }
+.apt-static.apt-out {
+  color: var(--ap-hot);
+}
 .apt-muted {
   color: var(--ap-muted);
   font-size: 0.82rem;

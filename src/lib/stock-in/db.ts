@@ -146,6 +146,14 @@ export async function purchaseGst(from: string, to: string): Promise<PurchaseGst
   return (data ?? []) as PurchaseGstMonth[];
 }
 
+// Bill numbers by receipt id, for labelling stock movements.
+export async function billNumbers(ids: string[]): Promise<Map<string, string>> {
+  if (!ids.length) return new Map();
+  const { data, error } = await db().from("stock_receipts").select("id, bill_no").in("id", ids);
+  if (error) throw error;
+  return new Map(((data ?? []) as { id: string; bill_no: string }[]).map((r) => [r.id, r.bill_no]));
+}
+
 // Every option, for matching bill lines to the shop's products.
 export async function stockCatalogue(): Promise<Candidate[]> {
   type Row = { id: string; label: string | null; sku: string | null; products: { name: string } | { name: string }[] | null };

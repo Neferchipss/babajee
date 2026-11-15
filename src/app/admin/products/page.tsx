@@ -27,7 +27,7 @@ const setShopLowAt = (n: number) => {
 const stockOf = (p: AdminProduct) => {
   const t = p.variants.filter((v) => v.track_stock && v.is_visible);
   const mark = p.low_stock_at ?? shopLowAt;
-  return { out: t.length > 0 && t.some((v) => v.stock_qty === 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
+  return { out: t.length > 0 && t.some((v) => v.stock_qty <= 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
 };
 
 // what each filter is, and what to do about it, for the page's head
