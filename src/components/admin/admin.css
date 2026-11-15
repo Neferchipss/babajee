@@ -2722,6 +2722,95 @@ th[aria-sort="ascending"] .adm-sort .down {
     animation: none;
   }
 }
+/* zooming into one state */
+.geo-zoom {
+  transform-origin: 0 0;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.geo-state,
+.geo-state-lift,
+.geo-state-ring {
+  vector-effect: non-scaling-stroke;
+}
+.geo-svg.has-focus .geo-state:not(.is-focus) {
+  opacity: 0.18;
+}
+.geo-svg.has-focus.has-hover .geo-state.is-hover {
+  opacity: 0.6;
+}
+.geo-state-ring {
+  fill: none;
+  stroke: #fff8ec;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.geo-city {
+  pointer-events: none;
+  animation: geo-city-in 0.35s ease-out both;
+}
+.geo-city circle {
+  fill: #fff8ec;
+  stroke: rgb(0 0 0 / 0.55);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.geo-city text {
+  fill: var(--adm-ink);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.75);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.geo-city tspan {
+  fill: var(--adm-meter);
+  font-weight: 700;
+}
+@keyframes geo-city-in {
+  from {
+    opacity: 0;
+  }
+}
+.geo-back {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-panel) 90%, transparent);
+  color: var(--adm-ink);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.geo-back:hover {
+  border-color: var(--adm-meter);
+}
+.geo-focus-head {
+  display: grid;
+  gap: 2px;
+}
+.geo-focus-head b {
+  font-size: 1.5rem;
+}
+.geo-stats.geo-stats-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.geo-stats > div.is-on {
+  border-color: color-mix(in srgb, var(--adm-meter) 60%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .geo-zoom {
+    transition: none;
+  }
+  .geo-city {
+    animation: none;
+  }
+}
 .geo-credit {
   position: absolute;
   right: 12px;

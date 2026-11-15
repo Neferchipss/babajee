@@ -3,11 +3,13 @@
 import { useMemo, useRef, useState } from "react";
 import { Bars, money } from "@/components/admin/ui";
 import india from "@/lib/india-states.json";
+import { placeOf } from "@/lib/india-places";
 import type { GeoCity } from "@/lib/orders-db";
 
 // Analytics: where customers are. India's states, shaded in the brass gold by
 // the chosen measure in five steps (deeper is more); states with nothing stay
-// dark. Hover or tap a state for its numbers. Drawn as SVG from DataMeet's
+// dark. Hover a state for its numbers; click or tap it to zoom in on it, its
+// cities marked, with the side panel switched to that state. Drawn as SVG from DataMeet's
 // boundaries (src/lib/india-states.json, made by tools/india_states.py), so
 // there are no map tiles to load. Beside it: how spread out the business is,
 // and the top places.
@@ -45,12 +47,29 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
     setHover(null);
     setAt(null);
   };
+  // the state zoomed into, and the frame that fits it (viewBox units)
+  const [focus, setFocus] = useState<{ name: string; tx: number; ty: number; k: number } | null>(null);
+  const zoomTo = (name: string, el: SVGGraphicsElement) => {
+    const b = el.getBBox();
+    const k = Math.min(8, 0.82 * Math.min(india.w / b.width, india.h / b.height));
+    setFocus({ name, k, tx: india.w / 2 - k * (b.x + b.width / 2), ty: india.h / 2 - k * (b.y + b.height / 2) });
+    clear();
+  };
+  const back = () => setFocus(null);
 
   // each city with its state's map name; totals per state for the shading
-  const placed = useMemo(() => cities.map((c) => ({ ...c, mapState: stateKey(c.state) })), [cities]);
+  const placed = useMemo(
+    () =>
+      cities.map((c) => {
+        const ll = c.lat != null && c.lng != null ? [c.lat, c.lng] : placeOf(c.city, c.state)?.at;
+        const { lng0, lat0, kx, ky } = india.proj;
+        return { ...c, mapState: stateKey(c.state), xy: ll ? ([(ll[1] - lng0) * kx, (lat0 - ll[0]) * ky] as const) : null };
+      }),
+    [cities],
+  );
   const fmt = (n: number) => (measure === "sales" ? money(Math.round(n)) : count(n));
   const byState = useMemo(() => {
-    type T = { customers: number; orders: number; sales: number; cities: number; list: { city: string; customers: number; orders: number; sales: number }[] };
+    type T = { customers: number; orders: number; sales: number; cities: number; list: { city: string; customers: number; orders: number; sales: number; xy: readonly [number, number] | null }[] };
     const m = new Map<string, T>();
     for (const c of placed) {
       if (!c.mapState) continue;
@@ -65,6 +84,10 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
   const SHADE = [0.34, 0.5, 0.66, 0.82, 1];
   const shown = hover ? byState.get(hover) : undefined;
   const hoverPath = hover ? india.states.find((st) => st.name === hover)?.d : undefined;
+  const focusPath = focus ? india.states.find((st) => st.name === focus.name)?.d : undefined;
+  const fs = focus ? byState.get(focus.name) : undefined;
+  const fsCities = fs ? [...fs.list].sort((a, b) => b[measure] - a[measure]) : [];
+  const fsMax = Math.max(1, ...fsCities.map((c) => c[measure]));
 
   // how spread out: places, and how much the biggest ones hold
   const total = placed.reduce((n, p) => n + p[measure], 0);
@@ -101,12 +124,15 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
       <div className="geo-body">
         <div className="geo-mapbox" ref={boxRef}>
           <svg
-            className={`geo-svg ${hover ? "has-hover" : ""}`}
+            className={`geo-svg ${hover ? "has-hover" : ""} ${focus ? "has-focus" : ""}`}
             viewBox={`0 0 ${india.w} ${india.h}`}
             role="img"
             aria-label={`Map of India, states shaded by ${measure}`}
             onPointerLeave={(e) => e.pointerType === "mouse" && clear()}
           >
+            {/* a click on the sea goes back to all of India */}
+            <rect width={india.w} height={india.h} fill="transparent" onClick={back} />
+            <g className="geo-zoom" style={{ transform: focus ? `translate(${focus.tx}px, ${focus.ty}px) scale(${focus.k})` : "none" }}>
             {india.states.map((st) => {
               const v = byState.get(st.name)?.[measure] ?? 0;
               const k = step(v);
@@ -116,32 +142,61 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
                   d={st.d}
                   tabIndex={0}
                   aria-label={`${st.name}: ${v ? fmt(v) : "none"}`}
-                  className={`geo-state ${k < 0 ? "is-empty" : ""} ${hover === st.name ? "is-hover" : ""}`}
+                  className={`geo-state ${k < 0 ? "is-empty" : ""} ${hover === st.name ? "is-hover" : ""} ${focus?.name === st.name ? "is-focus" : ""}`}
                   style={k < 0 ? undefined : { fillOpacity: SHADE[k] }}
                   onPointerMove={(e) => {
-                    if (e.pointerType !== "mouse") return;
+                    // no card over the state already zoomed into: the side panel has it
+                    if (e.pointerType !== "mouse" || focus?.name === st.name) return hover && clear();
                     if (hover !== st.name) setHover(st.name);
                     setAt(local(e.clientX, e.clientY));
                   }}
-                  onPointerUp={(e) => {
-                    if (e.pointerType === "mouse") return;
-                    // a tap: show this state, or put it away on a second tap
-                    if (hover === st.name) return clear();
-                    setHover(st.name);
-                    setAt(centreOf(e.currentTarget));
-                  }}
+                  onClick={(e) => (focus?.name === st.name ? back() : zoomTo(st.name, e.currentTarget))}
                   onFocus={(e) => {
-                    if (hover === st.name) return;
+                    if (hover === st.name || focus?.name === st.name) return;
                     setHover(st.name);
                     setAt(centreOf(e.currentTarget));
                   }}
-                  onKeyDown={(e) => e.key === "Escape" && (e.currentTarget.blur(), clear())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      zoomTo(st.name, e.currentTarget);
+                    }
+                    if (e.key === "Escape") {
+                      e.currentTarget.blur();
+                      clear();
+                      back();
+                    }
+                  }}
                 />
               );
             })}
             {/* the state in hand, redrawn on top so its whole outline shows */}
+            {focusPath && <path className="geo-state-ring" d={focusPath} />}
             {hoverPath && <path key={hover} className={`geo-state-lift ${shown ? "" : "is-empty"}`} d={hoverPath} style={{ fillOpacity: shown ? SHADE[step(shown[measure])] : 0.12 }} />}
+            {/* the zoomed state's cities: a dot sized by the measure, its name and figure */}
+            {focus &&
+              fsCities
+                .filter((c) => c.xy)
+                .map((c, i, all) => {
+                  // a city sitting on a bigger one keeps its dot but not its label (the side list names it)
+                  const crowded = all.slice(0, i).some((o) => Math.abs(o.xy![0] - c.xy![0]) < 150 / focus.k && Math.abs(o.xy![1] - c.xy![1]) < 36 / focus.k);
+                  const r = (8 + 18 * Math.sqrt(c[measure] / fsMax)) / focus.k; // the map draws at about half size
+                  return (
+                    <g key={c.city} className="geo-city" style={{ animationDelay: `${180 + i * 40}ms` }} transform={`translate(${c.xy![0]} ${c.xy![1]})`}>
+                      <circle r={r} />
+                      {!crowded && <text x={r + 9 / focus.k} y={8 / focus.k} style={{ fontSize: 25 / focus.k }}>
+                        {c.city} <tspan>{short(c[measure], measure)}</tspan>
+                      </text>}
+                    </g>
+                  );
+                })}
+            </g>
           </svg>
+          {focus && (
+            <button type="button" className="geo-back" onClick={back}>
+              ← All of India
+            </button>
+          )}
           {/* the state under the pointer: a card that follows it, flipping away from the edges */}
           {hover && at && (
             <div
@@ -185,7 +240,7 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
               )}
             </div>
           )}
-          {!hover && <span className="geo-hint">Point at a state</span>}
+          {!hover && !focus && <span className="geo-hint">Point at a state, click to zoom in</span>}
           {total > 0 && (
             <div className="geo-key" aria-hidden="true">
               <span className="geo-key-steps">
@@ -204,7 +259,28 @@ export default function CustomerMap({ cities, customers }: { cities: GeoCity[]; 
           <span className="geo-credit">Boundaries: DataMeet</span>
         </div>
         <div className="geo-side">
-          {total > 0 ? (
+          {focus ? (
+            <>
+              <div className="geo-focus-head">
+                <span className="anx-lab">State</span>
+                <b>{focus.name}</b>
+                <span className="adm-muted adm-small">
+                  {fs ? `${pct(total ? (fs[measure] / total) * 100 : 0)} of all ${measure} · ${fs.cities} cit${fs.cities === 1 ? "y" : "ies"}` : `No ${measure} in this period`}
+                </span>
+              </div>
+              <div className="geo-stats geo-stats-3">
+                {MEASURES.map((m) => (
+                  <div key={m.id} className={m.id === measure ? "is-on" : ""}>
+                    <span className="anx-lab">{m.label}</span>
+                    <b>{fs ? (m.id === "sales" ? short(fs.sales, "sales") : count(fs[m.id])) : 0}</b>
+                  </div>
+                ))}
+              </div>
+              <h3 className="geo-sub">Cities</h3>
+              <Bars rows={fsCities.slice(0, 8).map((c) => ({ name: c.city, value: c[measure] }))} fmt={fmt} empty="No cities yet." />
+              {fsCities.length > 8 && <p className="adm-muted adm-small">+{fsCities.length - 8} more cities</p>}
+            </>
+          ) : total > 0 ? (
             <>
               <div className="geo-stats">
                 <div>
