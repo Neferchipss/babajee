@@ -209,7 +209,7 @@ export default function ProductTable({
                         }
                       />
                     ))}
-                  {expanded && !selecting && <AddOptionRow product={p} onAdd={(label, price) => save(() => api.upsertVariant(p.id, { label, price, stock_qty: 0, track_stock: false, is_visible: true, sort_order: p.variants.length }), `Option ${label} added to ${p.name}`)} />}
+                  {expanded && !selecting && <AddOptionRow product={p} onAdd={(label, price) => save(() => api.upsertVariant(p.id, { label, price, is_visible: true, sort_order: p.variants.length }), `Option ${label} added to ${p.name}`)} />}
                 </Fragment>
               );
             })}

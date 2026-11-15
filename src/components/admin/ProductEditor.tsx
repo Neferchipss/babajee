@@ -387,7 +387,7 @@ export default function ProductEditor({
           onDeleteVariant={(v) => run(() => api.deleteVariant(v.id))}
           onAdd={() =>
             run(() =>
-              api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), stock_qty: 0, track_stock: false, is_visible: true, sort_order: product.variants.length }),
+              api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), is_visible: true, sort_order: product.variants.length }),
             )
           }
           photos={(v) => (

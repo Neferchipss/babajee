@@ -4,6 +4,7 @@
 // see supabase/migrations/0003_catalogue.sql. A customer session gets an
 // empty read and a rejected write no matter what this code does.
 import { toNumber } from "./currency";
+import { uncounted } from "./stock-in/db";
 import { getSupabase } from "./supabase";
 
 export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null };
@@ -215,12 +216,15 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
   return data ? toProduct(data as unknown as ProductRow) : null;
 }
 
+// A new product counts its stock (from 0) once the whole shop does; while
+// some options are still uncounted, or the check fails, it starts uncounted.
 export async function createProduct(input: { category_id: string; slug: string; name: string; description: string }) {
+  const track = await uncounted().then((n) => n === 0, () => false);
   const { data, error } = await db().from("products").insert({ ...input, is_visible: true }).select("id").single();
   if (error) throw error;
   const { error: variantError } = await db()
     .from("product_variants")
-    .insert({ product_id: data.id, label: "Default", price: 0, stock_qty: 0, is_visible: true, sort_order: 0 });
+    .insert({ product_id: data.id, label: "Default", price: 0, stock_qty: 0, track_stock: track, is_visible: true, sort_order: 0 });
   if (variantError) throw variantError;
   return data.id as string;
 }
@@ -292,14 +296,21 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
     const { error } = await db().from("product_variants").update(patch).eq("id", id);
     if (error) throw skuTaken(error);
   } else {
+    // a new option counts stock (from 0) when another option of its product does
+    let track = variant.track_stock;
+    if (track === undefined) {
+      const { data, error } = await db().from("product_variants").select("id").eq("product_id", productId).eq("track_stock", true).limit(1);
+      if (error) throw error;
+      track = (data ?? []).length > 0;
+    }
     const { error } = await db()
       .from("product_variants")
       .insert({
         product_id: productId,
         label: variant.label ?? "Option",
         price: variant.price ?? 0,
-        stock_qty: variant.stock_qty ?? 0,
-        track_stock: variant.track_stock ?? false,
+        stock_qty: track ? 0 : (variant.stock_qty ?? 0),
+        track_stock: track,
         is_visible: variant.is_visible ?? true,
         sort_order: variant.sort_order ?? 0,
       });
