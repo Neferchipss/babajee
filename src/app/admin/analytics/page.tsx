@@ -5,7 +5,7 @@ import { Fragment, useContext, useEffect, useState } from "react";
 import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
-import { purchaseGst, type PurchaseGstMonth } from "@/lib/stock-in/db";
+import { itc, unpaidBills, type ItcMonth, type UnpaidBill } from "@/lib/stock-in/db";
 import { analytics, errText, failedDeliveries, profit, salesByAge, salesByCategory, savedProducts, type AgeSales, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
 
 // The stats page. One date range drives every card, and each number is
@@ -74,11 +74,11 @@ export default function AnalyticsPage() {
     );
   }, [from, to]);
   // GST paid on supplier bills (0050); an error here must not take the page down
-  const [bills, setBills] = useState<{ key: string; rows?: PurchaseGstMonth[]; err?: string } | null>(null);
+  const [bills, setBills] = useState<{ key: string; rows?: ItcMonth[]; unpaid?: UnpaidBill[]; err?: string } | null>(null);
   useEffect(() => {
     const key = `${from}|${to}`;
-    purchaseGst(from, to).then(
-      (rows) => setBills({ key, rows }),
+    Promise.all([itc(from, to), unpaidBills(180)]).then(
+      ([rows, unpaid]) => setBills({ key, rows, unpaid }),
       (e) => setBills({ key, err: errText(e) }),
     );
   }, [from, to]);
@@ -275,20 +275,42 @@ export default function AnalyticsPage() {
               <>
                 {(() => {
                   const rows = billsNow.rows ?? [];
-                  const sum = (k: "claimable_gst" | "cgst" | "sgst" | "igst") => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+                  const sum = (k: "on_bills" | "in_2b" | "cgst" | "sgst" | "igst") => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
+                  const waiting = rows.reduce((t, r) => t + (Number(r.not_in_2b_bills) || 0), 0);
+                  const unpaid = billsNow.unpaid ?? [];
                   const m2 = (n: number) => money(Math.round(n * 100) / 100);
                   return (
                     <>
                       <div className="adm-kv anx-kv">
-                        <span className="tot">Input credit to claim</span>
-                        <span className="tot">{m2(sum("claimable_gst"))}</span>
+                        <span className="tot">ITC available (bills in GSTR-2B)</span>
+                        <span className="tot">{m2(sum("in_2b"))}</span>
                         <span>CGST</span>
                         <span>{m2(sum("cgst"))}</span>
                         <span>SGST</span>
                         <span>{m2(sum("sgst"))}</span>
                         <span>IGST</span>
                         <span>{m2(sum("igst"))}</span>
+                        <span>GST on all supplier bills</span>
+                        <span>{m2(sum("on_bills"))}</span>
                       </div>
+                      {waiting > 0 && (
+                        <p className="adm-muted adm-small">
+                          {waiting} bill{waiting === 1 ? " isn't" : "s aren't"} ticked as in GSTR-2B yet; {waiting === 1 ? "its" : "their"} GST counts once ticked on the bill.
+                        </p>
+                      )}
+                      {unpaid.length > 0 && (
+                        <div className="adm-err">
+                          <b>ITC to reverse: unpaid over 180 days</b>
+                          {unpaid.map((u) => (
+                            <div key={u.id}>
+                              <Link href={`/admin/products/stock-in/bill?id=${u.id}`}>
+                                Bill {u.bill_no} · {u.supplier ?? "supplier"}
+                              </Link>{" "}
+                              · {u.days} days · {m2(Number(u.gst) || 0)} GST
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {rows.length > 0 && (
                         <div className="adm-kv anx-kv">
                           <span className="adm-muted adm-small">By month of bill</span>
@@ -296,7 +318,7 @@ export default function AnalyticsPage() {
                           {rows.map((r) => (
                             <Fragment key={r.month}>
                               <span>{MONTH.format(new Date(`${r.month}-01T12:00:00Z`))}</span>
-                              <span>{m2(Number(r.claimable_gst))}</span>
+                              <span>{m2(Number(r.in_2b) || 0)}</span>
                             </Fragment>
                           ))}
                         </div>
@@ -305,7 +327,7 @@ export default function AnalyticsPage() {
                     </>
                   );
                 })()}
-                <p className="adm-muted adm-small anx-foot">This is the input credit to claim on GSTR-3B. Opening stock and entries without a bill aren&apos;t included.</p>
+                <p className="adm-muted adm-small anx-foot">ITC available is what can be claimed on GSTR-3B: claimable bills ticked as in GSTR-2B. Opening stock and entries without a bill aren&apos;t included.</p>
               </>
             )}
           </section>

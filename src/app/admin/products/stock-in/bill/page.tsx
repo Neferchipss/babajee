@@ -193,6 +193,8 @@ function Bill() {
           {unclaimable && <p className="adm-muted adm-small">{why}</p>}
         </section>
 
+        {!void_ && r.kind === "bill" && <BillTicks id={r.id} />}
+
         {!void_ &&
           (asking ? (
             <div className="sti-confirm" role="alertdialog" aria-label="Cancel bill">
@@ -216,5 +218,51 @@ function Bill() {
           ))}
       </div>
     </div>
+  );
+}
+
+// Two ticks on a supplier bill: it shows in GSTR-2B (so its credit can be
+// claimed), and when it was paid (credit unpaid after 180 days is reversed).
+function BillTicks({ id }: { id: string }) {
+  const [f, setF] = useState<{ in_2b: boolean; paid_on: string | null } | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    import("@/lib/stock-in/db")
+      .then((m) => m.getReceiptFlags(id))
+      .then((x) => live && setF(x), () => live && setF({ in_2b: false, paid_on: null }));
+    return () => {
+      live = false;
+    };
+  }, [id]);
+  async function save(next: { in_2b: boolean; paid_on: string | null }) {
+    setBusy(true);
+    try {
+      const m = await import("@/lib/stock-in/db");
+      await m.setReceiptFlags(id, next.in_2b, next.paid_on);
+      setF(next);
+      toast("Saved");
+    } catch (e) {
+      toastError(e);
+    }
+    setBusy(false);
+  }
+  if (!f) return null;
+  return (
+    <section className="adm-card sti-ticks">
+      <h2>For the GST return</h2>
+      <label className="sti-tick">
+        <input type="checkbox" checked={f.in_2b} disabled={busy} onChange={(e) => save({ ...f, in_2b: e.target.checked })} />
+        <span>
+          Appears in GSTR-2B
+          <small>Tick once the supplier&apos;s filing shows this bill. Only ticked bills count as input tax credit.</small>
+        </span>
+      </label>
+      <label className="adm-label">
+        Paid to supplier on
+        <input className="adm-input" type="date" value={f.paid_on ?? ""} disabled={busy} onChange={(e) => save({ ...f, paid_on: e.target.value || null })} />
+        <small className="adm-muted adm-small">Credit on a bill still unpaid 180 days after its date has to be reversed.</small>
+      </label>
+    </section>
   );
 }

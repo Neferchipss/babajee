@@ -179,3 +179,31 @@ export async function stockCatalogue(): Promise<Candidate[]> {
     };
   });
 }
+
+// Input tax credit per month (0051): GST on claimable bills, and the part
+// that can be claimed now because the bill is ticked as in GSTR-2B.
+export type ItcMonth = { month: string; on_bills: number; in_2b: number | null; cgst: number | null; sgst: number | null; igst: number | null; not_in_2b_bills: number };
+export async function itc(from: string, to: string): Promise<ItcMonth[]> {
+  const { data, error } = await db().rpc("admin_itc", { p_from: from, p_to: to });
+  if (error) throw error;
+  return (data ?? []) as ItcMonth[];
+}
+
+// supplier bills still unpaid 180 days after their date: their credit must be reversed
+export type UnpaidBill = { id: string; bill_no: string; bill_date: string; supplier: string | null; days: number; gst: number | null };
+export async function unpaidBills(days = 180): Promise<UnpaidBill[]> {
+  const { data, error } = await db().rpc("admin_unpaid_bills", { p_days: days });
+  if (error) throw error;
+  return (data ?? []) as UnpaidBill[];
+}
+
+// the two ticks on a supplier bill
+export async function getReceiptFlags(id: string): Promise<{ in_2b: boolean; paid_on: string | null }> {
+  const { data, error } = await db().from("stock_receipts").select("in_2b, paid_on").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return { in_2b: !!data?.in_2b, paid_on: (data?.paid_on as string | null) ?? null };
+}
+export async function setReceiptFlags(id: string, in2b: boolean, paidOn: string | null) {
+  const { error } = await db().rpc("admin_set_receipt_flags", { p_receipt: id, p_in_2b: in2b, p_paid_on: paidOn });
+  if (error) throw error;
+}

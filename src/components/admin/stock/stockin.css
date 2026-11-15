@@ -254,3 +254,35 @@
 .sti-card p {
   margin: 0;
 }
+
+/* the GST-return ticks on a supplier bill */
+.sti-ticks {
+  display: grid;
+  gap: 12px;
+}
+.sti-ticks h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.sti-tick {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;
+  cursor: pointer;
+}
+.sti-tick input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--adm-accent, currentColor);
+}
+.sti-tick span {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+.sti-tick small {
+  color: var(--adm-muted);
+  font-weight: 400;
+}
