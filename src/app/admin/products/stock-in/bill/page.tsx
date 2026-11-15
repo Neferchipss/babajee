@@ -78,6 +78,17 @@ function Bill() {
   const taxable = r.lines.reduce((a, l) => a + Number(l.qty) * Number(l.unit_price), 0);
   const gst = sum("gst");
   const unclaimable = r.lines.some((l) => !l.claimable);
+  // GST with no CGST/SGST/IGST split (the shop's or the supplier's GSTIN missing)
+  const unsplit = Math.round((gst - sum("cgst") - sum("sgst") - sum("igst")) * 100) / 100;
+  // why the GST here can't be claimed back
+  const why =
+    r.kind === "opening"
+      ? "It's opening stock, so its GST can't be claimed."
+      : r.kind === "quick"
+        ? "It was added without a supplier bill, so its GST can't be claimed."
+        : !r.supplier_gstin
+          ? "The supplier has no GSTIN, so the GST on this bill can't be claimed."
+          : "Some of the GST on this can't be claimed.";
   const title = r.kind === "opening" ? "Opening count" : r.kind === "quick" ? "Stock added" : `Bill ${r.bill_no || "(no number)"}`;
   const items = r.lines.reduce((a, l) => a + l.qty, 0);
 
@@ -131,7 +142,11 @@ function Bill() {
                     <td>
                       {l.product}
                       {l.option ? `, ${l.option}` : ""}
-                      {!l.claimable && <small className="adm-muted" style={{ display: "block" }}>GST can&apos;t be claimed</small>}
+                      {!l.claimable && (
+                        <small className="adm-muted" style={{ display: "block" }}>
+                          {r.kind === "opening" ? "Opening stock: " : r.kind === "quick" ? "No supplier bill: " : !r.supplier_gstin ? "Supplier has no GSTIN: " : ""}GST can&apos;t be claimed
+                        </small>
+                      )}
                     </td>
                     <td className="r">{l.qty}</td>
                     <td className="r">{money(l.unit_price)}</td>
@@ -150,22 +165,32 @@ function Bill() {
             <b>{money(taxable)}</b>
           </div>
           <div>
-            <span>CGST</span>
+            <span>GST</span>
+            <b>{money(gst)}</b>
+          </div>
+          <div className="adm-muted">
+            <span>of which CGST</span>
             <b>{money(sum("cgst"))}</b>
           </div>
-          <div>
-            <span>SGST</span>
+          <div className="adm-muted">
+            <span>of which SGST</span>
             <b>{money(sum("sgst"))}</b>
           </div>
-          <div>
-            <span>IGST</span>
+          <div className="adm-muted">
+            <span>of which IGST</span>
             <b>{money(sum("igst"))}</b>
           </div>
+          {unsplit !== 0 && (
+            <div className="adm-muted">
+              <span>of which not split</span>
+              <b>{money(unsplit)}</b>
+            </div>
+          )}
           <div className="is-total">
             <span>Total</span>
             <b>{money(taxable + gst)}</b>
           </div>
-          {unclaimable && <p className="adm-muted adm-small">Some of the GST on this can&apos;t be claimed because it has no supplier GSTIN.</p>}
+          {unclaimable && <p className="adm-muted adm-small">{why}</p>}
         </section>
 
         {!void_ &&

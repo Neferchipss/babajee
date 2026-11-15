@@ -33,6 +33,11 @@ export default function StockInPage() {
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);
   const [err, setErr] = useState("");
   const [range, setRange] = useRange("30");
+  // without the shop's GSTIN the GST on a bill can't be split into CGST/SGST/IGST
+  const [noGstin, setNoGstin] = useState(false);
+  useEffect(() => {
+    getSettings().then((s) => setNoGstin(!s.gstin.trim()), () => {});
+  }, []);
 
   const key = `${range.from}~${range.to}`;
   const bills = loaded?.key === key ? loaded.rows : null;
@@ -61,6 +66,11 @@ export default function StockInPage() {
         <p>Bills from your suppliers. Posting one adds its products to stock and records the GST you paid.</p>
       </header>
       {err && <p className="adm-err">{err}</p>}
+      {noGstin && (
+        <p className="adm-small sti-voidnote">
+          Set the shop&apos;s GSTIN in <Link href="/admin/settings">Settings</Link> to split GST into CGST/SGST/IGST.
+        </p>
+      )}
 
       {draft ? (
         <NewBill
@@ -170,6 +180,8 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
   const [busy, setBusy] = useState(false);
   const [catalogue, setCatalogue] = useState<Candidate[] | null>(null);
   const [rates, setRates] = useState<Map<string, number>>(new Map());
+  // options already counting stock, with their count: an opening count adds to it
+  const [counted, setCounted] = useState<Map<string, number>>(new Map());
   const [shopRate, setShopRate] = useState(18);
   const [err, setErr] = useState("");
   const [sheet, setSheet] = useState(startWithSheet);
@@ -179,13 +191,20 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
   useEffect(() => {
     stockCatalogue().then(setCatalogue, (e) => (setErr(errText(e)), setCatalogue([])));
     listProducts().then(
-      (ps) => setRates(new Map(ps.flatMap((p) => (p.gst_rate != null ? p.variants.map((v) => [v.id, p.gst_rate as number] as const) : [])))),
+      (ps) => {
+        setRates(new Map(ps.flatMap((p) => (p.gst_rate != null ? p.variants.map((v) => [v.id, p.gst_rate as number] as const) : []))));
+        setCounted(new Map(ps.flatMap((p) => p.variants.filter((v) => v.track_stock).map((v) => [v.id, v.stock_qty] as const))));
+      },
       () => {},
     );
     getSettings().then((s) => setShopRate(s.gst_rate), () => {});
   }, []);
 
   const gstOf = useCallback((id: string) => rates.get(id) ?? shopRate, [rates, shopRate]);
+  const noteOf = useCallback(
+    (id: string) => (opening && counted.has(id) ? `Already counted: ${counted.get(id)}. This adds to it.` : null),
+    [opening, counted],
+  );
   const t = useMemo(() => lineTotals(lines), [lines]);
 
   const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
@@ -194,6 +213,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
   const valid = linesOk && (opening || (hasSupplier && billNo.trim() !== ""));
 
   const supplierName = (supplier === NEW_SUPPLIER ? newName : (suppliers.find((s) => s.id === supplier)?.name ?? "")).trim();
+  const supplierGstin = supplier === NEW_SUPPLIER ? "" : (suppliers.find((s) => s.id === supplier)?.gstin ?? "");
 
   // sheet lines join whatever is already on the form
   function takeLines(incoming: Line[]) {
@@ -213,10 +233,11 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
     try {
       // The database adds lines to a posted bill with the same supplier and
       // number, which would double the stock if a paper bill is entered twice.
-      if (!opening && !confirmed) {
-        const known = await listReceipts("1970-01-01", today());
-        const same = (a: string | null, b: string) => (a ?? "").trim().toLowerCase() === b.trim().toLowerCase();
-        if (known.some((b) => b.kind === "bill" && b.status === "posted" && same(b.supplier, supplierName) && same(b.bill_no, billNo))) {
+      // A supplier added just now has no bills yet.
+      if (!opening && !confirmed && supplier !== NEW_SUPPLIER) {
+        const known = await listReceipts(null, null);
+        const no = billNo.trim().toLowerCase();
+        if (known.some((b) => b.kind === "bill" && b.status === "posted" && b.supplier_id === supplier && b.bill_no.trim().toLowerCase() === no)) {
           setDup(true);
           setBusy(false);
           return;
@@ -225,6 +246,9 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
       let supplierId: string | null = !opening && supplier && supplier !== NEW_SUPPLIER ? supplier : null;
       if (!opening && supplier === NEW_SUPPLIER) {
         supplierId = await saveSupplier({ name: newName.trim() });
+        // a retry after a failed post reuses this supplier instead of adding another
+        setSupplier(supplierId);
+        setNewName("");
         onSupplier();
       }
       await postReceipt({
@@ -264,6 +288,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
               <option value={NEW_SUPPLIER}>New supplier…</option>
             </select>
           </label>
+          {supplier !== "" && !supplierGstin && <p className="adm-muted adm-small" style={{ margin: 0 }}>This supplier has no GSTIN, so the GST on this bill can&apos;t be claimed.</p>}
           {supplier === NEW_SUPPLIER && (
             <label className="adm-label">
               New supplier name
@@ -298,7 +323,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
           Fill from a sheet
         </button>
       )}
-      {catalogue === null ? <p className="adm-muted adm-small">Loading your products.</p> : <LineEditor catalogue={catalogue} lines={lines} onChange={setLines} gstOf={gstOf} />}
+      {catalogue === null ? <p className="adm-muted adm-small">Loading your products.</p> : <LineEditor catalogue={catalogue} lines={lines} onChange={setLines} gstOf={gstOf} noteOf={noteOf} />}
 
       {dup && (
         <div className="sti-confirm" role="alertdialog" aria-label="Bill already posted">
@@ -341,7 +366,7 @@ function TrackAll({ refresh }: { refresh: unknown }) {
     let live = true;
     (async () => {
       try {
-        const opening = (await listReceipts("1970-01-01", today())).some((r) => r.kind === "opening" && r.status === "posted");
+        const opening = (await listReceipts(null, null)).some((r) => r.kind === "opening" && r.status === "posted");
         const left = opening ? await uncounted() : 0;
         if (live) setN(left);
       } catch {
@@ -369,12 +394,12 @@ function TrackAll({ refresh }: { refresh: unknown }) {
   return (
     <div className="sti-card" style={{ marginBottom: 14 }}>
       <p>
-        {n} option{n === 1 ? " has" : "s have"} no count. Start tracking all stock? They&apos;ll show as sold out until you add stock.
+        {n} option{n === 1 ? " has" : "s have"} no count. Start tracking all stock? {n === 1 ? "It starts" : "They start"} at 0 and show as sold out until you add stock.
       </p>
       {confirming ? (
         <div className="sti-confirm" role="alertdialog" aria-label="Start tracking all stock">
           <p>
-            {n} option{n === 1 ? "" : "s"} will show as sold out until you add stock. Start tracking?
+            {n} option{n === 1 ? "" : "s"} will start at 0 and show as sold out until you add stock. Any number typed in for {n === 1 ? "it" : "them"} before is cleared, and the history notes it. Start tracking?
           </p>
           <div className="adm-actions">
             <button type="button" className="adm-btn pri" disabled={busy} onClick={go}>

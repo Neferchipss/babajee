@@ -11,6 +11,7 @@ export type ReceiptRow = {
   id: string;
   kind: ReceiptKind;
   status: ReceiptStatus;
+  supplier_id: string | null;
   supplier: string | null;
   bill_no: string;
   bill_date: string;
@@ -113,7 +114,8 @@ export async function correctStock(variant_id: string, count: number, note: stri
   if (error) throw error;
 }
 
-export async function listReceipts(from: string, to: string): Promise<ReceiptRow[]> {
+// from / to are bill dates (YYYY-MM-DD); null leaves that end open.
+export async function listReceipts(from: string | null, to: string | null): Promise<ReceiptRow[]> {
   const { data, error } = await db().rpc("admin_receipts", { p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReceiptRow[];
@@ -133,7 +135,8 @@ export async function uncounted(): Promise<number> {
   return (data ?? 0) as number;
 }
 
-// Switches counting on for every option; returns how many it changed.
+// Switches counting on for every option, starting each from 0 (an old count
+// that wasn't 0 is logged as a correction); returns how many it changed.
 export async function trackAllStock(): Promise<number> {
   const { data, error } = await db().rpc("admin_track_all_stock");
   if (error) throw error;
