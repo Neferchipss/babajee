@@ -204,7 +204,9 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
             ? `(${Math.max(held, 0)} in stock × ${formatPrice(average, { paise: true })} + ${q} new × ${formatPrice(p, { paise: true })}) ÷ ${Math.max(held, 0) + q} pieces = ${formatPrice(preview, { paise: true })}`
             : !v.track_stock
               ? `This option isn't counted yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
-              : `Nothing in stock right now, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`}
+              : average == null
+                ? `No buying price recorded yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
+                : `Nothing in stock right now, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`}
         </p>
       )}
       <div className="stk-submit">
