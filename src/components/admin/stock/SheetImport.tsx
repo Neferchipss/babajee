@@ -30,11 +30,13 @@ export default function SheetImport({
   onLines,
   onCancel,
   gstOf,
+  existing,
 }: {
   catalogue: Candidate[];
   onLines: (l: Line[]) => void;
   onCancel?: () => void;
   gstOf?: (variant_id: string) => number;
+  existing?: Line[];
 }) {
   const [rows, setRows] = useState<string[][] | null>(null);
   const [fileName, setFileName] = useState("");
@@ -81,8 +83,15 @@ export default function SheetImport({
   const counts: Record<Filter, number> = { matched: 0, unsure: 0, missing: 0, skip: 0 };
   for (const m of matches) counts[effective(m).status]++;
 
-  const lines = useMemo(() => {
+  // Rows of one option merge only when price and GST rate are identical (a
+  // missing price matches only another missing price); otherwise they are a
+  // conflict the person must fix, since one price can't stand for both.
+  const { lines, conflicts } = useMemo(() => {
+    const same = (x: number, y: number) => Object.is(x, y);
     const merged = new Map<string, Line>();
+    const rowsOf = new Map<string, number[]>();
+    const bad = new Map<string, string>();
+    const existingBy = new Map((existing ?? []).map((l) => [l.variant_id, l]));
     for (const m of matches) {
       const e = effective(m);
       if (e.status !== "matched" || !e.variant_id) continue;
@@ -91,12 +100,21 @@ export default function SheetImport({
       const price = m.price !== null && m.price >= 0 ? m.price : NaN;
       const gst = m.gst !== null && m.gst >= 0 && m.gst <= 100 ? m.gst : (gstOf?.(e.variant_id) ?? 18);
       const prev = merged.get(e.variant_id);
-      if (prev) merged.set(e.variant_id, { ...prev, qty: prev.qty + qty, unit_price: Number.isFinite(prev.unit_price) ? prev.unit_price : price });
-      else merged.set(e.variant_id, { variant_id: e.variant_id, qty, unit_price: price, gst_rate: gst });
+      rowsOf.set(e.variant_id, [...(rowsOf.get(e.variant_id) ?? []), m.row + 1]);
+      if (!prev) {
+        merged.set(e.variant_id, { variant_id: e.variant_id, qty, unit_price: price, gst_rate: gst });
+        const onForm = existingBy.get(e.variant_id);
+        if (onForm && !(same(onForm.unit_price, price) && onForm.gst_rate === gst))
+          bad.set(e.variant_id, `Row ${m.row + 1} is an option already on the form, at a different price or GST. Fix the sheet or leave it out.`);
+      } else if (same(prev.unit_price, price) && prev.gst_rate === gst) merged.set(e.variant_id, { ...prev, qty: prev.qty + qty });
+      else {
+        const r = rowsOf.get(e.variant_id) ?? [];
+        bad.set(e.variant_id, `Rows ${r.slice(0, -1).join(", ")} and ${r[r.length - 1]} are the same option at different prices. Fix the sheet or leave one out.`);
+      }
     }
-    return [...merged.values()];
+    return { lines: [...merged.values()], conflicts: [...bad.values()] };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches, picks, gstOf]);
+  }, [matches, picks, gstOf, existing]);
 
   const noPrice = lines.filter((l) => !Number.isFinite(l.unit_price)).length;
   const open = counts.unsure + counts.missing;
@@ -252,13 +270,18 @@ export default function SheetImport({
               {open} row{open === 1 ? " is" : "s are"} unsure or not found, and will be left out unless you pick a product.
             </p>
           )}
+          {conflicts.map((c) => (
+            <p key={c} className="adm-small sti-voidnote" role="alert" style={{ margin: 0 }}>
+              {c}
+            </p>
+          ))}
           {noPrice > 0 && (
             <p className="adm-muted adm-small" style={{ margin: 0 }}>
               {noPrice} line{noPrice === 1 ? " has" : "s have"} no price in the sheet. You&apos;ll type {noPrice === 1 ? "it" : "them"} on the next screen.
             </p>
           )}
           <div className="adm-actions">
-            <button type="button" className="adm-btn pri" style={{ flex: 1 }} disabled={lines.length === 0} onClick={() => onLines(lines)}>
+            <button type="button" className="adm-btn pri" style={{ flex: 1 }} disabled={lines.length === 0 || conflicts.length > 0} onClick={() => onLines(lines)}>
               Use {lines.length} line{lines.length === 1 ? "" : "s"}
             </button>
             <button type="button" className="adm-btn" onClick={() => setReview(false)}>

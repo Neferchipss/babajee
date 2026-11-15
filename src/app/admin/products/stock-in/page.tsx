@@ -200,7 +200,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
     const merged = new Map(lines.map((l) => [l.variant_id, l]));
     for (const l of incoming) {
       const prev = merged.get(l.variant_id);
-      merged.set(l.variant_id, prev ? { ...prev, qty: prev.qty + l.qty, unit_price: priceEntered(prev) ? prev.unit_price : l.unit_price } : l);
+      merged.set(l.variant_id, prev ? { ...prev, qty: prev.qty + l.qty } : l);
     }
     setLines([...merged.values()]);
     setSheet(false);
@@ -243,7 +243,7 @@ function NewBill({ kind, startWithSheet, suppliers, onSupplier, onCancel, onPost
     }
   }
 
-  if (sheet && catalogue) return <SheetImport catalogue={catalogue} gstOf={gstOf} onLines={takeLines} onCancel={() => setSheet(false)} />;
+  if (sheet && catalogue) return <SheetImport catalogue={catalogue} gstOf={gstOf} existing={lines} onLines={takeLines} onCancel={() => setSheet(false)} />;
 
   return (
     <form className="adm-card sti-form sti-stack" onSubmit={post}>
