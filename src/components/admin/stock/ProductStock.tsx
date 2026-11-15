@@ -8,7 +8,7 @@ import { dayLabel } from "@/lib/dates";
 import { GST_BRACKETS } from "@/lib/gst";
 import { nextAverage } from "@/lib/stock-in/average";
 import type { Supplier } from "@/lib/stock-in/db";
-import { priceOf, priceTyping } from "@/lib/stock-in/price";
+import { paisa, priceOf, priceTyping } from "@/lib/stock-in/price";
 import "./stock.css";
 
 const BRACKETS = GST_BRACKETS;
@@ -79,6 +79,8 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
 function AddStock({ variant: v, average, defaultRate, onDone }: { variant: AdminVariant; average: number | null; defaultRate: number; onDone: () => void }) {
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
+  // the typed price is for one piece, or for all the pieces together
+  const [per, setPer] = useState<"each" | "all">("each");
   const [rate, setRate] = useState(defaultRate);
   const [supplier, setSupplier] = useState("");
   const [newName, setNewName] = useState("");
@@ -99,7 +101,9 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
   }, []);
 
   const q = Math.round(Number(qty));
-  const p = priceOf(price);
+  const typed = priceOf(price);
+  // the database keeps one piece's price, to the paisa
+  const p = per === "each" ? typed : q > 0 ? paisa(typed / q) : NaN;
   const valid = q > 0 && Number.isFinite(p) && p >= 0;
   const hasSupplier = supplier === NEW_SUPPLIER ? newName.trim() !== "" : supplier !== "";
   const bill = hasSupplier && billNo.trim() !== "";
@@ -145,10 +149,29 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
           <input inputMode="numeric" value={qty} placeholder="0" autoFocus onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))} />
         </label>
         <label className="ape-field">
-          <span>Buying price before GST</span>
+          <span>{per === "each" ? "Buying price per piece, before GST" : `Buying price for all ${q > 0 ? q : ""} pieces, before GST`}</span>
           <input inputMode="decimal" value={price} placeholder="₹0" onChange={(e) => priceTyping(e.target.value) && setPrice(e.target.value)} />
         </label>
       </div>
+      <div className="ape-field">
+        <span id={`stk-per-${v.id}`}>The price is for</span>
+        <div className="ape-chips" role="group" aria-labelledby={`stk-per-${v.id}`}>
+          <button type="button" className={per === "each" ? "is-on" : ""} aria-pressed={per === "each"} onClick={() => setPer("each")}>
+            One piece
+          </button>
+          <button type="button" className={per === "all" ? "is-on" : ""} aria-pressed={per === "all"} onClick={() => setPer("all")}>
+            {q > 0 ? `All ${q} pieces` : "All the pieces"}
+          </button>
+        </div>
+      </div>
+      {valid && (
+        <p className="ape-hint stk-hint">
+          {per === "each"
+            ? `${q} × ${formatPrice(p, { paise: true })} = ${formatPrice(paisa(q * p), { paise: true })} for all ${q}, before GST`
+            : `${formatPrice(typed, { paise: true })} ÷ ${q} = ${formatPrice(p, { paise: true })} per piece, before GST` +
+              (paisa(q * p) !== paisa(typed) ? ` (rounded to the paisa, so ${q} come to ${formatPrice(paisa(q * p), { paise: true })})` : "")}
+        </p>
+      )}
       <div className="ape-field">
         <span id={`stk-gst-${v.id}`}>GST %</span>
         <div className="ape-chips" role="group" aria-labelledby={`stk-gst-${v.id}`}>
