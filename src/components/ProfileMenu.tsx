@@ -110,6 +110,12 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
     window.setTimeout(onClosed, OUT_MS);
   }, [onClosed]);
 
+  // the desktop login window opening: this panel steps out of its way
+  useEffect(() => {
+    window.addEventListener("babajee:login", shut);
+    return () => window.removeEventListener("babajee:login", shut);
+  }, [shut]);
+
   // the page behind stays put; Escape closes; focus moves in, and back after
   useEffect(() => {
     const was = document.body.style.overflow;

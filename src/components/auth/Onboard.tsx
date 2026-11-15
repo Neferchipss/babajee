@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { MIN_AGE } from "@/lib/config";
 import { BASE_PATH } from "@/lib/site";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
+import Logo from "@/components/Logo";
 import NotConnected from "./NotConnected";
 import "./onboard.css";
 
@@ -19,9 +20,11 @@ import "./onboard.css";
 // sits at the bottom of the screen.
 type Step = "email" | "code" | "password" | "details";
 const RESEND_AFTER = 30;
-const codeOk = (c: string) => /^\d{6,8}$/.test(c);
+const codeOk = (c: string) => /^\d{6}$/.test(c);
 
-export default function Onboard() {
+// embedded: inside the desktop login window (LoginModal), which closes on
+// success instead of moving to another page
+export default function Onboard({ embedded = false, onDone, onClose }: { embedded?: boolean; onDone?: () => void; onClose?: () => void } = {}) {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
@@ -57,8 +60,11 @@ export default function Onboard() {
     setPhone(profile.phone.replace(/^\+91\s?/, ""));
   }
   useEffect(() => {
-    if (status === "in" && profile && !incomplete) router.replace(next);
-  }, [status, profile, incomplete, next, router]);
+    if (status === "in" && profile && !incomplete) {
+      if (embedded) onDone?.();
+      else router.replace(next);
+    }
+  }, [status, profile, incomplete, next, router, embedded, onDone]);
 
   if (!supabaseConfigured) return <NotConnected />;
 
@@ -72,7 +78,7 @@ export default function Onboard() {
     setErr("");
     // the email shows the code (tools/auth_emails.py, sent through Resend);
     // emailRedirectTo only matters if an older link-style email is used
-    const returnTo = `${window.location.origin}${BASE_PATH}/account/login/?next=${encodeURIComponent(next)}`;
+    const returnTo = embedded ? window.location.href : `${window.location.origin}${BASE_PATH}/account/login/?next=${encodeURIComponent(next)}`;
     const { error } = await sb().auth.signInWithOtp({ email: to, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
     setBusy(false);
     if (error) return setErr(error.status === 429 ? "Too many codes asked for. Wait a few minutes and try again." : !error.status ? "We couldn't reach the shop. Check your connection." : error.message);
@@ -83,12 +89,12 @@ export default function Onboard() {
     setTimeout(() => codeRef.current?.focus(), 50);
   }
 
-  async function verify(e?: React.FormEvent) {
+  async function verify(e?: React.FormEvent, token = code) {
     e?.preventDefault();
-    if (!codeOk(code)) return setErr("Enter the code from the email.");
+    if (!codeOk(token)) return setErr("Enter the code from the email.");
     setBusy(true);
     setErr("");
-    const { error } = await sb().auth.verifyOtp({ email, token: code, type: "email" });
+    const { error } = await sb().auth.verifyOtp({ email, token, type: "email" });
     setBusy(false);
     if (error) return setErr(/expired|invalid/i.test(error.message) ? "That code is wrong or has expired. Check it, or send a new one." : error.message);
     await refreshProfile();
@@ -133,11 +139,56 @@ export default function Onboard() {
     setErr("");
     setStep(to);
   };
+  // phones: the title in the top bar on every step but the first
+  const TITLES: Record<Step, string> = { email: "", code: "Verify your email", password: "Log in with a password", details: "Your details" };
+  const leave = () => (window.history.length > 1 ? router.back() : router.push("/"));
+  const terms = (
+    <p className="onb-terms">
+      By continuing, you confirm you&apos;re 18+ and agree to our <Link href="/terms">Terms of Service</Link> &amp; <Link href="/legal">Privacy policy</Link>
+    </p>
+  );
 
   return (
-    <div className="onb">
+    <div className={`onb is-${step}${embedded ? " is-modal" : ""}`}>
+      {embedded && (
+        <button type="button" className="onb-close" onClick={onClose} aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      )}
+      {/* phones, first step: the brand header (art comes later: the dashed box) */}
+      <header className="onb-hero">
+        <button type="button" className="onb-hero-back" onClick={leave} aria-label="Back">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+          </svg>
+        </button>
+        <span className="onb-hero-logo">
+          <Logo priority />
+        </span>
+        <p className="onb-hero-title">Papers, grinders &amp; more!</p>
+        <p className="onb-hero-sub">Everything for the session, at your door.</p>
+        <span className="onb-hero-rule" aria-hidden="true" />
+        <div className="onb-hero-art" aria-hidden="true">
+          <span>Hero art</span>
+        </div>
+      </header>
+      {/* phones, later steps: a title bar with a round back button */}
+      <div className="onb-bar">
+        <button type="button" className="onb-bar-back" onClick={step === "details" ? leave : back("email")} aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <b>{TITLES[step]}</b>
+      </div>
+
       {/* the brand side: art comes later, the dashed box marks its place */}
       <aside className="onb-brand" aria-hidden="true">
+        <span className="onb-brand-logo">
+          <Logo />
+        </span>
         <div className="onb-art">
           <span>Hero art</span>
         </div>
@@ -189,9 +240,7 @@ export default function Onboard() {
                 Use a password instead
               </button>
             </div>
-            <p className="onb-fine">
-              By continuing you confirm you&apos;re 18 or older and agree to our <Link href="/terms">terms</Link> and <Link href="/legal">privacy policy</Link>.
-            </p>
+            {terms}
           </form>
         )}
 
@@ -205,7 +254,7 @@ export default function Onboard() {
             <div className="onb-head">
               <h1>Check your email</h1>
               <p>
-                We sent a 6-digit code to <b>{email}</b>.{" "}
+                We sent a 6-digit code to <b className="onb-to">{email}</b>{" "}
                 <button type="button" className="onb-link" onClick={back("email")}>
                   Change
                 </button>
@@ -218,12 +267,17 @@ export default function Onboard() {
                 ref={codeRef}
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={8}
+                maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                onChange={(e) => {
+                  const c = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setCode(c);
+                  // the 6th digit checks it straight away, as the delivery apps do
+                  if (c.length === 6 && !busy) void verify(undefined, c);
+                }}
               />
               <span className="onb-slots" aria-hidden="true">
-                {Array.from({ length: Math.max(6, code.length) }, (_, i) => (
+                {Array.from({ length: 6 }, (_, i) => (
                   <i key={i} className={i === code.length ? "is-at" : code[i] ? "is-full" : ""}>
                     {code[i] ?? ""}
                   </i>
