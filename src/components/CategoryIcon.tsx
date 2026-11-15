@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { BASE_PATH } from "@/lib/site";
 
 // One icon per category slug, drawn from public/icons/categories/<slug>.png
 // (sliced from a generated sheet by tools/icons/slice.py). Each PNG is black
@@ -40,7 +41,7 @@ export default function CategoryIcon({ slug, size = 24 }: { slug: string; size?:
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <mask id={id} style={{ maskType: "alpha" }}>
-        <image href={`/icons/categories/${slug}.png`} x="1" y="1" width="22" height="22" />
+        <image href={`${BASE_PATH}/icons/categories/${slug}.png`} x="1" y="1" width="22" height="22" />
       </mask>
       <rect width="24" height="24" fill="currentColor" mask={`url(#${id})`} />
     </svg>
