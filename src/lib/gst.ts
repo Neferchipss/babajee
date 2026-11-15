@@ -6,7 +6,7 @@
 // default). "Inclusive" (one switch for the whole shop) means the shelf price
 // already has it inside (₹118 at 18% is ₹100 + ₹18 GST); otherwise it is
 // added on top at checkout. GST is worked out line by line, each line rounded
-// to the paisa. Shipping carries no GST here.
+// to the paisa. Shipping carries GST at the highest rate in the cart (0051).
 
 export const GST_BRACKETS = [0, 5, 12, 18, 28, 40] as const;
 
@@ -26,7 +26,8 @@ export function lineGst(gross: number, rate: number, inclusive: boolean) {
 // What the bill shows: lines are { gross: price x qty, rate }.
 export function bill(lines: { gross: number; rate: number }[], ship: number, inclusive: boolean) {
   const sub = round2(lines.reduce((n, l) => n + l.gross, 0));
-  const tax = round2(lines.reduce((n, l) => n + lineGst(l.gross, l.rate, inclusive), 0));
+  const shipRate = Math.max(0, ...lines.filter((l) => l.gross > 0).map((l) => l.rate));
+  const tax = round2(lines.reduce((n, l) => n + lineGst(l.gross, l.rate, inclusive), 0) + (ship > 0 ? lineGst(ship, shipRate, inclusive) : 0));
   const rates = [...new Set(lines.filter((l) => l.gross > 0).map((l) => l.rate))];
   return { sub, ship, tax, total: round2(sub + ship + (inclusive ? 0 : tax)), rate: rates.length === 1 ? rates[0] : null };
 }

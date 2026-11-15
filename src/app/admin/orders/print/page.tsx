@@ -183,6 +183,11 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
             <span className="prt-label">Billed to (receiver)</span>
             <Address o={o} />
             {o.contact_email && <div>{o.contact_email}</div>}
+            {o.buyer_gstin && (
+              <div>
+                <b>GSTIN</b> {o.buyer_gstin}
+              </div>
+            )}
           </div>
           <div>
             <span className="prt-label">Shipped to (consignee)</span>
@@ -302,8 +307,13 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
                 <dd>{inr(inv.gst)}</dd>
               </>
             )}
-            <dt>Shipping charges</dt>
-            <dd>{inv.shipping > 0 ? inr(inv.shipping) : "Free"}</dd>
+            {/* taxed shipping is a line in the table; older orders keep it here, untaxed */}
+            {!(o.shipping_taxed && o.shipping > 0) && (
+              <>
+                <dt>Shipping charges</dt>
+                <dd>{inv.shipping > 0 ? inr(inv.shipping) : "Free"}</dd>
+              </>
+            )}
             <dt className="inv-grand">Grand total</dt>
             <dd className="inv-grand">{inr(inv.total)}</dd>
             {o.paid_total != null && (

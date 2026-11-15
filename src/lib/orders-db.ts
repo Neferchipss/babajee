@@ -94,6 +94,10 @@ export type Order = {
   // its GST invoice, once one has been made (0029)
   invoice_number?: string | null;
   invoice_date?: string | null;
+  // shipping carries GST at the order's highest rate (0051; orders before it don't)
+  shipping_taxed?: boolean;
+  // the buyer's GSTIN for a B2B sale, '' for a consumer (0051)
+  buyer_gstin?: string;
   created_at: string;
   updated_at?: string;
   order_items?: OrderItem[];
@@ -178,6 +182,12 @@ export async function getOrders(ids: string[]): Promise<Order[]> {
   const { data, error } = await db().from("orders").select(FULL).in("id", ids).order("created_at");
   if (error) throw error;
   return (data ?? []).map(toOrder);
+}
+
+// the buyer's GSTIN on a B2B order; only before its invoice is issued (0051)
+export async function setBuyerGstin(orderId: string, gstin: string) {
+  const { error } = await db().rpc("admin_set_buyer_gstin", { p_order: orderId, p_gstin: gstin });
+  if (error) throw error;
 }
 
 // invoice numbers for these orders (paid ones without one get the next in the series)
