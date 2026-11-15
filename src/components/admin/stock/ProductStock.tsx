@@ -198,6 +198,15 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
           {average != null && <small> (now {formatPrice(average, { paise: true })})</small>}
         </p>
       )}
+      {preview != null && (
+        <p className="ape-hint stk-hint">
+          {Math.max(held, 0) > 0 && average != null
+            ? `(${Math.max(held, 0)} in stock × ${formatPrice(average, { paise: true })} + ${q} new × ${formatPrice(p, { paise: true })}) ÷ ${Math.max(held, 0) + q} pieces = ${formatPrice(preview, { paise: true })}`
+            : !v.track_stock
+              ? `This option isn't counted yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
+              : `Nothing in stock right now, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`}
+        </p>
+      )}
       <div className="stk-submit">
         <button className="stk-go" disabled={!valid || busy}>
           {busy ? "Adding" : "Add stock"}
