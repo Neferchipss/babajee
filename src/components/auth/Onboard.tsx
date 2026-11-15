@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ageOf, readDob } from "@/lib/age";
 import { useAuth } from "@/lib/auth";
 import { MIN_AGE } from "@/lib/config";
+import { BASE_PATH } from "@/lib/site";
 import { getSupabase, supabaseConfigured } from "@/lib/supabase";
 import NotConnected from "./NotConnected";
 import "./onboard.css";
@@ -69,7 +70,10 @@ export default function Onboard() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return setErr("Enter your email address, like you@example.com.");
     setBusy(true);
     setErr("");
-    const { error } = await sb().auth.signInWithOtp({ email: to, options: { shouldCreateUser: true } });
+    // the email carries a link today (the code shows once the login emails go
+    // through Resend, tools/auth_emails.py); the link brings them back here
+    const returnTo = `${window.location.origin}${BASE_PATH}/account/login/?next=${encodeURIComponent(next)}`;
+    const { error } = await sb().auth.signInWithOtp({ email: to, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
     setBusy(false);
     if (error) return setErr(error.status === 429 ? "Too many codes asked for. Wait a few minutes and try again." : !error.status ? "We couldn't reach the shop. Check your connection." : error.message);
     setEmail(to);
@@ -201,7 +205,7 @@ export default function Onboard() {
             <div className="onb-head">
               <h1>Check your email</h1>
               <p>
-                We sent a code to <b>{email}</b>.{" "}
+                Tap the link we sent to <b>{email}</b>, or enter the code if the email shows one.{" "}
                 <button type="button" className="onb-link" onClick={back("email")}>
                   Change
                 </button>
@@ -235,7 +239,7 @@ export default function Onboard() {
                 {wait > 0 ? `Send a new code in 0:${String(wait).padStart(2, "0")}` : "Send a new code"}
               </button>
             </div>
-            <p className="onb-fine">Not there? Check spam or promotions. The code works for an hour.</p>
+            <p className="onb-fine">Open the link on this phone or computer. Not there? Check spam or promotions; it works for an hour.</p>
           </form>
         )}
 
