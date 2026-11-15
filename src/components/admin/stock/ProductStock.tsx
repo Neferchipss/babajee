@@ -198,11 +198,22 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
           {average != null && <small> (now {formatPrice(average, { paise: true })})</small>}
         </p>
       )}
-      {preview != null && (
+      {preview != null && Math.max(held, 0) > 0 && average != null && (
+        <ol className="ape-hint stk-hint stk-sum" aria-label="How the average is worked out">
+          <li>
+            {held} already in stock × {formatPrice(average, { paise: true })} = {formatPrice(held * average, { paise: true })}
+          </li>
+          <li>
+            {q} new × {formatPrice(p, { paise: true })} = {formatPrice(q * p, { paise: true })}
+          </li>
+          <li>
+            {formatPrice(held * average + q * p, { paise: true })} ÷ {held + q} pieces = <b>{formatPrice(preview, { paise: true })}</b>
+          </li>
+        </ol>
+      )}
+      {preview != null && !(Math.max(held, 0) > 0 && average != null) && (
         <p className="ape-hint stk-hint">
-          {Math.max(held, 0) > 0 && average != null
-            ? `(${Math.max(held, 0)} in stock × ${formatPrice(average, { paise: true })} + ${q} new × ${formatPrice(p, { paise: true })}) ÷ ${Math.max(held, 0) + q} pieces = ${formatPrice(preview, { paise: true })}`
-            : !v.track_stock
+          {!v.track_stock
               ? `This option isn't counted yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
               : average == null
                 ? `No buying price recorded yet, so the average is just the price you typed: ${formatPrice(p, { paise: true })}.`
