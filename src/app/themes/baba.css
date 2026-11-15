@@ -124,7 +124,7 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
       padding: 14px 40px;
     }
     & .hdr-logo-img {
-      width: 3.4rem;
+      width: 10rem;
     }
     & .hdr-nav {
       gap: 38px;

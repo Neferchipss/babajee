@@ -121,7 +121,7 @@ body:has(.scene[data-intro="true"]) .ftr {
   padding-top: 4vh;
 }
 .scene-logo {
-  width: min(44vw, 15rem);
+  width: min(74vw, 27rem);
 }
 .scene-tag {
   max-width: 30ch;
@@ -577,7 +577,7 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
     padding: 0 26px 104px;
   }
   .scene-logo {
-    width: min(42vw, 10rem);
+    width: min(70vw, 18rem);
   }
   .scene-tag {
     margin-top: 18px;

@@ -179,7 +179,7 @@
   text-align: center;
 }
 .pano-front-logo {
-  width: min(16rem, 30vw);
+  width: min(28rem, 48vw);
   filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.25));
 }
 .pano-front-tag {
@@ -273,7 +273,7 @@
     pointer-events: auto;
   }
   .pano-front-logo {
-    width: min(7.5rem, 30vw, 14svh);
+    width: min(18rem, 72vw, 26svh);
   }
   .pano-front-tag {
     max-width: 26ch;

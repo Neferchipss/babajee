@@ -1048,7 +1048,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       right: 100%;
     }
     & .sb-logo img {
-      width: 56px;
+      width: clamp(140px, calc(var(--sb-margin) - 60px), 172px);
     }
     & .sb-me {
       left: 100%;

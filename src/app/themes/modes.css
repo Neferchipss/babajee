@@ -169,3 +169,12 @@ html[data-mode="light"] .ps-card {
     0 12px 32px rgb(12 15 20 / 0.12),
     0 0 0 1px var(--color-line);
 }
+
+/* The logo in light mode, everywhere (admin and pages outside the shop too):
+   the outlined rendering, so its yellow letters read on white. */
+:root[data-mode="light"] .logo-dark.logo-dark {
+  display: none;
+}
+:root[data-mode="light"] .logo-light.logo-light {
+  display: inline-block;
+}

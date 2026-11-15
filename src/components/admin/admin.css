@@ -3537,7 +3537,7 @@ th[aria-sort="ascending"] .adm-sort .down {
 
 @media (max-width: 600px) {
   .lb--admin .lb-logo-img {
-    width: 40px;
+    width: 104px;
   }
 }
 
@@ -3581,7 +3581,7 @@ th[aria-sort="ascending"] .adm-sort .down {
     margin-left: 10px;
   }
   .lb--admin .lb-logo-img {
-    width: 88px;
+    width: 150px;
   }
   .lb--admin .asr-pop {
     width: 100%;

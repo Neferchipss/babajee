@@ -28,7 +28,7 @@
   display: inline-flex;
 }
 .hdr-logo-img {
-  width: 2.9rem;
+  width: 7rem;
 }
 .hdr-nav,
 .hdr-tools {
@@ -114,7 +114,7 @@
     padding-inline: 2rem;
   }
   .hdr-logo-img {
-    width: 3.3rem;
+    width: 9rem;
   }
   .hdr-nav,
   .hdr-tools {
