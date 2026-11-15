@@ -208,8 +208,15 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
     if (href.split("#")[0] === path) shut();
   };
 
+  const goHome = (e: React.MouseEvent) => {
+    // home is the shopfront; already on it (maybe inside the shop): walk back out
+    if (path !== "/") return;
+    e.preventDefault();
+    window.dispatchEvent(new Event(TO_STREET));
+    shut();
+  };
   const tile = (href: string, label: ReactNode, d: string, extra?: ReactNode) => (
-    <Link href={href} className="pp-tile" onClick={go(href)}>
+    <Link href={href} className="pp-tile" onClick={href === "/" ? goHome : go(href)}>
       <I d={d} />
       <span>{label}</span>
       {extra}
@@ -258,28 +265,21 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
 
         <div className="pp-body">
           <div className="pp-tiles">
+            {tile("/", <>Home</>, "M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5")}
             {tile("/cart", <>Your<br />cart</>, JAR, count > 0 ? <b className="pp-tile-n">{count > 99 ? "99+" : count}</b> : undefined)}
-            {tile("/account#addresses-heading", <>Saved<br />addresses</>, PIN)}
             {tile("/orders", <>Your<br />orders</>, BOX)}
-            {tile("/cart#saved-title", <>Your<br />wishlist</>, HEART)}
           </div>
 
           <ModeSwitch />
 
           <nav className="pp-list" aria-label="Pages">
-            <Link
-              href="/"
-              className="pp-row"
-              onClick={(e) => {
-                // home is the shopfront; already on it (maybe inside the shop): walk back out
-                if (path !== "/") return;
-                e.preventDefault();
-                window.dispatchEvent(new Event(TO_STREET));
-                shut();
-              }}
-            >
-              <I d="M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5" />
-              <span>Home</span>
+            <Link href="/cart#saved-title" className="pp-row" onClick={go("/cart#saved-title")}>
+              <I d={HEART} />
+              <span>Your wishlist</span>
+            </Link>
+            <Link href="/account#addresses-heading" className="pp-row" onClick={go("/account#addresses-heading")}>
+              <I d={PIN} />
+              <span>Saved addresses</span>
             </Link>
             {signedIn && (
               <Link href="/account" className="pp-row" onClick={go("/account")}>
