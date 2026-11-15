@@ -245,7 +245,9 @@ const MAP_NAMES = new Map(india.states.map((st) => [canon(st.name), st.name]));
 const ALIAS: Record<string, string> = {
   "nct of delhi": "Delhi",
   "new delhi": "Delhi",
-  ladakh: "Jammu and Kashmir",
+  // the outline predates the 2019 split, so both UTs share one shape
+  "jammu and kashmir": "Jammu, Kashmir and Ladakh",
+  ladakh: "Jammu, Kashmir and Ladakh",
   "dadra and nagar haveli": "Dadra and Nagar Haveli and Daman and Diu",
   "daman and diu": "Dadra and Nagar Haveli and Daman and Diu",
   orissa: "Odisha",

@@ -22,7 +22,7 @@ NAMES = {
     "Andaman & Nicobar Island": "Andaman and Nicobar Islands",
     "Dadara & Nagar Havelli": "Dadra and Nagar Haveli and Daman and Diu",
     "Daman & Diu": "Dadra and Nagar Haveli and Daman and Diu",
-    "Jammu & Kashmir": "Jammu and Kashmir",
+    "Jammu & Kashmir": "Jammu, Kashmir and Ladakh",  # the outline predates the 2019 split; one shape for both UTs
 }
 
 src, out = sys.argv[1], sys.argv[2]
