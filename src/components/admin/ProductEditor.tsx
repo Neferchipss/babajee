@@ -379,6 +379,14 @@ export default function ProductEditor({
           />
         </section>
 
+        {/* stock, before the price: add stock, correct a count, what moved */}
+        <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
+
+        <section className="ape-fields">
+          {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
+          <StockHistory variants={product.variants} />
+        </section>
+
         {/* price: buying price, GST, cost price, selling price, profit (per size or colour when it has them) */}
         <Pricing
           product={product}
@@ -401,14 +409,6 @@ export default function ProductEditor({
             />
           )}
         />
-
-        {/* stock, straight under the price: add stock, correct a count, what moved */}
-      <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
-
-      <section className="ape-fields">
-        {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
-        <StockHistory variants={product.variants} />
-      </section>
 
         {/* category, plainly */}
         <section className="ape-fields ape-plain">
