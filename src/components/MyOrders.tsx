@@ -54,7 +54,7 @@ function headline(o: Order): string {
   const day = (iso?: string | null) => (iso ? DATE.format(new Date(iso)) : "");
   switch (o.status) {
     case "pending":
-      return "Order placed";
+      return "Awaiting payment";
     case "paid":
       return "Payment received";
     case "packed":
@@ -288,6 +288,7 @@ export function MyOrder() {
   const [o, setO] = useState<Order | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [returnDays, setReturnDays] = useState<number | null>(null);
+  const [holdHours, setHoldHours] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!user) return;
@@ -299,7 +300,10 @@ export function MyOrder() {
   useEffect(() => {
     db()
       .then((m) => m.getSettings())
-      .then((s) => setReturnDays(s.return_days))
+      .then((s) => {
+        setReturnDays(s.return_days);
+        setHoldHours(s.unpaid_hours);
+      })
       .catch(() => setReturnDays(0));
   }, []);
 
@@ -337,8 +341,13 @@ export function MyOrder() {
     cancelled: "Cancelled",
     refunded: "Refunded",
   };
+  // how long the unpaid order holds its stock (Settings, 0055)
+  const holdUntil =
+    o.status === "pending" && holdHours
+      ? new Date(new Date(o.created_at).getTime() + holdHours * 3600 * 1000).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\b(am|pm)\b/i, (m) => m.toLowerCase())
+      : "";
   const lede: Record<OrderStatus, string> = {
-    pending: "We'll get in touch to confirm payment. Nothing else to do for now.",
+    pending: `Someone from our team will contact you on ${o.contact_phone} to take payment.${holdUntil ? ` We're holding your items until ${holdUntil}.` : ""}`,
     paid: "We're getting your order ready to pack.",
     packed: "Packed and waiting for the courier to pick it up.",
     shipped: `With ${ship?.carrier || "the courier"} and heading to ${o.address_city}.`,
@@ -357,7 +366,7 @@ export function MyOrder() {
 
   return (
     <div className="mo">
-      {placed && <p className="mo-thanks">Thank you. Your order is in.</p>}
+      {placed && <p className="mo-thanks">Thank you. Your order is in, and we&apos;ll be in touch about payment.</p>}
 
       <section className={`mo-hero is-${TONE[o.status]}`}>
         <div className="mo-hero-top">

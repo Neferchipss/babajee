@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [credit, setCredit] = useState(false);
   const [home, setHome] = useState("");
   const [returnDays, setReturnDays] = useState("7");
+  const [unpaidHours, setUnpaidHours] = useState("48");
   const [lowAt, setLowAt] = useState("3");
   // the shop's own details, for invoices
   const [store, setStore] = useState({ store_name: "Babajee", legal_name: "", gstin: "", store_address: "", store_phone: "", store_email: "", invoice_prefix: "BJ", invoice_note: "" });
@@ -37,6 +38,7 @@ export default function SettingsPage() {
         setCredit(s.gst_input_credit);
         setHome(s.store_state);
         setReturnDays(String(s.return_days));
+        setUnpaidHours(String(s.unpaid_hours));
         setLowAt(String(s.low_stock_at));
         setStore({
           store_name: s.store_name,
@@ -60,6 +62,11 @@ export default function SettingsPage() {
     const days = Math.round(Number(returnDays) || 0);
     if (days < 0 || days > 90) {
       setErr("Returns can be open for 0 to 90 days.");
+      return;
+    }
+    const hold = Math.round(Number(unpaidHours) || 0);
+    if (hold < 0 || hold > 720) {
+      setErr("Unpaid orders can be held for 0 to 720 hours (30 days).");
       return;
     }
     const gstin = store.gstin.trim().toUpperCase();
@@ -86,6 +93,7 @@ export default function SettingsPage() {
         gst_input_credit: credit,
         store_state: home,
         return_days: days,
+        unpaid_hours: hold,
         low_stock_at: Math.min(10000, Math.round(Number(lowAt) || 0)),
         ...store,
         store_name: store.store_name.trim() || "Babajee",
@@ -265,6 +273,15 @@ export default function SettingsPage() {
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
           <h2 id="set-returns" style={{ margin: 0, scrollMarginTop: 140 }}>Cancellations and returns</h2>
+          <label className="adm-label">
+            Hours an unpaid order is held for payment
+            <input className="adm-input" inputMode="numeric" value={unpaidHours} disabled={!loaded} onChange={(e) => setUnpaidHours(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">
+              {Number(unpaidHours) > 0
+                ? `An order not marked paid within ${Number(unpaidHours)} hour${Number(unpaidHours) === 1 ? "" : "s"} cancels itself: its items go back into stock and the customer gets the cancelled email. The order emails tell customers this deadline.`
+                : "0 means unpaid orders are never cancelled automatically: they hold their stock until you mark them paid or cancel them."}
+            </span>
+          </label>
           <label className="adm-label">
             Days after delivery a customer can ask for a return
             <input className="adm-input" inputMode="numeric" value={returnDays} disabled={!loaded} onChange={(e) => setReturnDays(e.target.value.replace(/\D/g, ""))} />

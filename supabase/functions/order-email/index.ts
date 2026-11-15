@@ -67,13 +67,13 @@ Deno.serve(async (req) => {
   }
   if (!/^[0-9a-f-]{36}$/i.test(eventId)) return new Response("event_id needed", { status: 400 });
 
-  const rows = await db<Event[]>(`order_events?id=eq.${eventId}&select=id,status,note,created_at,orders(*,order_items(product_name,variant_label,quantity,unit_price,product_variants(products(slug))),shipments(carrier,tracking_number,shipped_at),order_refunds(id,amount,reason,created_at),credit_notes(number,refund_id))`);
+  const rows = await db<Event[]>(`order_events?id=eq.${eventId}&select=id,status,note,created_at,actor:profiles(role),orders(*,order_items(product_name,variant_label,quantity,unit_price,product_variants(products(slug))),shipments(carrier,tracking_number,shipped_at),order_refunds(id,amount,reason,created_at),credit_notes(number,refund_id))`);
   const e = rows[0];
   if (!e?.orders) return new Response("no such event", { status: 404 });
   if (Date.now() - new Date(e.created_at).getTime() > 15 * 60 * 1000) return new Response("too old", { status: 200 });
   const testing = !!env("EMAIL_TEST_TO");
   if (e.orders.is_test && !testing) return new Response("test order", { status: 200 });
-  const shop = (await db<Shop[]>(`store_settings?id=eq.1&select=store_name,legal_name,store_address,gstin,store_phone,store_email,return_days`))[0] ?? { store_name: "Babajee", legal_name: "", store_address: "", gstin: "", store_phone: "", store_email: "" };
+  const shop = (await db<Shop[]>(`store_settings?id=eq.1&select=store_name,legal_name,store_address,gstin,store_phone,store_email,return_days,unpaid_hours`))[0] ?? { store_name: "Babajee", legal_name: "", store_address: "", gstin: "", store_phone: "", store_email: "" };
   const mail = compose(e, shop, cfg);
   if (!mail || !e.orders.contact_email) return new Response("nothing to send", { status: 200 });
 
@@ -88,9 +88,11 @@ Deno.serve(async (req) => {
   try {
     const id = await send(e.orders.contact_email, mail.subject, mail.html, shop.store_email);
     await db(`email_log?id=eq.${claimed[0].id}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ resend_id: id }) }).catch(() => {});
-    // the shop hears about each new paid order
+    // the shop hears about each new order as it's placed (payment is arranged by
+    // hand), unless the shop placed it itself
     const alertTo = env("SHOP_ALERT_TO") || shop.store_email;
-    if (e.status === "paid" && alertTo) {
+    const byShop = (e as Event & { actor?: { role?: string } | null }).actor?.role === "admin";
+    if (e.status === "pending" && !byShop && alertTo) {
       const a = alertMail(e.orders, shop, cfg);
       await send(alertTo, a.subject, a.html, "").catch(() => {});
     }

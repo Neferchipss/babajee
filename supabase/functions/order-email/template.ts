@@ -16,6 +16,7 @@ export type Order = {
   created_at: string;
   contact_name: string;
   contact_email: string;
+  contact_phone: string;
   address_line1: string;
   address_line2: string;
   address_city: string;
@@ -32,7 +33,7 @@ export type Order = {
   credit_notes: Note[];
 };
 export type Event = { id: string; status: string; note: string; created_at: string; orders: Order };
-export type Shop = { store_name: string; legal_name: string; store_address: string; gstin: string; store_phone: string; store_email: string; return_days?: number | null };
+export type Shop = { store_name: string; legal_name: string; store_address: string; gstin: string; store_phone: string; store_email: string; return_days?: number | null; unpaid_hours?: number | null };
 // photo: the product photo path for a slug and option, or null (product-photos maps)
 export type Cfg = { site: string; assets: string; instagram: string; photo: (slug: string, option: string) => string | null };
 export type Mail = { kind: string; subject: string; html: string };
@@ -61,6 +62,7 @@ const FONT = "Geist,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica
 const MONO = "'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
 // accent per message
 const TONE = {
+  received: { accent: C.goldText },
   confirmed: { accent: C.green },
   shipped: { accent: C.goldText },
   delivered: { accent: C.green },
@@ -74,6 +76,9 @@ type Kind = keyof typeof TONE;
 const inr = (n: number) => `₹${Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const first = (name: string) => (name || "there").trim().split(/\s+/)[0];
+// "16 Nov, 6:30 pm", in India time
+const when = (d: Date) =>
+  d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).replace(/\b(am|pm)\b/i, (m) => m.toLowerCase());
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 const T = (inner: string, attrs = "") => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ${attrs}>${inner}</table>`;
 const p = (html: string, color = C.text, size = 15) => `<p style="margin:0 0 12px;font-size:${size}px;line-height:1.55;color:${color}">${html}</p>`;
@@ -147,6 +152,16 @@ const kv = (rows: [string, string][]) => T(rows.map(([k, v]) => `<tr><td valign=
 const address = (o: Order) => [o.address_line1, o.address_line2, `${o.address_city}, ${o.address_state} ${o.address_pincode}`].filter(Boolean).map(esc).join("<br>");
 const button = (href: string, label: string) => `<tr><td align="center" style="padding:4px 0 18px"><a href="${href}" style="display:inline-block;background:${C.gold};color:#000000;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:12px">${esc(label)}</a></td></tr>`;
 
+// numbered steps: a gold number, a bold line and a muted one under it
+function nextSteps(steps: [string, string][]) {
+  return steps
+    .map(
+      ([head, sub], i) =>
+        `<tr><td width="40" valign="top" style="padding:0 0 ${i === steps.length - 1 ? 0 : 14}px"><div style="width:28px;height:28px;line-height:28px;border-radius:14px;text-align:center;font-size:13px;font-weight:700;background:${C.gold};color:#000000">${i + 1}</div></td><td valign="top" style="padding:3px 0 ${i === steps.length - 1 ? 0 : 14}px"><div style="font-size:15px;font-weight:700;color:${C.text}">${head}</div><div style="font-size:13px;line-height:1.5;color:${C.muted};margin-top:2px">${sub}</div></td></tr>`,
+    )
+    .join("");
+}
+
 // a small grid of outlined links, two to a row: label in bold, a muted line under it
 function quickLinks(links: [string, string, string][]) {
   const cell = ([href, label, sub]: [string, string, string]) =>
@@ -200,6 +215,30 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
   const view = button(`${cfg.site}/orders/view/?id=${o.id}`, "View your order");
   const details = card("Order details", kv([["Order", `<b style="color:${C.goldText}">${esc(o.order_number)}</b>`], ["Placed on", day(o.created_at)], ["Deliver to", `<b>${esc(o.contact_name)}</b><br>${address(o)}`]]));
   switch (e.status) {
+    case "pending": {
+      // only when the order is first placed; payment is arranged by hand
+      if (e.note !== "Order placed") return null;
+      const hrs = shop.unpaid_hours ?? 48;
+      const until = hrs > 0 ? new Date(new Date(o.created_at).getTime() + hrs * 3600 * 1000) : null;
+      const reach = [o.contact_phone && `<b style="color:${C.text}">${esc(o.contact_phone)}</b>`, o.contact_email && `<b style="color:${C.text}">${esc(o.contact_email)}</b>`].filter(Boolean).join(" or ");
+      const wa = shop.store_phone.replace(/\D/g, "");
+      const waLink = wa ? `https://wa.me/${wa.length === 10 ? `91${wa}` : wa}?text=${encodeURIComponent(`Hi, I'd like to pay for my order ${o.order_number}.`)}` : "";
+      const steps = card(
+        "What happens next",
+        T(
+          nextSteps([
+            ["We get in touch", `Someone from our team will contact you${reach ? ` on ${reach}` : ""} to take payment.`],
+            ["You pay", "They'll tell you how to pay and confirm the amount with you."],
+            ["We pack and ship", "As soon as payment is in, we'll email you and get your order ready."],
+          ]),
+        ) + (until ? p(`We're holding your items until <b style="color:${C.text}">${when(until)}</b>. If payment isn't sorted by then, the order is cancelled and nothing is charged.`, C.muted, 13).replace("margin:0 0 12px", "margin:16px 0 0;padding-top:14px;border-top:1px solid " + C.line) : ""),
+      );
+      return {
+        kind: "received",
+        subject: `Order ${o.order_number} received: we'll contact you for payment`,
+        html: shell(cfg, shop, "customer", "Order received", `${hero(cfg, "received", "Order received", "We've got your order")}${card("", `${hi}${p("Thanks for your order. We take payment personally, so there's nothing to pay online.", C.muted).replace("margin:0 0 12px", "margin:0")}`)}${steps}${waLink ? button(waLink, "Message us on WhatsApp") : ""}${bill(o, "Amount to pay", cfg)}${details}${view}`),
+      };
+    }
     case "paid":
       return {
         kind: "confirmed",
@@ -257,12 +296,25 @@ export function compose(e: Event, shop: Shop, cfg: Cfg): Mail | null {
   return null;
 }
 
-// the shop's own alert for a new paid order
+// the shop's own alert for a new order, as it's placed: unpaid, so someone
+// needs to contact the customer for payment
 export function alertMail(o: Order, shop: Shop, cfg: Cfg): Mail {
-  const who = card("Customer", kv([["Name", `<b>${esc(o.contact_name)}</b>`], ["Email", `<a href="mailto:${esc(o.contact_email)}" style="color:${C.goldText}">${esc(o.contact_email)}</a>`], ["Deliver to", address(o)]]));
+  const digits = (o.contact_phone || "").replace(/\D/g, "");
+  const wa = digits.length === 10 ? `91${digits}` : digits;
+  const link = (href: string, text: string) => `<a href="${href}" style="color:${C.goldText};font-weight:700">${text}</a>`;
+  const who = card(
+    "Customer",
+    kv([
+      ["Name", `<b>${esc(o.contact_name)}</b>`],
+      ...(o.contact_phone ? ([["Phone", `${link(`tel:${esc(o.contact_phone)}`, esc(o.contact_phone))}${wa ? ` · ${link(`https://wa.me/${wa}?text=${encodeURIComponent(`Hi ${first(o.contact_name)}, this is Babajee about your order ${o.order_number} (${inr(o.total)}).`)}`, "WhatsApp")}` : ""}`]] as [string, string][]) : []),
+      ["Email", link(`mailto:${esc(o.contact_email)}`, esc(o.contact_email))],
+      ["Deliver to", address(o)],
+    ]),
+  );
+  const todo = card("", p(`Not paid yet. Contact ${esc(first(o.contact_name))} to take payment, then mark the order paid in the admin.`, C.muted).replace("margin:0 0 12px", "margin:0"));
   return {
     kind: "new-order",
-    subject: `New order ${o.order_number} · ${inr(o.total)}`,
-    html: shell(cfg, shop, "shop", "New order", `${hero(cfg, "new-order", "New order", `${o.order_number} · ${inr(o.total)}`)}${bill(o, "Total paid", cfg)}${who}${button(`${cfg.site}/admin/orders/view/?id=${o.id}`, "Open in admin")}`),
+    subject: `New order ${o.order_number} · ${inr(o.total)} · contact for payment`,
+    html: shell(cfg, shop, "shop", "New order", `${hero(cfg, "new-order", "New order", `${o.order_number} · ${inr(o.total)}`)}${todo}${who}${bill(o, "Amount to collect", cfg)}${button(`${cfg.site}/admin/orders/view/?id=${o.id}`, "Open in admin")}`),
   };
 }

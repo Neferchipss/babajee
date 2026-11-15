@@ -10,8 +10,8 @@ import { track } from "@/lib/track";
 import { useCartStock } from "@/lib/cart-stock";
 
 // Checkout: pick where it goes, add a note, place the order. There is no
-// payment step yet. The order goes in unpaid, and the shop confirms payment
-// with the customer before packing it (see supabase/migrations/0013).
+// online payment, by the shop's choice: the order goes in unpaid, someone from
+// the shop contacts the customer to take payment and marks it paid (0013, 0055).
 const FIELDS = ["recipient_name", "phone", "line1", "line2", "landmark", "city", "state", "pincode", "latitude", "longitude"] as const;
 
 export default function CheckoutForm() {
@@ -104,7 +104,9 @@ export default function CheckoutForm() {
         <h2 id="pay-heading" className="mb-3 text-2xl">
           Payment
         </h2>
-        <p className="max-w-[60ch] text-muted">Place your order now. We&apos;ll get in touch to confirm payment before we pack it.</p>
+        <p className="max-w-[60ch] text-muted">
+          Nothing to pay online. Place your order and someone from our team will contact you on the phone number in your delivery address to take payment. We&apos;ll hold your items while we do, then pack and ship once it&apos;s paid.
+        </p>
       </section>
 
       {stock.blocked && !err ? (

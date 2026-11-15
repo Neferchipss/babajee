@@ -19,7 +19,7 @@ const openRequest = (o: Order) => (o.order_requests ?? []).find((r) => r.status 
 type Step = { label: string; to: OrderStatus | "ship" | "open"; done: string };
 const TABS: { id: string; label: string; note: string; step?: Step; match: (o: Order) => boolean }[] = [
   { id: "all", label: "All orders", note: "Every order, newest first. Tap one to see it all and act on it.", match: () => true },
-  { id: "pending", label: "Payment pending", note: "Waiting for the bank transfer. Mark each one paid once the money is in.", step: { label: "Mark paid", to: "paid", done: "marked as paid" }, match: (o) => o.status === "pending" },
+  { id: "pending", label: "Payment pending", note: "Not paid yet. Contact each customer to take payment, then mark it paid. Unpaid orders cancel themselves after the hours set in Settings.", step: { label: "Mark paid", to: "paid", done: "marked as paid" }, match: (o) => o.status === "pending" },
   { id: "paid", label: "To pack", note: "Paid and ready to pack. Pack them, then mark them packed.", step: { label: "Packed", to: "packed", done: "marked as packed" }, match: (o) => o.status === "paid" },
   { id: "packed", label: "Ready to dispatch", note: "Packed and waiting for the courier. Ship each with its courier and tracking number.", step: { label: "Ship…", to: "ship", done: "" }, match: (o) => o.status === "packed" },
   { id: "shipped", label: "On the way", note: "With the courier. Mark each delivered when it arrives.", step: { label: "Delivered", to: "delivered", done: "marked as delivered" }, match: (o) => o.status === "shipped" },

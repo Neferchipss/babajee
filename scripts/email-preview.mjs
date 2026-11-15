@@ -20,6 +20,7 @@ const base = {
   created_at: "2026-11-14T08:30:00Z",
   contact_name: "Shruti Rodrigues",
   contact_email: "shruti@example.com",
+  contact_phone: "+91 98201 45566",
   address_line1: "2103, Bhavani Housing Society",
   address_line2: "Tilak Road",
   address_city: "Mumbai",
@@ -40,6 +41,7 @@ const base = {
 };
 const ev = (status, o = {}, note = "") => ({ id: "e", status, note, created_at: "2026-11-15T11:00:00Z", orders: { ...base, ...o } });
 const mails = {
+  "0-received": compose(ev("pending", {}, "Order placed"), { ...shop, unpaid_hours: 48 }, cfg),
   "1-confirmed": compose(ev("paid"), shop, cfg),
   "2-shipped": compose(ev("shipped"), shop, cfg),
   "3-shipped-dtdc": compose(ev("shipped", { shipments: [{ carrier: "DTDC", tracking_number: "D7781234", shipped_at: at }] }), shop, cfg),

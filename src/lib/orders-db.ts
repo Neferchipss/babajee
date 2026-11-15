@@ -782,6 +782,8 @@ export type StoreSettings = {
   store_state: string;
   // days after delivery a customer can ask for a return; 0 = no returns (0022)
   return_days: number;
+  // hours an unpaid order holds its stock before it cancels itself; 0 = never (0055)
+  unpaid_hours: number;
   // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
   low_stock_at: number;
   // printed on invoices (0029)
@@ -805,7 +807,7 @@ export async function gstRates(slugs: string[]): Promise<Map<string, number | nu
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -815,6 +817,7 @@ export async function getSettings(): Promise<StoreSettings> {
     gst_input_credit: data.gst_input_credit,
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
+    unpaid_hours: data.unpaid_hours ?? 48,
     low_stock_at: data.low_stock_at ?? 3,
     store_name: data.store_name ?? "Babajee",
     legal_name: data.legal_name ?? "",
