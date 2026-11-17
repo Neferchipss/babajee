@@ -207,8 +207,11 @@ async function liveCategoryDetail(slug: string) {
 export type ProductSpec = { label: string; value: string };
 // Its weight and size per option, and its video links (0062), with them.
 export type OptionSize = { label: string; weight_g: number | null; length_cm: number | null; width_cm: number | null; height_cm: number | null };
-export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[]; videos: string[]; sizes: OptionSize[] }> {
-  const none = { description: "", brand: "", specs: [], videos: [], sizes: [] };
+// what a bundle option holds (0071): "2 × Raw Classic King Size"
+export type BundleIncludes = { label: string; items: { qty: number; name: string; option: string }[] };
+
+export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[]; videos: string[]; sizes: OptionSize[]; includes: BundleIncludes[] }> {
+  const none = { description: "", brand: "", specs: [], videos: [], sizes: [], includes: [] };
   const sb = client();
   if (!sb) return none;
   // with 0062's columns; before they exist, without them
@@ -223,7 +226,32 @@ export async function getProductDescription(productSlug: string): Promise<{ desc
   const specs = Array.isArray(row.specs) ? (row.specs as ProductSpec[]).filter((r) => r && r.label && r.value) : [];
   const n = (x: unknown) => (x == null ? null : toNumber(x));
   const sizes = (row.product_variants ?? []).map((v) => ({ label: String(v.label), weight_g: n(v.weight_g), length_cm: n(v.length_cm), width_cm: n(v.width_cm), height_cm: n(v.height_cm) }));
-  return { description: row.description ?? "", brand: row.brand ?? "", specs, videos: (row.video_urls ?? []).filter((u) => /^https:\/\//.test(u)), sizes };
+  return { description: row.description ?? "", brand: row.brand ?? "", specs, videos: (row.video_urls ?? []).filter((u) => /^https:\/\//.test(u)), sizes, includes: await bundleIncludes(sb, productSlug) };
+}
+
+// read on its own: a database without bundles (0071) just has none
+async function bundleIncludes(sb: NonNullable<ReturnType<typeof client>>, productSlug: string): Promise<BundleIncludes[]> {
+  const { data, error } = await sb
+    .from("product_variants")
+    .select("label, products!inner(slug), bundle_items!bundle_items_bundle_variant_id_fkey(qty, position, product_variants!bundle_items_component_variant_id_fkey(label, products(name)))")
+    .eq("products.slug", productSlug);
+  if (error || !data) return [];
+  type Comp = { label: string; products: { name: string } | { name: string }[] | null };
+  type Row = { label: string; bundle_items: { qty: number; position: number; product_variants: Comp | Comp[] | null }[] | null };
+  const one = <T,>(x: T | T[] | null | undefined) => (Array.isArray(x) ? x[0] : x) ?? null;
+  return (data as unknown as Row[])
+    .filter((v) => v.bundle_items?.length)
+    .map((v) => ({
+      label: v.label,
+      items: v
+        .bundle_items!.slice()
+        .sort((a, b) => a.position - b.position)
+        .map((b) => {
+          const c = one(b.product_variants);
+          const opt = c?.label ?? "";
+          return { qty: b.qty, name: one(c?.products)?.name ?? "", option: opt === "Default" || opt === "Standard" ? "" : opt };
+        }),
+    }));
 }
 
 export async function getProductDetail(categorySlug: string, productSlug: string) {

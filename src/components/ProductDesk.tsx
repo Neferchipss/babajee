@@ -119,7 +119,7 @@ export default function ProductDesk({
     import("@/lib/catalog-db")
       .then((m) => m.getProductDescription(p.slug))
       .then((d) => live && setAbout({ slug: p.slug, ...d }))
-      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "", specs: [], videos: [], sizes: [] }));
+      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "", specs: [], videos: [], sizes: [], includes: [] }));
     return () => {
       live = false;
     };
@@ -240,6 +240,22 @@ export default function ProductDesk({
                 <p>{info.description}</p>
               </section>
             ) : null}
+            {(() => {
+              const inc = info?.includes.find((x) => x.label === variant.label) ?? (info?.includes.length === 1 ? info.includes[0] : undefined);
+              return inc ? (
+                <section className="pdk-about pdk-includes">
+                  <h2>What&apos;s in the set</h2>
+                  <ul>
+                    {inc.items.map((it, i) => (
+                      <li key={i}>
+                        <b>{it.qty} ×</b> {it.name}
+                        {it.option ? <span> · {it.option}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null;
+            })()}
             {specs.length ? (
               <section className="pdk-about pdk-specs">
                 <h2>Specifications</h2>

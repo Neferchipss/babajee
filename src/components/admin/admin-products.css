@@ -3187,3 +3187,11 @@ select.ape-line-input {
 .col-rules li > .adm-btn { flex: 0 0 auto; }
 .col-rules-foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .col-inline { display: inline-block; width: auto; padding-block: 4px; }
+
+/* Product panel: bundle (0071) */
+.ape-bundle { display: grid; gap: 10px; }
+.ape-bundle-parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ape-bundle-parts li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--adm-line); border-radius: 8px; }
+.ape-bundle-qty { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.ape-bundle-qty button { width: 28px; height: 28px; border: 1px solid var(--adm-line); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.ape-bundle-qty output { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }

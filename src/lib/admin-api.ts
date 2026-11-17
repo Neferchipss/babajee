@@ -45,6 +45,8 @@ type Api = Pick<
   | "saveSubGroup"
   | "deleteSubGroup"
   | "setProductSubcategories"
+  | "listBundle"
+  | "saveBundle"
 >;
 
 let demo: Api | null = null;
@@ -107,6 +109,7 @@ function makeDemo(): Api {
   const find = (id: string) => products.find((p) => p.id === id)!;
   const wait = () => new Promise((r) => setTimeout(r, 120));
   let boxSizes: (BoxSize & { product_id: string })[] = [];
+  const bundles = new Map<string, { component_variant_id: string; qty: number }[]>();
   let boxPresets: BoxPreset[] = [];
   let subGroups: (SubGroup & { category_id: string })[] = [];
   let subTags: (Omit<Subcategory, "products"> & { category_id: string })[] = [];
@@ -257,6 +260,26 @@ function makeDemo(): Api {
     },
     async setProductSubcategories(productId, ids) {
       find(productId).subcategory_ids = [...ids];
+    },
+    // bundles (0071), in memory: stock is what the parts make
+    async listBundle(variantId) {
+      return (bundles.get(variantId) ?? []).map((b) => {
+        const p = products.find((x) => x.variants.some((v) => v.id === b.component_variant_id));
+        const v = p?.variants.find((x) => x.id === b.component_variant_id);
+        return { component_variant_id: b.component_variant_id, qty: b.qty, product: p?.name ?? "", option: v?.label ?? "", price: v?.price ?? 0, stock: v?.stock_qty ?? 0, track_stock: !!v?.track_stock };
+      });
+    },
+    async saveBundle(variantId, parts) {
+      bundles.set(variantId, parts.map((p) => ({ ...p })));
+      const own = products.flatMap((p) => p.variants).find((v) => v.id === variantId);
+      if (own) {
+        const made = parts.map((p) => {
+          const v = products.flatMap((x) => x.variants).find((x) => x.id === p.component_variant_id);
+          return v?.track_stock ? Math.floor((v.stock_qty ?? 0) / p.qty) : Infinity;
+        });
+        own.stock_qty = parts.length && made.some(Number.isFinite) ? Math.min(...made.filter(Number.isFinite)) : 0;
+        own.track_stock = made.some(Number.isFinite);
+      }
     },
     // box setup (0065), in memory
     async listBoxSizes(productId) {

@@ -582,3 +582,44 @@ export async function setImageVariant(id: string, variantId: string | null) {
   const { error } = await db().from("product_images").update({ variant_id: variantId }).eq("id", id);
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------- bundles (0071)
+// An option made of other products' options ("Starter kit" = 1 grinder + 2
+// papers). Its stock is what its parts make and selling one takes the parts;
+// the database does both. Here: what a bundle option holds.
+export type BundlePart = { component_variant_id: string; qty: number; product: string; option: string; price: number; stock: number; track_stock: boolean };
+
+export async function listBundle(variantId: string): Promise<BundlePart[]> {
+  const { data, error } = await db()
+    .from("bundle_items")
+    .select("component_variant_id, qty, position, product_variants!bundle_items_component_variant_id_fkey(label, price, stock_qty, track_stock, products(name))")
+    .eq("bundle_variant_id", variantId)
+    .order("position");
+  if (error) throw error;
+  type V = { label: string; price: number; stock_qty: number; track_stock: boolean; products: { name: string } | { name: string }[] | null };
+  return (data ?? []).map((r) => {
+    const raw = (r as unknown as { product_variants: V | V[] | null }).product_variants;
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    const prod = Array.isArray(v?.products) ? v?.products[0] : v?.products;
+    return { component_variant_id: r.component_variant_id as string, qty: r.qty as number, product: prod?.name ?? "", option: v?.label ?? "", price: toNumber(v?.price ?? 0), stock: v?.stock_qty ?? 0, track_stock: !!v?.track_stock };
+  });
+}
+
+// what the bundle holds, replacing what was there
+export async function saveBundle(variantId: string, parts: { component_variant_id: string; qty: number }[]) {
+  const sb = db();
+  const keep = parts.map((p) => p.component_variant_id);
+  const { data: had, error: e0 } = await sb.from("bundle_items").select("component_variant_id").eq("bundle_variant_id", variantId);
+  if (e0) throw e0;
+  const gone = (had ?? []).map((r) => r.component_variant_id as string).filter((id) => !keep.includes(id));
+  if (gone.length) {
+    const { error } = await sb.from("bundle_items").delete().eq("bundle_variant_id", variantId).in("component_variant_id", gone);
+    if (error) throw error;
+  }
+  if (parts.length) {
+    const { error } = await sb
+      .from("bundle_items")
+      .upsert(parts.map((p, position) => ({ bundle_variant_id: variantId, component_variant_id: p.component_variant_id, qty: p.qty, position })), { onConflict: "bundle_variant_id,component_variant_id" });
+    if (error) throw error;
+  }
+}
