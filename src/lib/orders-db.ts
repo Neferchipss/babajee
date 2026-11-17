@@ -892,22 +892,30 @@ export type StoreSettings = {
 // rate (0060; charged only with cess switched on), by slug. Readable by anyone.
 export async function gstRates(slugs: string[]): Promise<Map<string, { gst: number | null; cess: number }>> {
   if (!slugs.length) return new Map();
-  const { data, error } = await db().from("products").select("slug, gst_rate, cess_rate").in("slug", slugs);
+  // cess rates (0060) read on their own: none before that is in place
+  const [{ data, error }, cess] = await Promise.all([
+    db().from("products").select("slug, gst_rate").in("slug", slugs),
+    db().from("products").select("slug, cess_rate").in("slug", slugs),
+  ]);
   if (error) throw error;
-  return new Map((data ?? []).map((r) => [r.slug as string, { gst: r.gst_rate == null ? null : toNumber(r.gst_rate), cess: toNumber(r.cess_rate ?? 0) }]));
+  const c = new Map(cess.error ? [] : (cess.data ?? []).map((r) => [r.slug as string, toNumber(r.cess_rate ?? 0)]));
+  return new Map((data ?? []).map((r) => [r.slug as string, { gst: r.gst_rate == null ? null : toNumber(r.gst_rate), cess: c.get(r.slug as string) ?? 0 }]));
 }
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, cess_enabled, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  // cess (0060) read on its own: a database without it still gives the rest
+  const cessP = db().from("store_settings").select("cess_enabled").eq("id", 1).maybeSingle();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
+  const cess = await cessP;
   return {
     shipping: toNumber(data.shipping),
     free_shipping_over: data.free_shipping_over == null ? null : toNumber(data.free_shipping_over),
     gst_rate: toNumber(data.gst_rate),
     gst_inclusive: data.gst_inclusive,
     gst_input_credit: data.gst_input_credit,
-    cess_enabled: !!data.cess_enabled,
+    cess_enabled: !cess.error && !!cess.data?.cess_enabled,
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
     unpaid_hours: data.unpaid_hours ?? 48,

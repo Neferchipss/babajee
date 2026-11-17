@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/currency";
 import { bill, gstLabel } from "@/lib/gst";
 import type { StoreSettings } from "@/lib/orders-db";
 import { toggleSaved } from "@/lib/wishlist";
+import { dropLater, moveToCart, saveForLater, useLater } from "@/lib/later";
 import CartRecs, { type RecGroup } from "./CartRecs";
 import { JarArt } from "./CartJar";
 import ProductArt from "./ProductArt";
@@ -40,6 +41,8 @@ const Bin = () => (
 export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
   const cart = useCart();
   const sums = cartSums(cart);
+  // delivery and GST, as checkout will work them out
+  const bt = useBill(cart, sums.total);
   // sold out since it went in, or more than are left
   const stock = useCartStock(cart);
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -63,6 +66,20 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
     const gone = removeLine(line.key);
     buzz([6, 30, 10]);
     if (gone) offerUndo({ text: `Moved ${line.name} to your wishlist`, restore: () => restoreLine(gone.line, gone.at) });
+  };
+  // out of the cart, kept (with its option and quantity) to buy another time
+  const later = (line: CartLine) => {
+    const gone = removeLine(line.key);
+    saveForLater(line);
+    buzz([6, 30, 10]);
+    if (gone)
+      offerUndo({
+        text: `Saved ${line.name} for later`,
+        restore: () => {
+          dropLater(line.key);
+          restoreLine(gone.line, gone.at);
+        },
+      });
   };
   const clearAll = () => {
     const before = cart;
@@ -105,6 +122,9 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
           </SceneLink>
           {toast}
         </div>
+        <div className="cv-empty-later">
+          <SavedForLater />
+        </div>
         <CartRecs groups={recs} />
       </>
     );
@@ -113,11 +133,11 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
   // checking out waits until nothing in the jar is sold out or short
   const payLink = stock.blocked ? (
     <span className="cv-pay" aria-disabled="true" data-blocked="true">
-      Checkout · {rs(sums.total)}
+      Checkout · {rs(bt.b ? bt.b.total : sums.total)}
     </span>
   ) : (
     <Link href="/checkout" className="cv-pay">
-      Checkout · {rs(sums.total)}
+      Checkout · {rs(bt.b ? bt.b.total : sums.total)}
     </Link>
   );
 
@@ -166,9 +186,14 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
                         {"out" in short ? "Out of stock" : `Only ${short.left} left`}
                       </p>
                     ) : null}
-                    <button type="button" className="cv-wish" onClick={() => toWishlist(line)}>
-                      Move to wishlist
-                    </button>
+                    <span className="cv-acts">
+                      <button type="button" className="cv-wish" onClick={() => later(line)}>
+                        Save for later
+                      </button>
+                      <button type="button" className="cv-wish" onClick={() => toWishlist(line)}>
+                        Move to wishlist
+                      </button>
+                    </span>
                   </div>
                   <div className="cv-side">
                     <div className="cv-step" role="group" aria-label={`${line.name} quantity`}>
@@ -210,11 +235,13 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
           </ul>
         </div>
 
+        <SavedForLater />
         <CartRecs groups={recs} />
       </div>
 
       <aside className="cv-sum" aria-label="Bill details">
         <h2 className="cv-sum-title">Bill details</h2>
+        <FreeDelivery sub={sums.total} rules={bt.rules} />
         <dl>
           <div>
             <dt>Items total</dt>
@@ -225,13 +252,26 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
 
           <div>
             <dt>Delivery</dt>
-            <dd className="cv-muted">At checkout</dd>
+            {bt.b ? <dd>{bt.b.ship ? rs(bt.b.ship) : "Free"}</dd> : <dd className="cv-muted">At checkout</dd>}
           </div>
+          {bt.b && bt.b.tax > 0 && (
+            <div>
+              <dt>{gstLabel(bt.rules!.gst_inclusive, bt.b.rate)}</dt>
+              <dd>{rs(bt.b.tax)}</dd>
+            </div>
+          )}
+          {bt.b && bt.b.cess > 0 && (
+            <div>
+              <dt>{bt.rules!.gst_inclusive ? "Includes cess" : "Cess"}</dt>
+              <dd>{rs(bt.b.cess)}</dd>
+            </div>
+          )}
           <div className="cv-total">
             <dt>To pay</dt>
-            <dd>{rs(sums.total)}</dd>
+            <dd>{rs(bt.b ? bt.b.total : sums.total)}</dd>
           </div>
         </dl>
+        <PinCheck />
         {stock.blocked ? (
           <p className="cv-blocked" role="alert">
             {stock.blocked}
@@ -262,7 +302,7 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
 // if they can't, it shows the plain item total.
 // Each product's GST bracket comes from the catalogue; one without its own
 // uses the shop's default rate. Cess (0060) only when switched on in Settings.
-function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined }) {
+function useBill(cart: CartLine[], sub: number | undefined) {
   const [rules, setRules] = useState<StoreSettings | null>(null);
   const [rates, setRates] = useState<Map<string, { gst: number | null; cess: number }> | null>(null);
   const slugs = [...new Set(cart.map((l) => l.slug))].sort().join(",");
@@ -286,6 +326,11 @@ function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined
           rules.gst_inclusive,
         )
       : null;
+  return { b, rules };
+}
+
+function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined }) {
+  const { b, rules } = useBill(cart, sub);
   return (
     <>
       {b && (
@@ -350,5 +395,102 @@ export function CheckoutItems() {
 
       <CheckoutBill cart={cart} sub={sums.total} />
     </aside>
+  );
+}
+
+// How far the cart is from free delivery, as a bar (Settings: free delivery
+// over a total); nothing when there's no such rule
+function FreeDelivery({ sub, rules }: { sub: number | undefined; rules: StoreSettings | null }) {
+  const over = rules?.free_shipping_over;
+  if (sub === undefined || over == null || over <= 0 || !rules?.shipping) return null;
+  const left = Math.max(0, over - sub);
+  return (
+    <div className="cv-free" role="status">
+      <p>{left > 0 ? <>Add {rs(left)} more for free delivery</> : <>Free delivery on this order</>}</p>
+      <span className="cv-free-bar" aria-hidden="true">
+        <i style={{ width: `${Math.min(100, (sub / over) * 100)}%` }} />
+      </span>
+    </div>
+  );
+}
+
+// "Does it deliver to my pin code?" Kept in this browser. Every pin code in
+// India is delivered to for now; delivery areas and times come with the
+// shipping rules.
+const PIN_KEY = "bj-pin";
+function PinCheck() {
+  const [pin, setPin] = useState("");
+  const [checked, setChecked] = useState("");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PIN_KEY) ?? "";
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the pin saved in this browser, once
+      setPin(saved);
+      setChecked(saved);
+    } catch {}
+  }, []);
+  const ok = /^[1-9][0-9]{5}$/.test(pin);
+  const check = () => {
+    if (!ok) return;
+    setChecked(pin);
+    try {
+      localStorage.setItem(PIN_KEY, pin);
+    } catch {}
+  };
+  return (
+    <div className="cv-pin">
+      <label>
+        <span>Delivery pin code</span>
+        <span className="cv-pin-row">
+          <input inputMode="numeric" maxLength={6} value={pin} placeholder="e.g. 411001" onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && check()} />
+          <button type="button" className="cv-link" disabled={!ok} onClick={check}>
+            Check
+          </button>
+        </span>
+      </label>
+      {checked && checked === pin && <p className="cv-pin-ok">We deliver to {checked}, anywhere in India.</p>}
+      {pin.length === 6 && !ok && <p className="cv-pin-bad">That isn&apos;t a pin code.</p>}
+    </div>
+  );
+}
+
+// Lines saved for later, under the cart: back into the cart, or gone
+function SavedForLater() {
+  const later = useLater();
+  if (!later.length) return null;
+  return (
+    <section className="cv-panel cv-later" aria-labelledby="cv-later-title">
+      <h2 id="cv-later-title" className="cv-later-title">
+        Saved for later <span>{later.length}</span>
+      </h2>
+      <ul className="cv-lines">
+        {later.map((line) => (
+          <li key={line.key} className="cv-line">
+            <Link href={line.href} className="cv-thumb" tabIndex={-1} aria-hidden="true">
+              <ProductArt name={line.name} tone={line.tone} slug={line.slug} option={line.variant} />
+            </Link>
+            <div className="cv-info">
+              <Link href={line.href} className="cv-name">
+                {line.name}
+              </Link>
+              <p className="cv-meta">{[line.variant !== "Standard" ? line.variant : null, line.unit, `${line.qty} ×`].filter(Boolean).join(" · ")}</p>
+              <span className="cv-acts">
+                <button type="button" className="cv-wish" onClick={() => moveToCart(line.key)}>
+                  Move to cart
+                </button>
+                <button type="button" className="cv-wish" onClick={() => dropLater(line.key)}>
+                  Remove
+                </button>
+              </span>
+            </div>
+            <div className="cv-side">
+              <p className="cv-price">
+                <span>{rs(lineTotal(line))}</span>
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
