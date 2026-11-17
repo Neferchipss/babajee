@@ -1104,7 +1104,10 @@ export async function profit(from: string, to: string): Promise<Profit> {
 
 // ---------------------------------------------------------------- admin: reports
 
-export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst" | DeliveryKind;
+export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst" | DeliveryKind | InsightKind;
+// the reports from 0068 (admin_insights)
+export type InsightKind = "product_funnel" | "exit_pages" | "worst_sellers" | "returns" | "return_reasons" | "new_customers" | "marketing" | "refunds";
+const INSIGHTS: string[] = ["product_funnel", "exit_pages", "worst_sellers", "returns", "return_reasons", "new_customers", "marketing", "refunds"];
 export type ReportRow = Record<string, string | number | boolean | null>;
 export type DeliveryKind = "couriers" | "places" | "late";
 
@@ -1113,6 +1116,11 @@ export type DeliveryKind = "couriers" | "places" | "late";
 // shipments recorded on each order.
 export async function report(kind: ReportKind, from: string, to: string): Promise<ReportRow[]> {
   if (kind === "couriers" || kind === "places" || kind === "late") return deliveryReport(kind, from, to);
+  if (INSIGHTS.includes(kind)) {
+    const { data, error } = await db().rpc("admin_insights", { p_kind: kind, p_from: from, p_to: to });
+    if (error) throw error;
+    return (data ?? []) as ReportRow[];
+  }
   const { data, error } = await db().rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
@@ -1128,8 +1136,10 @@ export async function cancelMyOrder(id: string, reason: string): Promise<"cancel
   return data as "cancelled" | "requested";
 }
 
-export async function requestReturn(id: string, items: { item: string; qty: number }[], reason: string) {
-  const { error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason });
+export async function requestReturn(id: string, items: { item: string; qty: number }[], reason: string, reasonCode = "") {
+  // with the picked reason (0068); without it on a database that hasn't got it yet
+  let { error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason, p_reason_code: reasonCode });
+  if (error?.code === "PGRST202") ({ error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason }));
   if (error) throw error;
 }
 

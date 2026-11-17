@@ -922,3 +922,11 @@
 .mo-track .mo-track-hint {
   flex: 1 1 100%;
 }
+
+/* return reason chips (0068) */
+.mo-reasons { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.mo-reasons legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.mo-reasons label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--color-line); border-radius: 999px; cursor: pointer; font-size: 0.9rem; }
+.mo-reasons label.is-on { border-color: var(--color-rasta-gold); background: color-mix(in srgb, var(--color-rasta-gold) 14%, transparent); }
+.mo-reasons input { position: absolute; opacity: 0; pointer-events: none; }
+.mo-reasons label:has(input:focus-visible) { outline: 2px solid var(--color-rasta-gold); outline-offset: 2px; }

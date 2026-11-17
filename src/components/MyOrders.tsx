@@ -557,10 +557,21 @@ function FragmentRow({ label, value }: { label: string; value: string }) {
 
 const DAY_MS = 864e5;
 
+// the reasons a customer picks from when asking for a return (0068)
+const RETURN_REASONS: [string, string][] = [
+  ["damaged", "Arrived damaged"],
+  ["wrong_item", "Wrong item"],
+  ["not_as_described", "Not as described"],
+  ["quality", "Quality not good"],
+  ["changed_mind", "Changed my mind"],
+  ["other", "Something else"],
+];
+
 // Buy again, cancel, ask for a return, and where any request stands.
 function OrderActions({ o, returnDays, deliveredAt, onChanged }: { o: Order; returnDays: number | null; deliveredAt: string | null; onChanged: () => void }) {
   const [open, setOpen] = useState<"cancel" | "return" | null>(null);
   const [reason, setReason] = useState("");
+  const [why, setWhy] = useState("");
   const [qty, setQty] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -610,11 +621,13 @@ function OrderActions({ o, returnDays, deliveredAt, onChanged }: { o: Order; ret
           o.id,
           returnable.filter((i) => (qty[i.id] ?? 0) > 0).map((i) => ({ item: i.id, qty: qty[i.id] })),
           reason.trim(),
+          why,
         );
         setNote("We've sent your return request. The shop will tell you here what happens next.");
       }
       setOpen(null);
       setReason("");
+      setWhy("");
       setQty({});
       onChanged();
     } catch (e) {
@@ -761,13 +774,22 @@ function OrderActions({ o, returnDays, deliveredAt, onChanged }: { o: Order; ret
               </li>
             ))}
           </ul>
+          <fieldset className="mo-reasons">
+            <legend>Reason</legend>
+            {RETURN_REASONS.map(([code, label]) => (
+              <label key={code} className={why === code ? "is-on" : ""}>
+                <input type="radio" name="mo-reason" value={code} checked={why === code} onChange={() => setWhy(code)} />
+                {label}
+              </label>
+            ))}
+          </fieldset>
           <label>
             <span>What&apos;s wrong?</span>
             <textarea id="mo-return-why" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Arrived broken, wrong item, not as described…" />
           </label>
           {err && <p className="mo-err">{err}</p>}
           <div className="mo-do-row">
-            <button className="btn btn-primary" disabled={busy || !picked || !reason.trim()}>
+            <button className="btn btn-primary" disabled={busy || !picked || !why || !reason.trim()}>
               {busy ? "Sending" : "Send return request"}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setOpen(null)}>
