@@ -1,0 +1,43 @@
+/* Settings > Admin design */
+.dsn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.dsn-card { display: grid; gap: 12px; align-content: start; }
+.dsn-card.is-on { outline: 2px solid var(--adm-gold, #b8873b); }
+.dsn-text { display: grid; gap: 6px; }
+.dsn-text h2 { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 1.15rem; }
+.dsn-text p { margin: 0; }
+.dsn-based { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--adm-muted); }
+.dsn-text ul { margin: 2px 0 6px; padding-left: 18px; color: var(--adm-muted); }
+.dsn-text .adm-btn { justify-self: start; }
+
+/* the drawings: 16:9 boxes made of blocks */
+.dsn-sk { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; border: 1px solid var(--adm-line); background: #f4f4f5; }
+.dsn-sk i { position: absolute; display: block; }
+.dsn-sk b { display: block; flex: 1; background: #fff; border-radius: 4px; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08); }
+.dsn-sk .page { display: flex; flex-direction: column; gap: 8px; }
+
+.dsn-sk--current { background: #0c0a1c; }
+.dsn-sk--current .bar { inset: 0 0 auto 0; height: 14%; background: #16123a; }
+.dsn-sk--current .tree { left: 4%; top: 20%; bottom: 6%; width: 20%; background: repeating-linear-gradient(#2a2560 0 6%, transparent 6% 13%); }
+.dsn-sk--current .page { left: 29%; right: 4%; top: 20%; bottom: 6%; }
+.dsn-sk--current b { background: #1b1640; box-shadow: none; }
+
+.dsn-sk--shopify { background: #f1f1f1; }
+.dsn-sk--shopify .top { inset: 0 0 auto 0; height: 12%; background: #1a1a1a; }
+.dsn-sk--shopify .side { left: 0; top: 12%; bottom: 0; width: 22%; background: #ebebeb; border-right: 1px solid #ddd; }
+.dsn-sk--shopify .page { left: 30%; right: 8%; top: 20%; bottom: 6%; }
+.dsn-sk--shopify b { border-radius: 6px; }
+
+.dsn-sk--ease { background: #f6f7f9; }
+.dsn-sk--ease .top { inset: 0 0 auto 0; height: 12%; background: #fff; border-bottom: 1px solid #cfd6df; }
+.dsn-sk--ease .tabs { left: 4%; right: 4%; top: 15%; height: 15%; display: flex; gap: 3%; }
+.dsn-sk--ease .tabs s { flex: 1; background: #fff; border: 2px solid #cfd6df; border-radius: 6px; }
+.dsn-sk--ease .tabs s:first-child { border-color: #1554c0; background: #e7efff; }
+.dsn-sk--ease .page { left: 18%; right: 18%; top: 36%; bottom: 6%; }
+.dsn-sk--ease b { border: 2px solid #cfd6df; box-shadow: none; border-radius: 8px; }
+
+.dsn-sk--studio { background: #fff; }
+.dsn-sk--studio .rail { left: 0; top: 0; bottom: 0; width: 7%; background: #111113; }
+.dsn-sk--studio .panel { left: 7%; top: 0; bottom: 0; width: 18%; background: #f7f7f8; border-right: 1px solid #e6e6e9; }
+.dsn-sk--studio .crumbs { left: 25%; right: 0; top: 0; height: 11%; border-bottom: 1px solid #e6e6e9; }
+.dsn-sk--studio .page { left: 29%; right: 4%; top: 17%; bottom: 6%; }
+.dsn-sk--studio .cmd { left: 42%; width: 36%; top: 26%; height: 30%; background: #fff; border-radius: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.25), 0 0 0 1px #e6e6e9; }

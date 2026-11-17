@@ -45,6 +45,7 @@ const PAGES: [string, Area][] = [
   ["/admin/storefront", "look"],
   ["/admin/support", "money"],
   ["/admin/settings/team", "staff"],
+  ["/admin/settings/design", "staff"],
   ["/admin/settings/activity", "money"],
   ["/admin/settings", "settings"],
   ["/admin", "staff"],

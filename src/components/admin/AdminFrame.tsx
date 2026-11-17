@@ -1,31 +1,71 @@
 "use client";
 
-import { ADMIN_STYLES, setAdminStyle, useAdminStyle, type AdminStyle } from "@/lib/admin-style";
-import "./admin-styles.css";
+import Link from "next/link";
+import { Suspense, useEffect } from "react";
+import { useAdminStyle } from "@/lib/admin-style";
+import AdminNav from "./AdminNav";
+import RequireAdmin, { RoleGate } from "./RequireAdmin";
+import { Toaster } from "./Toaster";
+import EaseShell from "./shells/EaseShell";
+import ShopifyShell from "./shells/ShopifyShell";
+import StudioShell from "./shells/StudioShell";
+import "./shells/shells.css";
 
-// The admin's outer frame, in the look this person picked (lib/admin-style.ts).
+// The admin in the design this person picked (Settings > Admin design,
+// lib/admin-style.ts). Current keeps the shop's own header and the section
+// tree; the others bring their own frame, so the shop's header and footer
+// step aside while they're open.
 export default function AdminFrame({ children }: { children: React.ReactNode }) {
   const style = useAdminStyle();
-  return (
-    <div className="adm-frame" data-adm-style={style}>
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.admShell = style;
+    return () => {
+      delete root.dataset.admShell;
+    };
+  }, [style]);
+
+  const page = (
+    <RoleGate>
       {children}
+    </RoleGate>
+  );
+
+  if (style === "current")
+    return (
+      <div className="adm-frame" data-adm-style="current">
+        <RequireAdmin>
+          <div className="adm">
+            <div className="adm-side">
+              <Suspense>
+                <AdminNav />
+              </Suspense>
+            </div>
+            <div className="adm-main">{page}</div>
+            <Toaster />
+          </div>
+        </RequireAdmin>
+      </div>
+    );
+
+  const Shell = style === "shopify" ? ShopifyShell : style === "ease" ? EaseShell : StudioShell;
+  return (
+    <div className="adm-frame adm-frame--shell" data-adm-style={style}>
+      <RequireAdmin>
+        <Suspense>
+          <Shell>{page}</Shell>
+        </Suspense>
+        <Toaster />
+      </RequireAdmin>
     </div>
   );
 }
 
-// the picker, under the admin's menu
-export function AdminStylePicker() {
-  const style = useAdminStyle();
+// a link to the design picker, for the menus
+export function DesignLink({ className = "" }: { className?: string }) {
   return (
-    <label className="adm-style-pick">
-      <span>Admin look</span>
-      <select className="adm-input" value={style} onChange={(e) => setAdminStyle(e.target.value as AdminStyle)}>
-        {ADMIN_STYLES.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Link href="/admin/settings/design" className={className}>
+      Admin design
+    </Link>
   );
 }
