@@ -69,3 +69,69 @@ export async function setCollectionProducts(id: string, productIds: string[]) {
   const { error: e2 } = await sb.from("collection_items").insert(productIds.map((product_id, position) => ({ collection_id: id, product_id, position })));
   if (e2) throw e2;
 }
+
+// ---------------------------------------------------------------- rules (0070)
+// A collection can fill itself from rules instead of being hand-picked; the
+// database works its products out again whenever products change. Read on
+// their own so the shop and an older database never depend on them.
+export type RuleField = "category" | "tag" | "brand" | "name" | "price" | "in_stock" | "on_sale" | "new_days" | "sold_days";
+export type Rule = { field: RuleField; op: string; value: string | number | boolean };
+export type CollectionSort = "manual" | "best_selling" | "newest" | "price_asc" | "price_desc" | "name";
+export type CollectionRules = { mode: "manual" | "auto"; rules: Rule[]; match: "all" | "any"; sort: CollectionSort; max_items: number | null };
+export const MANUAL: CollectionRules = { mode: "manual", rules: [], match: "all", sort: "best_selling", max_items: null };
+
+export async function listCollectionRules(): Promise<Map<string, CollectionRules>> {
+  const sb = getSupabase();
+  const out = new Map<string, CollectionRules>();
+  if (!sb) return out;
+  const { data, error } = await sb.from("collections").select("id, mode, rules, match, sort, max_items");
+  if (error) return out;
+  for (const r of data ?? []) out.set(r.id, { mode: r.mode, rules: Array.isArray(r.rules) ? r.rules : [], match: r.match, sort: r.sort, max_items: r.max_items });
+  return out;
+}
+
+export async function saveCollectionRules(id: string, r: CollectionRules) {
+  const { error } = await db().from("collections").update(r).eq("id", id);
+  if (error) throw error;
+}
+
+// work its products out again now (they also follow every product change)
+export async function refreshCollection(id: string): Promise<number> {
+  const { data, error } = await db().rpc("admin_refresh_collection", { p_collection: id });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
+
+export type TagOption = { id: string; name: string; category_id: string };
+export async function listAllTags(): Promise<TagOption[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("subcategories").select("id, name, category_id").order("name");
+  if (error) return [];
+  return (data ?? []) as TagOption[];
+}
+
+// what a rule says, in words
+export function ruleText(r: Rule, names: { category: (slug: string) => string; tag: (id: string) => string }): string {
+  const v = String(r.value ?? "");
+  switch (r.field) {
+    case "category":
+      return `${r.op === "is_not" ? "Not in" : "In"} ${names.category(v)}`;
+    case "tag":
+      return `Tagged ${names.tag(v)}`;
+    case "brand":
+      return r.op === "contains" ? `Brand contains "${v}"` : `Brand is ${v}`;
+    case "name":
+      return `Name ${r.op === "not_contains" ? "doesn't contain" : "contains"} "${v}"`;
+    case "price":
+      return `Price ${r.op === "over" ? "over" : "under"} ₹${v}`;
+    case "in_stock":
+      return "In stock";
+    case "on_sale":
+      return "On sale (has a compare-at price)";
+    case "new_days":
+      return `Added in the last ${v} days`;
+    case "sold_days":
+      return `Sold in the last ${v} days`;
+  }
+}
