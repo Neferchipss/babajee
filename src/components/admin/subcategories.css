@@ -109,3 +109,41 @@
   flex: 1 1 100%;
   order: 11;
 }
+
+/* filling a category from its product names (0063 rules): the preview */
+.sub-fill-open {
+  justify-self: start;
+}
+.sub-fill {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ap-line, #e7eaee);
+}
+.sub-fill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.sub-fill-list li {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.9fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 8px;
+}
+.sub-fill-name {
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.sub-hint {
+  border-style: dashed !important;
+}
+@media (max-width: 640px) {
+  .sub-fill-list li {
+    grid-template-columns: 1fr;
+  }
+}

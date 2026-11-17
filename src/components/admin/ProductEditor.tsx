@@ -521,7 +521,7 @@ export default function ProductEditor({
                 ))}
               </datalist>
             </label>
-            <TagPicker key={`sub-${product.id}-${product.category_id}`} api={api} product={product} onChanged={() => run(async () => {})} />
+            <TagPicker key={`sub-${product.id}-${product.category_id}`} api={api} product={product} categorySlug={categories.find((c) => c.id === product.category_id)?.slug ?? product.category_slug ?? ""} onChanged={() => run(async () => {})} />
             <div className="ape-field ape-field--wide">
               <span id="ape-tags-label">Tags (for search)</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />

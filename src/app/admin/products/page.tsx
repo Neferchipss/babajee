@@ -374,6 +374,8 @@ function ProductsAdmin() {
           }}
           api={api}
           all={categories}
+          products={rows.filter((p) => p.category_id === cat)}
+          onTagged={load}
         />
       )}
 
@@ -713,6 +715,8 @@ function CategoryTools({
   last,
   api,
   onChange,
+  products,
+  onTagged,
 }: {
   category: AdminCategory;
   all: AdminCategory[];
@@ -720,6 +724,9 @@ function CategoryTools({
   last: boolean;
   api: ReturnType<typeof adminApi>;
   onChange: (work: () => Promise<unknown>) => Promise<void>;
+  // its products, for filling its sub-categories from their names (0063)
+  products: AdminProduct[];
+  onTagged: () => void;
 }) {
   const [name, setName] = useState(c.name);
   const [line, setLine] = useState(c.tagline ?? "");
@@ -763,7 +770,7 @@ function CategoryTools({
       <button type="button" className="ap-chip" disabled={last} aria-label={`Move ${c.name} right`} onClick={() => onChange(() => api.moveCategory(all, c.id, 1))}>
         Move →
       </button>
-      <SubcategoryManager api={api} categoryId={c.id} categoryName={c.name} />
+      <SubcategoryManager api={api} categoryId={c.id} categorySlug={c.slug} categoryName={c.name} products={products} onTagged={onTagged} />
     </div>
   );
 }

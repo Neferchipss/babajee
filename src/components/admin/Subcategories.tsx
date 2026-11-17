@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { adminApi } from "@/lib/admin-api";
 import type { AdminProduct, SubGroup, Subcategory } from "@/lib/admin-data";
 import { errText } from "@/lib/orders-db";
+import { suggestTags, SUBCATEGORY_RULES } from "@/lib/subcategory-rules";
 import "./subcategories.css";
 
 type Api = ReturnType<typeof adminApi>;
@@ -45,8 +46,23 @@ function useSubcategories(api: Api, categoryId: string) {
 // A category's sub-categories (0063), under its settings: groups (filter rows
 // on the shop, "Size", "Percs") and the tags, each with its group, how many
 // products carry it, whether the shop shows it, and its place in the order.
-export function SubcategoryManager({ api, categoryId, categoryName }: { api: Api; categoryId: string; categoryName: string }) {
+export function SubcategoryManager({
+  api,
+  categoryId,
+  categorySlug,
+  categoryName,
+  products,
+  onTagged,
+}: {
+  api: Api;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  products: AdminProduct[];
+  onTagged: () => void;
+}) {
   const { list, err, run } = useSubcategories(api, categoryId);
+  const [filling, setFilling] = useState(false);
   const [name, setName] = useState("");
   const [group, setGroup] = useState("");
   const [groupName, setGroupName] = useState("");
@@ -127,7 +143,139 @@ export function SubcategoryManager({ api, categoryId, categoryName }: { api: Api
           Add
         </button>
       </div>
+      {SUBCATEGORY_RULES[categorySlug] &&
+        (filling ? (
+          <StarterFill
+            api={api}
+            categoryId={categoryId}
+            categorySlug={categorySlug}
+            list={list}
+            products={products}
+            onDone={() => {
+              setFilling(false);
+              void run(async () => {});
+              onTagged();
+            }}
+            onCancel={() => setFilling(false)}
+          />
+        ) : (
+          <button type="button" className="ap-chip sub-fill-open" onClick={() => setFilling(true)}>
+            Fill from product names…
+          </button>
+        ))}
       {err && <p className="ape-err">{err}</p>}
+    </div>
+  );
+}
+
+// The category's starting sub-categories, and each product's tags read from
+// its name, shown before anything is saved: untick what's wrong, then save.
+// Makes the groups and tags that aren't there yet and adds the ticked tags to
+// each product (tags it already has stay).
+function StarterFill({
+  api,
+  categoryId,
+  categorySlug,
+  list,
+  products,
+  onDone,
+  onCancel,
+}: {
+  api: Api;
+  categoryId: string;
+  categorySlug: string;
+  list: List;
+  products: AdminProduct[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const key = (g: string, t: string) => `${g}|${t}`;
+  const named = new Map(list.tags.map((t) => [t.name.toLowerCase(), t]));
+  const rows = products
+    .map((p) => ({ p, tags: suggestTags(categorySlug, p.name).filter(({ tag }) => !p.subcategory_ids.includes(named.get(tag.toLowerCase())?.id ?? "")) }))
+    .filter((r) => r.tags.length);
+  // ticked: product id -> its picked [group|tag]s
+  const [picked, setPicked] = useState<Map<string, Set<string>>>(() => new Map(rows.map((r) => [r.p.id, new Set(r.tags.map((t) => key(t.group, t.tag)))])));
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const used = new Set([...picked.values()].flatMap((s) => [...s]));
+  const toMake = SUBCATEGORY_RULES[categorySlug].flatMap((g) => g.tags.filter((t) => used.has(key(g.group, t.tag)) && !named.has(t.tag.toLowerCase())).map((t) => t.tag));
+  const tagged = [...picked.values()].filter((s) => s.size).length;
+  const flip = (pid: string, k: string) =>
+    setPicked((m) => {
+      const n = new Map(m);
+      const s = new Set(n.get(pid));
+      if (s.has(k)) s.delete(k);
+      else s.add(k);
+      n.set(pid, s);
+      return n;
+    });
+
+  async function save() {
+    setBusy(true);
+    setErr("");
+    try {
+      // groups and tags first, in the rules' order
+      const groupId = new Map(list.groups.map((g) => [g.name.toLowerCase(), g.id]));
+      const tagId = new Map(list.tags.map((t) => [t.name.toLowerCase(), t.id]));
+      let order = list.tags.length;
+      for (const [gi, g] of SUBCATEGORY_RULES[categorySlug].entries()) {
+        const wanted = g.tags.filter((t) => used.has(key(g.group, t.tag)));
+        if (!wanted.length) continue;
+        if (!groupId.has(g.group.toLowerCase())) groupId.set(g.group.toLowerCase(), await api.saveSubGroup(categoryId, { name: g.group, sort_order: list.groups.length + gi }));
+        for (const t of wanted)
+          if (!tagId.has(t.tag.toLowerCase())) tagId.set(t.tag.toLowerCase(), await api.saveSubcategory(categoryId, { name: t.tag, group_id: groupId.get(g.group.toLowerCase())!, sort_order: order++ }));
+      }
+      // then each product: what it had, and what was ticked
+      for (const { p } of rows) {
+        const add = [...(picked.get(p.id) ?? [])].map((k) => tagId.get(k.split("|")[1].toLowerCase())!).filter(Boolean);
+        if (add.length) await api.setProductSubcategories(p.id, [...new Set([...p.subcategory_ids, ...add])]);
+      }
+      onDone();
+    } catch (e) {
+      setErr(errText(e));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="sub-fill">
+      <p className="ape-hint">
+        {rows.length
+          ? `From their names: ${tagged} of ${products.length} products get tags${toMake.length ? `, and ${toMake.length} new sub-categories are made (${toMake.join(", ")})` : ""}. Untick anything wrong, then save.`
+          : "Nothing new to add from the product names."}
+      </p>
+      {rows.length > 0 && (
+        <ul className="sub-fill-list">
+          {rows.map(({ p, tags }) => (
+            <li key={p.id}>
+              <span className="sub-fill-name">{p.name}</span>
+              <span className="sub-pick-row">
+                {tags.map((t) => {
+                  const k = key(t.group, t.tag);
+                  const on = picked.get(p.id)?.has(k) ?? false;
+                  return (
+                    <button key={k} type="button" className={`ap-chip ${on ? "is-on" : ""}`} aria-pressed={on} title={t.group} onClick={() => flip(p.id, k)}>
+                      {t.tag}
+                    </button>
+                  );
+                })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {err && <p className="ape-err">{err}</p>}
+      <div className="sub-add">
+        <button type="button" className="ap-chip" onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+        {rows.length > 0 && (
+          <button type="button" className="ap-chip is-on" onClick={save} disabled={busy || !tagged}>
+            {busy ? "Saving…" : `Save: tag ${tagged} products`}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -203,7 +351,7 @@ function TagRow({
 
 // A product's sub-categories (0063): its category's tags, by group, one tap
 // each to add or take off; or a new one, made and added at once.
-export function TagPicker({ api, product, onChanged }: { api: Api; product: AdminProduct; onChanged: () => void }) {
+export function TagPicker({ api, product, categorySlug, onChanged }: { api: Api; product: AdminProduct; categorySlug: string; onChanged: () => void }) {
   const { list, err, run } = useSubcategories(api, product.category_id);
   const [picked, setPicked] = useState<string[]>(product.subcategory_ids);
   const [fresh, setFresh] = useState("");
@@ -225,6 +373,21 @@ export function TagPicker({ api, product, onChanged }: { api: Api; product: Admi
       onChanged();
     }).then((ok) => ok && setFresh(""));
   };
+  // what the name points to and the product doesn't have yet (0063 rules)
+  const hints = list ? suggestTags(categorySlug, product.name).filter(({ tag }) => !list.tags.some((t) => t.name.toLowerCase() === tag.toLowerCase() && picked.includes(t.id))) : [];
+  const addHint = (h: { group: string; tag: string }) =>
+    list &&
+    void run(async () => {
+      let t = list.tags.find((x) => x.name.toLowerCase() === h.tag.toLowerCase())?.id;
+      if (!t) {
+        const g = list.groups.find((x) => x.name.toLowerCase() === h.group.toLowerCase())?.id ?? (await api.saveSubGroup(product.category_id, { name: h.group, sort_order: list.groups.length }));
+        t = await api.saveSubcategory(product.category_id, { name: h.tag, group_id: g, sort_order: list.tags.length });
+      }
+      const ids = [...picked, t];
+      setPicked(ids);
+      await api.setProductSubcategories(product.id, ids);
+      onChanged();
+    });
   const rows = list ? [{ id: "", name: "" }, ...list.groups].map((g) => ({ g, tags: list.tags.filter((t) => (t.group_id ?? "") === g.id) })).filter((r) => r.tags.length) : [];
   return (
     <div className="ape-field ape-field--wide sub-pick">
@@ -247,6 +410,16 @@ export function TagPicker({ api, product, onChanged }: { api: Api; product: Admi
               })}
             </div>
           ))}
+          {hints.length > 0 && (
+            <div className="sub-pick-row" role="group" aria-label="Suggested from the name">
+              <span className="sub-label">From the name</span>
+              {hints.map((h) => (
+                <button key={h.tag} type="button" className="ap-chip sub-hint" title={`${h.group}: tap to add`} onClick={() => addHint(h)}>
+                  + {h.tag}
+                </button>
+              ))}
+            </div>
+          )}
           <input className="sub-input" value={fresh} placeholder={list.tags.length ? "+ New sub-category" : "First sub-category, e.g. King size"} aria-label="New sub-category" maxLength={40} onChange={(e) => setFresh(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} onBlur={create} />
           {err && <p className="ape-err">{err}</p>}
         </>
