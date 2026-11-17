@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { homeCounts, type HomeCounts } from "@/lib/orders-db";
 import LowStockWatch from "./LowStockWatch";
 import { can, canOpen, useStaff } from "@/lib/staff";
+import { AdminStylePicker } from "./AdminFrame";
 
 // The admin's sections. On a wide screen a tree like the shop's category
 // list: each section, and under it on a guide line every page it holds, with
@@ -186,6 +187,7 @@ export default function AdminNav() {
         View shop
       </Link>
       {money && <LowStockWatch onCount={setLow} />}
+      <AdminStylePicker />
     </nav>
     {here?.pages && (
       <div className="adm-subnav" ref={sub} aria-label={`${here.label} pages`}>

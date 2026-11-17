@@ -3,6 +3,7 @@ import RequireAdmin, { RoleGate } from "@/components/admin/RequireAdmin";
 import { Toaster } from "@/components/admin/Toaster";
 import { Suspense } from "react";
 import AdminNav from "@/components/admin/AdminNav";
+import AdminFrame from "@/components/admin/AdminFrame";
 import "@/components/admin/admin.css";
 
 // the admin is never in search results
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Admin", robots: { index: false, foll
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="adm-frame">
+    <AdminFrame>
       <RequireAdmin>
         <div className="adm">
           <div className="adm-side">
@@ -24,6 +25,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Toaster />
         </div>
       </RequireAdmin>
-    </div>
+    </AdminFrame>
   );
 }
