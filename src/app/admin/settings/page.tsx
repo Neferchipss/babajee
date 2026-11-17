@@ -184,7 +184,7 @@ export default function SettingsPage() {
               spellCheck={false}
               onChange={(e) => setStore({ ...store, gstin: e.target.value.toUpperCase().replace(/\s/g, "") })}
             />
-            <span className="adm-muted adm-small">Leave empty until the shop is registered: invoices then say &ldquo;Invoice&rdquo; instead of &ldquo;Tax invoice&rdquo;, with no GSTIN.</span>
+            <span className="adm-muted adm-small">Leave empty until the shop is registered: invoices then say &ldquo;Invoice&rdquo; instead of &ldquo;Tax invoice&rdquo;, with no GSTIN. Supplier bills still split their GST by state, taking the shop&apos;s state below (Maharashtra, 27) until a GSTIN is entered.</span>
           </label>
           <label className="adm-label">
             Address
