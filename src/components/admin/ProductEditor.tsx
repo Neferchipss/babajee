@@ -6,7 +6,8 @@ import { Bin } from "@/components/admin/ui";
 import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
 import { suggestSku } from "@/lib/sku";
 import { isAdminDemo, type adminApi } from "@/lib/admin-api";
-import { boxLabel, subcategoriesOf, type AdminCategory, type AdminProduct, type AdminVariant, type BoxTemplate, type ProductStatus, type Spec } from "@/lib/admin-data";
+import { TagPicker } from "./Subcategories";
+import { boxLabel, type AdminCategory, type AdminProduct, type AdminVariant, type BoxTemplate, type ProductStatus, type Spec } from "@/lib/admin-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
@@ -492,7 +493,7 @@ export default function ProductEditor({
                 ))}
               </datalist>
             </label>
-            <SubcategoryField key={`sub-${product.id}`} product={product} onSave={(subcategory) => run(() => api.updateProduct(product.id, { subcategory }))} />
+            <TagPicker key={`sub-${product.id}-${product.category_id}`} api={api} product={product} onChanged={() => run(async () => {})} />
             <div className="ape-field ape-field--wide">
               <span id="ape-tags-label">Tags (for search)</span>
               <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
@@ -1560,31 +1561,6 @@ function Fold({ title, summary, children }: { title: string; summary: string; ch
   );
 }
 
-
-// A label within the category ("Cones", "Filters"): customers filter the
-// shelf by it. Suggests the ones the category already uses.
-function SubcategoryField({ product, onSave }: { product: AdminProduct; onSave: (s: string) => void }) {
-  const [value, setValue] = useState(product.subcategory);
-  const [known, setKnown] = useState<string[]>([]);
-  useEffect(() => {
-    let live = true;
-    subcategoriesOf(product.category_id).then((l) => live && setKnown(l), () => {});
-    return () => {
-      live = false;
-    };
-  }, [product.category_id]);
-  return (
-    <label className="ape-field">
-      <span>Subcategory</span>
-      <input list="ape-subs" value={value} maxLength={40} placeholder="Cones, filters…" onChange={(e) => setValue(e.target.value)} onBlur={() => value.trim() !== product.subcategory && onSave(value.trim())} />
-      <datalist id="ape-subs">
-        {known.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-    </label>
-  );
-}
 
 // Specifications: label and value rows ("Material", "Aluminium"), shown as
 // a table on the product page. Saved when a field is left.

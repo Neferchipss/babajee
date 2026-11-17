@@ -5,7 +5,7 @@
 // made from the stock sheet, so the screens can be tried without an admin
 // login. The demo never exists in a production build.
 import * as real from "./admin-data";
-import type { AdminCategory, AdminImage, AdminProduct, AdminVariant } from "./admin-data";
+import type { AdminCategory, AdminImage, AdminProduct, AdminVariant, SubGroup, Subcategory } from "./admin-data";
 import { CATEGORIES } from "./catalog-data";
 
 export const isAdminDemo = () =>
@@ -34,6 +34,12 @@ type Api = Pick<
   | "importShootPhoto"
   | "listBoxTemplates"
   | "saveBoxTemplate"
+  | "listSubcategories"
+  | "saveSubcategory"
+  | "deleteSubcategory"
+  | "saveSubGroup"
+  | "deleteSubGroup"
+  | "setProductSubcategories"
 >;
 
 let demo: Api | null = null;
@@ -60,6 +66,7 @@ function makeDemo(): Api {
       gst_rate: null,
       cess_rate: 0,
       video_urls: [],
+      subcategory_ids: [],
       hsn: "",
       is_visible: i % 5 !== 3,
       status: i % 5 !== 3 ? ("published" as const) : ("draft" as const),
@@ -95,6 +102,8 @@ function makeDemo(): Api {
   const find = (id: string) => products.find((p) => p.id === id)!;
   const wait = () => new Promise((r) => setTimeout(r, 120));
   const boxSizes = [24, 50];
+  let subGroups: (SubGroup & { category_id: string })[] = [];
+  let subTags: (Omit<Subcategory, "products"> & { category_id: string })[] = [];
   const api: Api = {
     async listCategories() {
       return copy(cats);
@@ -139,6 +148,7 @@ function makeDemo(): Api {
           gst_rate: null,
           cess_rate: 0,
       video_urls: [],
+      subcategory_ids: [],
           hsn: "",
           is_visible: true,
           sort_order: -1,
@@ -198,6 +208,49 @@ function makeDemo(): Api {
     },
     async deleteProduct(product) {
       products = products.filter((p) => p.id !== product.id);
+    },
+    // sub-categories (0060), in memory
+    async listSubcategories(categoryId) {
+      return {
+        groups: copy(subGroups.filter((g) => g.category_id === categoryId)).sort((a, b) => a.sort_order - b.sort_order),
+        tags: subTags
+          .filter((t) => t.category_id === categoryId)
+          .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+          .map(({ category_id: _c, ...t }) => (void _c, { ...t, products: products.filter((p) => p.subcategory_ids.includes(t.id)).length })),
+      };
+    },
+    async saveSubcategory(categoryId, tag) {
+      const { products: _n, ...rest } = tag;
+      void _n;
+      if (rest.id) {
+        Object.assign(subTags.find((t) => t.id === rest.id)!, rest);
+        return rest.id;
+      }
+      const name = (rest.name ?? "").trim();
+      if (subTags.some((t) => t.category_id === categoryId && t.name.toLowerCase() === name.toLowerCase())) throw new Error("This category already has a sub-category with that name or address.");
+      const id = uid();
+      subTags.push({ id, category_id: categoryId, slug: real.slugify(name), name, group_id: rest.group_id ?? null, sort_order: rest.sort_order ?? subTags.length, is_visible: true, seo_title: "", seo_description: "" });
+      return id;
+    },
+    async deleteSubcategory(id) {
+      subTags = subTags.filter((t) => t.id !== id);
+      for (const p of products) p.subcategory_ids = p.subcategory_ids.filter((x) => x !== id);
+    },
+    async saveSubGroup(categoryId, group) {
+      if (group.id) {
+        Object.assign(subGroups.find((g) => g.id === group.id)!, group);
+        return group.id;
+      }
+      const id = uid();
+      subGroups.push({ id, category_id: categoryId, name: (group.name ?? "").trim(), sort_order: group.sort_order ?? subGroups.length });
+      return id;
+    },
+    async deleteSubGroup(id) {
+      subGroups = subGroups.filter((g) => g.id !== id);
+      for (const t of subTags) if (t.group_id === id) t.group_id = null;
+    },
+    async setProductSubcategories(productId, ids) {
+      find(productId).subcategory_ids = [...ids];
     },
     async listBoxTemplates() {
       return boxSizes.map((pieces) => ({ id: String(pieces), pieces, label: real.boxLabel(pieces) }));

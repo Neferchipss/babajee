@@ -357,6 +357,24 @@ html[data-theme] #site[data-scope="shop"] .cp-subs {
   overflow-x: auto;
   scrollbar-width: none;
 }
+/* a row of sub-category tags (0060): its group's name first, then the tags;
+   rows sit closer together than a row and the products */
+html[data-theme] #site[data-scope="shop"] .cp-subs:has(+ .cp-subs) {
+  margin-bottom: 8px;
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs-name {
+  flex: none;
+  align-self: center;
+  min-width: 56px;
+  color: var(--color-muted);
+  font: 700 0.72rem/1 var(--font-body-face), system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html[data-theme] #site[data-scope="shop"] .cp-subs button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 html[data-theme] #site[data-scope="shop"] .cp-subs button {
   flex: none;
   display: inline-flex;

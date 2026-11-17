@@ -43,6 +43,8 @@ export type DbCardProduct = {
   // for the shelf's Sort & filter: its brand, and when it was added
   brand?: string;
   added?: string;
+  // its sub-categories' slugs (0060), for the shelf's tag chips
+  tags?: string[];
 };
 export type DbCategory = { slug: string; name: string };
 
@@ -287,16 +289,62 @@ export async function getSearchCatalog(): Promise<DbSearchProduct[]> {
 export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   const sb = client();
   if (!sb) return null;
+  const tagsP = getShopTags();
   const { data, error } = await sb
     .from("products")
     .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
+  const { ofProduct } = await tagsP;
   return (data ?? [])
     .map((row) => {
       const cat = row.categories as unknown as { slug: string; name: string };
-      return { ...toCard(row), categorySlug: cat.slug, categoryName: cat.name };
+      return { ...toCard(row), categorySlug: cat.slug, categoryName: cat.name, tags: ofProduct[row.slug] ?? [] };
     });
+}
+
+// ---------------------------------------------------------------- sub-categories (0060)
+
+// A category's sub-categories, shown on the shop: its tags, each in its group
+// (a filter row, "" for none), in the shop's order; and which products carry
+// which. Read on their own, so a database without them (before 0060) gives
+// none and the shelves work as before.
+export type ShopTag = { slug: string; name: string; group: string; seoTitle: string; seoDescription: string };
+export async function getShopTags(): Promise<{ byCategory: Record<string, ShopTag[]>; ofProduct: Record<string, string[]> }> {
+  const none = { byCategory: {}, ofProduct: {} };
+  const sb = client();
+  if (!sb) return none;
+  const { data, error } = await sb
+    .from("subcategories")
+    .select("slug, name, sort_order, seo_title, seo_description, categories!inner(slug), subcategory_groups(name, sort_order), product_subcategories(products(slug))")
+    .eq("is_visible", true);
+  if (error || !data) return none;
+  type Row = {
+    slug: string; name: string; sort_order: number; seo_title: string | null; seo_description: string | null;
+    categories: { slug: string } | { slug: string }[];
+    subcategory_groups: { name: string; sort_order: number } | { name: string; sort_order: number }[] | null;
+    product_subcategories: { products: { slug: string } | { slug: string }[] | null }[] | null;
+  };
+  const one = <T,>(x: T | T[] | null | undefined) => (Array.isArray(x) ? x[0] : x) ?? undefined;
+  const rows = (data as unknown as Row[]).map((r) => ({ r, cat: one(r.categories)?.slug ?? "", grp: one(r.subcategory_groups) }));
+  // groups first in their order (ungrouped first), then each tag's own order
+  rows.sort((a, b) => (a.grp ? a.grp.sort_order + 1 : 0) - (b.grp ? b.grp.sort_order + 1 : 0) || (a.grp?.name ?? "").localeCompare(b.grp?.name ?? "") || a.r.sort_order - b.r.sort_order || a.r.name.localeCompare(b.r.name));
+  const byCategory: Record<string, ShopTag[]> = {};
+  const ofProduct: Record<string, string[]> = {};
+  for (const { r, cat, grp } of rows) {
+    (byCategory[cat] ??= []).push({ slug: r.slug, name: r.name, group: grp?.name ?? "", seoTitle: r.seo_title ?? "", seoDescription: r.seo_description ?? "" });
+    for (const ps of r.product_subcategories ?? []) {
+      const slug = one(ps.products)?.slug;
+      if (slug) (ofProduct[slug] ??= []).push(r.slug);
+    }
+  }
+  return { byCategory, ofProduct };
+}
+
+// every sub-category's own page, for the static export (0060)
+export async function getStaticTagParams(): Promise<{ category: string; product: string }[]> {
+  const { byCategory } = await getShopTags();
+  return Object.entries(byCategory).flatMap(([category, tags]) => tags.map((t) => ({ category, product: t.slug })));
 }
 
 // A few products from each category that have photos, for the 3D shop: they

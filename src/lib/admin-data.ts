@@ -60,6 +60,8 @@ export type AdminProduct = {
   // its GST bracket (0, 5, 12, 18, 28 or 40); null = the shop's default rate.
   // HSN code for the invoice, may be empty (0030)
   gst_rate: number | null;
+  // its sub-categories (0060), by id
+  subcategory_ids: string[];
   // links to its videos, shown on its page (0059)
   video_urls: string[];
   // cess on top of GST, percent (0057; charged only with cess switched on)
@@ -166,7 +168,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, cess_rate, video_urls, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at, pack_of, unit_variant_id, weight_g, length_cm, width_cm, height_cm), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, cess_rate, video_urls, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at, pack_of, unit_variant_id, weight_g, length_cm, width_cm, height_cm), product_images(id, storage_path, variant_id, sort_order, alt_text), product_subcategories(subcategory_id)";
 
 type ProductRow = {
   id: string;
@@ -192,6 +194,7 @@ type ProductRow = {
   categories: { slug: string; name: string } | { slug: string; name: string }[] | null;
   product_variants: AdminVariant[] | null;
   product_images: Omit<AdminImage, "url">[] | null;
+  product_subcategories?: { subcategory_id: string }[] | null;
 };
 
 const photoUrl = (path: string) => db().storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
@@ -211,6 +214,7 @@ function toProduct(row: ProductRow): AdminProduct {
     gst_rate: row.gst_rate == null ? null : Number(row.gst_rate),
     cess_rate: Number(row.cess_rate ?? 0),
     video_urls: row.video_urls ?? [],
+    subcategory_ids: (row.product_subcategories ?? []).map((x) => x.subcategory_id),
     hsn: row.hsn ?? "",
     is_visible: row.is_visible,
     status: row.status ?? (row.is_visible ? "published" : "draft"),
@@ -287,6 +291,94 @@ export async function setProductStatus(product: AdminProduct, status: ProductSta
   await updateProduct(product.id, { status });
   if (product.variants.length === 1) {
     await upsertVariant(product.id, { ...product.variants[0], is_visible: status === "published" });
+  }
+}
+
+// --- sub-categories (0060) ------------------------------------------------------
+
+// A category's sub-categories as tags, optionally in groups (filter rows on
+// the shop: "Size", "Percs"). products: how many carry each.
+export type SubGroup = { id: string; name: string; sort_order: number };
+export type Subcategory = { id: string; slug: string; name: string; group_id: string | null; sort_order: number; is_visible: boolean; seo_title: string; seo_description: string; products: number };
+export const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+export async function listSubcategories(categoryId: string): Promise<{ groups: SubGroup[]; tags: Subcategory[] }> {
+  const [g, t] = await Promise.all([
+    db().from("subcategory_groups").select("id, name, sort_order").eq("category_id", categoryId).order("sort_order").order("name"),
+    db().from("subcategories").select("id, slug, name, group_id, sort_order, is_visible, seo_title, seo_description, product_subcategories(count)").eq("category_id", categoryId).order("sort_order").order("name"),
+  ]);
+  if (g.error) throw g.error;
+  if (t.error) throw t.error;
+  type Row = Omit<Subcategory, "products"> & { product_subcategories: { count: number }[] | null };
+  return {
+    groups: (g.data ?? []) as SubGroup[],
+    tags: ((t.data ?? []) as Row[]).map(({ product_subcategories, ...r }) => ({ ...r, products: product_subcategories?.[0]?.count ?? 0 })),
+  };
+}
+
+// a new sub-category, or changes to one; its address is made from its name
+export async function saveSubcategory(categoryId: string, tag: Partial<Subcategory> & { id?: string; name?: string }): Promise<string> {
+  const { id, products: _n, ...patch } = tag;
+  void _n;
+  if (id) {
+    const { error } = await db().from("subcategories").update(patch).eq("id", id);
+    if (error) throw subcategoryTaken(error);
+    return id;
+  }
+  const name = (patch.name ?? "").trim();
+  const { data, error } = await db()
+    .from("subcategories")
+    .insert({ category_id: categoryId, name, slug: patch.slug || slugify(name), group_id: patch.group_id ?? null, sort_order: patch.sort_order ?? 0 })
+    .select("id")
+    .single();
+  if (error) throw subcategoryTaken(error);
+  return data.id as string;
+}
+const subcategoryTaken = (e: { code?: string; message?: string }) =>
+  e.code === "23505" && !/address/i.test(e.message ?? "") ? new Error("This category already has a sub-category with that name or address.") : e;
+
+export async function deleteSubcategory(id: string) {
+  const { error } = await db().from("subcategories").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function saveSubGroup(categoryId: string, group: { id?: string; name?: string; sort_order?: number }): Promise<string> {
+  if (group.id) {
+    const { id, ...patch } = group;
+    const { error } = await db().from("subcategory_groups").update(patch).eq("id", id);
+    if (error) throw error;
+    return id;
+  }
+  const { data, error } = await db().from("subcategory_groups").insert({ category_id: categoryId, name: (group.name ?? "").trim(), sort_order: group.sort_order ?? 0 }).select("id").single();
+  if (error) throw error.code === "23505" ? new Error("This category already has a group with that name.") : error;
+  return data.id as string;
+}
+
+// a group gone: its tags stay, ungrouped
+export async function deleteSubGroup(id: string) {
+  const { error } = await db().from("subcategory_groups").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// a product's sub-categories, as a whole: the ones given, no others
+export async function setProductSubcategories(productId: string, ids: string[]) {
+  const { data, error } = await db().from("product_subcategories").select("subcategory_id").eq("product_id", productId);
+  if (error) throw error;
+  const have = new Set((data ?? []).map((r) => r.subcategory_id as string));
+  const add = ids.filter((x) => !have.has(x));
+  const drop = [...have].filter((x) => !ids.includes(x));
+  if (add.length) {
+    const { error: e } = await db().from("product_subcategories").insert(add.map((subcategory_id) => ({ product_id: productId, subcategory_id })));
+    if (e) throw e;
+  }
+  if (drop.length) {
+    const { error: e } = await db().from("product_subcategories").delete().eq("product_id", productId).in("subcategory_id", drop);
+    if (e) throw e;
   }
 }
 

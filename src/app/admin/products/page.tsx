@@ -7,6 +7,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
 import ProductTable, { type NewRow } from "@/components/admin/ProductTable";
 import { toast, toastError } from "@/components/admin/Toaster";
+import { SubcategoryManager } from "@/components/admin/Subcategories";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
 import "@/components/admin/admin-products.css";
 import { adminApi } from "@/lib/admin-api";
@@ -762,6 +763,7 @@ function CategoryTools({
       <button type="button" className="ap-chip" disabled={last} aria-label={`Move ${c.name} right`} onClick={() => onChange(() => api.moveCategory(all, c.id, 1))}>
         Move →
       </button>
+      <SubcategoryManager api={api} categoryId={c.id} categoryName={c.name} />
     </div>
   );
 }
