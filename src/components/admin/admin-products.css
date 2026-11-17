@@ -3064,6 +3064,8 @@ select.ape-line-input {
 .ape-size-lwh i {
   color: var(--ap-muted);
   font-style: normal;
+}
+
 /* ---------------------------------------------------------------- correcting a buying price (0057) */
 .ape-linkbtn {
   padding: 0;
@@ -3123,4 +3125,56 @@ select.ape-line-input {
   background: var(--ap-ink);
   border-color: var(--ap-ink);
   color: var(--ap-panel);
+}
+
+/* the product's box sizes (0065), above its options */
+.ape-boxset {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ap-line);
+  background: color-mix(in srgb, var(--ap-line) 25%, transparent);
+}
+.ape-boxset .ape-box {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.ape-boxset-select {
+  min-width: 0;
+  max-width: 220px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--ap-line);
+  background: var(--ap-panel);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.ape-boxset-name input {
+  width: 200px;
+}
+/* an option that could come in a size: one tap to say it does */
+.ape-box-tick {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ap-line);
+  color: var(--ap-muted);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.ape-box-tick i {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px dashed var(--ap-line);
+  font-style: normal;
+}
+.ape-box-tick:hover {
+  color: var(--color-paper);
 }

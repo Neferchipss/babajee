@@ -467,22 +467,53 @@ export async function deleteVariant(id: string) {
   if (error) throw error;
 }
 
-// --- box templates (0061) ------------------------------------------------------
+// --- box setup (0065) ----------------------------------------------------------
 
-// The shop's usual box sizes, to pick from when adding a box to a product.
-export type BoxTemplate = { id: string; pieces: number; label: string };
+// A product's box sizes, each with the box's usual price (null: worked out
+// from the pieces' price); each option ticks which it comes in.
+export type BoxSize = { pieces: number; price: number | null; sort_order: number };
 export const boxLabel = (pieces: number) => `Box of ${pieces}`;
 
-export async function listBoxTemplates(): Promise<BoxTemplate[]> {
-  const { data, error } = await db().from("box_templates").select("id, pieces, label").order("pieces");
+export async function listBoxSizes(productId: string): Promise<BoxSize[]> {
+  const { data, error } = await db().from("product_box_sizes").select("pieces, price, sort_order").eq("product_id", productId).order("sort_order").order("pieces");
   if (error) throw error;
-  return (data ?? []).map((t) => ({ ...t, label: t.label || boxLabel(t.pieces) }));
+  return (data ?? []).map((r) => ({ pieces: r.pieces as number, price: r.price == null ? null : toNumber(r.price), sort_order: r.sort_order as number }));
 }
 
-// a size used once is kept for next time (one per number of pieces)
-export async function saveBoxTemplate(pieces: number): Promise<void> {
-  const { error } = await db().from("box_templates").upsert({ pieces, label: boxLabel(pieces) }, { onConflict: "pieces", ignoreDuplicates: true });
+export async function saveBoxSize(productId: string, size: { pieces: number; price?: number | null; sort_order?: number }) {
+  const { error } = await db().from("product_box_sizes").upsert({ product_id: productId, ...size }, { onConflict: "product_id,pieces" });
   if (error) throw error;
+}
+
+export async function deleteBoxSize(productId: string, pieces: number) {
+  const { error } = await db().from("product_box_sizes").delete().eq("product_id", productId).eq("pieces", pieces);
+  if (error) throw error;
+}
+
+// named sets of sizes, put on many products (or a category) at once
+export type BoxPreset = { id: string; name: string; sizes: number[] };
+export async function listBoxPresets(): Promise<BoxPreset[]> {
+  const { data, error } = await db().from("box_presets").select("id, name, sizes").order("name");
+  if (error) throw error;
+  return (data ?? []) as BoxPreset[];
+}
+
+export async function saveBoxPreset(name: string, sizes: number[]): Promise<string> {
+  const { data, error } = await db().from("box_presets").insert({ name: name.trim(), sizes }).select("id").single();
+  if (error) throw error.code === "23505" ? new Error("There's already a preset with that name.") : error;
+  return data.id as string;
+}
+
+export async function deleteBoxPreset(id: string) {
+  const { error } = await db().from("box_presets").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// returns how many sizes were added (ones already there are left as they are)
+export async function applyBoxPreset(id: string, to: { products?: string[]; category?: string }): Promise<number> {
+  const { data, error } = await db().rpc("admin_apply_box_preset", { p_preset: id, p_products: to.products ?? null, p_category: to.category ?? null });
+  if (error) throw error;
+  return (data as number) ?? 0;
 }
 
 // --- photos ------------------------------------------------------------------

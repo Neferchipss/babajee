@@ -5,7 +5,7 @@
 // made from the stock sheet, so the screens can be tried without an admin
 // login. The demo never exists in a production build.
 import * as real from "./admin-data";
-import type { AdminCategory, AdminImage, AdminProduct, AdminVariant, SubGroup, Subcategory } from "./admin-data";
+import type { AdminCategory, AdminImage, AdminProduct, AdminVariant, BoxPreset, BoxSize, SubGroup, Subcategory } from "./admin-data";
 import { CATEGORIES } from "./catalog-data";
 
 export const isAdminDemo = () =>
@@ -32,8 +32,13 @@ type Api = Pick<
   | "reorderProductImages"
   | "setImageVariant"
   | "importShootPhoto"
-  | "listBoxTemplates"
-  | "saveBoxTemplate"
+  | "listBoxSizes"
+  | "saveBoxSize"
+  | "deleteBoxSize"
+  | "listBoxPresets"
+  | "saveBoxPreset"
+  | "deleteBoxPreset"
+  | "applyBoxPreset"
   | "listSubcategories"
   | "saveSubcategory"
   | "deleteSubcategory"
@@ -101,7 +106,8 @@ function makeDemo(): Api {
   const copy = <T,>(x: T): T => structuredClone(x);
   const find = (id: string) => products.find((p) => p.id === id)!;
   const wait = () => new Promise((r) => setTimeout(r, 120));
-  const boxSizes = [24, 50];
+  let boxSizes: (BoxSize & { product_id: string })[] = [];
+  let boxPresets: BoxPreset[] = [];
   let subGroups: (SubGroup & { category_id: string })[] = [];
   let subTags: (Omit<Subcategory, "products"> & { category_id: string })[] = [];
   const api: Api = {
@@ -252,13 +258,41 @@ function makeDemo(): Api {
     async setProductSubcategories(productId, ids) {
       find(productId).subcategory_ids = [...ids];
     },
-    async listBoxTemplates() {
-      return boxSizes.map((pieces) => ({ id: String(pieces), pieces, label: real.boxLabel(pieces) }));
+    // box setup (0065), in memory
+    async listBoxSizes(productId) {
+      return copy(boxSizes.filter((b) => b.product_id === productId)).sort((a, b) => a.sort_order - b.sort_order || a.pieces - b.pieces).map(({ product_id: _p, ...b }) => (void _p, b));
     },
-    async saveBoxTemplate(pieces) {
-      if (boxSizes.includes(pieces)) return;
-      boxSizes.push(pieces);
-      boxSizes.sort((a, b) => a - b);
+    async saveBoxSize(productId, size) {
+      const had = boxSizes.find((b) => b.product_id === productId && b.pieces === size.pieces);
+      if (had) Object.assign(had, size);
+      else boxSizes.push({ product_id: productId, price: null, sort_order: boxSizes.length, ...size });
+    },
+    async deleteBoxSize(productId, pieces) {
+      boxSizes = boxSizes.filter((b) => !(b.product_id === productId && b.pieces === pieces));
+    },
+    async listBoxPresets() {
+      return copy(boxPresets).sort((a, b) => a.name.localeCompare(b.name));
+    },
+    async saveBoxPreset(name, sizes) {
+      if (boxPresets.some((p) => p.name.toLowerCase() === name.trim().toLowerCase())) throw new Error("There's already a preset with that name.");
+      const id = uid();
+      boxPresets.push({ id, name: name.trim(), sizes: [...sizes] });
+      return id;
+    },
+    async deleteBoxPreset(id) {
+      boxPresets = boxPresets.filter((p) => p.id !== id);
+    },
+    async applyBoxPreset(id, to) {
+      const pr = boxPresets.find((p) => p.id === id)!;
+      const ids = to.products ?? products.filter((p) => p.category_id === to.category).map((p) => p.id);
+      let n = 0;
+      for (const pid of ids)
+        pr.sizes.forEach((pieces, i) => {
+          if (boxSizes.some((b) => b.product_id === pid && b.pieces === pieces)) return;
+          boxSizes.push({ product_id: pid, pieces, price: null, sort_order: i });
+          n++;
+        });
+      return n;
     },
     async deleteVariant(id) {
       for (const p of products) p.variants = p.variants.filter((v) => v.id !== id);

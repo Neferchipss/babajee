@@ -1,13 +1,14 @@
 "use client";
 
 import { errText } from "@/lib/orders-db";
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { Bin } from "@/components/admin/ui";
 import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
 import { suggestSku } from "@/lib/sku";
 import { isAdminDemo, type adminApi } from "@/lib/admin-api";
 import { TagPicker } from "./Subcategories";
-import { boxLabel, type AdminCategory, type AdminProduct, type AdminVariant, type BoxTemplate, type ProductStatus, type Spec } from "@/lib/admin-data";
+import { boxLabel, type AdminCategory, type AdminProduct, type AdminVariant, type BoxPreset, type BoxSize, type ProductStatus, type Spec } from "@/lib/admin-data";
+import { CATEGORIES } from "@/lib/catalog-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
@@ -221,26 +222,53 @@ export default function ProductEditor({
   const many = product.variants.filter((v) => !v.unit_variant_id).length > 1;
   const tracked = product.variants.some((v) => v.track_stock);
   const boxMode = !!categories.find((c) => c.id === product.category_id)?.sold_in_boxes || product.variants.some((v) => v.unit_variant_id);
-  const [templates, setTemplates] = useState<BoxTemplate[]>([]);
+  // its box sizes and the shop's presets (0065)
+  const [sizes, setSizes] = useState<BoxSize[]>([]);
+  const [presets, setPresets] = useState<BoxPreset[]>([]);
+  const loadBoxes = useCallback(
+    () =>
+      Promise.all([api.listBoxSizes(product.id), api.listBoxPresets()])
+        .then(([s, p]) => {
+          setSizes(s);
+          setPresets(p);
+        })
+        .catch(() => {}),
+    [api, product.id],
+  );
   useEffect(() => {
-    if (!boxMode) return;
-    api.listBoxTemplates().then(setTemplates).catch(() => setTemplates([]));
-  }, [api, boxMode]);
-  // a box of `pieces` of this loose option: off the shop until ticked, priced at
-  // the pieces' price to start (type the box's own price)
-  const addBox = (unit: AdminVariant, pieces: number) =>
-    run(async () => {
-      await api.saveBoxTemplate(pieces).catch(() => {});
-      await api.upsertVariant(product.id, {
-        label: many ? `${unit.label} · ${boxLabel(pieces)}` : boxLabel(pieces),
-        price: Math.round(unit.price * pieces * 100) / 100,
+    if (boxMode) void loadBoxes();
+  }, [boxMode, loadBoxes]);
+  // this option comes in this box: its box, off the shop until ticked, priced
+  // as the product's size says, else the pieces' price x the pieces
+  const addBox = (unit: AdminVariant, size: BoxSize) =>
+    run(() =>
+      api.upsertVariant(product.id, {
+        label: many ? `${unit.label} · ${boxLabel(size.pieces)}` : boxLabel(size.pieces),
+        price: size.price ?? Math.round(unit.price * size.pieces * 100) / 100,
         is_visible: false,
         sort_order: product.variants.length,
         unit_variant_id: unit.id,
-        pack_of: pieces,
-      });
-      setTemplates(await api.listBoxTemplates().catch(() => templates));
-    });
+        pack_of: size.pieces,
+      }),
+    );
+  const boxSetup: BoxSetupProps = {
+    sizes,
+    presets,
+    sheet: sheetBoxSize(product.slug),
+    onSize: (pieces, price) => run(() => api.saveBoxSize(product.id, { pieces, price, sort_order: sizes.find((x) => x.pieces === pieces)?.sort_order ?? sizes.length })).then(loadBoxes),
+    // a size gone: the options' boxes of that size go too (one that has been
+    // ordered can't: hide it instead)
+    onRemove: (pieces) =>
+      run(async () => {
+        for (const b of product.variants.filter((v) => v.unit_variant_id && v.pack_of === pieces)) await api.deleteVariant(b.id);
+        await api.deleteBoxSize(product.id, pieces);
+      }).then(loadBoxes),
+    onApply: (id) => run(() => api.applyBoxPreset(id, { products: [product.id] })).then(loadBoxes),
+    onApplyCategory: (id) => run(() => api.applyBoxPreset(id, { category: product.category_id })).then(loadBoxes),
+    onSavePreset: (name) => api.saveBoxPreset(name, sizes.map((x) => x.pieces)).then(loadBoxes),
+    onDeletePreset: (id) => api.deleteBoxPreset(id).then(loadBoxes),
+    categoryName: categories.find((c) => c.id === product.category_id)?.name ?? "",
+  };
   // the shop's GST rate, the default for stock bought in a product with no bracket of its own
   const [shopRate, setShopRate] = useState(18);
   useEffect(() => {
@@ -417,7 +445,7 @@ export default function ProductEditor({
           onPatch={(patch) => run(() => api.updateProduct(product.id, patch))}
           onVariant={(v, patch) => run(() => api.upsertVariant(product.id, { ...v, ...patch }))}
           onDeleteVariant={(v) => run(() => api.deleteVariant(v.id))}
-          boxes={boxMode ? { templates, onAdd: addBox } : null}
+          boxes={boxMode ? { setup: boxSetup, onAdd: addBox } : null}
           onAdd={() =>
             run(() =>
               api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), is_visible: true, sort_order: product.variants.length }),
@@ -695,7 +723,7 @@ function Pricing({
   onAdd: () => void;
   photos: (v: AdminVariant) => ReactNode;
   // the product's category is sold in boxes (0061): each loose option shows its boxes
-  boxes: { templates: BoxTemplate[]; onAdd: (unit: AdminVariant, pieces: number) => void } | null;
+  boxes: { setup: BoxSetupProps; onAdd: (unit: AdminVariant, size: BoxSize) => void } | null;
 }) {
   // loose options get the cards; boxes sit inside the option they hold
   const variants = product.variants.filter((v) => !v.unit_variant_id);
@@ -775,6 +803,7 @@ function Pricing({
   return (
     <section className="ape-fields ape-pricing">
       <h3>Price</h3>
+      {boxes && <BoxSetup {...boxes.setup} />}
       {!costs || !shop ? (
         <p className="ape-hint">Loading…</p>
       ) : many ? (
@@ -794,13 +823,13 @@ function Pricing({
                 onSave={(patch) => onVariant(v, patch)}
                 onDelete={() => onDeleteVariant(v)}
                 photos={photos(v)}
-                boxes={boxes && <BoxesBlock unit={v} boxes={boxesOf(v)} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />}
+                boxes={boxes && <BoxesBlock unit={v} boxes={boxesOf(v)} costs={costs} rules={rules} sizes={boxes.setup.sizes} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />}
               />
             ))}
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onCorrect={(n, r, why) => correctBuying(variants[0].id, n, r, why)} onSave={(patch) => onVariant(variants[0], patch)} boxes={boxes && <BoxesBlock unit={variants[0]} boxes={boxesOf(variants[0])} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onCorrect={(n, r, why) => correctBuying(variants[0].id, n, r, why)} onSave={(patch) => onVariant(variants[0], patch)} boxes={boxes && <BoxesBlock unit={variants[0]} boxes={boxesOf(variants[0])} costs={costs} rules={rules} sizes={boxes.setup.sizes} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -1095,16 +1124,151 @@ function PriceRow({
   );
 }
 
-// A loose option's boxes (0061): each one's stock in boxes, its own selling
-// price, whether it is sold to customers, and what it costs and earns per box
-// (its cost is the pieces' cost x the pieces in it). Then a way to add one,
-// from the shop's usual sizes or any other.
+// What the stock sheet says comes in a box of this product (catalog-data),
+// as a starting suggestion
+function sheetBoxSize(slug: string): number | null {
+  for (const c of CATEGORIES) {
+    const p = c.products.find((x) => x.slug === slug);
+    if (p) return p.unitsPerBox && p.unitsPerBox > 1 ? Math.round(p.unitsPerBox) : null;
+  }
+  return null;
+}
+
+// The product's box sizes (0065), above its options: each size with the
+// usual price of a box, a way to add or take one off, the stock sheet's size
+// as a suggestion, and presets (put one on this product or its whole
+// category; save this product's sizes as one).
+type BoxSetupProps = {
+  sizes: BoxSize[];
+  presets: BoxPreset[];
+  sheet: number | null;
+  categoryName: string;
+  onSize: (pieces: number, price: number | null) => Promise<unknown>;
+  onRemove: (pieces: number) => Promise<unknown>;
+  onApply: (id: string) => Promise<unknown>;
+  onApplyCategory: (id: string) => Promise<unknown>;
+  onSavePreset: (name: string) => Promise<unknown>;
+  onDeletePreset: (id: string) => Promise<unknown>;
+};
+function BoxSetup({ sizes, presets, sheet, categoryName, onSize, onRemove, onApply, onApplyCategory, onSavePreset, onDeletePreset }: BoxSetupProps) {
+  const [other, setOther] = useState("");
+  const [preset, setPreset] = useState("");
+  const [name, setName] = useState("");
+  const [err, setErr] = useState("");
+  const have = new Set(sizes.map((x) => x.pieces));
+  const n = Number(other);
+  const add = (pieces: number) => {
+    if (!Number.isInteger(pieces) || pieces < 2 || have.has(pieces)) return;
+    setOther("");
+    void onSize(pieces, null);
+  };
+  const tryIt = (work: Promise<unknown>, done?: () => void) =>
+    work.then(
+      () => {
+        setErr("");
+        done?.();
+      },
+      (e) => setErr(errText(e)),
+    );
+  return (
+    <div className="ape-boxset">
+      <div className="ape-boxes-head">
+        <b>Box sizes</b>
+        <small>This product comes in these boxes. Each colour or size below ticks which ones it comes in.</small>
+      </div>
+      {sizes.map((x) => (
+        <BoxSizeRow key={x.pieces} size={x} onPrice={(price) => void onSize(x.pieces, price)} onRemove={() => void onRemove(x.pieces)} />
+      ))}
+      <div className="ape-boxes-add">
+        <span>+ Size</span>
+        {sheet && !have.has(sheet) && (
+          <button type="button" className="ape-chip" title="The stock sheet says this comes in boxes of this many" onClick={() => add(sheet)}>
+            {boxLabel(sheet)} (stock sheet)
+          </button>
+        )}
+        <span className="ape-money ape-boxes-other">
+          <input inputMode="numeric" aria-label="Pieces in a box" placeholder="Pieces" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && add(n)} />
+        </span>
+        {other !== "" && (
+          <button type="button" className="ape-chip" disabled={!(n >= 2) || have.has(n)} onClick={() => add(n)}>
+            {have.has(n) ? "Already there" : `Add ${boxLabel(n)}`}
+          </button>
+        )}
+      </div>
+      <div className="ape-boxes-add">
+        <span>Presets</span>
+        <select className="ape-boxset-select" value={preset} aria-label="A box preset" onChange={(e) => setPreset(e.target.value)}>
+          <option value="">{presets.length ? "Choose a preset…" : "No presets yet"}</option>
+          {presets.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}: {p.sizes.join(", ")}
+            </option>
+          ))}
+        </select>
+        {preset && (
+          <>
+            <button type="button" className="ape-chip" onClick={() => tryIt(onApply(preset), () => setPreset(""))}>
+              Use here
+            </button>
+            <button type="button" className="ape-chip" title={`Adds these sizes to every product in ${categoryName}`} onClick={() => tryIt(onApplyCategory(preset), () => setPreset(""))}>
+              Use on all {categoryName}
+            </button>
+            <button type="button" className="ape-chip" onClick={() => tryIt(onDeletePreset(preset), () => setPreset(""))}>
+              Delete preset
+            </button>
+          </>
+        )}
+      </div>
+      {sizes.length > 0 && (
+        <div className="ape-boxes-add">
+          <span className="ape-money ape-boxset-name">
+            <input aria-label="Name for a new preset" placeholder="Save these sizes as…" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+          </span>
+          {name.trim() && (
+            <button type="button" className="ape-chip" onClick={() => tryIt(onSavePreset(name), () => setName(""))}>
+              Save preset
+            </button>
+          )}
+        </div>
+      )}
+      {err && <p className="ape-err">{err}</p>}
+    </div>
+  );
+}
+
+function BoxSizeRow({ size: x, onPrice, onRemove }: { size: BoxSize; onPrice: (price: number | null) => void; onRemove: () => void }) {
+  const [price, setPrice] = useState(x.price == null ? "" : String(x.price));
+  const [sure, setSure] = useState(false);
+  const p = price.trim() === "" ? null : Number(price);
+  return (
+    <div className="ape-box">
+      <div className="ape-box-name">
+        <b>{boxLabel(x.pieces)}</b>
+        <small>usual price of a box</small>
+      </div>
+      <Money value={price} label={`${boxLabel(x.pieces)} usual price`} placeholder="pieces × price" onChange={setPrice} onSave={() => p !== x.price && onPrice(p)} />
+      {sure ? (
+        <button type="button" className="ape-del is-sure" onClick={onRemove} onBlur={() => setSure(false)}>
+          Remove?
+        </button>
+      ) : (
+        <button type="button" className="ape-del" onClick={() => setSure(true)} aria-label={`Remove ${boxLabel(x.pieces)}`} title="Remove this size (and the options' boxes of it)">
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+// A loose option's boxes (0061, 0065): for each of the product's box sizes,
+// whether this option comes in it; if it does, its box with its own price,
+// whether it is sold to customers, and what it costs and earns per box.
 function BoxesBlock({
   unit,
   boxes,
   costs,
   rules,
-  templates,
+  sizes,
   onAdd,
   onSave,
   onDelete,
@@ -1113,19 +1277,14 @@ function BoxesBlock({
   boxes: AdminVariant[];
   costs: Map<string, Purchase>;
   rules: Rules;
-  templates: BoxTemplate[];
-  onAdd: (unit: AdminVariant, pieces: number) => void;
+  sizes: BoxSize[];
+  onAdd: (unit: AdminVariant, size: BoxSize) => void;
   onSave: (v: AdminVariant, patch: Partial<AdminVariant>) => void;
   onDelete: (v: AdminVariant) => void;
 }) {
-  const [other, setOther] = useState("");
-  const have = new Set(boxes.map((b) => b.pack_of));
-  const n = Number(other);
-  const add = (pieces: number) => {
-    if (!Number.isInteger(pieces) || pieces < 2 || have.has(pieces)) return;
-    setOther("");
-    onAdd(unit, pieces);
-  };
+  // the product's sizes in order, then any box of a size no longer listed
+  const rows = [...sizes.map((x) => ({ x, box: boxes.find((b) => b.pack_of === x.pieces) })), ...boxes.filter((b) => !sizes.some((x) => x.pieces === b.pack_of)).map((b) => ({ x: { pieces: b.pack_of, price: null, sort_order: 999 }, box: b }))];
+  if (!rows.length) return null;
   return (
     <div className="ape-boxes">
       <div className="ape-boxes-head">
@@ -1140,27 +1299,15 @@ function BoxesBlock({
           })()}
         </small>
       </div>
-      {boxes.map((b) => (
-        <BoxRow key={b.id} box={b} have={costs.get(b.id)} rules={rules} onSave={(patch) => onSave(b, patch)} onDelete={() => onDelete(b)} />
-      ))}
-      <div className="ape-boxes-add">
-        <span>+ Add a box</span>
-        {templates
-          .filter((t) => !have.has(t.pieces))
-          .map((t) => (
-            <button key={t.id} type="button" className="ape-chip" onClick={() => add(t.pieces)}>
-              {t.label}
-            </button>
-          ))}
-        <span className="ape-money ape-boxes-other">
-          <input inputMode="numeric" aria-label="Pieces in another box size" placeholder="Other size" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && add(n)} />
-        </span>
-        {other !== "" && (
-          <button type="button" className="ape-chip" disabled={!(n >= 2) || have.has(n)} onClick={() => add(n)}>
-            {have.has(n) ? "Already there" : `Add ${boxLabel(n)}`}
+      {rows.map(({ x, box }) =>
+        box ? (
+          <BoxRow key={box.id} box={box} have={costs.get(box.id)} rules={rules} onSave={(patch) => onSave(box, patch)} onDelete={() => onDelete(box)} />
+        ) : (
+          <button key={x.pieces} type="button" className="ape-box-tick" onClick={() => onAdd(unit, x)}>
+            <i aria-hidden="true">+</i> Comes in {boxLabel(x.pieces)}
           </button>
-        )}
-      </div>
+        ),
+      )}
     </div>
   );
 }

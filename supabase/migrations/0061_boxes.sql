@@ -20,8 +20,7 @@
 -- on the loose option, per piece. A box's cost is its loose option's cost x
 -- pack_of, kept in step, so box sales get the right profit.
 --
--- Box templates (box_templates): the shop's usual sizes ("Box of 24",
--- "Box of 50") to pick from instead of typing each time.
+-- Each product's box sizes, and presets of them, are in 0065.
 --
 -- 1. columns and templates   2. a box's own rules   3. stock follows pieces
 -- 4. cost follows pieces     5. bills, voids, counts  6. lists and reports
@@ -38,24 +37,6 @@ alter table public.product_variants drop constraint if exists product_variants_b
 alter table public.product_variants add constraint product_variants_box_check
   check ((unit_variant_id is null and pack_of = 1) or (unit_variant_id is not null and pack_of > 1));
 create index if not exists product_variants_unit_idx on public.product_variants (unit_variant_id) where unit_variant_id is not null;
-
-create table if not exists public.box_templates (
-  id uuid primary key default gen_random_uuid(),
-  pieces int not null check (pieces > 1),
-  label text not null default '',
-  sort_order int not null default 0,
-  created_at timestamptz not null default now()
-);
-create unique index if not exists box_templates_pieces_idx on public.box_templates (pieces);
-alter table public.box_templates enable row level security;
-drop policy if exists "admins manage box templates" on public.box_templates;
-create policy "admins manage box templates" on public.box_templates
-  for all to authenticated using (public.is_admin()) with check (public.is_admin());
-revoke all on public.box_templates from anon, authenticated, public;
-grant select, insert, update, delete on public.box_templates to authenticated;
-drop trigger if exists audit_row on public.box_templates;
-create trigger audit_row after insert or update or delete on public.box_templates
-  for each row execute function public.audit_row();
 
 -- ---------------------------------------------------------------- 2. a box's own rules
 
