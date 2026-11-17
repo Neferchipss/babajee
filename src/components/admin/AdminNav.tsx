@@ -70,6 +70,17 @@ const ALL_SECTIONS: Section[] = [
     ],
   },
   {
+    label: "Storefront",
+    href: "/admin/storefront",
+    icon: I("M3 8.5 4.5 4h11L17 8.5M3 8.5h14M3 8.5c0 1.4 1.1 2.5 2.4 2.5S7.8 9.9 7.8 8.5c0 1.4 1 2.5 2.2 2.5s2.2-1.1 2.2-2.5c0 1.4 1.1 2.5 2.4 2.5S17 9.9 17 8.5M4.5 11v5.5h11V11M8.5 16.5v-3.5h3v3.5"),
+    pages: [
+      { label: "Design and homepage", href: "/admin/storefront" },
+      { label: "Banners", href: "/admin/storefront/banners" },
+      { label: "Pages, blog and FAQs", href: "/admin/storefront/pages" },
+      { label: "Menus", href: "/admin/storefront/menus" },
+    ],
+  },
+  {
     label: "Analytics",
     href: "/admin/analytics",
     icon: I("M3.5 16.5h13M6 13.5V9M10 13.5V5M14 13.5v-6"),

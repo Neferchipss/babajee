@@ -1,0 +1,88 @@
+/* The storefront designs (Admin > Storefront, 0073). Each is a set of
+   tokens on [data-design]; the shop home (ShopHome.tsx) and the admin's
+   swatches draw with them. All light: a home's daylight.
+   Babajee's logo colours are red #fd1618, yellow #fdee03 and green #04cb62;
+   on cream and white they are deepened so words in them stay readable
+   (4.5:1 for text, the bright ones kept for fills and accents). */
+
+[data-design] {
+  --d-radius: 18px;
+  --d-radius-sm: 12px;
+  --d-head: var(--font-body-face, system-ui), system-ui, sans-serif;
+  --d-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 8px 24px rgb(0 0 0 / 0.06);
+}
+
+/* the current colours, as a full shop home */
+[data-design="shopfront"] {
+  --d-bg: #ffffff;
+  --d-surface: #f6f7f9;
+  --d-card: #ffffff;
+  --d-ink: #0c0f14;
+  --d-muted: #5d646d;
+  --d-line: #e7eaee;
+  --d-accent: #d3ab70;
+  --d-accent-ink: #0c0f14;
+  --d-accent-2: #0f8a5f;
+  --d-accent-3: #c0392b;
+  --d-glow: #f5ead9;
+}
+
+/* an old family home: cream walls, Babajee red doors, turmeric and leaf */
+[data-design="haveli"] {
+  --d-bg: #fbf4e6;
+  --d-surface: #f5e8cf;
+  --d-card: #fffaf0;
+  --d-ink: #2b1a12;
+  --d-muted: #6f5444;
+  --d-line: #e8d6b5;
+  --d-accent: #c3141a;
+  --d-accent-ink: #fffaf0;
+  --d-accent-2: #f2c200;
+  --d-accent-3: #167a43;
+  --d-glow: #fdeec8;
+  --d-head: "Georgia", "Iowan Old Style", "Times New Roman", serif;
+  --d-radius: 22px;
+}
+
+/* the counter on a long evening: turmeric, tea and soft cushions */
+[data-design="chai"] {
+  --d-bg: #fff7e2;
+  --d-surface: #ffefc2;
+  --d-card: #fffdf5;
+  --d-ink: #33200f;
+  --d-muted: #74593c;
+  --d-line: #f0dca6;
+  --d-accent: #8a5a00;
+  --d-accent-ink: #fffdf5;
+  --d-accent-2: #fdd835;
+  --d-accent-3: #b3261e;
+  --d-glow: #ffe9a6;
+  --d-radius: 28px;
+  --d-radius-sm: 18px;
+}
+
+/* an open courtyard: leaf green, sunlight, red pots */
+[data-design="courtyard"] {
+  --d-bg: #f2f8ee;
+  --d-surface: #e3f0db;
+  --d-card: #ffffff;
+  --d-ink: #13261a;
+  --d-muted: #4f6455;
+  --d-line: #d5e6cb;
+  --d-accent: #0f7a3d;
+  --d-accent-ink: #ffffff;
+  --d-accent-2: #fbe122;
+  --d-accent-3: #d4231f;
+  --d-glow: #fff6bf;
+  --d-radius: 20px;
+}
+
+/* the admin's look at each: four dots of its colours */
+[data-design="current"] {
+  --d-bg: #0c0a1c;
+  --d-surface: #120e2c;
+  --d-ink: #ffffff;
+  --d-accent: #d3ab70;
+  --d-accent-2: #04cb62;
+  --d-accent-3: #fd1618;
+}
