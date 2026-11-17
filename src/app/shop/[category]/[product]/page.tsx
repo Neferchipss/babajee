@@ -9,14 +9,14 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const dynamicParams = false;
 
-// each product's page, and each sub-category's (0060): they share the
+// each product's page, and each sub-category's (0063): they share the
 // address space, and the database keeps their slugs apart
 export async function generateStaticParams() {
   const [products, tags] = await Promise.all([getStaticProductParams(), getStaticTagParams()]);
   return [...products, ...tags];
 }
 
-// a sub-category of this category, when the slug is one (0060)
+// a sub-category of this category, when the slug is one (0063)
 async function tagOf(category: string, slug: string) {
   const { byCategory } = await getShopTags();
   return (byCategory[category] ?? []).find((t) => t.slug === slug) ?? null;

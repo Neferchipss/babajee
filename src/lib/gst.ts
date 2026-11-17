@@ -8,7 +8,7 @@
 // added on top at checkout. GST is worked out line by line, each line rounded
 // to the paisa. Shipping carries no GST here.
 //
-// CESS (0057, off unless switched on in Settings) sits on the same taxable
+// CESS (0060, off unless switched on in Settings) sits on the same taxable
 // value as GST: inside an inclusive price (price = taxable + GST + cess), or
 // added on top. With no cess the GST is worked out exactly as before.
 
@@ -18,18 +18,18 @@ export type GstRules = {
   rate: number; // percent, e.g. 18
   inclusive: boolean;
   credit: boolean; // the shop claims back the GST on supplier bills
-  cess?: number; // percent on the taxable value (0057), 0 or absent: none
+  cess?: number; // percent on the taxable value (0060), 0 or absent: none
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// GST on a line worth `gross` on the shelf (line_gst_c() in 0057)
+// GST on a line worth `gross` on the shelf (line_gst_c() in 0060)
 export function lineGst(gross: number, rate: number, inclusive: boolean, cess = 0) {
   if (!cess) return inclusive ? round2((gross * rate) / (100 + rate)) : round2((gross * rate) / 100);
   return inclusive ? round2((gross * rate) / (100 + rate + cess)) : round2((gross * rate) / 100);
 }
 
-// cess on the same line (line_cess() in 0057)
+// cess on the same line (line_cess() in 0060)
 export function lineCess(gross: number, rate: number, cess: number, inclusive: boolean) {
   if (!cess) return 0;
   return inclusive ? round2((gross * cess) / (100 + rate + cess)) : round2((gross * cess) / 100);
@@ -58,8 +58,10 @@ export function gstLabel(inclusive: boolean, rate: number | null | undefined) {
 // `paid` is the GST paid to the supplier per piece (without it, it is
 // estimated at the selling rate), `claimable` the part of it that can be
 // claimed back (all of it unless said); nothing is claimed with credit off.
-// Mirrors admin_profit() in supabase/migrations/0056_supplier_gst_profit.sql.
-export function unitProfit(price: number, cost: number, g: GstRules, supplier?: { paid?: number | null; claimable?: number | null }) {
+// `supplier` may also be just the GST paid, as a number (0057's callers).
+// Mirrors admin_profit() in supabase/migrations/0059_supplier_gst_profit.sql.
+export function unitProfit(price: number, cost: number, g: GstRules, gst?: number | null | { paid?: number | null; claimable?: number | null }) {
+  const supplier = typeof gst === "number" ? { paid: gst } : (gst ?? undefined);
   const c = g.cess ?? 0;
   const sale = g.inclusive ? price : (price * (100 + g.rate + c)) / 100;
   const net = (sale * 100) / (100 + g.rate + c);

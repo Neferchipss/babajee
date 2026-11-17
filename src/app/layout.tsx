@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import AgeGate from "@/components/AgeGate";
 import MediaGuard from "@/components/MediaGuard";
 import SiteFooter from "@/components/SiteFooter";
+import LoginModal from "@/components/auth/LoginModal";
 import SiteFrame from "@/components/SiteFrame";
 import SiteHeader from "@/components/SiteHeader";
 import SiteTracker from "@/components/SiteTracker";
@@ -20,7 +21,6 @@ import "./themes/baba.css";
 import "./themes/baba-night.css";
 import "./themes/baba-poster.css";
 import "./themes/modes.css";
-import "./themes/daydream-look.css";
 import "./themes/type.css";
 import "./themes/shelf-side.css";
 import "./themes/motion.css";
@@ -80,6 +80,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <AuthProvider>
           <AgeGate />
+          <LoginModal />
           <MediaGuard />
           <SiteTracker />
           <SiteFrame>

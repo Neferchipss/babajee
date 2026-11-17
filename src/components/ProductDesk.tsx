@@ -148,7 +148,7 @@ export default function ProductDesk({
   }
 
   const info = about?.slug === p.slug ? about : null;
-  // the chosen option's weight and size (0059), read as specifications
+  // the chosen option's weight and size (0062), read as specifications
   const size = info?.sizes.find((x) => x.label === variant.label) ?? (info?.sizes.length === 1 ? info.sizes[0] : undefined);
   const dims = size && size.length_cm && size.width_cm && size.height_cm ? `${size.length_cm} × ${size.width_cm} × ${size.height_cm} cm` : "";
   const specs = [
@@ -342,7 +342,7 @@ function Gallery({ name, tone, slug, option }: { name: string; tone: string; slu
   );
 }
 
-// A video link (0059): YouTube plays in its no-cookie player; anything else
+// A video link (0062): YouTube plays in its no-cookie player; anything else
 // (a direct .mp4) in the browser's own. Loaded only when it is played.
 function youTubeId(url: string) {
   const m = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/.exec(url);

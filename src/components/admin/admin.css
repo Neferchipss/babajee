@@ -3959,3 +3959,73 @@ body:has(.adm-frame) .ftr {
   padding-left: 18px;
   color: var(--adm-warn, #b45309);
 }
+
+/* ---------------------------------------------------------------- manual payment (0055/0056) */
+.pay-form {
+  display: grid;
+  gap: 14px;
+  min-width: min(460px, 100%);
+}
+.pay-form h2 {
+  margin: 0;
+}
+.pay-row {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 12px;
+}
+@media (max-width: 520px) {
+  .pay-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* the unpaid order's age and time left, under its date */
+.pay-left {
+  margin-top: 2px;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pay-left.is-urgent {
+  color: var(--adm-bad);
+  font-weight: 600;
+}
+/* call, WhatsApp, log: small links under the customer's name */
+.pay-reach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 0.78rem;
+}
+.pay-reach a,
+.pay-reach button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--adm-gold);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.pay-reach a:hover,
+.pay-reach button:hover {
+  text-decoration: underline;
+}
+.pay-last {
+  max-width: 28ch;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--adm-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* how a paid order was paid, under the order's meta line */
+.ov-paid {
+  margin: 4px 0 0;
+  color: var(--adm-good);
+}
+.pay-form .adm-chips {
+  flex-wrap: wrap;
+  overflow: visible;
+}

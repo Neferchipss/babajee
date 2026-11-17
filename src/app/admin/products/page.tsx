@@ -26,7 +26,7 @@ const setShopLowAt = (n: number) => {
   shopLowAt = n;
 };
 const stockOf = (p: AdminProduct) => {
-  // loose options only: a box runs out when its pieces do (0058)
+  // loose options only: a box runs out when its pieces do (0061)
   const t = p.variants.filter((v) => v.track_stock && v.is_visible && !v.unit_variant_id);
   const mark = p.low_stock_at ?? shopLowAt;
   return { out: t.length > 0 && t.some((v) => v.stock_qty <= 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
@@ -747,7 +747,7 @@ function CategoryTools({
       <button type="button" className={`ap-chip ${c.is_visible ? "" : "is-on"}`} onClick={() => onChange(() => api.updateCategory(c.id, { is_visible: !c.is_visible }))}>
         {c.is_visible ? "On the shop" : "Hidden from the shop"}
       </button>
-      {/* bought in boxes: its products get a Boxes section (0058) */}
+      {/* bought in boxes: its products get a Boxes section (0061) */}
       <button
         type="button"
         className={`ap-chip ${c.sold_in_boxes ? "is-on" : ""}`}

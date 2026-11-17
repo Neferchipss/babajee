@@ -30,7 +30,7 @@ export type CardProduct = {
   variants?: BuyVariant[];
   // on the all-products shelf, the category it is listed under
   group?: string;
-  // its sub-categories' slugs (0060), for the shelf's tag chips (not shown on the card)
+  // its sub-categories' slugs (0063), for the shelf's tag chips (not shown on the card)
   tags?: string[];
   // for Sort & filter (not shown on the card): its brand, when it was added
   brand?: string;

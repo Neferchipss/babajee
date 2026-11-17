@@ -7,7 +7,7 @@ import { toNumber } from "./currency";
 import { uncounted } from "./stock-in/db";
 import { getSupabase } from "./supabase";
 
-// sold_in_boxes: its products are bought (and may be sold) in boxes (0058)
+// sold_in_boxes: its products are bought (and may be sold) in boxes (0061)
 export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null; sold_in_boxes?: boolean };
 export type AdminVariant = {
   id: string;
@@ -22,11 +22,11 @@ export type AdminVariant = {
   sku: string | null;
   barcode: string | null;
   compare_at: number | null;
-  // a box (0058): the loose option it holds and how many; pack_of 1 and no
+  // a box (0061): the loose option it holds and how many; pack_of 1 and no
   // unit for a loose option. A box's stock is its loose option's pieces / pack_of.
   pack_of: number;
   unit_variant_id: string | null;
-  // packed weight (grams) and size (cm), for shipping and the product page (0059)
+  // packed weight (grams) and size (cm), for shipping and the product page (0062)
   weight_g: number | null;
   length_cm: number | null;
   width_cm: number | null;
@@ -60,11 +60,11 @@ export type AdminProduct = {
   // its GST bracket (0, 5, 12, 18, 28 or 40); null = the shop's default rate.
   // HSN code for the invoice, may be empty (0030)
   gst_rate: number | null;
-  // its sub-categories (0060), by id
+  // its sub-categories (0063), by id
   subcategory_ids: string[];
-  // links to its videos, shown on its page (0059)
+  // links to its videos, shown on its page (0062)
   video_urls: string[];
-  // cess on top of GST, percent (0057; charged only with cess switched on)
+  // cess on top of GST, percent (0060; charged only with cess switched on)
   cess_rate: number;
   hsn: string;
   is_visible: boolean;
@@ -294,7 +294,7 @@ export async function setProductStatus(product: AdminProduct, status: ProductSta
   }
 }
 
-// --- sub-categories (0060) ------------------------------------------------------
+// --- sub-categories (0063) ------------------------------------------------------
 
 // A category's sub-categories as tags, optionally in groups (filter rows on
 // the shop: "Size", "Percs"). products: how many carry each.
@@ -435,7 +435,7 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
         track_stock: track,
         is_visible: variant.is_visible ?? true,
         sort_order: variant.sort_order ?? 0,
-        // a box: the database gives it its stock from the loose option (0058)
+        // a box: the database gives it its stock from the loose option (0061)
         ...(variant.unit_variant_id ? { unit_variant_id: variant.unit_variant_id, pack_of: variant.pack_of ?? 2 } : {}),
       });
     if (error) throw error;
@@ -467,7 +467,7 @@ export async function deleteVariant(id: string) {
   if (error) throw error;
 }
 
-// --- box templates (0058) ------------------------------------------------------
+// --- box templates (0061) ------------------------------------------------------
 
 // The shop's usual box sizes, to pick from when adding a box to a product.
 export type BoxTemplate = { id: string; pieces: number; label: string };

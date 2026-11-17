@@ -9,7 +9,7 @@ import type { Order } from "./orders-db.ts";
 //   across the order's rates in proportion to its goods, GST inside it;
 // - refunded shipping, with no GST.
 // GST is CGST+SGST in the shop's own state and IGST otherwise. Each rate is
-// a pair (GST, cess) since 0057's refund_taxes(); with no cess, as before.
+// a pair (GST, cess) since 0060's refund_taxes(); with no cess, as before.
 export type CreditNoteRow = { id: string; number: string; order_id: string; refund_id: string | null; issued_at: string; amount: number; tax: number; cess?: number; shipping: number };
 export type CreditLine = { name: string; option: string; hsn: string; qty: number; rate: number; cessRate: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 export type CreditNote = {

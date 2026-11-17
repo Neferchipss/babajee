@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useCallback, useEffect, useState } from "react";
 import AddressMap from "@/components/admin/AddressMap";
 import { EditForm, RefundForm, type EditInput, type RefundInput } from "@/components/admin/OrderForms";
+import { LogContactForm, MarkPaidForm } from "@/components/admin/PaymentForms";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +22,7 @@ import {
   errText,
   getOrder,
   getSettings,
+  paymentsFor,
   refundOrder,
   refundsOf,
   resolveRequest,
@@ -35,6 +37,7 @@ import {
   undoRefund,
   type Order,
   type OrderRequest,
+  type Payment,
   type Refund,
 } from "@/lib/orders-db";
 
@@ -73,12 +76,22 @@ function OrderView() {
   const [reply, setReply] = useState("");
   const [comment, setComment] = useState("");
   const [notes, setNotes] = useState("");
-
+  // manual payment (0056): marking it paid with how it was paid, logging contacts
+  const [paying, setPaying] = useState(false);
+  const [logging, setLogging] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [methods, setMethods] = useState<string[]>(["UPI", "Bank transfer", "Cash"]);
+  useEffect(() => {
+    getSettings()
+      .then((s) => setMethods(s.payment_methods))
+      .catch(() => {});
+  }, []);
   const load = useCallback(
     () =>
       getOrder(id)
         .then((r) => {
           setO(r);
+          if (r) paymentsFor([r.id]).then(setPayments).catch(() => setPayments([]));
           setNotes(r?.notes ?? "");
           // from the list's "Ship…": straight to the courier form
           const u = new URLSearchParams(window.location.search);
@@ -189,6 +202,8 @@ function OrderView() {
   function pickStep(to: OrderStatus) {
     if (!o || to === o.status) return;
     const forward = STEPS.indexOf(to) > STEPS.indexOf(o.status);
+    // leaving unpaid always goes through "Mark paid": how was it paid?
+    if (forward && o.status === "pending") return setPaying(true);
     if (!forward || to === "shipped" || (to === "delivered" && !ship)) setStepping(to);
     else void act(() => setStep(o.id, to), `${o.order_number} marked as ${STEP_DO[to]}`);
   }
@@ -201,7 +216,7 @@ function OrderView() {
 
   const next =
     o.status === "pending"
-      ? `Waiting for ${money(o.total)}. Mark it paid when the money arrives.`
+      ? `Waiting for ${money(o.total)}. Contact ${o.contact_name.split(" ")[0]} to take payment, then mark it paid.`
       : o.status === "paid"
         ? `Paid. Pack the ${count} item${count === 1 ? "" : "s"} next.`
         : o.status === "packed"
@@ -238,6 +253,17 @@ function OrderView() {
             <p className="adm-muted adm-small ov-meta">
               Placed {placed} · {count} item{count === 1 ? "" : "s"} · {o.contact_name}, {o.address_city}
             </p>
+            {payments
+              .filter((x) => x.status === "captured")
+              .map((x) => (
+                <p key={x.id} className="adm-small ov-paid">
+                  Paid {money(x.amount)}
+                  {x.method ? ` by ${x.method}` : " (method not recorded)"}
+                  {x.reference ? ` · ref ${x.reference}` : ""}
+                  {x.received_on ? ` · received ${new Date(`${x.received_on}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                  {x.note ? ` · ${x.note}` : ""}
+                </p>
+              ))}
           </div>
           <div className="ov-total">
             <span>Total</span>
@@ -262,6 +288,11 @@ function OrderView() {
             {nextStep && !openReq && !(o.status === "shipped" && o.delivery_failed_at) && (
               <button type="button" className="adm-btn pri" disabled={busy} onClick={() => pickStep(nextStep.to)}>
                 {nextStep.label}
+              </button>
+            )}
+            {o.status === "pending" && (
+              <button type="button" className="adm-btn" onClick={() => setLogging(true)}>
+                Log a contact
               </button>
             )}
             {STEPS.includes(o.status) && <span className="adm-muted adm-small">Or tap a step on the road, forward or back.</span>}
@@ -517,7 +548,7 @@ function OrderView() {
             </div>
             <h3 className="ov-h3">Deliver to</h3>
             <p className="adm-small ov-addr">
-              {[o.address_line1, o.address_line2, o.address_landmark && `Near ${o.address_landmark}`, `${o.address_city}, ${o.address_state} ${o.address_pincode}`]
+              {[o.address_line1, o.address_line2, o.address_landmark && (/^near\b/i.test(o.address_landmark.trim()) ? o.address_landmark.trim() : `Near ${o.address_landmark}`), `${o.address_city}, ${o.address_state} ${o.address_pincode}`]
                 .filter(Boolean)
                 .map((l) => (
                   <span key={String(l)}>{l}</span>
@@ -573,6 +604,33 @@ function OrderView() {
 
       <Dialog open={asking !== null} onClose={() => setAsking(null)}>
         {asking && <Confirm action={asking} order={o} busy={busy} onCancel={() => setAsking(null)} onConfirm={(opts) => run(asking, opts)} />}
+      </Dialog>
+      <Dialog open={paying} onClose={() => setPaying(false)}>
+        {paying && (
+          <MarkPaidForm
+            order={o}
+            methods={methods}
+            onCancel={() => setPaying(false)}
+            onDone={() => {
+              setPaying(false);
+              toast(`${o.order_number} marked as paid`);
+              void load();
+            }}
+          />
+        )}
+      </Dialog>
+      <Dialog open={logging} onClose={() => setLogging(false)}>
+        {logging && (
+          <LogContactForm
+            order={o}
+            userId={user?.id}
+            onCancel={() => setLogging(false)}
+            onDone={() => {
+              setLogging(false);
+              toast(`Logged on ${o.order_number}`);
+            }}
+          />
+        )}
       </Dialog>
       <Dialog open={stepping !== null} onClose={() => setStepping(null)}>
         {stepping && (

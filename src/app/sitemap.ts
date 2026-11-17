@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/", 1, "weekly"),
     page("/shop/", 0.9, "daily"),
     ...categories.filter((c) => c.category !== "_none").map((c) => page(`/shop/${c.category}/`, 0.8, "daily")),
-    // each sub-category's own page (0060)
+    // each sub-category's own page (0063)
     ...tags.map((t) => page(`/shop/${t.category}/${t.product}/`, 0.75, "daily")),
     ...products.map((p) => page(`/shop/${p.category}/${p.product}/`, 0.7, "weekly")),
     page("/about/", 0.5, "monthly"),

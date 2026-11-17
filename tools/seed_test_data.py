@@ -197,6 +197,11 @@ begin
     perform public.admin_void_receipt(r.id);
   end loop;
 end $$;
+-- the 0057 starting points of options bought on test bills go too, so the new
+-- (backdated) test bills set their averages from scratch
+delete from public.purchase_corrections pc
+ where pc.reason = 'Starting point (0057)'
+   and pc.variant_id in (select l.variant_id from public.stock_receipt_lines l join public.stock_receipts r on r.id = l.receipt_id where r.is_test);
 delete from public.stock_movements where receipt_id in (select id from public.stock_receipts where is_test);
 delete from public.stock_receipt_lines where receipt_id in (select id from public.stock_receipts where is_test);
 delete from public.stock_receipts where is_test;
@@ -596,6 +601,8 @@ for s, no, bdate, lines, in2b, month, paid_on in bills:
     b.append(f"  rid := public.admin_post_receipt('bill', sid, {q(no)}, {q(bdate.isoformat())}, 'Test bill', {jq(lines)});")
     b.append(f"  update public.stock_receipts set is_test = true, created_at = {ts(datetime.combine(bdate, datetime.min.time(), IST) + timedelta(hours=15))} where id = rid;")
     b.append(f"  update public.stock_movements set created_at = {ts(datetime.combine(bdate, datetime.min.time(), IST) + timedelta(hours=15))} where receipt_id = rid;")
+    # the average is replayed in the backdated order (0057)
+    b.append("  perform public.recost_variant(x.variant_id) from (select distinct variant_id from public.stock_receipt_lines where receipt_id = rid) x;")
     b.append(f"  perform public.admin_set_receipt_flags(rid, {str(in2b).lower()}, {q(month.isoformat()) if in2b else 'null'}, {q(paid_on.isoformat()) if paid_on else 'null'});")
 b.append("end $$;")
 emit("05_bills.sql", "\n".join(b))

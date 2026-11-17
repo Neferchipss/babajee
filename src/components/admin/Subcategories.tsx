@@ -42,7 +42,7 @@ function useSubcategories(api: Api, categoryId: string) {
   return { list, err, run };
 }
 
-// A category's sub-categories (0060), under its settings: groups (filter rows
+// A category's sub-categories (0063), under its settings: groups (filter rows
 // on the shop, "Size", "Percs") and the tags, each with its group, how many
 // products carry it, whether the shop shows it, and its place in the order.
 export function SubcategoryManager({ api, categoryId, categoryName }: { api: Api; categoryId: string; categoryName: string }) {
@@ -201,7 +201,7 @@ function TagRow({
   );
 }
 
-// A product's sub-categories (0060): its category's tags, by group, one tap
+// A product's sub-categories (0063): its category's tags, by group, one tap
 // each to add or take off; or a new one, made and added at once.
 export function TagPicker({ api, product, onChanged }: { api: Api; product: AdminProduct; onChanged: () => void }) {
   const { list, err, run } = useSubcategories(api, product.category_id);

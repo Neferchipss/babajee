@@ -217,7 +217,7 @@ export default function ProductEditor({
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // boxes (0058) sit under the loose option they hold, not beside it
+  // boxes (0061) sit under the loose option they hold, not beside it
   const many = product.variants.filter((v) => !v.unit_variant_id).length > 1;
   const tracked = product.variants.some((v) => v.track_stock);
   const boxMode = !!categories.find((c) => c.id === product.category_id)?.sold_in_boxes || product.variants.some((v) => v.unit_variant_id);
@@ -671,7 +671,7 @@ function AddPhotos({ label, busy, onFiles }: { label: string; busy: boolean; onF
 //   (worked out) -> selling price (at the product's GST bracket) -> profit,
 //   with a note of the GST behind it (collected, paid, claimed back, owed)
 // With sizes or colours, one card each, the selling bracket chosen once for
-// the product. Buying prices live in an admin-only table (0015, 0030, 0056);
+// the product. Buying prices live in an admin-only table (0015, 0030, 0057, 0059);
 // the database adds the GST paid to make the cost price.
 type Rules = { rate: number; inclusive: boolean; credit: boolean; cess?: number };
 // GST paid to the supplier as typed: a rate (null: the selling bracket) and,
@@ -694,7 +694,7 @@ function Pricing({
   onDeleteVariant: (v: AdminVariant) => void;
   onAdd: () => void;
   photos: (v: AdminVariant) => ReactNode;
-  // the product's category is sold in boxes (0058): each loose option shows its boxes
+  // the product's category is sold in boxes (0061): each loose option shows its boxes
   boxes: { templates: BoxTemplate[]; onAdd: (unit: AdminVariant, pieces: number) => void } | null;
 }) {
   // loose options get the cards; boxes sit inside the option they hold
@@ -727,6 +727,18 @@ function Pricing({
   const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false, cess: shop?.cessOn ? product.cess_rate : 0 };
   const many = variants.length > 1;
 
+  // correcting a buying price (or setting the opening stock's), with a reason (0057)
+  async function correctBuying(id: string, purchase: number, rate: number, reason: string) {
+    const m = await import("@/lib/orders-db");
+    await m.correctPurchase(id, purchase, rate, reason);
+    const got = (await m.getPurchases([id])).get(id);
+    setCosts((c) => {
+      const n = new Map(c);
+      if (got) n.set(id, got);
+      return n;
+    });
+  }
+
   async function saveBuying(id: string, purchase: number | null, gst?: SupplierGst) {
     setErr("");
     try {
@@ -757,7 +769,7 @@ function Pricing({
       </div>
     </div>
   );
-  // cess on top of GST, only once switched on in Settings (0057)
+  // cess on top of GST, only once switched on in Settings (0060)
   const cessField = shop?.cessOn ? <CessField key={product.id} value={product.cess_rate} onSave={(n) => onPatch({ cess_rate: n })} /> : null;
 
   return (
@@ -778,6 +790,7 @@ function Pricing({
                 have={costs.get(v.id)}
                 rules={rules}
                 onBuying={(n, g) => saveBuying(v.id, n, g)}
+                onCorrect={(n, r, why) => correctBuying(v.id, n, r, why)}
                 onSave={(patch) => onVariant(v, patch)}
                 onDelete={() => onDeleteVariant(v)}
                 photos={photos(v)}
@@ -787,7 +800,7 @@ function Pricing({
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onSave={(patch) => onVariant(variants[0], patch)} boxes={boxes && <BoxesBlock unit={variants[0]} boxes={boxesOf(variants[0])} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onCorrect={(n, r, why) => correctBuying(variants[0].id, n, r, why)} onSave={(patch) => onVariant(variants[0], patch)} boxes={boxes && <BoxesBlock unit={variants[0]} boxes={boxesOf(variants[0])} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -824,6 +837,7 @@ function PriceRow({
   photos,
   boxes,
   onBuying,
+  onCorrect,
   onSave,
   onDelete,
 }: {
@@ -835,6 +849,7 @@ function PriceRow({
   photos?: ReactNode;
   boxes?: ReactNode;
   onBuying: (purchase: number | null, gst?: SupplierGst) => void;
+  onCorrect: (purchase: number, gstRate: number, reason: string) => Promise<void>;
   onSave: (patch: Partial<AdminVariant>) => void;
   onDelete?: () => void;
 }) {
@@ -849,8 +864,12 @@ function PriceRow({
   }
   // GST paid to the supplier, as typed: the rate (null follows the selling
   // bracket) and the amount, filled in from the rate until typed over
-  const [gRate, setGRate] = useState<number | null>(have?.supplierRate ?? null);
-  const [gAmt, setGAmt] = useState(have?.supplierGst != null ? String(have.supplierGst) : "");
+  // as saved: a bracket whose amount matches the GST paid shows as that rate
+  // (none: the product's own); any other amount shows as typed
+  const savedRate = have?.gstPaid != null && have.purchase != null ? ([0, ...SHOWN_BRACKETS].find((r) => supplierGst(have.purchase!, r) === have.gstPaid) ?? null) : null;
+  const savedAmt = have?.gstPaid != null && have.purchase != null && savedRate == null ? have.gstPaid : null;
+  const [gRate, setGRate] = useState<number | null>(savedRate === rules.rate ? null : savedRate);
+  const [gAmt, setGAmt] = useState(savedAmt != null ? String(savedAmt) : "");
   const [label, setLabel] = useState(v.label);
   const [confirm, setConfirm] = useState(false);
 
@@ -858,13 +877,17 @@ function PriceRow({
   // in (Add stock, voids), so it is shown here, not typed; so is the GST paid
   // once supplier bills feed it
   const fromStock = v.track_stock;
-  const fromBills = have?.source === "bills";
+  // counted stock takes its price and GST from the bills (and corrections)
+  const fromBills = fromStock;
   const b = fromStock ? start : buy.trim() === "" ? null : Number(buy);
   const s = Number(sell) || 0;
   const rate = gRate ?? rules.rate;
   const typedAmt = gAmt.trim() === "" ? null : Number(gAmt);
-  const paid = fromBills ? (have?.gstPaid ?? null) : b == null ? null : supplierGst(b, rate, typedAmt);
-  const claimable = fromBills ? (have?.gstClaimable ?? null) : paid;
+  // counted stock: the GST paid as averaged off the bills (0057), else at the
+  // product's own rate; typed: as picked or typed here
+  const paid = fromBills ? (have?.gstPaid ?? (b == null ? null : supplierGst(b, rules.rate))) : b == null ? null : supplierGst(b, rate, typedAmt);
+  const claimable = fromBills ? (have?.gstClaimable ?? paid) : paid;
+  const billRate = have?.gstPaid != null && have.purchase ? Math.round((have.gstPaid / have.purchase) * 1000) / 10 : null;
   const cost = b == null || paid == null ? null : Math.round((b + paid) * 100) / 100;
   const u = cost != null && s > 0 ? unitProfit(s, cost, rules, { paid, claimable }) : null;
   const money = (n: number) => formatPrice(n, { paise: true });
@@ -875,6 +898,36 @@ function PriceRow({
     setGAmt(next.amount == null ? "" : String(next.amount));
     onBuying(b, next);
   };
+  // correcting the price (or setting the opening stock's)
+  const [fixing, setFixing] = useState(false);
+  const [fixPrice, setFixPrice] = useState("");
+  const [fixRate, setFixRate] = useState("");
+  const [fixWhy, setFixWhy] = useState("");
+  const [fixErr, setFixErr] = useState("");
+  const [fixBusy, setFixBusy] = useState(false);
+  function openFix() {
+    setFixPrice(start != null ? String(start) : "");
+    setFixRate(String(billRate ?? rules.rate));
+    setFixWhy(start == null ? "Opening stock" : "");
+    setFixErr("");
+    setFixing(true);
+  }
+  async function saveFix() {
+    const n = Number(fixPrice);
+    const r = Number(fixRate);
+    if (!(fixPrice.trim() !== "" && n >= 0)) return setFixErr("Enter the buying price before GST.");
+    if (!(fixRate.trim() !== "" && r >= 0 && r <= 100)) return setFixErr("Enter the GST rate on the bill, 0 to 100%.");
+    if (fixWhy.trim().length < 3) return setFixErr("Say why, for the activity log.");
+    setFixBusy(true);
+    setFixErr("");
+    try {
+      await onCorrect(n, r, fixWhy.trim());
+      setFixing(false);
+    } catch (e) {
+      setFixErr(errText(e));
+    }
+    setFixBusy(false);
+  }
 
   return (
     <li className={card ? "ape-card" : "ape-one"}>
@@ -899,12 +952,52 @@ function PriceRow({
       )}
 
       {fromStock ? (
-        <div className="ape-line">
-          <span className="ape-line-label">
-            Purchase price (excl. GST) <small>average of the stock bought in</small>
-          </span>
-          <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
-        </div>
+        <>
+          <div className="ape-line">
+            <span className="ape-line-label">
+              Purchase price (excl. GST){" "}
+              <small>
+                average of the stock bought in ·{" "}
+                <button type="button" className="ape-linkbtn" onClick={() => (fixing ? setFixing(false) : openFix())}>
+                  {start == null ? "set the opening stock's price" : "correct it"}
+                </button>
+              </small>
+            </span>
+            <b className="ape-line-value">{start != null ? formatPrice(start, { paise: true }) : "Add stock to set it"}</b>
+          </div>
+          {fixing && (
+            <div className="ape-fix">
+              <p>
+                {start == null
+                  ? "What the stock already on the shelf cost, before GST. Bills added later average against it."
+                  : "Fix a wrong average, e.g. stock counted in by hand at the wrong price. Bills added later average against the new price; the old one and your reason stay in the activity log."}
+              </p>
+              <div className="ape-fix-row">
+                <label>
+                  <span>Price before GST</span>
+                  <input inputMode="decimal" value={fixPrice} onChange={(e) => setFixPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" />
+                </label>
+                <label>
+                  <span>GST % on the bill</span>
+                  <input inputMode="decimal" value={fixRate} onChange={(e) => setFixRate(e.target.value.replace(/[^\d.]/g, ""))} placeholder={String(rules.rate)} />
+                </label>
+              </div>
+              <label>
+                <span>Why</span>
+                <input value={fixWhy} maxLength={300} onChange={(e) => setFixWhy(e.target.value)} placeholder="e.g. opening count was entered at the wrong price" />
+              </label>
+              {fixErr && <p className="ape-err">{fixErr}</p>}
+              <div className="ape-fix-actions">
+                <button type="button" className="ape-chip" onClick={() => setFixing(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="ape-chip is-on" disabled={fixBusy} onClick={saveFix}>
+                  {fixBusy ? "Saving" : "Save price"}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <label className="ape-line">
           <span className="ape-line-label">
@@ -945,7 +1038,7 @@ function PriceRow({
                 // typed back to what the rate gives: no override
                 const auto = b == null ? null : supplierGst(b, rate);
                 const amount = typedAmt == null || typedAmt === auto ? null : typedAmt;
-                if (amount !== (have?.supplierGst ?? null) || gRate !== (have?.supplierRate ?? null)) saveGst({ rate: gRate, amount });
+                if (amount !== savedAmt || gRate !== (savedRate === rules.rate ? null : savedRate)) saveGst({ rate: gRate, amount });
                 else if (amount == null) setGAmt("");
               }}
             />
@@ -960,7 +1053,7 @@ function PriceRow({
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
-          Cost price (incl. GST) <small>purchase price + GST paid to supplier</small>
+          Cost price (incl. GST) <small>{fromBills && have?.gstPaid != null ? `purchase price + ${billRate}% GST paid on the bills` : "purchase price + GST paid to supplier"}</small>
         </span>
         <b className="ape-line-value">{cost != null ? money(cost) : "–"}</b>
       </div>
@@ -1002,7 +1095,7 @@ function PriceRow({
   );
 }
 
-// A loose option's boxes (0058): each one's stock in boxes, its own selling
+// A loose option's boxes (0061): each one's stock in boxes, its own selling
 // price, whether it is sold to customers, and what it costs and earns per box
 // (its cost is the pieces' cost x the pieces in it). Then a way to add one,
 // from the shop's usual sizes or any other.
@@ -1114,7 +1207,7 @@ function BoxRow({ box: b, have, rules, onSave, onDelete }: { box: AdminVariant; 
 // The GST behind the profit, written out for one piece: what the buyer paid
 // and the GST in it, what the supplier was paid and the GST in that, how much
 // of it is claimed back and why, the GST left to pay over, and the profit
-// with and without the claim. The same sums as admin_profit() (0056).
+// with and without the claim. The same sums as admin_profit() (0059).
 function GstNote({ u, credit, fromBills }: { u: ReturnType<typeof unitProfit>; credit: boolean; fromBills: boolean }) {
   const money = (n: number) => formatPrice(n, { paise: true });
   const signed = (n: number) => (n < 0 ? `−${money(-n)}` : money(n));
@@ -1158,7 +1251,7 @@ function GstNote({ u, credit, fromBills }: { u: ReturnType<typeof unitProfit>; c
   );
 }
 
-// the cess rate, percent of the taxable value (0057)
+// the cess rate, percent of the taxable value (0060)
 function CessField({ value, onSave }: { value: number; onSave: (n: number) => void }) {
   const [v, setV] = useState(value ? String(value) : "");
   const n = v.trim() === "" ? 0 : Number(v);
@@ -1458,7 +1551,7 @@ function CodeRow({ variant: v, many, hint, onSave }: { variant: AdminVariant; ma
   );
 }
 
-// Each option's packed weight and size (0059): a box weighs what its pieces
+// Each option's packed weight and size (0062): a box weighs what its pieces
 // do and more, so boxes get their own. For shipping, and shown on the product
 // page. Empty when not known.
 function WeightSize({ product, onSave }: { product: AdminProduct; onSave: (id: string, patch: Partial<AdminVariant>) => Promise<boolean> }) {
@@ -1516,7 +1609,7 @@ function SizeRow({ variant: v, many, onSave }: { variant: AdminVariant; many: bo
   );
 }
 
-// Links to the product's videos (0059): YouTube, or a direct .mp4. Up to six,
+// Links to the product's videos (0062): YouTube, or a direct .mp4. Up to six,
 // one a line; shown on the product's page.
 function Videos({ urls, onSave }: { urls: string[]; onSave: (urls: string[]) => void }) {
   const [text, setText] = useState(urls.join("\n"));

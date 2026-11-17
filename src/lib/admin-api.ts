@@ -209,7 +209,7 @@ function makeDemo(): Api {
     async deleteProduct(product) {
       products = products.filter((p) => p.id !== product.id);
     },
-    // sub-categories (0060), in memory
+    // sub-categories (0063), in memory
     async listSubcategories(categoryId) {
       return {
         groups: copy(subGroups.filter((g) => g.category_id === categoryId)).sort((a, b) => a.sort_order - b.sort_order),

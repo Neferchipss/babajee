@@ -86,7 +86,8 @@ export function tidy(a: AddressInput): AddressInput {
 export function addressLines(a: AddressInput) {
   return [
     [a.line1, a.line2].filter(Boolean).join(", "),
-    a.landmark && `Near ${a.landmark}`,
+    // a landmark typed as "Near the metro" isn't given a second "Near"
+    a.landmark && (/^near\b/i.test(a.landmark.trim()) ? a.landmark.trim() : `Near ${a.landmark}`),
     `${a.city}, ${a.state} ${a.pincode}`,
   ].filter(Boolean) as string[];
 }

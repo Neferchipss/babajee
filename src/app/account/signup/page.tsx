@@ -1,10 +1,11 @@
-import Page from "@/components/Page";
-import SignupForm from "@/components/auth/SignupForm";
+import { Suspense } from "react";
+import Onboard from "@/components/auth/Onboard";
 
+// Log in or sign up: one flow, an emailed code (0058)
 export default function SignupPage() {
   return (
-    <Page narrow title="Create an account">
-      <SignupForm />
-    </Page>
+    <Suspense>
+      <Onboard />
+    </Suspense>
   );
 }

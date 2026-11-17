@@ -132,7 +132,7 @@ function Address({ o }: { o: Order }) {
 function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
   const inv = invoiceOf(o, shop.store_state);
   const intra = inv.split === "intra";
-  // a Cess column only when the invoice carries cess (0057)
+  // a Cess column only when the invoice carries cess (0060)
   const hasCess = inv.cess > 0;
   const taxCols = [...(intra ? ["CGST", "SGST"] : [inv.split === "inter" ? "IGST" : "GST"]), ...(hasCess ? ["Cess"] : [])];
   const anyHsn = inv.lines.some((l) => l.hsn);

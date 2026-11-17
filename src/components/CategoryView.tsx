@@ -33,7 +33,7 @@ type Props = {
   pick?: string[];
   products: CardProduct[];
   categories: { slug: string; name: string; count: number }[];
-  // the category's sub-categories (0060), and the one whose own page this is
+  // the category's sub-categories (0063), and the one whose own page this is
   tags?: ShopTag[];
   tag?: string;
 };
@@ -148,7 +148,7 @@ export default function CategoryView({ category, products: snapshot, categories:
       live = false;
     };
   }, []);
-  // sub-category tags (0060): on a category's own shelf, a row of chips per
+  // sub-category tags (0063): on a category's own shelf, a row of chips per
   // group. Within a row any chosen tag will do; across rows each row must
   // match (27 inch AND 2 perc). Read live too, so a new tag shows without the
   // site being rebuilt.

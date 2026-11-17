@@ -1,7 +1,7 @@
 -- Tests for migration 0057 (CESS, optional, per product).
 -- Run through scripts/test-sql.sh, which wraps migration + this file in a
 -- transaction that is rolled back. An empty response means every check passed.
--- (0056 must be in place first: run it with this migration, or apply it.)
+-- (0059 must be in place first: run it with this migration.)
 
 do $$
 declare
@@ -92,10 +92,10 @@ begin
   -- profit_without_cess: the exclusive order sold at 100 net; cost 50 typed
   -- (GST paid at 28% = 14) -> kept 100 - (64 - 14) = 50 with credit on
   update public.store_settings set gst_input_credit = true where id = 1;
-  insert into public.variant_costs (variant_id, cost, purchase) values (v, 0, 50)
-    on conflict (variant_id) do update set purchase = 50, supplier_gst_rate = null, supplier_gst = null, gst_source = 'typed';
+  perform public.admin_set_purchase(v, 50, null, 'typed');
   select id into o from public.orders where not gst_inclusive and is_test and subtotal = 100 and profile_id = adm order by created_at desc limit 1;
-  update public.orders set created_at = '2001-02-03 12:00+05:30' where id = o;
+  -- counted only once paid and not a test (0057)
+  update public.orders set created_at = '2001-02-03 12:00+05:30', status = 'paid', paid_total = total, is_test = false where id = o;
   p := public.admin_profit('2001-02-03', '2001-02-03');
   if not ((p ->> 'net_sales')::numeric = 100 and (p ->> 'sales')::numeric = 140 and (p ->> 'cess_collected')::numeric = 12
           and (p ->> 'gst_collected')::numeric = 28 and (p ->> 'kept')::numeric = 50) then

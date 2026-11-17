@@ -58,7 +58,7 @@ export default function ProductTable({
   const showCat = !category;
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "";
   const stockTotal = (p: AdminProduct) => {
-    // in pieces: a box's stock is its loose option's, counted once (0058)
+    // in pieces: a box's stock is its loose option's, counted once (0061)
     const t = p.variants.filter((v) => v.track_stock && !v.unit_variant_id);
     return t.length ? t.reduce((n, v) => n + v.stock_qty, 0) : null;
   };

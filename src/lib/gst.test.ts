@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bill, lineCess, lineGst, supplierGst, unitProfit } from "./gst.ts";
+import { bill, costOf, lineCess, lineGst, supplierGst, unitProfit } from "./gst.ts";
 
-// the same cases as supabase/tests/0056 (profit_uses_paid_and_claimable), so
+// the same cases as supabase/tests/0059 (profit_uses_paid_and_claimable), so
 // the product panel and Analytics agree
 const on = { rate: 18, inclusive: true, credit: true };
 
@@ -48,7 +48,7 @@ test("a claim never exceeds what was paid", () => {
   assert.equal(unitProfit(118, 70.8, on, { paid: 10.8, claimable: 99 }).itc, 10.8);
 });
 
-// CESS (0057): the same cases as supabase/tests/0057
+// CESS (0060): the same cases as supabase/tests/0060
 test("no cess: GST exactly as before", () => {
   for (const g of [118, 99.99, 1, 250.5]) {
     assert.equal(lineGst(g, 18, true, 0), lineGst(g, 18, true));
@@ -76,4 +76,30 @@ test("profit leaves the cess out of the sale", () => {
   assert.equal(u.collected, 28);
   assert.equal(u.cess, 12);
   assert.equal(u.kept, 50);
+});
+
+// The grinder case (0057): sold at ₹3,500 incl. 40% GST, bought at ₹2,002.66.
+const sell = { rate: 40, inclusive: true };
+
+test("no input tax credit: the GST paid on the bill is a cost", () => {
+  const cost = costOf(2002.66, 40);
+  assert.equal(cost, 2803.72);
+  const u = unitProfit(3500, cost, { ...sell, credit: false });
+  assert.equal(u.net, 2500);
+  assert.equal(u.kept, -303.72);
+});
+
+test("input tax credit at the selling rate: the bill's GST comes back", () => {
+  const u = unitProfit(3500, costOf(2002.66, 40), { ...sell, credit: true });
+  assert.equal(u.kept, 497.34);
+});
+
+test("bought at 18%, sold at 40%: the cost carries the GST actually paid", () => {
+  const gst = Math.round(2002.66 * 18) / 100; // 360.48
+  const cost = Math.round((2002.66 + gst) * 100) / 100; // 2363.14
+  const off = unitProfit(3500, cost, { ...sell, credit: false }, gst);
+  assert.equal(off.kept, 136.86);
+  // claiming it back takes back exactly the ₹360.48 paid, not 40% of the cost
+  const on = unitProfit(3500, cost, { ...sell, credit: true }, gst);
+  assert.equal(on.kept, 497.34);
 });

@@ -26,7 +26,7 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
   const ids = product.variants.map((v) => v.id).join(",");
   const counts = product.variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const many = product.variants.length > 1;
-  // a box (0058): bought in as boxes (at the box price), counted as its pieces
+  // a box (0061): bought in as boxes (at the box price), counted as its pieces
   const unitOf = (v: AdminVariant) => product.variants.find((u) => u.id === v.unit_variant_id);
 
   // the average buying price lives with the costs; read again when a count moves
@@ -308,7 +308,7 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
 
 // A new count, with its reason. An option that comes in boxes is counted as
 // it sits on the shelf: so many boxes of each size, plus the loose pieces;
-// the count saved is the pieces in all of them (0058).
+// the count saved is the pieces in all of them (0061).
 function CorrectCount({ variant: v, boxSizes, onDone }: { variant: AdminVariant; boxSizes: number[]; onDone: () => void }) {
   const [count, setCount] = useState("");
   const [boxes, setBoxes] = useState<Record<number, string>>({});

@@ -45,7 +45,7 @@ test("refunded shipping carries no GST", () => {
   assert.equal(cn.total, 250);
 });
 
-// CESS (0057): the same case as supabase/tests/0057 (refund_keeps_cess)
+// CESS (0060): the same case as supabase/tests/0060 (refund_keeps_cess)
 test("a refunded item with cess credits GST and cess", () => {
   const o = {
     id: "o",

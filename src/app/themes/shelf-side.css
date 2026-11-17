@@ -357,7 +357,7 @@ html[data-theme] #site[data-scope="shop"] .cp-subs {
   overflow-x: auto;
   scrollbar-width: none;
 }
-/* a row of sub-category tags (0060): its group's name first, then the tags;
+/* a row of sub-category tags (0063): its group's name first, then the tags;
    rows sit closer together than a row and the products */
 html[data-theme] #site[data-scope="shop"] .cp-subs:has(+ .cp-subs) {
   margin-bottom: 8px;

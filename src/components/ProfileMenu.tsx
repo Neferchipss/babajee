@@ -52,6 +52,9 @@ export default function ProfileMenu({ cart = false }: { cart?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const closed = useCallback(() => setOpen(false), []);
+  // guests see "Login" under the icon (it still opens the same menu)
+  const { status: authStatus } = useAuth();
+  const guest = authStatus === "out";
   const path = usePathname().replace(/\/$/, "");
   // a wobble each time something lands in the cart
   const [plop, setPlop] = useState(0);
@@ -82,13 +85,18 @@ export default function ProfileMenu({ cart = false }: { cart?: boolean } = {}) {
       )}
       <button
         type="button"
-        className="sb-profile"
-        aria-label="Profile and menu"
+        className={`sb-profile${guest ? " sb-profile--guest" : ""}`}
+        aria-label={guest ? "Log in, profile and menu" : "Profile and menu"}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
         <UserIcon size={22} />
+        {guest && (
+          <span className="sb-profile-label" aria-hidden="true">
+            Login
+          </span>
+        )}
       </button>
       {open && <ProfilePanel onClosed={closed} />}
     </div>
@@ -109,6 +117,12 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
     setLeaving(true);
     window.setTimeout(onClosed, OUT_MS);
   }, [onClosed]);
+
+  // the desktop login window opening: this panel steps out of its way
+  useEffect(() => {
+    window.addEventListener("babajee:login", shut);
+    return () => window.removeEventListener("babajee:login", shut);
+  }, [shut]);
 
   // the page behind stays put; Escape closes; focus moves in, and back after
   useEffect(() => {
@@ -194,8 +208,15 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
     if (href.split("#")[0] === path) shut();
   };
 
+  const goHome = (e: React.MouseEvent) => {
+    // home is the shopfront; already on it (maybe inside the shop): walk back out
+    if (path !== "/") return;
+    e.preventDefault();
+    window.dispatchEvent(new Event(TO_STREET));
+    shut();
+  };
   const tile = (href: string, label: ReactNode, d: string, extra?: ReactNode) => (
-    <Link href={href} className="pp-tile" onClick={go(href)}>
+    <Link href={href} className="pp-tile" onClick={href === "/" ? goHome : go(href)}>
       <I d={d} />
       <span>{label}</span>
       {extra}
@@ -244,28 +265,21 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
 
         <div className="pp-body">
           <div className="pp-tiles">
+            {tile("/", <>Home</>, "M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5")}
             {tile("/cart", <>Your<br />cart</>, JAR, count > 0 ? <b className="pp-tile-n">{count > 99 ? "99+" : count}</b> : undefined)}
-            {tile("/account#addresses-heading", <>Saved<br />addresses</>, PIN)}
             {tile("/orders", <>Your<br />orders</>, BOX)}
-            {tile("/cart#saved-title", <>Your<br />wishlist</>, HEART)}
           </div>
 
           <ModeSwitch />
 
           <nav className="pp-list" aria-label="Pages">
-            <Link
-              href="/"
-              className="pp-row"
-              onClick={(e) => {
-                // home is the shopfront; already on it (maybe inside the shop): walk back out
-                if (path !== "/") return;
-                e.preventDefault();
-                window.dispatchEvent(new Event(TO_STREET));
-                shut();
-              }}
-            >
-              <I d="M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5" />
-              <span>Home</span>
+            <Link href="/cart#saved-title" className="pp-row" onClick={go("/cart#saved-title")}>
+              <I d={HEART} />
+              <span>Your wishlist</span>
+            </Link>
+            <Link href="/account#addresses-heading" className="pp-row" onClick={go("/account#addresses-heading")}>
+              <I d={PIN} />
+              <span>Saved addresses</span>
             </Link>
             {signedIn && (
               <Link href="/account" className="pp-row" onClick={go("/account")}>
@@ -329,7 +343,6 @@ const MODES: { id: ModePref; label: string; d: string }[] = [
   { id: "system", label: "System", d: "M4 5h16v11H4zM9 20h6M12 16v4" },
   { id: "light", label: "Light", d: "M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
   { id: "dark", label: "Dark", d: "M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" },
-  { id: "daydream", label: "Daydream", d: "M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 10V5a2.5 2.5 0 0 1 0 5zM12 14v5a2.5 2.5 0 0 0 0-5zM10 12H5a2.5 2.5 0 0 0 5 0zM14 12h5a2.5 2.5 0 0 1-5 0z" },
 ];
 
 // Light, dark, or as the device is set (the default)

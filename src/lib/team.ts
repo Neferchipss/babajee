@@ -89,6 +89,7 @@ const FIELD: Record<string, string> = {
   free_shipping_over: "free delivery over",
   return_days: "return window",
   unpaid_hours: "hours an unpaid order is held",
+  payment_methods: "payment methods",
   bank_account_number: "bank account number",
   bank_ifsc: "IFSC",
   bank_upi_id: "UPI ID",

@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [home, setHome] = useState("");
   const [returnDays, setReturnDays] = useState("7");
   const [unpaidHours, setUnpaidHours] = useState("48");
+  const [methods, setMethods] = useState("UPI, Bank transfer, Cash");
   const [lowAt, setLowAt] = useState("3");
   // the shop's own details, for invoices
   const [store, setStore] = useState({ store_name: "Babajee", legal_name: "", gstin: "", store_address: "", store_phone: "", store_email: "", invoice_prefix: "BJ", invoice_note: "" });
@@ -41,6 +42,7 @@ export default function SettingsPage() {
         setHome(s.store_state);
         setReturnDays(String(s.return_days));
         setUnpaidHours(String(s.unpaid_hours));
+        setMethods(s.payment_methods.join(", "));
         setLowAt(String(s.low_stock_at));
         setStore({
           store_name: s.store_name,
@@ -71,6 +73,11 @@ export default function SettingsPage() {
       setErr("Unpaid orders can be held for 0 to 720 hours (30 days).");
       return;
     }
+    const payMethods = [...new Set(methods.split(",").map((m) => m.trim()).filter(Boolean))];
+    if (!payMethods.length || payMethods.some((m) => m.length > 40) || payMethods.length > 8) {
+      setErr("List 1 to 8 payment methods, separated by commas, each up to 40 characters.");
+      return;
+    }
     const gstin = store.gstin.trim().toUpperCase();
     if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
       setErr("That GSTIN doesn't look right: it's 15 characters, like 27ABCDE1234F1Z5.");
@@ -97,6 +104,7 @@ export default function SettingsPage() {
         store_state: home,
         return_days: days,
         unpaid_hours: hold,
+        payment_methods: payMethods,
         low_stock_at: Math.min(10000, Math.round(Number(lowAt) || 0)),
         ...store,
         store_name: store.store_name.trim() || "Babajee",
@@ -288,7 +296,12 @@ export default function SettingsPage() {
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
-          <h2 id="set-returns" style={{ margin: 0, scrollMarginTop: 140 }}>Cancellations and returns</h2>
+          <h2 id="set-returns" style={{ margin: 0, scrollMarginTop: 140 }}>Payment, cancellations and returns</h2>
+          <label className="adm-label">
+            Ways customers can pay
+            <input className="adm-input" value={methods} disabled={!loaded} maxLength={300} onChange={(e) => setMethods(e.target.value)} />
+            <span className="adm-muted adm-small">Separated by commas. These are the choices in &ldquo;Mark paid&rdquo; (with Other always there), and how payments are grouped in reports.</span>
+          </label>
           <label className="adm-label">
             Hours an unpaid order is held for payment
             <input className="adm-input" inputMode="numeric" value={unpaidHours} disabled={!loaded} onChange={(e) => setUnpaidHours(e.target.value.replace(/\D/g, ""))} />

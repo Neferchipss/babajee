@@ -20,7 +20,7 @@
 
 export const B2CL_LIMIT = 100000;
 
-// cess: the cess on the line (0057), absent or 0 for none
+// cess: the cess on the line (0060), absent or 0 for none
 export type DocLine = { hsn: string; name: string; qty: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess?: number };
 export type SaleDoc = {
   kind: "invoice" | "credit";

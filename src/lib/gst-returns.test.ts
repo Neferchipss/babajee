@@ -101,7 +101,7 @@ test("3b adds the 180-day reversal to the net", () => {
   assert.deepEqual(t.rows[4].slice(2, 5), [0, 11, 11]);
 });
 
-// CESS (0057): its columns carry the cess, credit notes netted off
+// CESS (0060): its columns carry the cess, credit notes netted off
 test("cess fills the GSTR-1 and 3B cess columns", () => {
   const withCess = [
     doc({ number: "BJ/26-27/0101", lines: [{ ...line(28, 100, false), cess: 12 }] }),

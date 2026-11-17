@@ -26,7 +26,7 @@
 -- 1. columns and templates   2. a box's own rules   3. stock follows pieces
 -- 4. cost follows pieces     5. bills, voids, counts  6. lists and reports
 --
--- Re-run safe. Needs 0056.
+-- Re-run safe. Needs 0057 and 0059.
 
 -- ---------------------------------------------------------------- 1. columns and templates
 
@@ -192,31 +192,6 @@ $$;
 
 -- ---------------------------------------------------------------- 4. cost follows pieces
 
-alter table public.variant_costs drop constraint if exists variant_costs_gst_source_check;
-alter table public.variant_costs add constraint variant_costs_gst_source_check
-  check (gst_source in ('typed', 'bills', 'box'));
-
--- cost = purchase + GST paid. Typed: worked out here. From bills, or a box's
--- (its loose option's x pack_of): as written.
-create or replace function public.variant_costs_from_purchase()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  if new.purchase is null then
-    return new;
-  end if;
-  if new.gst_source = 'typed' then
-    new.gst_paid := coalesce(new.supplier_gst, round(new.purchase * coalesce(new.supplier_gst_rate,
-      (select public.product_gst(pv.product_id) from public.product_variants pv where pv.id = new.variant_id), 0) / 100, 2));
-    new.gst_claimable := new.gst_paid;
-  end if;
-  new.cost := round(new.purchase + coalesce(new.gst_paid, 0), 2);
-  return new;
-end;
-$$;
-
 -- a box's cost: its loose option's, per piece, x the pieces in it
 create or replace function public.box_costs_follow(p_unit uuid)
 returns void
@@ -233,14 +208,14 @@ begin
      where b.unit_variant_id = p_unit and vc.variant_id = b.id;
     return;
   end if;
-  insert into public.variant_costs (variant_id, cost, purchase, supplier_gst_rate, supplier_gst, gst_paid, gst_claimable, gst_source)
-  -- cost straight across too, for a cost typed before purchase prices (0030)
-  select b.id, round(c.cost * b.pack_of, 2), round(c.purchase * b.pack_of, 2), c.supplier_gst_rate, round(c.supplier_gst * b.pack_of, 2),
-         round(c.gst_paid * b.pack_of, 2), round(c.gst_claimable * b.pack_of, 2), 'box'
+  -- price, GST paid and its claimable part x the pieces; the cost follows
+  -- (0057's trigger: price + GST paid), or straight across for a cost typed
+  -- before buying prices (0030)
+  insert into public.variant_costs (variant_id, cost, purchase, gst_paid, gst_claimable)
+  select b.id, round(c.cost * b.pack_of, 2), round(c.purchase * b.pack_of, 2), round(c.gst_paid * b.pack_of, 2), round(c.gst_claimable * b.pack_of, 2)
     from public.product_variants b where b.unit_variant_id = p_unit
   on conflict (variant_id) do update
-    set cost = excluded.cost, purchase = excluded.purchase, supplier_gst_rate = excluded.supplier_gst_rate, supplier_gst = excluded.supplier_gst,
-        gst_paid = excluded.gst_paid, gst_claimable = excluded.gst_claimable, gst_source = 'box';
+    set cost = excluded.cost, purchase = excluded.purchase, gst_paid = excluded.gst_paid, gst_claimable = excluded.gst_claimable;
 end;
 $$;
 revoke all on function public.box_costs_follow(uuid) from public, anon, authenticated;
@@ -286,6 +261,24 @@ create trigger product_variants_box_cost
   after insert or update of unit_variant_id, pack_of on public.product_variants
   for each row execute function public.product_variants_box_cost();
 
+-- a box's buying price is its pieces' x pack_of: correct the pieces (0057's
+-- corrections) instead
+create or replace function public.purchase_corrections_not_box()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.product_variants where id = new.variant_id and unit_variant_id is not null) then
+    raise exception 'A box''s buying price follows its pieces: correct the loose option''s price instead.' using errcode = '22023';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists purchase_corrections_not_box on public.purchase_corrections;
+create trigger purchase_corrections_not_box before insert on public.purchase_corrections
+  for each row execute function public.purchase_corrections_not_box();
+
 -- ---------------------------------------------------------------- 5. bills, voids, counts
 
 create or replace function public.recost_variant(p_variant uuid)
@@ -296,31 +289,33 @@ set search_path = ''
 as $$
 declare
   m record;
+  rate numeric;
   g_receipt uuid;
   g_stock numeric := 0;
   g_qty numeric := 0;
   g_sum numeric := 0;
   g_gst numeric := 0;
-  g_itc numeric := 0;
   avg numeric;
-  avg_gst numeric;
-  avg_itc numeric;
+  avg_g numeric;
+  g_itc numeric := 0;
+  avg_c numeric;
   seen boolean := false;
   u uuid;
 begin
-  -- a box keeps no average of its own: its loose option does (0058)
+  -- a box keeps no average of its own: its loose option does (0061)
   select pv.unit_variant_id into u from public.product_variants pv where pv.id = p_variant;
   if u is not null then
     perform public.recost_variant(u);
     return;
   end if;
+  select coalesce(public.product_gst(pv.product_id), 0) into rate from public.product_variants pv where pv.id = p_variant;
   for m in
     with mv as (
       select sm.id, sm.created_at, sm.reason, sm.receipt_id, sm.delta, sm.qty_after,
              row_number() over (partition by sm.receipt_id, sm.reason order by sm.created_at, sm.id) rn
         from public.stock_movements sm
        where sm.variant_id = p_variant),
-    -- its own lines, and its boxes' lines in pieces (0058)
+    -- its own lines, and its boxes' lines in pieces (0061)
     ln as (
       select sl.receipt_id, sl.qty * pv.pack_of as qty, sl.unit_price / pv.pack_of as unit_price, sl.gst, sl.claimable,
              row_number() over (partition by sl.receipt_id order by sl.created_at, sl.id) rn
@@ -328,63 +323,65 @@ begin
        where sl.variant_id = p_variant or pv.unit_variant_id = p_variant)
     select mv.created_at, mv.id, mv.delta, mv.qty_after, mv.receipt_id,
            coalesce(mv.reason = 'stock_in' and r.status = 'posted' and ln.qty is not null, false) as live,
-           ln.qty, ln.unit_price, ln.gst, ln.claimable
+           ln.qty, ln.unit_price, ln.gst, ln.claimable, false as fix, null::numeric as fix_price, null::numeric as fix_gst
       from mv
       left join public.stock_receipts r on r.id = mv.receipt_id
       left join ln on ln.receipt_id = mv.receipt_id and ln.rn = mv.rn and mv.reason = 'stock_in'
-     order by mv.created_at, mv.id
+    union all
+    select pc.created_at, pc.id, 0, 0, null, false, null, null, null, null, true, pc.purchase, pc.gst_paid
+      from public.purchase_corrections pc
+     where pc.variant_id = p_variant
+     order by 1, 2
   loop
     if m.live and g_receipt is not distinct from m.receipt_id then
       g_qty := g_qty + m.qty;
       g_sum := g_sum + m.qty * m.unit_price;
-      g_gst := g_gst + m.gst;
-      g_itc := g_itc + case when m.claimable then m.gst else 0 end;
+      g_gst := g_gst + coalesce(m.gst, 0);
+      g_itc := g_itc + case when m.claimable then coalesce(m.gst, 0) else 0 end;
       continue;
     end if;
     if g_receipt is not null then
-      if avg is null then
-        avg := g_sum / g_qty; avg_gst := g_gst / g_qty; avg_itc := g_itc / g_qty;
-      else
-        avg := (g_stock * avg + g_sum) / (g_stock + g_qty);
-        avg_gst := (g_stock * avg_gst + g_gst) / (g_stock + g_qty);
-        avg_itc := (g_stock * avg_itc + g_itc) / (g_stock + g_qty);
-      end if;
-      avg := round(avg, 2); avg_gst := round(avg_gst, 2); avg_itc := round(avg_itc, 2);
+      -- the claimable part, averaged the same way; before any bill (a typed
+      -- price) all the GST paid counts as claimable (0059)
+      avg_c := round(case when avg is null then g_itc / g_qty
+                          else (g_stock * coalesce(avg_c, avg_g, avg * rate / 100) + g_itc) / (g_stock + g_qty) end, 2);
+      avg_g := round(case when avg is null then g_gst / g_qty
+                          else (g_stock * coalesce(avg_g, avg * rate / 100) + g_gst) / (g_stock + g_qty) end, 2);
+      avg := round(case when avg is null then g_sum / g_qty
+                        else (g_stock * avg + g_sum) / (g_stock + g_qty) end, 2);
       seen := true;
       g_receipt := null;
     end if;
-    if m.live then
+    if m.fix then
+      -- a correction: the average starts again from here
+      avg := m.fix_price;
+      avg_g := m.fix_gst;
+      avg_c := m.fix_gst;
+      seen := true;
+    elsif m.live then
       g_receipt := m.receipt_id;
       g_stock := greatest(m.qty_after - m.delta, 0);
       g_qty := m.qty;
       g_sum := m.qty * m.unit_price;
-      g_gst := m.gst;
-      g_itc := case when m.claimable then m.gst else 0 end;
+      g_gst := coalesce(m.gst, 0);
+      g_itc := case when m.claimable then coalesce(m.gst, 0) else 0 end;
     end if;
   end loop;
   if g_receipt is not null then
-    if avg is null then
-      avg := g_sum / g_qty; avg_gst := g_gst / g_qty; avg_itc := g_itc / g_qty;
-    else
-      avg := (g_stock * avg + g_sum) / (g_stock + g_qty);
-      avg_gst := (g_stock * avg_gst + g_gst) / (g_stock + g_qty);
-      avg_itc := (g_stock * avg_itc + g_itc) / (g_stock + g_qty);
-    end if;
-    avg := round(avg, 2); avg_gst := round(avg_gst, 2); avg_itc := round(avg_itc, 2);
+    avg_c := round(case when avg is null then g_itc / g_qty
+                        else (g_stock * coalesce(avg_c, avg_g, avg * rate / 100) + g_itc) / (g_stock + g_qty) end, 2);
+    avg_g := round(case when avg is null then g_gst / g_qty
+                        else (g_stock * coalesce(avg_g, avg * rate / 100) + g_gst) / (g_stock + g_qty) end, 2);
+    avg := round(case when avg is null then g_sum / g_qty
+                      else (g_stock * avg + g_sum) / (g_stock + g_qty) end, 2);
     seen := true;
   end if;
   if not seen then
-    -- no posted bill left (the last one was voided): back to typed GST, at
-    -- the typed amount or rate, else the product's bracket
-    update public.variant_costs set gst_source = 'typed', purchase = purchase
-     where variant_id = p_variant and gst_source = 'bills';
     return;
   end if;
-  insert into public.variant_costs (variant_id, cost, purchase, gst_paid, gst_claimable, gst_source)
-  values (p_variant, 0, avg, avg_gst, avg_itc, 'bills')
-  on conflict (variant_id) do update
-    set purchase = excluded.purchase, gst_paid = excluded.gst_paid,
-        gst_claimable = excluded.gst_claimable, gst_source = 'bills';
+  insert into public.variant_costs (variant_id, cost, purchase, gst_paid, gst_claimable)
+  values (p_variant, 0, avg, avg_g, avg_c)
+  on conflict (variant_id) do update set purchase = excluded.purchase, gst_paid = excluded.gst_paid, gst_claimable = excluded.gst_claimable;
 end;
 $$;
 
@@ -490,7 +487,7 @@ begin
     insert into public.stock_receipt_lines (receipt_id, variant_id, qty, unit_price, gst_rate, gst, cgst, sgst, igst, claimable, created_at)
     values (rid, v.id, qty, price, rate, g, c, s, i, claim, clock_timestamp());
 
-    -- a box (0058): the line stays as billed, boxes at the box price with its
+    -- a box (0061): the line stays as billed, boxes at the box price with its
     -- GST to the paisa; the stock and the average move on the loose pieces
     if v.unit_variant_id is not null then
       pk := v.pack_of;
@@ -560,7 +557,7 @@ begin
   end if;
   update public.stock_receipts set status = 'void', voided_at = now() where id = p_receipt;
 
-  -- a box line (0058) takes its pieces off the loose option, and that is
+  -- a box line (0061) takes its pieces off the loose option, and that is
   -- the one whose average is worked out again
   for l in select sl.variant_id, sl.qty, coalesce(pv.unit_variant_id, sl.variant_id) as costed
              from public.stock_receipt_lines sl join public.product_variants pv on pv.id = sl.variant_id
@@ -708,7 +705,7 @@ begin
   -- and each nonzero count leaves a correction to 0 in its history
   perform set_config('babajee.stock_reason', 'correction', true);
   perform set_config('babajee.stock_note', 'Started counting', true);
-  -- loose options only: their boxes follow (0058)
+  -- loose options only: their boxes follow (0061)
   update public.product_variants set track_stock = true, stock_qty = 0 where not track_stock and unit_variant_id is null;
   get diagnostics n = row_count;
   perform set_config('babajee.stock_reason', '', true);
@@ -730,7 +727,7 @@ begin
     raise exception 'Admins only.' using errcode = '42501';
   end if;
   return query
-    -- in pieces: a box sold counts as the pieces in it (0058)
+    -- in pieces: a box sold counts as the pieces in it (0061)
     select pv.product_id, sum((i.quantity - coalesce(ir.qty, 0)) * pv.pack_of)::bigint
       from public.order_items i
       join public.orders o on o.id = i.order_id and o.status <> 'cancelled'
@@ -769,7 +766,7 @@ begin
 
   if p_kind = 'products' then
     with o as (
-      select * from public.orders where created_at >= t0 and created_at < t1 and status <> 'cancelled'
+      select * from public.orders where created_at >= t0 and created_at < t1 and status not in ('cancelled', 'pending') and not is_test
     ),
     l as (
       select i.product_name, i.variant_label, i.quantity as qty, i.unit_price as price, i.gst_rate as rate,
@@ -808,7 +805,7 @@ begin
                 from public.order_items i left join public.order_item_refunded ir on ir.order_item_id = i.id
                where i.order_id = o.id) as items
         from public.orders o left join public.order_refund_totals rt on rt.order_id = o.id
-       where o.created_at >= t0 and o.created_at < t1 and o.status <> 'cancelled'
+       where o.created_at >= t0 and o.created_at < t1 and o.status not in ('cancelled', 'pending') and not o.is_test
     )
     select coalesce(jsonb_agg(x order by x.net desc, x.name), '[]') into r from (
       select (array_agg(contact_name order by created_at desc))[1] as name,
@@ -828,13 +825,13 @@ begin
     ) x;
 
   elsif p_kind = 'stock' then
-    -- boxes sold count as their pieces, on the loose option (0058)
+    -- boxes sold count as their pieces, on the loose option (0061)
     with sold as (
       select coalesce(pv.unit_variant_id, i.variant_id) as variant_id, sum((i.quantity - coalesce(ir.qty, 0)) * coalesce(pv.pack_of, 1)) as q
         from public.orders o join public.order_items i on i.order_id = o.id
         left join public.order_item_refunded ir on ir.order_item_id = i.id
         left join public.product_variants pv on pv.id = i.variant_id
-       where o.created_at >= t0 and o.created_at < t1 and o.status <> 'cancelled'
+       where o.created_at >= t0 and o.created_at < t1 and o.status not in ('cancelled', 'pending') and not o.is_test
        group by 1
     )
     select coalesce(jsonb_agg(x order by x.days_left asc nulls last, x.sold desc, x.product, x.option), '[]') into r from (
@@ -858,14 +855,15 @@ begin
              coalesce(rt.amount, 0) as r_amt, coalesce(rt.subtotal, 0) as r_sub,
              coalesce(rt.shipping, 0) as r_ship, coalesce(rt.tax, 0) as r_tax, coalesce(rt.extra, 0) as extra
         from public.orders o left join public.order_refund_totals rt on rt.order_id = o.id
-       where o.created_at >= t0 and o.created_at < t1 and o.status <> 'cancelled'
+       where o.created_at >= t0 and o.created_at < t1 and o.status not in ('cancelled', 'pending') and not o.is_test
     ),
     l as (
       select o.month, o.id as order_id,
              i.quantity - coalesce(ir.qty, 0) as q,
              i.quantity - coalesce(ir.restocked, 0) as gone,
              case when o.gst_inclusive then i.unit_price else i.unit_price * (100 + i.gst_rate) / 100 end as sale,
-             coalesce(oc.unit_cost, vc.cost) as cost, i.gst_rate as rate
+             coalesce(oc.unit_cost, vc.cost) as cost, i.gst_rate as rate,
+             coalesce(oc.unit_gst, case when oc.unit_cost is null then vc.gst_paid end) as gst0
         from o
         join public.order_items i on i.order_id = o.id
         left join public.order_item_refunded ir on ir.order_item_id = i.id
@@ -875,7 +873,7 @@ begin
     c as (
       select month,
              sum(gone * cost) as cost,
-             sum(gone * cost * rate / (100 + rate)) filter (where credit) as gst_paid,
+             sum(gone * coalesce(gst0, cost * rate / (100 + rate))) filter (where credit) as gst_paid,
              sum(q * sale) filter (where cost is not null) as costed_sales,
              count(*) filter (where cost is null and gone > 0) as uncosted
         from l group by month
@@ -907,7 +905,7 @@ begin
     with o as (
       select o.*, coalesce(rt.tax, 0) as r_tax
         from public.orders o left join public.order_refund_totals rt on rt.order_id = o.id
-       where o.created_at >= t0 and o.created_at < t1 and o.status not in ('cancelled', 'refunded')
+       where o.created_at >= t0 and o.created_at < t1 and o.status not in ('cancelled', 'refunded', 'pending') and not o.is_test
     ),
     l as (
       select o.id as order_id, date_trunc('month', o.created_at at time zone 'Asia/Kolkata')::date as month,

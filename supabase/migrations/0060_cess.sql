@@ -24,7 +24,7 @@
 --    GST), the refund and its credit note keep both
 -- 6. admin_profit(): the sale without GST and cess; cess collected
 --
--- Re-run safe. Needs 0056.
+-- Re-run safe. Needs 0057 and 0059.
 
 -- ---------------------------------------------------------------- 1. columns
 
@@ -311,22 +311,22 @@ begin
   with o as (
     select x.*, coalesce(rt.tax, 0) as r_tax, coalesce(rt.cess, 0) as r_cess, coalesce(rt.extra, 0) as extra
       from public.orders x left join public.order_refund_totals rt on rt.order_id = x.id
-     where x.created_at >= t0 and x.created_at < t1 and x.status <> 'cancelled'
+     where x.created_at >= t0 and x.created_at < t1 and x.status not in ('cancelled', 'pending') and not x.is_test
   ),
   l as (
     select o.id as order_id, (o.created_at at time zone 'Asia/Kolkata')::date as day,
            i.product_name,
            i.quantity - coalesce(ir.qty, 0) as q,            -- units the customer kept
            i.quantity - coalesce(ir.restocked, 0) as gone,   -- units that left the shelf for good
-           -- with GST and cess, and without either
+           -- with GST and cess, and without either (0060)
            case when o.gst_inclusive then i.unit_price else i.unit_price * (100 + i.gst_rate + i.cess_rate) / 100 end as sale,
            case when o.gst_inclusive then i.unit_price * 100 / (100 + i.gst_rate + i.cess_rate) else i.unit_price end as net,
            coalesce(c.unit_cost, vc.cost) as cost,
-           -- the GST paid to the supplier and its claimable part, as kept at
-           -- sale; older sales (before 0056) fall back to the option's now,
-           -- then to an estimate at the selling rate
-           case when c.unit_cost is not null then c.unit_gst else vc.gst_paid end as paid,
-           case when c.unit_cost is not null then c.unit_itc else vc.gst_claimable end as claim,
+           -- GST inside that cost: as paid on the bills (0057), else at the product's rate
+           coalesce(c.unit_gst, case when c.unit_cost is null then vc.gst_paid end) as gst0,
+           -- the part of it that can be claimed back (0059): kept at sale, or
+           -- the option's now; none known: all of it
+           case when c.unit_cost is not null then c.unit_itc else vc.gst_claimable end as itc0,
            i.gst_rate as rate
       from o
       join public.order_items i on i.order_id = o.id
@@ -335,16 +335,16 @@ begin
       left join public.variant_costs vc on vc.variant_id = i.variant_id
   ),
   g as (
-    select l.*, coalesce(paid, cost * rate / (100 + rate)) as cost_gst from l
+    select l.*, coalesce(gst0, cost * rate / (100 + rate)) as cost_gst from l
   ),
   m as (
     select g.*,
-           case when credit then least(coalesce(claim, cost_gst), cost_gst) else 0 end as itc_unit,
+           case when credit then least(coalesce(itc0, cost_gst), cost_gst) else 0 end as itc_unit,
            case when cost is null then null
-                else cost - case when credit then least(coalesce(claim, cost_gst), cost_gst) else 0 end end as cost_kept
+                else cost - case when credit then least(coalesce(itc0, cost_gst), cost_gst) else 0 end end as cost_kept
       from g
   ),
-  -- goodwill / amount-only refunds per order, with and without tax
+  -- goodwill / amount-only refunds per order, with and without GST
   x as (
     select o.id as order_id, (o.created_at at time zone 'Asia/Kolkata')::date as day,
            o.extra * case when o.gst_inclusive or o.subtotal = 0 then 1 else (o.subtotal + o.tax + o.cess) / o.subtotal end as extra_g,
@@ -363,17 +363,18 @@ begin
     'cost', (select round(coalesce(sum(gone * cost), 0), 2) from m),
     'profit', (select round(coalesce(sum(q * sale - gone * cost), 0) - coalesce((select sum(extra_g) from x where costed), 0), 2) from m where cost is not null),
     'kept', (select round(coalesce(sum(q * net - gone * cost_kept), 0) - coalesce((select sum(extra_ex) from x where costed), 0), 2) from m where cost is not null),
-    -- the same, had nothing been claimed back
+    -- the same, had nothing been claimed back (0059)
     'kept_no_itc', (select round(coalesce(sum(q * net - gone * cost), 0) - coalesce((select sum(extra_ex) from x where costed), 0), 2) from m where cost is not null),
     'uncosted_lines', (select count(*) from m where cost is null and gone > 0),
-    'estimated_gst_lines', (select count(*) from m where cost is not null and paid is null and gone > 0),
+    'estimated_gst_lines', (select count(*) from m where cost is not null and gst0 is null and gone > 0),
     'lines', (select count(*) from m where gone > 0),
     'gst_collected', (select coalesce(sum(tax - r_tax), 0) from o),
     'gst_on_top', (select coalesce(sum(tax - r_tax), 0) from o where not gst_inclusive),
-    -- cess collected (paid over in full: none claimed back here)
+    -- cess collected (0060), paid over in full: none claimed back here
     'cess_collected', (select coalesce(sum(cess - r_cess), 0) from o),
-    -- GST paid to suppliers on what was sold, and the part claimed back
+    -- GST inside the cost of what was sold (claimed back only when credit is on)
     'gst_paid', (select round(coalesce(sum(gone * cost_gst), 0), 2) from m where cost is not null),
+    -- of that, claimed back, and the GST left to pay over (0059)
     'itc', (select round(coalesce(sum(gone * itc_unit), 0), 2) from m where cost is not null),
     'gst_owed', (select round((select coalesce(sum(tax - r_tax), 0) from o) - coalesce(sum(gone * itc_unit), 0), 2) from m where cost is not null),
     'daily', (

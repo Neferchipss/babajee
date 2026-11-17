@@ -43,7 +43,7 @@ export type DbCardProduct = {
   // for the shelf's Sort & filter: its brand, and when it was added
   brand?: string;
   added?: string;
-  // its sub-categories' slugs (0060), for the shelf's tag chips
+  // its sub-categories' slugs (0063), for the shelf's tag chips
   tags?: string[];
 };
 export type DbCategory = { slug: string; name: string };
@@ -205,13 +205,13 @@ async function liveCategoryDetail(slug: string) {
 // A product's description and brand, for the desktop product page (the
 // shelf's cards don't carry them). Empty when there is none or no database.
 export type ProductSpec = { label: string; value: string };
-// Its weight and size per option, and its video links (0059), with them.
+// Its weight and size per option, and its video links (0062), with them.
 export type OptionSize = { label: string; weight_g: number | null; length_cm: number | null; width_cm: number | null; height_cm: number | null };
 export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[]; videos: string[]; sizes: OptionSize[] }> {
   const none = { description: "", brand: "", specs: [], videos: [], sizes: [] };
   const sb = client();
   if (!sb) return none;
-  // with 0059's columns; before they exist, without them
+  // with 0062's columns; before they exist, without them
   let { data, error } = await sb
     .from("products")
     .select("description, brand, specs, video_urls, product_variants(label, weight_g, length_cm, width_cm, height_cm)")
@@ -303,11 +303,11 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
     });
 }
 
-// ---------------------------------------------------------------- sub-categories (0060)
+// ---------------------------------------------------------------- sub-categories (0063)
 
 // A category's sub-categories, shown on the shop: its tags, each in its group
 // (a filter row, "" for none), in the shop's order; and which products carry
-// which. Read on their own, so a database without them (before 0060) gives
+// which. Read on their own, so a database without them (before 0063) gives
 // none and the shelves work as before.
 export type ShopTag = { slug: string; name: string; group: string; seoTitle: string; seoDescription: string };
 export async function getShopTags(): Promise<{ byCategory: Record<string, ShopTag[]>; ofProduct: Record<string, string[]> }> {
@@ -341,7 +341,7 @@ export async function getShopTags(): Promise<{ byCategory: Record<string, ShopTa
   return { byCategory, ofProduct };
 }
 
-// every sub-category's own page, for the static export (0060)
+// every sub-category's own page, for the static export (0063)
 export async function getStaticTagParams(): Promise<{ category: string; product: string }[]> {
   const { byCategory } = await getShopTags();
   return Object.entries(byCategory).flatMap(([category, tags]) => tags.map((t) => ({ category, product: t.slug })));

@@ -3,7 +3,7 @@
 // when the buyer is in the shop's own state and IGST when not, a summary per
 // bracket and HSN code, the totals, and the amount in words. Prices are as
 // sold (each line's GST rate, the order's "inside the price" rule), so an
-// invoice never changes when the catalogue does. Cess (0057), where a line
+// invoice never changes when the catalogue does. Cess (0060), where a line
 // carries it, sits on the same taxable value and is listed beside the GST.
 import { lineCess, lineGst } from "./gst";
 import type { Order } from "./orders-db";

@@ -32,7 +32,7 @@ export type OrderItem = {
   gst_rate?: number;
   // the HSN it was sold under (0051 copies it onto the line); before that, the product's
   hsn?: string;
-  // the cess rate it sold at and the cess on the line (0057; 0 = none)
+  // the cess rate it sold at and the cess on the line (0060; 0 = none)
   cess_rate?: number;
   cess?: number;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
@@ -59,7 +59,7 @@ export type Refund = {
   subtotal: number;
   shipping: number;
   tax: number;
-  // the cess in it (0057)
+  // the cess in it (0060)
   cess?: number;
   restocked: boolean;
   returned: boolean;
@@ -93,7 +93,7 @@ export type Order = {
   total: number;
   // the one GST rate all lines share; null when lines sit in different brackets (0030)
   gst_rate: number | null;
-  // cess on top of GST (0057), 0 unless switched on and set on its products
+  // cess on top of GST (0060), 0 unless switched on and set on its products
   cess?: number;
   gst_inclusive: boolean;
   // what was actually paid; null until the order leaves "pending" (0017)
@@ -285,6 +285,49 @@ export async function setStep(id: string, to: OrderStatus, opts: { note?: string
     p_tracking: opts.tracking ?? null,
   });
   if (error) throw error;
+}
+
+// ---------------------------------------------------------------- manual payments (0056)
+
+// "Mark paid": how the money came in. The database records the payment and
+// moves the order to paid (invoice, confirmation email) in one go.
+export async function markPaid(id: string, p: { method: string; reference?: string; received?: string | null; note?: string }) {
+  const { error } = await db().rpc("admin_mark_paid", {
+    p_order: id,
+    p_method: p.method,
+    p_reference: p.reference ?? "",
+    p_received: p.received || null,
+    p_note: p.note ?? "",
+  });
+  if (error) throw error;
+}
+
+export type Payment = { id: string; order_id: string; method: string; reference: string; amount: number; status: string; received_on: string | null; created_at: string; note: string };
+export async function paymentsFor(orderIds: string[]): Promise<Payment[]> {
+  if (!orderIds.length) return [];
+  const { data, error } = await db()
+    .from("payments")
+    .select("id, order_id, method, reference, amount, status, received_on, created_at, note")
+    .in("order_id", orderIds)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ ...(r as Payment), amount: toNumber(r.amount), method: (r.method as string) ?? "", reference: (r.reference as string) ?? "", note: (r.note as string) ?? "" }));
+}
+
+// the contacts logged against unpaid orders, newest first, by order id
+export type OrderContact = { id: string; order_id: string; body: string; channel: SupportChannel; created_at: string; status: "open" | "resolved" | null };
+export async function contactsFor(orderIds: string[]): Promise<Map<string, OrderContact[]>> {
+  const out = new Map<string, OrderContact[]>();
+  if (!orderIds.length) return out;
+  const { data, error } = await db()
+    .from("customer_notes")
+    .select("id, order_id, body, channel, created_at, status")
+    .in("order_id", orderIds)
+    .eq("kind", "contact")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  for (const r of (data ?? []) as OrderContact[]) out.set(r.order_id, [...(out.get(r.order_id) ?? []), r]);
+  return out;
 }
 
 // Failed deliveries (0039): the courier couldn't deliver a shipped order;
@@ -787,13 +830,15 @@ export type StoreSettings = {
   gst_rate: number;
   gst_inclusive: boolean;
   gst_input_credit: boolean;
-  // CESS on top of GST, per product (0057); off unless switched on
+  // CESS on top of GST, per product (0060); off unless switched on
   cess_enabled: boolean;
   store_state: string;
   // days after delivery a customer can ask for a return; 0 = no returns (0022)
   return_days: number;
   // hours an unpaid order holds its stock before it cancels itself; 0 = never (0055)
   unpaid_hours: number;
+  // the ways a customer can pay, offered in "Mark paid" (0056)
+  payment_methods: string[];
   // an option counting stock is low at this many or fewer, unless its product sets its own (0043)
   low_stock_at: number;
   // printed on invoices (0029)
@@ -808,7 +853,7 @@ export type StoreSettings = {
 };
 
 // Each product's own GST bracket (null: the shop's default rate) and cess
-// rate (0057; charged only with cess switched on), by slug. Readable by anyone.
+// rate (0060; charged only with cess switched on), by slug. Readable by anyone.
 export async function gstRates(slugs: string[]): Promise<Map<string, { gst: number | null; cess: number }>> {
   if (!slugs.length) return new Map();
   const { data, error } = await db().from("products").select("slug, gst_rate, cess_rate").in("slug", slugs);
@@ -818,7 +863,7 @@ export async function gstRates(slugs: string[]): Promise<Map<string, { gst: numb
 
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, cess_enabled, store_state, return_days, unpaid_hours, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, cess_enabled, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   return {
     shipping: toNumber(data.shipping),
@@ -830,6 +875,7 @@ export async function getSettings(): Promise<StoreSettings> {
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
     unpaid_hours: data.unpaid_hours ?? 48,
+    payment_methods: (data.payment_methods as string[] | null) ?? ["UPI", "Bank transfer", "Cash"],
     low_stock_at: data.low_stock_at ?? 3,
     store_name: data.store_name ?? "Babajee",
     legal_name: data.legal_name ?? "",
@@ -862,43 +908,31 @@ export async function getCosts(variantIds: string[]): Promise<Map<string, number
   return new Map([...(await getPurchases(variantIds))].map(([id, c]) => [id, c.cost]));
 }
 
-// What an option cost, per piece (admin-only, 0015/0030/0056): the purchase
-// price before GST, the GST paid to the supplier and how much of it can be
-// claimed back, and the cost price (purchase + GST paid). purchase is null
-// for a cost typed before 0030. From typed figures (supplierRate /
-// supplierGst as typed; null rate = the product's own bracket) or, once
-// stock comes in on supplier bills, the bills' averages (source "bills").
-export type Purchase = {
-  purchase: number | null;
-  cost: number;
-  supplierRate: number | null;
-  supplierGst: number | null;
-  gstPaid: number | null;
-  gstClaimable: number | null;
-  source: "typed" | "bills";
-};
+// What an option cost, per piece (admin-only; 0015/0030/0057/0059): the
+// purchase price before GST, the GST paid to the supplier (averaged across
+// bills, or as typed; null: none known, so the product's own rate is used),
+// the part of it that can be claimed back (bills from suppliers with a GSTIN;
+// a typed price counts in full), and the cost price (purchase + GST paid).
+// purchase is null for a cost typed before 0030.
+export type Purchase = { purchase: number | null; cost: number; gstPaid: number | null; gstClaimable: number | null };
 const num = (v: unknown) => (v == null ? null : toNumber(v));
 export async function getPurchases(variantIds: string[]): Promise<Map<string, Purchase>> {
   if (!variantIds.length) return new Map();
-  const { data, error } = await db()
-    .from("variant_costs")
-    .select("variant_id, purchase, cost, supplier_gst_rate, supplier_gst, gst_paid, gst_claimable, gst_source")
-    .in("variant_id", variantIds);
+  const { data, error } = await db().from("variant_costs").select("variant_id, purchase, cost, gst_paid, gst_claimable").in("variant_id", variantIds);
   if (error) throw error;
   return new Map(
-    (data ?? []).map((r) => [
-      r.variant_id as string,
-      {
-        purchase: num(r.purchase),
-        cost: toNumber(r.cost),
-        supplierRate: num(r.supplier_gst_rate),
-        supplierGst: num(r.supplier_gst),
-        gstPaid: num(r.gst_paid),
-        gstClaimable: num(r.gst_claimable),
-        source: r.gst_source === "bills" ? "bills" : "typed",
-      },
-    ]),
+    (data ?? []).map((r) => [r.variant_id as string, { purchase: num(r.purchase), cost: toNumber(r.cost), gstPaid: num(r.gst_paid), gstClaimable: num(r.gst_claimable) }]),
   );
+}
+
+// Correct an option's buying price (0057): the price before GST, the GST on
+// the bill as a rate, or as the exact amount per piece (wins; 0059), and
+// why. Kept with the reason; later bills average against it. Returns the
+// new cost price.
+export async function correctPurchase(variantId: string, purchase: number, gstRate: number | null, reason: string, gstAmount: number | null = null): Promise<number> {
+  const { data, error } = await db().rpc("admin_set_purchase", { p_variant: variantId, p_purchase: purchase, p_gst_rate: gstRate, p_reason: reason, p_gst_amount: gstAmount });
+  if (error) throw error;
+  return toNumber(data);
 }
 
 // The purchase price before GST, and the GST paid to the supplier as a rate
@@ -912,13 +946,9 @@ export async function setPurchase(variantId: string, purchase: number | null, gs
     if (error) throw error;
     return null;
   }
-  const row: Record<string, unknown> = { variant_id: variantId, purchase, cost: purchase };
-  if (gst) {
-    row.supplier_gst_rate = gst.rate;
-    row.supplier_gst = gst.amount;
-  }
-  const { error } = await q.upsert(row);
-  if (error) throw error;
+  // a typed price is a correction too (0057), with the GST paid to the
+  // supplier as a rate (null: the product's own) or an exact amount (0059)
+  await correctPurchase(variantId, purchase, gst?.rate ?? null, "Typed in the product panel", gst?.amount ?? null);
   return (await getPurchases([variantId])).get(variantId) ?? null;
 }
 
@@ -931,7 +961,7 @@ export async function unitsSold(): Promise<Map<string, number>> {
 
 // The cost each line of an order sold at, by order line id, with the GST
 // paid to the supplier in it and the part that can be claimed back (kept at
-// sale since 0056; null before, then estimated at the selling rate).
+// sale since 0059; null before, then estimated at the selling rate).
 export type SoldCost = { cost: number; gst: number | null; itc: number | null };
 export async function soldCosts(itemIds: string[]): Promise<Map<string, SoldCost>> {
   if (!itemIds.length) return new Map();
@@ -957,17 +987,17 @@ export type Profit = {
   uncosted_lines: number;
   gst_collected: number;
   gst_on_top: number;
-  // cess collected (0057), paid over in full
+  // cess collected (0060), paid over in full
   cess_collected: number;
   // GST paid to suppliers on what sold, the part claimed back (input tax
-  // credit, 0056), and what is left to pay over: collected - claimed back
+  // credit, 0059), and what is left to pay over: collected - claimed back
   gst_paid: number;
   itc: number;
   gst_owed: number;
   // kept, had nothing been claimed back
   kept_no_itc: number;
   // sold lines whose GST paid to the supplier is estimated at the selling
-  // rate (sold before 0056 and never costed since)
+  // rate (sold before 0059 and never costed since)
   estimated_gst_lines: number;
   daily: { day: string; profit: number }[];
   top: { name: string; qty: number; sales: number; profit: number }[];

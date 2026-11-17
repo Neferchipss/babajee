@@ -1,4 +1,4 @@
--- Tests for migration 0060 (sub-categories as tags). Run through
+-- Tests for migration 0063 (sub-categories as tags). Run through
 -- scripts/test-sql.sh: one transaction, rolled back. Empty response: passed.
 
 do $$

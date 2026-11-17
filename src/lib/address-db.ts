@@ -5,13 +5,19 @@ import { tidy, type Address, type AddressInput } from "./addresses";
 // can use the form helpers without loading the Supabase client.
 const COLUMNS = "id, recipient_name, phone, line1, line2, landmark, city, state, pincode, is_default, label, latitude, longitude";
 
-// The default first, then newest.
+// The signed-in customer's own addresses, the default first, then newest.
+// Filtered to their account here: the database also lets admins read every
+// customer's addresses, which must never land in an admin's own checkout.
 export async function listAddresses(): Promise<Address[]> {
   const sb = getSupabase();
   if (!sb) return [];
+  const { data: auth } = await sb.auth.getSession();
+  const me = auth.session?.user.id;
+  if (!me) return [];
   const { data, error } = await sb
     .from("addresses")
     .select(COLUMNS)
+    .eq("profile_id", me)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;

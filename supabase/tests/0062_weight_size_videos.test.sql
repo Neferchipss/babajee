@@ -1,4 +1,4 @@
--- Tests for migration 0059 (weight, size, videos). Run through
+-- Tests for migration 0062 (weight, size, videos). Run through
 -- scripts/test-sql.sh: one transaction, rolled back. Empty response: passed.
 
 do $$

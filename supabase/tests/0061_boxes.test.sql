@@ -1,4 +1,4 @@
--- Tests for migration 0058 (boxes). Needs 0056 (and 0057) in place, or run
+-- Tests for migration 0061 (boxes). Needs 0059 (and 0060) in place, or run
 -- together with them. Run through scripts/test-sql.sh: one transaction, rolled
 -- back. An empty response means every check passed.
 
@@ -62,7 +62,7 @@ begin
   if not (c.purchase = 10 and c.gst_paid = 1.80 and c.gst_claimable = 1.80 and c.cost = 11.80) then
     raise exception 'FAIL: bill_in_boxes piece cost (% % % %)', c.purchase, c.gst_paid, c.gst_claimable, c.cost; end if;
   select * into c from public.variant_costs where variant_id = bx;
-  if not (c.purchase = 500 and c.gst_paid = 90 and c.cost = 590 and c.gst_source = 'box') then
+  if not (c.purchase = 500 and c.gst_paid = 90 and c.gst_claimable = 90 and c.cost = 590) then
     raise exception 'FAIL: bill_in_boxes box cost (% % %)', c.purchase, c.gst_paid, c.cost; end if;
   -- history on the pieces only
   if not ((select count(*) from public.stock_movements where variant_id = pc and receipt_id = r_box and reason = 'stock_in' and delta = 100) = 1) then
@@ -123,7 +123,7 @@ begin
   if not (select stock_qty = 5 from public.product_variants where id = bx) then raise exception 'FAIL: count_pieces_moves_boxes'; end if;
 
   -- typed_cost_follows: a typed cost on the pieces gives the box x 50
-  update public.variant_costs set gst_source = 'typed', purchase = 8, supplier_gst_rate = 12, supplier_gst = null where variant_id = pc;
+  perform public.admin_set_purchase(pc, 8, 12, 'typed');
   select * into c from public.variant_costs where variant_id = bx;
   if not (c.purchase = 400 and c.gst_paid = 48 and c.cost = 448) then raise exception 'FAIL: typed_cost_follows (% % %)', c.purchase, c.gst_paid, c.cost; end if;
 
@@ -136,6 +136,13 @@ begin
   perform set_config('babajee.stock_reason', '', true);
   if not (select stock_qty = 240 from public.product_variants where id = pc) then raise exception 'FAIL: second_box_size pieces'; end if;
   if not (select stock_qty = 4 from public.product_variants where id = bx) then raise exception 'FAIL: second_box_size other box'; end if;
+
+  -- correct_box_price_refused: a box's price follows its pieces
+  got := false;
+  begin
+    perform public.admin_set_purchase(bx, 500, 18, 'box');
+  exception when others then got := sqlerrm like 'A box''s buying price follows its pieces%'; end;
+  if not got then raise exception 'FAIL: correct_box_price_refused'; end if;
 
   -- checkout_a_box: the shop's own checkout sells a box -> 50 pieces off, the
   -- box's cost (and its GST paid) kept on the order line
