@@ -66,6 +66,7 @@ const ALL_SECTIONS: Section[] = [
     icon: I("M7.5 9.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2.5 16.5c.6-2.9 2.6-4.5 5-4.5s4.4 1.6 5 4.5M13 4a2.7 2.7 0 0 1 0 5.3M14.5 12.3c1.6.5 2.6 1.9 3 4.2"),
     pages: [
       { label: "All customers", href: "/admin/customers" },
+      { label: "Messages", href: "/admin/support" },
       { label: "Sign-ins", href: "/admin/customers/sign-ins" },
     ],
   },

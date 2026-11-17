@@ -4109,3 +4109,9 @@ body:has(.adm-frame) .ftr {
 .staff-home { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .staff-home a { display: grid; gap: 4px; text-decoration: none; color: inherit; }
 .staff-home a:hover { border-color: var(--adm-gold); }
+
+/* Customers → Messages (0074) */
+.sup-list { display: grid; gap: 10px; }
+.sup-msg { display: grid; gap: 8px; }
+.sup-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sup-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

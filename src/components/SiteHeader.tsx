@@ -1,5 +1,6 @@
 "use client";
 
+import { MenuAnchors } from "./home/SiteExtras";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import SceneLink, { isScenePath } from "@/components/SceneLink";
@@ -95,6 +96,8 @@ export default function SiteHeader() {
 
         <nav aria-label="Main" className="hdr-nav">
           {NAV.map((n) => navLink(n.href, n.label))}
+          <MenuAnchors where="header" onClick={() => setOpen(false)} />
+          <MenuAnchors where="header" />
         </nav>
 
         <div className="hdr-tools">

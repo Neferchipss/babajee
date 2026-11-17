@@ -20,6 +20,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...products.map((p) => page(`/shop/${p.category}/${p.product}/`, 0.7, "weekly")),
     page("/about/", 0.5, "monthly"),
     page("/contact/", 0.4, "yearly"),
+    page("/faq/", 0.4, "monthly"),
+    page("/blog/", 0.5, "weekly"),
     page("/support/", 0.4, "monthly"),
     page("/terms/", 0.2, "yearly"),
     page("/legal/", 0.2, "yearly"),

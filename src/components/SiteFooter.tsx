@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MIN_AGE } from "@/lib/config";
 import Logo from "./Logo";
+import { MenuLinks } from "./home/SiteExtras";
 import "./site-footer.css";
 
 // The footer: the brand and a line about the shop, then three short columns
@@ -30,6 +31,8 @@ const COLUMNS = [
     links: [
       { href: "/support", label: "Support" },
       { href: "/contact", label: "Contact" },
+      { href: "/faq", label: "Questions (FAQ)" },
+      { href: "/blog", label: "Blog" },
       { href: "/about", label: "About Babajee" },
       { href: "/terms", label: "Terms" },
       { href: "/legal", label: "Legal and privacy" },
@@ -55,6 +58,8 @@ export default function SiteFooter() {
                     <Link href={l.href}>{l.label}</Link>
                   </li>
                 ))}
+                {/* the shop's own footer links (Admin > Storefront > Menus) */}
+                {c.title === "Help" && <MenuLinks where="footer" />}
               </ul>
             </div>
           ))}
