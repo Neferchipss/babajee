@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { deleteAddress, listAddresses, makeDefault, saveAddress } from "@/lib/address-db";
+import { billingDefault, deleteAddress, listAddresses, makeBillingDefault, makeDefault, saveAddress } from "@/lib/address-db";
 import { addressLines, EMPTY_ADDRESS, type Address, type AddressInput } from "@/lib/addresses";
 import { useAuth } from "@/lib/auth";
 import { deliverToAddress, getDeliverTo, setDeliverTo } from "@/lib/deliver-to";
@@ -15,11 +15,14 @@ export default function AddressBook() {
   // "new", an address id being edited, or null
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState("");
+  // the default billing address (0066); none: billing goes to the delivery one
+  const [billing, setBilling] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const rows = await listAddresses();
       setList(rows);
+      setBilling(await billingDefault());
       setFailed(false);
       // keep the header's "Delivering to" in step with an edit or removal
       const pickedId = getDeliverTo()?.addressId;
@@ -38,6 +41,7 @@ export default function AddressBook() {
     listAddresses()
       .then((rows) => live && setList(rows))
       .catch(() => live && setFailed(true));
+    billingDefault().then((b) => live && setBilling(b));
     return () => {
       live = false;
     };
@@ -118,6 +122,11 @@ export default function AddressBook() {
                       Default
                     </span>
                   )}
+                  {billing === a.id && (
+                    <span className="rounded-[var(--radius-round)] border border-line px-2 py-0.5 text-xs font-semibold">
+                      Billing
+                    </span>
+                  )}
                 </div>
                 <address className="mt-1 text-sm not-italic text-muted">
                   {addressLines(a).map((l) => (
@@ -144,6 +153,17 @@ export default function AddressBook() {
                       disabled={!!busy}
                     >
                       Make default
+                    </button>
+                  )}
+                  {billing !== a.id && list.length > 1 && (
+                    <button
+                      type="button"
+                      className="min-h-11 underline underline-offset-4 hover:text-paper"
+                      onClick={() => act(a.id, () => makeBillingDefault(a.id))}
+                      disabled={!!busy}
+                      title="Bills and GST invoices go to this address; deliveries still go to your default"
+                    >
+                      Use for billing
                     </button>
                   )}
                   <button

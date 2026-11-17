@@ -8,7 +8,7 @@ import CustomerActivity from "@/components/admin/CustomerActivity";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
-import { customerDetail, customerSaved, errText, listCustomers, setCustomerTags, type Customer, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
+import { customerAccount, customerDetail, customerSaved, errText, listCustomers, setCustomerTags, updateCustomer, type Customer, type CustomerAccount, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
 import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
 import SupportHistory from "@/components/admin/SupportHistory";
 import { ageOf, dobLabel } from "@/lib/age";
@@ -64,6 +64,15 @@ function CustomerView() {
     );
 
   const live = d?.orders.filter((o) => o.status !== "cancelled" && o.status !== "refunded") ?? [];
+  // their orders by where they are (0066)
+  const by = (test: (o: Order) => boolean) => (d?.orders ?? []).filter(test).length;
+  const counts = [
+    ["Awaiting payment", by((o) => o.status === "pending")],
+    ["In progress", by((o) => ["paid", "packed", "shipped"].includes(o.status))],
+    ["Delivered", by((o) => o.status === "delivered")],
+    ["Cancelled", by((o) => o.status === "cancelled")],
+    ["Refunded or returned", by((o) => o.status === "refunded" || (o.order_refunds ?? []).some((r) => r.returned))],
+  ] as const;
   const aov = live.length ? live.reduce((n, o) => n + o.total, 0) / live.length : 0;
 
   const digits = (c.phone ?? "").replace(/\D/g, "");
@@ -130,6 +139,14 @@ function CustomerView() {
         </div>
       </div>
 
+      <p className="adm-small adm-muted cv-counts">
+        {counts.map(([label, n]) => (
+          <span key={label}>
+            {label} <b>{n}</b>
+          </span>
+        ))}
+      </p>
+
       <div className="adm-two">
         <div className="adm-stack">
           <section className="adm-card">
@@ -176,6 +193,7 @@ function CustomerView() {
               For grouping customers: wholesale, regular, café owner. Only staff see them.
             </p>
           </section>
+          <AccountCard id={c.id} />
           <section className="adm-card">
             <h2>Contact</h2>
             <p className="adm-small" style={{ margin: 0 }}>
@@ -302,5 +320,95 @@ function CustomerTags({ tags, onChange }: { tags: string[]; onChange: (tags: str
         onBlur={() => draft.trim() && add(draft)}
       />
     </div>
+  );
+}
+
+// The customer's account (0066): names, gender, individual or business with
+// its GSTIN, and status. Blocked: they can't order for themselves (the shop
+// still can, from New order). Hidden until the database has these.
+function AccountCard({ id }: { id: string }) {
+  const [a, setA] = useState<CustomerAccount | null>(null);
+  const [err, setErr] = useState("");
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    customerAccount(id).then(setA, () => setA(null));
+  }, [id]);
+  if (!a) return null;
+  const set = (patch: Partial<CustomerAccount>) => setA({ ...a, ...patch });
+  const gstOk = a.gstin === "" || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(a.gstin);
+  async function save() {
+    setErr("");
+    setSaved(false);
+    try {
+      await updateCustomer(id, a!);
+      setSaved(true);
+    } catch (e) {
+      setErr(errText(e));
+    }
+  }
+  return (
+    <section className="adm-card">
+      <h2>Account</h2>
+      <div className="cv-acct">
+        <label className="adm-label">
+          First name
+          <input className="adm-input" value={a.first_name} onChange={(e) => set({ first_name: e.target.value })} />
+        </label>
+        <label className="adm-label">
+          Last name
+          <input className="adm-input" value={a.last_name} onChange={(e) => set({ last_name: e.target.value })} />
+        </label>
+        <label className="adm-label">
+          Gender
+          <select className="adm-input" value={a.gender} onChange={(e) => set({ gender: e.target.value as CustomerAccount["gender"] })}>
+            <option value="">Not said</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label className="adm-label">
+          Buying as
+          <select className="adm-input" value={a.customer_type} onChange={(e) => set({ customer_type: e.target.value as CustomerAccount["customer_type"] })}>
+            <option value="individual">Individual</option>
+            <option value="business">Business</option>
+          </select>
+        </label>
+        {a.customer_type === "business" && (
+          <>
+            <label className="adm-label">
+              Business name
+              <input className="adm-input" value={a.business_name} onChange={(e) => set({ business_name: e.target.value })} />
+            </label>
+            <label className="adm-label">
+              GSTIN
+              <input className="adm-input" value={a.gstin} maxLength={15} aria-invalid={!gstOk} onChange={(e) => set({ gstin: e.target.value.toUpperCase().replace(/\s/g, "") })} />
+            </label>
+          </>
+        )}
+        <label className="adm-label">
+          Status
+          <select className="adm-input" value={a.status} onChange={(e) => set({ status: e.target.value as CustomerAccount["status"] })}>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="blocked">Blocked: can&apos;t order</option>
+          </select>
+        </label>
+        {a.status !== "active" && (
+          <label className="adm-label">
+            Why (staff only)
+            <input className="adm-input" value={a.status_note} maxLength={300} onChange={(e) => set({ status_note: e.target.value })} />
+          </label>
+        )}
+      </div>
+      {!gstOk && <p className="adm-err">A GSTIN is 15 characters, like 27ABCDE1234F1Z5.</p>}
+      {err && <p className="adm-err">{err}</p>}
+      <div className="adm-actions" style={{ marginTop: 10 }}>
+        <button type="button" className="adm-btn pri" disabled={!gstOk} onClick={save}>
+          Save account
+        </button>
+        {saved && <span className="adm-muted adm-small">Saved</span>}
+      </div>
+    </section>
   );
 }

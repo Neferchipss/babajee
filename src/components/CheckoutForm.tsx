@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import SlideToConfirm from "@/components/SlideToConfirm";
 import AddressPicker from "@/components/address/AddressPicker";
-import { useAuth } from "@/lib/auth";
+import { billingDefault, listAddresses } from "@/lib/address-db";
+import { addressLines, type Address } from "@/lib/addresses";
+import { useAuth, type Profile } from "@/lib/auth";
 import { cartSums, clearCart, useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
 import { track } from "@/lib/track";
@@ -20,7 +22,10 @@ export default function CheckoutForm() {
   const router = useRouter();
   const cart = useCart();
   const stock = useCartStock(cart);
-  const { status } = useAuth();
+  const { status, profile } = useAuth();
+  const blocked = profile?.status === "blocked";
+  // the billing address, when it isn't the delivery one (0066)
+  const [billing, setBilling] = useState<Address | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -74,6 +79,11 @@ export default function CheckoutForm() {
           address,
           String(form.get("notes") ?? ""),
         );
+        // billing elsewhere: put it on the order (a miss here never loses the order)
+        if (billing) {
+          const { setOrderBilling } = await import("@/lib/orders-db");
+          await setOrderBilling(o.order_id, { name: billing.recipient_name, line1: billing.line1, line2: billing.line2, city: billing.city, state: billing.state, pincode: billing.pincode }).catch(() => {});
+        }
         clearCart();
         router.push(`/orders/view?id=${o.order_id}&placed=1`);
       } catch (x) {
@@ -97,6 +107,8 @@ export default function CheckoutForm() {
         <AddressPicker />
       </section>
 
+      {status === "in" && <BillingPicker profile={profile} onChange={setBilling} />}
+
       <section aria-labelledby="notes-heading">
         <h2 id="notes-heading" className="mb-5 text-2xl">
           Anything we should know?
@@ -113,6 +125,11 @@ export default function CheckoutForm() {
         </p>
       </section>
 
+      {blocked && (
+        <p role="alert" className="text-red-soft">
+          This account can&apos;t place orders right now. Please <Link href="/contact" className="underline">contact us</Link>.
+        </p>
+      )}
       {stock.blocked && !err ? (
         <p role="alert" className="text-red-soft">
           {stock.blocked} <Link href="/cart" className="underline">Go to your cart</Link>
@@ -127,7 +144,7 @@ export default function CheckoutForm() {
       {status === "in" ? (
         <>
           <div className="co-desk">
-            <button className="btn btn-primary w-full sm:w-auto" disabled={busy || cart.length === 0 || !!stock.blocked}>
+            <button className="btn btn-primary w-full sm:w-auto" disabled={busy || blocked || cart.length === 0 || !!stock.blocked}>
               {busy ? "Placing your order" : "Place order"}
             </button>
           </div>
@@ -136,7 +153,7 @@ export default function CheckoutForm() {
           <div className="co-slidebar">
             <SlideToConfirm
               label={`Slide to confirm order · ${formatPrice(total)}`}
-              disabled={cart.length === 0 || !!stock.blocked}
+              disabled={blocked || cart.length === 0 || !!stock.blocked}
               busy={busy}
               onConfirm={() => formRef.current?.requestSubmit()}
             />
@@ -149,5 +166,63 @@ export default function CheckoutForm() {
         </Link>
       )}
     </form>
+  );
+}
+
+// Where the bill goes (0066): the delivery address unless another is picked
+// (the customer's saved billing address to start with). A business account's
+// name and GSTIN go on its invoice either way.
+function BillingPicker({ profile, onChange }: { profile: Profile | null; onChange: (a: Address | null) => void }) {
+  const [list, setList] = useState<Address[]>([]);
+  const [pick, setPick] = useState("");
+  useEffect(() => {
+    let live = true;
+    Promise.all([listAddresses(), billingDefault()])
+      .then(([rows, b]) => {
+        if (!live) return;
+        setList(rows);
+        // a saved billing address that isn't the delivery default starts picked
+        const start = b && rows.find((r) => r.id === b && !r.is_default);
+        if (start) {
+          setPick(start.id);
+          onChange(start);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [onChange]);
+  const choose = (id: string) => {
+    setPick(id);
+    onChange(list.find((r) => r.id === id) ?? null);
+  };
+  const business = profile?.customer_type === "business" && profile.gstin;
+  if (list.length < 2 && !business) return null;
+  return (
+    <section aria-labelledby="billing-heading">
+      <h2 id="billing-heading" className="mb-3 text-2xl">
+        Billing
+      </h2>
+      {business && (
+        <p className="mb-3 text-sm text-muted">
+          GST invoice to {profile!.business_name || "your business"} · GSTIN {profile!.gstin}
+        </p>
+      )}
+      {list.length > 1 && (
+        <label className="block max-w-md">
+          <span className="mb-1.5 block text-sm font-medium">Bill to</span>
+          <select className="field" value={pick} onChange={(e) => choose(e.target.value)}>
+            <option value="">Same as the delivery address</option>
+            {list.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.label ? `${a.label}: ` : ""}
+                {addressLines(a).join(", ")}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </section>
   );
 }

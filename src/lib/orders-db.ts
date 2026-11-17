@@ -105,6 +105,13 @@ export type Order = {
   invoice_date?: string | null;
   // the buyer's GSTIN for a B2B sale, '' for a consumer (0051)
   buyer_gstin?: string;
+  // where the bill goes, when not the delivery address (0066)
+  billing_name?: string;
+  billing_line1?: string;
+  billing_line2?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_pincode?: string;
   created_at: string;
   updated_at?: string;
   order_items?: OrderItem[];
@@ -160,6 +167,13 @@ export type CheckoutAddress = Record<
   "recipient_name" | "phone" | "line1" | "line2" | "landmark" | "city" | "state" | "pincode" | "latitude" | "longitude",
   string
 >;
+
+// The billing address on the customer's own pending order (0066); empty
+// fields: the same as delivery.
+export async function setOrderBilling(orderId: string, b: { name: string; line1: string; line2?: string; city: string; state: string; pincode: string }) {
+  const { error } = await db().rpc("set_order_billing", { p_order: orderId, p: b });
+  if (error) throw error;
+}
 
 export async function placeOrder(lines: CheckoutLine[], address: CheckoutAddress, notes: string) {
   const { data, error } = await db().rpc("place_order", { p_items: lines, p_address: address, p_notes: notes });
@@ -730,6 +744,28 @@ export async function customerSaved(id: string): Promise<CustomerSaved[]> {
     const it = (r.item ?? {}) as { name?: string; href?: string; price?: number | null };
     return { slug: r.product_slug, name: it.name ?? r.product_slug, href: it.href ?? "", price: it.price ?? null, saved_at: r.created_at };
   });
+}
+
+// A customer's account details (0066): names, gender, individual or
+// business with its GSTIN, and status; null before that is in place.
+export type CustomerAccount = {
+  first_name: string;
+  last_name: string;
+  gender: "" | "female" | "male" | "other";
+  customer_type: "individual" | "business";
+  business_name: string;
+  gstin: string;
+  status: "active" | "inactive" | "blocked";
+  status_note: string;
+};
+export async function customerAccount(id: string): Promise<CustomerAccount | null> {
+  const { data, error } = await db().from("profiles").select("first_name, last_name, gender, customer_type, business_name, gstin, status, status_note").eq("id", id).maybeSingle();
+  if (error) return null;
+  return (data as CustomerAccount | null) ?? null;
+}
+export async function updateCustomer(id: string, patch: Partial<CustomerAccount>) {
+  const { error } = await db().rpc("admin_update_customer", { p_customer: id, p: patch });
+  if (error) throw error;
 }
 
 export async function customerDetail(id: string) {

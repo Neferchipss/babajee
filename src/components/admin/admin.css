@@ -4029,3 +4029,25 @@ body:has(.adm-frame) .ftr {
   flex-wrap: wrap;
   overflow: visible;
 }
+
+/* a customer's orders by where they are, and their account (0066) */
+.cv-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: -6px 0 16px;
+}
+.cv-counts b {
+  color: var(--color-paper);
+  font-variant-numeric: tabular-nums;
+}
+.cv-acct {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+@media (max-width: 520px) {
+  .cv-acct {
+    grid-template-columns: 1fr;
+  }
+}

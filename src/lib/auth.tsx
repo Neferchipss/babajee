@@ -21,7 +21,17 @@ export type Profile = {
   role: "customer" | "admin";
   age_verified_at: string | null;
   date_of_birth: string | null;
+  // 0066: names apart, gender, individual or business (with its GSTIN), and
+  // the account's status; blank or the defaults until that is in place
+  first_name: string;
+  last_name: string;
+  gender: "" | "female" | "male" | "other";
+  customer_type: "individual" | "business";
+  business_name: string;
+  gstin: string;
+  status: "active" | "inactive" | "blocked";
 };
+const PROFILE_EXTRAS = { first_name: "", last_name: "", gender: "", customer_type: "individual", business_name: "", gstin: "", status: "active" } as const;
 
 type Status = "off" | "loading" | "out" | "in";
 
@@ -49,12 +59,13 @@ export const useAuth = () => useContext(AuthContext);
 async function fetchProfile(id: string): Promise<Profile | null> {
   const sb = await loadClient();
   if (!sb) return null;
-  const { data } = await sb
-    .from("profiles")
-    .select("full_name, phone, role, age_verified_at, date_of_birth")
-    .eq("id", id)
-    .maybeSingle();
-  return (data as Profile | null) ?? null;
+  const [{ data }, extras] = await Promise.all([
+    sb.from("profiles").select("full_name, phone, role, age_verified_at, date_of_birth").eq("id", id).maybeSingle(),
+    // read on their own, so a database without 0066 still signs people in
+    sb.from("profiles").select("first_name, last_name, gender, customer_type, business_name, gstin, status").eq("id", id).maybeSingle(),
+  ]);
+  if (!data) return null;
+  return { ...PROFILE_EXTRAS, ...(extras.error ? {} : (extras.data ?? {})), ...data } as Profile;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

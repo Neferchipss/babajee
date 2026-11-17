@@ -51,3 +51,23 @@ export async function makeDefault(id: string) {
   const { error } = await sb.from("addresses").update({ is_default: true }).eq("id", id);
   if (error) throw error;
 }
+
+// The customer's default billing address (0066), read on its own: null when
+// there is none, or before that is in place.
+export async function billingDefault(): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data: auth } = await sb.auth.getSession();
+  const me = auth.session?.user.id;
+  if (!me) return null;
+  const { data, error } = await sb.from("addresses").select("id").eq("profile_id", me).eq("is_default_billing", true).maybeSingle();
+  return error ? null : ((data?.id as string | undefined) ?? null);
+}
+
+// one default billing address: marking this one clears the others (0066)
+export async function makeBillingDefault(id: string) {
+  const sb = getSupabase();
+  if (!sb) throw new Error("not connected");
+  const { error } = await sb.from("addresses").update({ is_default_billing: true }).eq("id", id);
+  if (error) throw error;
+}

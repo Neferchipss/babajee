@@ -125,6 +125,21 @@ function Address({ o }: { o: Order }) {
   );
 }
 
+// the billing address when the order has its own (0066), else the delivery one
+function BillTo({ o }: { o: Order }) {
+  if (!o.billing_line1) return <Address o={o} />;
+  return (
+    <>
+      <b>{o.billing_name || o.contact_name}</b>
+      <div>{[o.billing_line1, o.billing_line2].filter(Boolean).join(", ")}</div>
+      <div>
+        {o.billing_city}, {o.billing_state} {o.billing_pincode}
+      </div>
+      <div>{o.contact_phone}</div>
+    </>
+  );
+}
+
 // The GST tax invoice, laid out the way Indian invoices usually are (one ruled
 // box: seller and invoice details, buyer, items with HSN and tax per line, a
 // tax summary per bracket, totals, declaration and signatory), so it can go
@@ -195,7 +210,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
         <div className="inv-row inv-parties">
           <div>
             <span className="prt-label">Billed to (receiver)</span>
-            <Address o={o} />
+            <BillTo o={o} />
             {o.contact_email && <div>{o.contact_email}</div>}
             {o.buyer_gstin && (
               <div>
