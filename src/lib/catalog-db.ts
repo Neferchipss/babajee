@@ -471,3 +471,18 @@ export function getSeoCatalog(): Promise<SeoProduct[]> {
 export async function getSeoProduct(categorySlug: string, productSlug: string) {
   return (await getSeoCatalog()).find((p) => p.categorySlug === categorySlug && p.slug === productSlug) ?? null;
 }
+
+// The search listing set for one of the shop's own pages in Admin >
+// Storefront > Search listings (0073), read when the site is built. Empty
+// fields (or no database, or none set) leave the page's own wording.
+export async function withPageSeo<T extends { title?: unknown; description?: string | null }>(path: string, base: T): Promise<T> {
+  const sb = client();
+  if (!sb) return base;
+  const { data, error } = await sb.from("page_seo").select("title, description").eq("path", path).maybeSingle();
+  if (error || !data) return base;
+  return {
+    ...base,
+    ...(data.title ? { title: { absolute: data.title } } : {}),
+    ...(data.description ? { description: data.description } : {}),
+  };
+}

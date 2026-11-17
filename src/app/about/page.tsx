@@ -1,11 +1,17 @@
+import { withPageSeo } from "@/lib/catalog-db";
 import type { Metadata } from "next";
 import SceneLink from "@/components/SceneLink";
 import Page, { Placeholder } from "@/components/Page";
 
-export const metadata: Metadata = {
+const META: Metadata = {
   title: "About Babajee",
   description: "Who Babajee is and what we stand for: thoughtful design, good people and higher standards in smoking accessories.",
 };
+
+// with the search listing from Admin > Storefront, when one is set
+export async function generateMetadata(): Promise<Metadata> {
+  return withPageSeo("/about/", META);
+}
 
 export default function AboutPage() {
   return (

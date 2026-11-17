@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import HomeSwitch from "@/components/home/HomeSwitch";
-import { getHomeProducts, getIndexCategories, getShelfPicks } from "@/lib/catalog-db";
+import { getHomeProducts, getIndexCategories, getShelfPicks, withPageSeo } from "@/lib/catalog-db";
 import { absUrl } from "@/lib/site";
 
-export const metadata: Metadata = {
+const META: Metadata = {
   title: { absolute: "Babajee · Smoking accessories, delivered across India" },
   description: "Rolling papers, cones, trays, grinders, glass, bongs and more from Babajee. Real products, honest prices, delivered anywhere in India.",
   alternates: { canonical: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/` },
 };
+
+// with the search listing from Admin > Storefront, when one is set
+export async function generateMetadata(): Promise<Metadata> {
+  return withPageSeo("/", META);
+}
 
 // The landing: in the design picked in Admin > Storefront. Current is the
 // street, then scrolling walks you in to the painted shop; the others are a
