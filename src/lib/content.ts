@@ -6,8 +6,11 @@
 // written from Admin > Storefront. Every read falls back to nothing, so the
 // shop works the same on a database without 0073. With ?demo=1 on a
 // developer's machine the admin writes to memory instead.
-import { isAdminDemo } from "./admin-api";
 import { getSupabase } from "./supabase";
+
+// the admin's demo (?demo=1, never in a production build); kept here rather
+// than imported, so the shop's pages don't carry the admin's code
+const isAdminDemo = () => process.env.NODE_ENV !== "production" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
 
 export type Design = "current" | "shopfront" | "haveli" | "chai" | "courtyard";
 export const DESIGNS: { id: Design; name: string; about: string }[] = [

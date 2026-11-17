@@ -378,6 +378,29 @@ export async function getStaticTagParams(): Promise<{ category: string; product:
 // A few products from each category that have photos, for the 3D shop: they
 // pop out of their fixture when it is looked at. Categories with no photos
 // yet are left out.
+// The shop home's products (the storefront designs, 0073): every product with
+// its category, lowest price, first photo and when it was added; small, so
+// the page can carry them all and pick best sellers and new arrivals.
+export type HomeProduct = { slug: string; name: string; cat: string; catName: string; price?: number; mrp?: number; image: string; added?: string };
+export async function getHomeProducts(cats: { slug: string; name: string }[]): Promise<HomeProduct[]> {
+  const lists = await Promise.all(
+    cats.map(async (c) => {
+      const d = await getCategoryDetail(c.slug);
+      return (d?.products ?? []).map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        cat: c.slug,
+        catName: c.name,
+        ...(p.minPrice !== undefined ? { price: p.minPrice } : {}),
+        ...(p.mrp !== undefined ? { mrp: p.mrp } : {}),
+        image: photosFor(p.slug)[0] ?? "",
+        ...(p.added ? { added: p.added } : {}),
+      }));
+    }),
+  );
+  return lists.flat();
+}
+
 export type ShelfPick = { slug: string; name: string; cat: string; image: string };
 export async function getShelfPicks(slugs: string[], per = 4): Promise<Record<string, ShelfPick[]>> {
   const out: Record<string, ShelfPick[]> = {};
