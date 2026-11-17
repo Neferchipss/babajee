@@ -466,3 +466,18 @@ html[data-desk="open"] #site .sb-nav {
     animation: none;
   }
 }
+
+/* videos (0059): 16:9, one under the other */
+.pdk-video {
+  margin-top: 10px;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-ash, #f0f2f5);
+}
+.pdk-video :is(iframe, video) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

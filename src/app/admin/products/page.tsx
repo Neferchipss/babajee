@@ -25,7 +25,8 @@ const setShopLowAt = (n: number) => {
   shopLowAt = n;
 };
 const stockOf = (p: AdminProduct) => {
-  const t = p.variants.filter((v) => v.track_stock && v.is_visible);
+  // loose options only: a box runs out when its pieces do (0058)
+  const t = p.variants.filter((v) => v.track_stock && v.is_visible && !v.unit_variant_id);
   const mark = p.low_stock_at ?? shopLowAt;
   return { out: t.length > 0 && t.some((v) => v.stock_qty <= 0), low: t.some((v) => v.stock_qty > 0 && v.stock_qty <= mark) };
 };
@@ -744,6 +745,16 @@ function CategoryTools({
       />
       <button type="button" className={`ap-chip ${c.is_visible ? "" : "is-on"}`} onClick={() => onChange(() => api.updateCategory(c.id, { is_visible: !c.is_visible }))}>
         {c.is_visible ? "On the shop" : "Hidden from the shop"}
+      </button>
+      {/* bought in boxes: its products get a Boxes section (0058) */}
+      <button
+        type="button"
+        className={`ap-chip ${c.sold_in_boxes ? "is-on" : ""}`}
+        aria-pressed={!!c.sold_in_boxes}
+        title="Products here are bought in boxes: each option can have boxes (Box of 24, Box of 50), sold whole if you tick them"
+        onClick={() => onChange(() => api.updateCategory(c.id, { sold_in_boxes: !c.sold_in_boxes }))}
+      >
+        {c.sold_in_boxes ? "Sold in boxes" : "Loose only"}
       </button>
       <button type="button" className="ap-chip" disabled={first} aria-label={`Move ${c.name} left`} onClick={() => onChange(() => api.moveCategory(all, c.id, -1))}>
         ← Move

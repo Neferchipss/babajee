@@ -32,6 +32,8 @@ type Api = Pick<
   | "reorderProductImages"
   | "setImageVariant"
   | "importShootPhoto"
+  | "listBoxTemplates"
+  | "saveBoxTemplate"
 >;
 
 let demo: Api | null = null;
@@ -57,6 +59,7 @@ function makeDemo(): Api {
       seo_description: "",
       gst_rate: null,
       cess_rate: 0,
+      video_urls: [],
       hsn: "",
       is_visible: i % 5 !== 3,
       status: i % 5 !== 3 ? ("published" as const) : ("draft" as const),
@@ -78,6 +81,12 @@ function makeDemo(): Api {
         sku: null,
         barcode: null,
         compare_at: null,
+        pack_of: 1,
+        unit_variant_id: null,
+        weight_g: null,
+        length_cm: null,
+        width_cm: null,
+        height_cm: null,
       })),
       images: [] as AdminImage[],
     })),
@@ -85,6 +94,7 @@ function makeDemo(): Api {
   const copy = <T,>(x: T): T => structuredClone(x);
   const find = (id: string) => products.find((p) => p.id === id)!;
   const wait = () => new Promise((r) => setTimeout(r, 120));
+  const boxSizes = [24, 50];
   const api: Api = {
     async listCategories() {
       return copy(cats);
@@ -128,13 +138,14 @@ function makeDemo(): Api {
           seo_description: "",
           gst_rate: null,
           cess_rate: 0,
+      video_urls: [],
           hsn: "",
           is_visible: true,
           sort_order: -1,
           category_slug: cat.slug,
           category_name: cat.name,
           // counted from 0 once every option in the shop is counted, as the real one does
-          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, track_stock: products.every((x) => x.variants.every((v) => v.track_stock)), is_visible: true, sort_order: 0, sku: null, barcode: null, compare_at: null }],
+          variants: [{ id: uid(), label: "Default", price: 0, stock_qty: 0, track_stock: products.every((x) => x.variants.every((v) => v.track_stock)), is_visible: true, sort_order: 0, sku: null, barcode: null, compare_at: null, pack_of: 1, unit_variant_id: null, weight_g: null, length_cm: null, width_cm: null, height_cm: null }],
           images: [],
         },
         ...products,
@@ -176,11 +187,25 @@ function makeDemo(): Api {
       else {
         // counts stock (from 0) when another option of the product does, as the real one does
         const track = variant.track_stock ?? p.variants.some((v) => v.track_stock);
-        p.variants.push({ id: uid(), label: "Option", price: 0, is_visible: true, sort_order: p.variants.length, ...variant, track_stock: track, stock_qty: track ? 0 : (variant.stock_qty ?? 0) } as AdminVariant);
+        const unit = variant.unit_variant_id ? p.variants.find((v) => v.id === variant.unit_variant_id) : undefined;
+        const pack = unit ? (variant.pack_of ?? 2) : 1;
+        p.variants.push({
+          id: uid(), label: "Option", price: 0, is_visible: true, sort_order: p.variants.length, unit_variant_id: null, ...variant,
+          pack_of: pack,
+          ...(unit ? { track_stock: unit.track_stock, stock_qty: Math.floor(unit.stock_qty / pack) } : { track_stock: track, stock_qty: track ? 0 : (variant.stock_qty ?? 0) }),
+        } as AdminVariant);
       }
     },
     async deleteProduct(product) {
       products = products.filter((p) => p.id !== product.id);
+    },
+    async listBoxTemplates() {
+      return boxSizes.map((pieces) => ({ id: String(pieces), pieces, label: real.boxLabel(pieces) }));
+    },
+    async saveBoxTemplate(pieces) {
+      if (boxSizes.includes(pieces)) return;
+      boxSizes.push(pieces);
+      boxSizes.sort((a, b) => a - b);
     },
     async deleteVariant(id) {
       for (const p of products) p.variants = p.variants.filter((v) => v.id !== id);

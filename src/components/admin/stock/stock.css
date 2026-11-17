@@ -247,3 +247,20 @@
   overflow: hidden;
   min-height: 44px;
 }
+
+/* sold past zero: say so where the count is */
+.stk-neg {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-red-soft, #ff8a8a) 50%, transparent);
+  background: color-mix(in srgb, var(--color-red-soft, #ff8a8a) 9%, transparent);
+  font-size: 0.8rem;
+}
+
+/* a count by boxes + loose: the pieces it comes to */
+.stk-total {
+  margin: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}

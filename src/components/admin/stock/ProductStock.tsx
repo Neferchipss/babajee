@@ -26,6 +26,8 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
   const ids = product.variants.map((v) => v.id).join(",");
   const counts = product.variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const many = product.variants.length > 1;
+  // a box (0058): bought in as boxes (at the box price), counted as its pieces
+  const unitOf = (v: AdminVariant) => product.variants.find((u) => u.id === v.unit_variant_id);
 
   // the average buying price lives with the costs; read again when a count moves
   useEffect(() => {
@@ -55,19 +57,35 @@ export default function ProductStock({ product, rules, onChanged }: { product: A
             <li key={v.id} className="stk-opt">
               <div className="stk-head">
                 <span className="stk-name">{many ? v.label : "In stock"}</span>
-                <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>{v.track_stock ? v.stock_qty : "Not tracked"}</b>
+                <b className={`stk-count ${v.track_stock ? (v.stock_qty <= 0 ? "is-out" : "") : "is-none"}`}>
+                  {v.track_stock ? (v.unit_variant_id ? `${Math.max(0, v.stock_qty)} ${v.stock_qty === 1 ? "box" : "boxes"}` : v.stock_qty) : "Not tracked"}
+                </b>
               </div>
-              <small className="stk-avg">{a != null ? `Purchase price ${formatPrice(a, { paise: true })} (excl. GST), average` : "No buying price yet"}</small>
+              {v.track_stock && v.stock_qty < 0 && !v.unit_variant_id && (
+                <p className="stk-neg" role="alert">
+                  Below zero: {Math.abs(v.stock_qty)} more sold than were counted in. Add the stock that came in, or count it again with a stock adjustment.
+                </p>
+              )}
+              <small className="stk-avg">
+                {v.unit_variant_id
+                  ? `Made of ${v.pack_of} × ${unitOf(v)?.label ?? "pieces"}: adding boxes adds ${v.pack_of} pieces each, at the box's price`
+                  : a != null
+                    ? `Purchase price ${formatPrice(a, { paise: true })} (excl. GST), average`
+                    : "No buying price yet"}
+              </small>
               <div className="stk-actions">
                 <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "add"} onClick={() => toggle(v.id, "add")}>
                   + Add stock
                 </button>
-                <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "correct"} onClick={() => toggle(v.id, "correct")}>
-                  Stock adjustment
-                </button>
+                {/* a box is counted as its pieces: adjust those */}
+                {!v.unit_variant_id && (
+                  <button type="button" className="ape-chip stk-btn" aria-expanded={open?.id === v.id && open.mode === "correct"} onClick={() => toggle(v.id, "correct")}>
+                    Stock adjustment
+                  </button>
+                )}
               </div>
               {open?.id === v.id && open.mode === "add" && <AddStock key={`add-${v.id}`} variant={v} average={a ?? null} defaultRate={product.gst_rate ?? rules.rate} onDone={done} />}
-              {open?.id === v.id && open.mode === "correct" && <CorrectCount key={`fix-${v.id}`} variant={v} onDone={done} />}
+              {open?.id === v.id && open.mode === "correct" && <CorrectCount key={`fix-${v.id}`} variant={v} boxSizes={[...new Set(product.variants.filter((b) => b.unit_variant_id === v.id).map((b) => b.pack_of))].sort((a, b) => b - a)} onDone={done} />}
             </li>
           );
         })}
@@ -288,11 +306,19 @@ function AddStock({ variant: v, average, defaultRate, onDone }: { variant: Admin
   );
 }
 
-function CorrectCount({ variant: v, onDone }: { variant: AdminVariant; onDone: () => void }) {
+// A new count, with its reason. An option that comes in boxes is counted as
+// it sits on the shelf: so many boxes of each size, plus the loose pieces;
+// the count saved is the pieces in all of them (0058).
+function CorrectCount({ variant: v, boxSizes, onDone }: { variant: AdminVariant; boxSizes: number[]; onDone: () => void }) {
   const [count, setCount] = useState("");
+  const [boxes, setBoxes] = useState<Record<number, string>>({});
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const valid = count.trim() !== "" && note.trim() !== "";
+  const byBox = boxSizes.length > 0;
+  const inBoxes = boxSizes.reduce((n, size) => n + (Number(boxes[size]) || 0) * size, 0);
+  const typed = byBox ? boxSizes.some((size) => (boxes[size] ?? "") !== "") || count.trim() !== "" : count.trim() !== "";
+  const total = (Number(count) || 0) + (byBox ? inBoxes : 0);
+  const valid = typed && note.trim() !== "";
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -300,8 +326,8 @@ function CorrectCount({ variant: v, onDone }: { variant: AdminVariant; onDone: (
     setBusy(true);
     try {
       const m = await import("@/lib/stock-in/db");
-      await m.correctStock(v.id, Number(count), note.trim());
-      toast(`Stock adjusted to ${Number(count)}`);
+      await m.correctStock(v.id, total, note.trim());
+      toast(`Stock adjusted to ${total}`);
       onDone();
     } catch (x) {
       toastError(x);
@@ -311,10 +337,22 @@ function CorrectCount({ variant: v, onDone }: { variant: AdminVariant; onDone: (
 
   return (
     <form className="stk-form" onSubmit={submit}>
+      {byBox &&
+        boxSizes.map((size, i) => (
+          <label key={size} className="ape-field">
+            <span>Full boxes of {size}</span>
+            <input inputMode="numeric" value={boxes[size] ?? ""} placeholder="0" autoFocus={i === 0} onChange={(e) => setBoxes({ ...boxes, [size]: e.target.value.replace(/\D/g, "") })} />
+          </label>
+        ))}
       <label className="ape-field">
-        <span>New count</span>
-        <input inputMode="numeric" value={count} placeholder={v.track_stock ? String(v.stock_qty) : "0"} autoFocus onChange={(e) => setCount(e.target.value.replace(/\D/g, ""))} />
+        <span>{byBox ? "Loose pieces" : "New count"}</span>
+        <input inputMode="numeric" value={count} placeholder={byBox ? "0" : v.track_stock ? String(v.stock_qty) : "0"} autoFocus={!byBox} onChange={(e) => setCount(e.target.value.replace(/\D/g, ""))} />
       </label>
+      {byBox && typed && (
+        <p className="stk-total">
+          = <b>{total}</b> pieces{v.track_stock ? ` (now ${v.stock_qty})` : ""}
+        </p>
+      )}
       <label className="ape-field">
         <span>Reason</span>
         <input value={note} placeholder="e.g. counted the shelf, 2 broken" onChange={(e) => setNote(e.target.value)} />

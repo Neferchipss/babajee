@@ -5,8 +5,8 @@ import { type ReactNode, type RefObject, useEffect, useRef, useState } from "rea
 import { Bin } from "@/components/admin/ui";
 import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
 import { suggestSku } from "@/lib/sku";
-import type { adminApi } from "@/lib/admin-api";
-import { subcategoriesOf, type AdminCategory, type AdminProduct, type AdminVariant, type ProductStatus, type Spec } from "@/lib/admin-data";
+import { isAdminDemo, type adminApi } from "@/lib/admin-api";
+import { boxLabel, subcategoriesOf, type AdminCategory, type AdminProduct, type AdminVariant, type BoxTemplate, type ProductStatus, type Spec } from "@/lib/admin-data";
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
@@ -216,8 +216,30 @@ export default function ProductEditor({
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const many = product.variants.length > 1;
+  // boxes (0058) sit under the loose option they hold, not beside it
+  const many = product.variants.filter((v) => !v.unit_variant_id).length > 1;
   const tracked = product.variants.some((v) => v.track_stock);
+  const boxMode = !!categories.find((c) => c.id === product.category_id)?.sold_in_boxes || product.variants.some((v) => v.unit_variant_id);
+  const [templates, setTemplates] = useState<BoxTemplate[]>([]);
+  useEffect(() => {
+    if (!boxMode) return;
+    api.listBoxTemplates().then(setTemplates).catch(() => setTemplates([]));
+  }, [api, boxMode]);
+  // a box of `pieces` of this loose option: off the shop until ticked, priced at
+  // the pieces' price to start (type the box's own price)
+  const addBox = (unit: AdminVariant, pieces: number) =>
+    run(async () => {
+      await api.saveBoxTemplate(pieces).catch(() => {});
+      await api.upsertVariant(product.id, {
+        label: many ? `${unit.label} · ${boxLabel(pieces)}` : boxLabel(pieces),
+        price: Math.round(unit.price * pieces * 100) / 100,
+        is_visible: false,
+        sort_order: product.variants.length,
+        unit_variant_id: unit.id,
+        pack_of: pieces,
+      });
+      setTemplates(await api.listBoxTemplates().catch(() => templates));
+    });
   // the shop's GST rate, the default for stock bought in a product with no bracket of its own
   const [shopRate, setShopRate] = useState(18);
   useEffect(() => {
@@ -394,6 +416,7 @@ export default function ProductEditor({
           onPatch={(patch) => run(() => api.updateProduct(product.id, patch))}
           onVariant={(v, patch) => run(() => api.upsertVariant(product.id, { ...v, ...patch }))}
           onDeleteVariant={(v) => run(() => api.deleteVariant(v.id))}
+          boxes={boxMode ? { templates, onAdd: addBox } : null}
           onAdd={() =>
             run(() =>
               api.upsertVariant(product.id, { label: many ? "New size or colour" : "Size or colour 2", price: mainPrice(product), is_visible: true, sort_order: product.variants.length }),
@@ -426,7 +449,7 @@ export default function ProductEditor({
         </section>
 
         {/* everything else, one tap away */}
-        <Fold title="More" summary="Description, codes, Google listing, delete">
+        <Fold title="More" summary="Description, codes, weight and size, videos, Google listing, delete">
           <section className="ape-fields">
             <h3>Description</h3>
             <label className="ape-field ape-field--wide">
@@ -481,6 +504,10 @@ export default function ProductEditor({
           <HsnField key={`hsn-${product.id}`} product={product} onSave={(hsn) => run(() => api.updateProduct(product.id, { hsn }))} />
 
           <VariantCodes product={product} categorySlug={categories.find((c) => c.id === product.category_id)?.slug ?? product.category_slug ?? ""} onSave={(id, patch) => run(() => api.upsertVariant(product.id, { id, ...patch }))} />
+
+          <WeightSize product={product} onSave={(id, patch) => run(() => api.upsertVariant(product.id, { id, ...patch }))} />
+
+          <Videos key={`vid-${product.id}`} urls={product.video_urls} onSave={(video_urls) => run(() => api.updateProduct(product.id, { video_urls }))} />
 
           <SeoListing key={`seo-${product.id}`} product={product} categoryName={categories.find((c) => c.id === product.category_id)?.name ?? product.category_name ?? ""} onSave={(patch) => run(() => api.updateProduct(product.id, patch))} />
 
@@ -658,6 +685,7 @@ function Pricing({
   onDeleteVariant,
   onAdd,
   photos,
+  boxes,
 }: {
   product: AdminProduct;
   onPatch: (patch: { gst_rate?: number | null; cess_rate?: number }) => void;
@@ -665,11 +693,16 @@ function Pricing({
   onDeleteVariant: (v: AdminVariant) => void;
   onAdd: () => void;
   photos: (v: AdminVariant) => ReactNode;
+  // the product's category is sold in boxes (0058): each loose option shows its boxes
+  boxes: { templates: BoxTemplate[]; onAdd: (unit: AdminVariant, pieces: number) => void } | null;
 }) {
-  const variants = product.variants;
-  const ids = variants.map((v) => v.id).join(",");
+  // loose options get the cards; boxes sit inside the option they hold
+  const variants = product.variants.filter((v) => !v.unit_variant_id);
+  const boxesOf = (v: AdminVariant) => product.variants.filter((b) => b.unit_variant_id === v.id);
+  // costs for boxes too (a box's cost is its pieces' x pack_of)
+  const ids = product.variants.map((v) => v.id).join(",");
   // stock in moves the average buying price, so read again when a count moves
-  const counts = variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
+  const counts = product.variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const [costs, setCosts] = useState<Map<string, Purchase> | null>(null);
   const [shop, setShop] = useState<(Rules & { cessOn: boolean }) | null>(null);
   const [err, setErr] = useState("");
@@ -683,7 +716,11 @@ function Pricing({
         setCosts(c);
         setShop({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit, cessOn: s.cess_enabled });
       })
-      .catch(() => setCosts(new Map()));
+      .catch(() => {
+        setCosts(new Map());
+        // the demo catalogue (?demo) works without the database: sample rules
+        if (isAdminDemo()) setShop({ rate: 18, inclusive: true, credit: true, cessOn: false });
+      });
   }, [ids, product.gst_rate, counts]);
 
   const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false, cess: shop?.cessOn ? product.cess_rate : 0 };
@@ -743,12 +780,13 @@ function Pricing({
                 onSave={(patch) => onVariant(v, patch)}
                 onDelete={() => onDeleteVariant(v)}
                 photos={photos(v)}
+                boxes={boxes && <BoxesBlock unit={v} boxes={boxesOf(v)} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />}
               />
             ))}
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onSave={(patch) => onVariant(variants[0], patch)} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onSave={(patch) => onVariant(variants[0], patch)} boxes={boxes && <BoxesBlock unit={variants[0]} boxes={boxesOf(variants[0])} costs={costs} rules={rules} templates={boxes.templates} onAdd={boxes.onAdd} onSave={onVariant} onDelete={onDeleteVariant} />} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -783,6 +821,7 @@ function PriceRow({
   rules,
   gst,
   photos,
+  boxes,
   onBuying,
   onSave,
   onDelete,
@@ -793,6 +832,7 @@ function PriceRow({
   rules: Rules;
   gst?: ReactNode;
   photos?: ReactNode;
+  boxes?: ReactNode;
   onBuying: (purchase: number | null, gst?: SupplierGst) => void;
   onSave: (patch: Partial<AdminVariant>) => void;
   onDelete?: () => void;
@@ -929,6 +969,14 @@ function PriceRow({
         </span>
         <Money value={sell} label={`${v.label} selling price`} placeholder="0" onChange={setSell} onSave={() => s !== v.price && onSave({ price: s })} />
       </label>
+      {/* the same price the other way round: before GST, or with it (and cess) */}
+      {s > 0 && (
+        <p className="ape-other-price">
+          {rules.inclusive
+            ? `${money(u?.net ?? (s * 100) / (100 + rules.rate + (rules.cess ?? 0)))} before GST${rules.cess ? " and cess" : ""}`
+            : `${money(u?.sale ?? (s * (100 + rules.rate + (rules.cess ?? 0))) / 100)} with GST${rules.cess ? " and cess" : ""}: what the customer pays`}
+        </p>
+      )}
 
       {/* the headline is what the shop keeps once the GST collected is paid over;
           gross (with that GST still in it) is shown underneath for reference */}
@@ -947,8 +995,118 @@ function PriceRow({
           <small>{b == null && !s ? "Type the purchase and selling price to see the profit." : b == null ? "Type the purchase price to see the profit." : "Type the selling price to see the profit."}</small>
         )}
       </div>
+      {boxes}
       {photos && <div className="ape-opt-photos">{photos}</div>}
     </li>
+  );
+}
+
+// A loose option's boxes (0058): each one's stock in boxes, its own selling
+// price, whether it is sold to customers, and what it costs and earns per box
+// (its cost is the pieces' cost x the pieces in it). Then a way to add one,
+// from the shop's usual sizes or any other.
+function BoxesBlock({
+  unit,
+  boxes,
+  costs,
+  rules,
+  templates,
+  onAdd,
+  onSave,
+  onDelete,
+}: {
+  unit: AdminVariant;
+  boxes: AdminVariant[];
+  costs: Map<string, Purchase>;
+  rules: Rules;
+  templates: BoxTemplate[];
+  onAdd: (unit: AdminVariant, pieces: number) => void;
+  onSave: (v: AdminVariant, patch: Partial<AdminVariant>) => void;
+  onDelete: (v: AdminVariant) => void;
+}) {
+  const [other, setOther] = useState("");
+  const have = new Set(boxes.map((b) => b.pack_of));
+  const n = Number(other);
+  const add = (pieces: number) => {
+    if (!Number.isInteger(pieces) || pieces < 2 || have.has(pieces)) return;
+    setOther("");
+    onAdd(unit, pieces);
+  };
+  return (
+    <div className="ape-boxes">
+      <div className="ape-boxes-head">
+        <b>Boxes</b>
+        <small>
+          {unit.track_stock ? `${unit.stock_qty} pieces in stock` : "Stock not counted yet"}
+          {/* in the biggest box: "= 2 boxes of 50 + 7 loose" */}
+          {boxes.length > 0 && unit.track_stock && unit.stock_qty > 0 && (() => {
+            const big = Math.max(...boxes.map((b) => b.pack_of));
+            const full = Math.floor(unit.stock_qty / big);
+            return ` = ${full} ${full === 1 ? "box" : "boxes"} of ${big} + ${unit.stock_qty - full * big} loose`;
+          })()}
+        </small>
+      </div>
+      {boxes.map((b) => (
+        <BoxRow key={b.id} box={b} have={costs.get(b.id)} rules={rules} onSave={(patch) => onSave(b, patch)} onDelete={() => onDelete(b)} />
+      ))}
+      <div className="ape-boxes-add">
+        <span>+ Add a box</span>
+        {templates
+          .filter((t) => !have.has(t.pieces))
+          .map((t) => (
+            <button key={t.id} type="button" className="ape-chip" onClick={() => add(t.pieces)}>
+              {t.label}
+            </button>
+          ))}
+        <span className="ape-money ape-boxes-other">
+          <input inputMode="numeric" aria-label="Pieces in another box size" placeholder="Other size" value={other} onChange={(e) => setOther(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && add(n)} />
+        </span>
+        {other !== "" && (
+          <button type="button" className="ape-chip" disabled={!(n >= 2) || have.has(n)} onClick={() => add(n)}>
+            {have.has(n) ? "Already there" : `Add ${boxLabel(n)}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BoxRow({ box: b, have, rules, onSave, onDelete }: { box: AdminVariant; have: Purchase | undefined; rules: Rules; onSave: (patch: Partial<AdminVariant>) => void; onDelete: () => void }) {
+  const [sell, setSell] = useState(b.price ? String(b.price) : "");
+  const [sellWas, setSellWas] = useState(b.price);
+  if (b.price !== sellWas) {
+    setSellWas(b.price);
+    setSell(b.price ? String(b.price) : "");
+  }
+  const [confirm, setConfirm] = useState(false);
+  const s = Number(sell) || 0;
+  const u = have && s > 0 ? unitProfit(s, have.cost, rules, { paid: have.gstPaid, claimable: have.gstClaimable }) : null;
+  const money = (n: number) => formatPrice(n, { paise: true });
+  return (
+    <div className="ape-box">
+      <div className="ape-box-name">
+        <b>{boxLabel(b.pack_of)}</b>
+        <small>{b.track_stock ? `${Math.max(0, b.stock_qty)} in stock` : "not counted"}</small>
+      </div>
+      <Money value={sell} label={`${b.label} selling price`} placeholder="0" onChange={setSell} onSave={() => s !== b.price && onSave({ price: s })} />
+      <button type="button" className={`ape-switch ape-switch--sm ${b.is_visible ? "is-on" : ""}`} aria-pressed={b.is_visible} onClick={() => onSave({ is_visible: !b.is_visible })} title={b.is_visible ? "Sold to customers: tap to stop" : "Not sold as a box: tap to sell it"}>
+        <i aria-hidden="true" />
+        <span>{b.is_visible ? "Sold to customers" : "Not sold as a box"}</span>
+      </button>
+      {confirm ? (
+        <button type="button" className="ape-del is-sure" onClick={onDelete} onBlur={() => setConfirm(false)}>
+          Delete?
+        </button>
+      ) : (
+        <button type="button" className="ape-del" onClick={() => setConfirm(true)} aria-label={`Delete ${b.label}`}>
+          ×
+        </button>
+      )}
+      <small className={`ape-box-profit ${u ? (u.kept < 0 ? "is-neg" : "is-pos") : ""}`}>
+        {have ? `Cost ${money(have.cost)}` : "No cost yet"}
+        {u && ` · ${u.kept < 0 ? "loss" : "profit"} ${money(Math.abs(u.kept))} a box after GST`}
+      </small>
+    </div>
   );
 }
 
@@ -1296,6 +1454,95 @@ function CodeRow({ variant: v, many, hint, onSave }: { variant: AdminVariant; ma
         ) : null}
       </span>
     </>
+  );
+}
+
+// Each option's packed weight and size (0059): a box weighs what its pieces
+// do and more, so boxes get their own. For shipping, and shown on the product
+// page. Empty when not known.
+function WeightSize({ product, onSave }: { product: AdminProduct; onSave: (id: string, patch: Partial<AdminVariant>) => Promise<boolean> }) {
+  const many = product.variants.length > 1;
+  return (
+    <section className="ape-fields ape-codes">
+      <h3>Weight and size</h3>
+      <p className="ape-hint">Packed, as it ships: weight in grams, size in centimetres (length × width × height).</p>
+      <div className={`ape-codes-grid ape-size-grid ${many ? "is-many" : ""}`}>
+        <span className="ape-codes-th">{many ? "Option" : ""}</span>
+        <span className="ape-codes-th">Weight (g)</span>
+        <span className="ape-codes-th">L × W × H (cm)</span>
+        {product.variants.map((v) => (
+          // keyed on the option alone: a save re-reads the product, and the row
+          // must not start over while the next box is being typed in
+          <SizeRow key={v.id} variant={v} many={many} onSave={(patch) => onSave(v.id, patch)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SizeRow({ variant: v, many, onSave }: { variant: AdminVariant; many: boolean; onSave: (patch: Partial<AdminVariant>) => void }) {
+  const str = (n: number | null) => (n == null ? "" : String(n));
+  const [w, setW] = useState(str(v.weight_g));
+  const [l, setL] = useState(str(v.length_cm));
+  const [wd, setWd] = useState(str(v.width_cm));
+  const [h, setH] = useState(str(v.height_cm));
+  const enter = (e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && e.currentTarget.blur();
+  // empty or zero: not known
+  const num = (x: string) => (Number(x) > 0 ? Math.round(Number(x) * 10) / 10 : null);
+  const field = (label: string, value: string, set: (x: string) => void, key: keyof AdminVariant) => (
+    <input
+      aria-label={`${v.label} ${label}`}
+      inputMode="decimal"
+      value={value}
+      placeholder="–"
+      onChange={(e) => set(e.target.value.replace(/[^\d.]/g, ""))}
+      onKeyDown={enter}
+      onBlur={() => num(value) !== v[key] && onSave({ [key]: num(value) } as Partial<AdminVariant>)}
+    />
+  );
+  return (
+    <>
+      <span className="ape-codes-opt">{many ? v.label : ""}</span>
+      {field("weight in grams", w, setW, "weight_g")}
+      <span className="ape-size-lwh">
+        {field("length in cm", l, setL, "length_cm")}
+        <i aria-hidden="true">×</i>
+        {field("width in cm", wd, setWd, "width_cm")}
+        <i aria-hidden="true">×</i>
+        {field("height in cm", h, setH, "height_cm")}
+      </span>
+    </>
+  );
+}
+
+// Links to the product's videos (0059): YouTube, or a direct .mp4. Up to six,
+// one a line; shown on the product's page.
+function Videos({ urls, onSave }: { urls: string[]; onSave: (urls: string[]) => void }) {
+  const [text, setText] = useState(urls.join("\n"));
+  const list = text
+    .split(/\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const bad = list.filter((x) => !/^https:\/\/\S+$/.test(x));
+  const ok = !bad.length && list.length <= 6;
+  return (
+    <section className="ape-fields">
+      <h3>Videos</h3>
+      <label className="ape-field">
+        <span>Links, one a line (YouTube, or a direct .mp4 link). Up to six.</span>
+        <textarea
+          rows={3}
+          spellCheck={false}
+          placeholder="https://www.youtube.com/watch?v=…"
+          value={text}
+          aria-invalid={!ok}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => ok && list.join("\n") !== urls.join("\n") && onSave(list)}
+        />
+      </label>
+      {bad.length > 0 && <p className="ape-err">Each link starts with https:// ({bad[0]} doesn&apos;t).</p>}
+      {list.length > 6 && <p className="ape-err">Six videos at most.</p>}
+    </section>
   );
 }
 

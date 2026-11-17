@@ -203,12 +203,25 @@ async function liveCategoryDetail(slug: string) {
 // A product's description and brand, for the desktop product page (the
 // shelf's cards don't carry them). Empty when there is none or no database.
 export type ProductSpec = { label: string; value: string };
-export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[] }> {
+// Its weight and size per option, and its video links (0059), with them.
+export type OptionSize = { label: string; weight_g: number | null; length_cm: number | null; width_cm: number | null; height_cm: number | null };
+export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[]; videos: string[]; sizes: OptionSize[] }> {
+  const none = { description: "", brand: "", specs: [], videos: [], sizes: [] };
   const sb = client();
-  if (!sb) return { description: "", brand: "", specs: [] };
-  const { data } = await sb.from("products").select("description, brand, specs").eq("slug", productSlug).maybeSingle();
-  const specs = Array.isArray(data?.specs) ? (data.specs as ProductSpec[]).filter((r) => r && r.label && r.value) : [];
-  return { description: data?.description ?? "", brand: data?.brand ?? "", specs };
+  if (!sb) return none;
+  // with 0059's columns; before they exist, without them
+  let { data, error } = await sb
+    .from("products")
+    .select("description, brand, specs, video_urls, product_variants(label, weight_g, length_cm, width_cm, height_cm)")
+    .eq("slug", productSlug)
+    .maybeSingle();
+  if (error) ({ data, error } = await sb.from("products").select("description, brand, specs").eq("slug", productSlug).maybeSingle());
+  if (!data) return none;
+  const row = data as { description?: string; brand?: string; specs?: unknown; video_urls?: string[]; product_variants?: Record<string, unknown>[] };
+  const specs = Array.isArray(row.specs) ? (row.specs as ProductSpec[]).filter((r) => r && r.label && r.value) : [];
+  const n = (x: unknown) => (x == null ? null : toNumber(x));
+  const sizes = (row.product_variants ?? []).map((v) => ({ label: String(v.label), weight_g: n(v.weight_g), length_cm: n(v.length_cm), width_cm: n(v.width_cm), height_cm: n(v.height_cm) }));
+  return { description: row.description ?? "", brand: row.brand ?? "", specs, videos: (row.video_urls ?? []).filter((u) => /^https:\/\//.test(u)), sizes };
 }
 
 export async function getProductDetail(categorySlug: string, productSlug: string) {

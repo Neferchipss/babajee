@@ -2704,10 +2704,93 @@ select.ape-line-input {
   color: var(--color-red-soft, #ff8a8a);
 }
 
+/* the selling price the other way round (with or without GST) */
+.ape-other-price {
+  margin: -6px 0 4px;
+  text-align: right;
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* boxes of a loose option (0058) */
+.ape-boxes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--ap-line);
+}
+.ape-boxes-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.ape-boxes-head small,
+.ape-box-name small,
+.ape-box-profit {
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+}
+/* the panel is narrow: name, price and delete on top, the switch under */
+.ape-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ap-line);
+}
+.ape-box .ape-switch {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: start;
+}
+.ape-box-name {
+  display: grid;
+}
+.ape-box .ape-money input {
+  width: 96px;
+}
+.ape-box .ape-switch span {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.ape-box-profit {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+}
+.ape-box-profit.is-pos {
+  color: var(--color-green-soft, #7ef0c4);
+}
+.ape-box-profit.is-neg {
+  color: var(--color-red-soft, #ff8a8a);
+}
+.ape-boxes-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 0.85rem;
+}
+.ape-boxes-add > span:first-child {
+  color: var(--ap-muted);
+}
+.ape-boxes-add .ape-chip {
+  margin: 0;
+}
+.ape-boxes-other input {
+  width: 96px;
+}
+
 /* GST paid to the supplier: rate chips, the amount (typed over or not), and
    a way back to the rate's amount */
 .ape-gst-paid {
   display: flex;
+  flex: 1 1 260px;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -2963,4 +3046,22 @@ select.ape-line-input {
     width: 15px;
     height: 15px;
   }
+}
+
+/* weight and size (0059): option, weight, then L x W x H on one line */
+.ape-codes-grid.ape-size-grid {
+  grid-template-columns: 0 minmax(0, 0.7fr) minmax(0, 1.6fr);
+}
+.ape-codes-grid.ape-size-grid.is-many {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1.6fr);
+}
+.ape-size-lwh {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.ape-size-lwh i {
+  color: var(--ap-muted);
+  font-style: normal;
 }

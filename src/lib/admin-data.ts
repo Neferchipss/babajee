@@ -7,7 +7,8 @@ import { toNumber } from "./currency";
 import { uncounted } from "./stock-in/db";
 import { getSupabase } from "./supabase";
 
-export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null };
+// sold_in_boxes: its products are bought (and may be sold) in boxes (0058)
+export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null; sold_in_boxes?: boolean };
 export type AdminVariant = {
   id: string;
   label: string;
@@ -21,6 +22,15 @@ export type AdminVariant = {
   sku: string | null;
   barcode: string | null;
   compare_at: number | null;
+  // a box (0058): the loose option it holds and how many; pack_of 1 and no
+  // unit for a loose option. A box's stock is its loose option's pieces / pack_of.
+  pack_of: number;
+  unit_variant_id: string | null;
+  // packed weight (grams) and size (cm), for shipping and the product page (0059)
+  weight_g: number | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
 };
 // A photo uploaded from the admin, in the product-photos bucket
 // (supabase/migrations/0012_product_photo_storage.sql). variant_id ties it to
@@ -50,6 +60,8 @@ export type AdminProduct = {
   // its GST bracket (0, 5, 12, 18, 28 or 40); null = the shop's default rate.
   // HSN code for the invoice, may be empty (0030)
   gst_rate: number | null;
+  // links to its videos, shown on its page (0059)
+  video_urls: string[];
   // cess on top of GST, percent (0057; charged only with cess switched on)
   cess_rate: number;
   hsn: string;
@@ -92,6 +104,12 @@ function toVariant(row: {
   sku?: string | null;
   barcode?: string | null;
   compare_at?: unknown;
+  pack_of?: number | null;
+  unit_variant_id?: string | null;
+  weight_g?: unknown;
+  length_cm?: unknown;
+  width_cm?: unknown;
+  height_cm?: unknown;
 }): AdminVariant {
   return {
     ...row,
@@ -101,13 +119,19 @@ function toVariant(row: {
     sku: row.sku ?? null,
     barcode: row.barcode ?? null,
     compare_at: row.compare_at == null ? null : toNumber(row.compare_at),
+    pack_of: row.pack_of ?? 1,
+    unit_variant_id: row.unit_variant_id ?? null,
+    weight_g: row.weight_g == null ? null : toNumber(row.weight_g),
+    length_cm: row.length_cm == null ? null : toNumber(row.length_cm),
+    width_cm: row.width_cm == null ? null : toNumber(row.width_cm),
+    height_cm: row.height_cm == null ? null : toNumber(row.height_cm),
   };
 }
 
 export async function listCategories(): Promise<AdminCategory[]> {
   const { data, error } = await db()
     .from("categories")
-    .select("id, slug, name, sort_order, is_visible, tagline")
+    .select("id, slug, name, sort_order, is_visible, tagline, sold_in_boxes")
     .order("sort_order");
   if (error) throw error;
   return data ?? [];
@@ -118,7 +142,7 @@ export async function createCategory(input: { slug: string; name: string; sort_o
   if (error) throw error;
 }
 
-export async function updateCategory(id: string, patch: Partial<Pick<AdminCategory, "name" | "sort_order" | "is_visible" | "tagline">>) {
+export async function updateCategory(id: string, patch: Partial<Pick<AdminCategory, "name" | "sort_order" | "is_visible" | "tagline" | "sold_in_boxes">>) {
   const { error } = await db().from("categories").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -142,7 +166,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, cess_rate, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, cess_rate, video_urls, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at, pack_of, unit_variant_id, weight_g, length_cm, width_cm, height_cm), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -156,6 +180,7 @@ type ProductRow = {
   seo_description: string | null;
   gst_rate: number | string | null;
   cess_rate?: number | string | null;
+  video_urls?: string[] | null;
   hsn: string | null;
   is_visible: boolean;
   status?: ProductStatus | null;
@@ -185,6 +210,7 @@ function toProduct(row: ProductRow): AdminProduct {
     seo_description: row.seo_description ?? "",
     gst_rate: row.gst_rate == null ? null : Number(row.gst_rate),
     cess_rate: Number(row.cess_rate ?? 0),
+    video_urls: row.video_urls ?? [],
     hsn: row.hsn ?? "",
     is_visible: row.is_visible,
     status: row.status ?? (row.is_visible ? "published" : "draft"),
@@ -235,7 +261,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "cess_rate" | "hsn" | "is_visible" | "status" | "subcategory" | "specs" | "low_stock_at" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "cess_rate" | "video_urls" | "hsn" | "is_visible" | "status" | "subcategory" | "specs" | "low_stock_at" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;
@@ -317,6 +343,8 @@ export async function upsertVariant(productId: string, variant: Partial<AdminVar
         track_stock: track,
         is_visible: variant.is_visible ?? true,
         sort_order: variant.sort_order ?? 0,
+        // a box: the database gives it its stock from the loose option (0058)
+        ...(variant.unit_variant_id ? { unit_variant_id: variant.unit_variant_id, pack_of: variant.pack_of ?? 2 } : {}),
       });
     if (error) throw error;
   }
@@ -344,6 +372,24 @@ export async function deleteProduct(product: AdminProduct) {
 
 export async function deleteVariant(id: string) {
   const { error } = await db().from("product_variants").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// --- box templates (0058) ------------------------------------------------------
+
+// The shop's usual box sizes, to pick from when adding a box to a product.
+export type BoxTemplate = { id: string; pieces: number; label: string };
+export const boxLabel = (pieces: number) => `Box of ${pieces}`;
+
+export async function listBoxTemplates(): Promise<BoxTemplate[]> {
+  const { data, error } = await db().from("box_templates").select("id, pieces, label").order("pieces");
+  if (error) throw error;
+  return (data ?? []).map((t) => ({ ...t, label: t.label || boxLabel(t.pieces) }));
+}
+
+// a size used once is kept for next time (one per number of pieces)
+export async function saveBoxTemplate(pieces: number): Promise<void> {
+  const { error } = await db().from("box_templates").upsert({ pieces, label: boxLabel(pieces) }, { onConflict: "pieces", ignoreDuplicates: true });
   if (error) throw error;
 }
 

@@ -43,7 +43,7 @@ export default function ProductDesk({
   const [choice, setChoice] = useState({ slug: "", v: 0 });
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState("");
-  const [about, setAbout] = useState<{ slug: string; description: string; brand: string; specs: { label: string; value: string }[] } | null>(null);
+  const [about, setAbout] = useState<({ slug: string } & Awaited<ReturnType<typeof import("@/lib/catalog-db").getProductDescription>>) | null>(null);
   // where the header sits: the page starts under it and lines up with its
   // edges (the logo on the left, Profile on the right)
   const [box, setBox] = useState({ top: 0, left: 0, width: 0 });
@@ -119,7 +119,7 @@ export default function ProductDesk({
     import("@/lib/catalog-db")
       .then((m) => m.getProductDescription(p.slug))
       .then((d) => live && setAbout({ slug: p.slug, ...d }))
-      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "", specs: [] }));
+      .catch(() => live && setAbout({ slug: p.slug, description: "", brand: "", specs: [], videos: [], sizes: [] }));
     return () => {
       live = false;
     };
@@ -148,6 +148,14 @@ export default function ProductDesk({
   }
 
   const info = about?.slug === p.slug ? about : null;
+  // the chosen option's weight and size (0059), read as specifications
+  const size = info?.sizes.find((x) => x.label === variant.label) ?? (info?.sizes.length === 1 ? info.sizes[0] : undefined);
+  const dims = size && size.length_cm && size.width_cm && size.height_cm ? `${size.length_cm} × ${size.width_cm} × ${size.height_cm} cm` : "";
+  const specs = [
+    ...(info?.specs ?? []),
+    ...(size?.weight_g ? [{ label: "Weight", value: size.weight_g >= 1000 ? `${Math.round(size.weight_g / 100) / 10} kg` : `${size.weight_g} g` }] : []),
+    ...(dims ? [{ label: "Size", value: dims }] : []),
+  ];
   if (!host) return null;
   return createPortal(
     <div
@@ -232,17 +240,25 @@ export default function ProductDesk({
                 <p>{info.description}</p>
               </section>
             ) : null}
-            {info?.specs.length ? (
+            {specs.length ? (
               <section className="pdk-about pdk-specs">
                 <h2>Specifications</h2>
                 <dl>
-                  {info.specs.map((s) => (
+                  {specs.map((s) => (
                     <div key={s.label}>
                       <dt>{s.label}</dt>
                       <dd>{s.value}</dd>
                     </div>
                   ))}
                 </dl>
+              </section>
+            ) : null}
+            {info?.videos.length ? (
+              <section className="pdk-about pdk-videos">
+                <h2>{info.videos.length === 1 ? "Video" : "Videos"}</h2>
+                {info.videos.map((u) => (
+                  <ProductVideo key={u} url={u} title={p.name} />
+                ))}
               </section>
             ) : null}
             <ProductReviews slug={p.slug} id="pdk-reviews" />
@@ -321,6 +337,31 @@ function Gallery({ name, tone, slug, option }: { name: string; tone: string; slu
             </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// A video link (0059): YouTube plays in its no-cookie player; anything else
+// (a direct .mp4) in the browser's own. Loaded only when it is played.
+function youTubeId(url: string) {
+  const m = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/.exec(url);
+  return m ? m[1] : null;
+}
+function ProductVideo({ url, title }: { url: string; title: string }) {
+  const yt = youTubeId(url);
+  return (
+    <div className="pdk-video">
+      {yt ? (
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${yt}`}
+          title={`${title}: video`}
+          loading="lazy"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      ) : (
+        <video src={url} controls preload="none" playsInline aria-label={`${title}: video`} />
       )}
     </div>
   );
