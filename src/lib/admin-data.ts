@@ -50,6 +50,8 @@ export type AdminProduct = {
   // its GST bracket (0, 5, 12, 18, 28 or 40); null = the shop's default rate.
   // HSN code for the invoice, may be empty (0030)
   gst_rate: number | null;
+  // cess on top of GST, percent (0057; charged only with cess switched on)
+  cess_rate: number;
   hsn: string;
   is_visible: boolean;
   // draft, on the shop, or archived (0041); is_visible follows it
@@ -140,7 +142,7 @@ export async function moveCategory(rows: AdminCategory[], id: string, direction:
 }
 
 const PRODUCT_SELECT =
-  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
+  "id, slug, name, description, brand, product_type, tags, seo_title, seo_description, gst_rate, cess_rate, hsn, is_visible, status, subcategory, specs, low_stock_at, sort_order, category_id, categories(slug, name), product_variants(id, label, price, stock_qty, track_stock, is_visible, sort_order, sku, barcode, compare_at), product_images(id, storage_path, variant_id, sort_order, alt_text)";
 
 type ProductRow = {
   id: string;
@@ -153,6 +155,7 @@ type ProductRow = {
   seo_title: string | null;
   seo_description: string | null;
   gst_rate: number | string | null;
+  cess_rate?: number | string | null;
   hsn: string | null;
   is_visible: boolean;
   status?: ProductStatus | null;
@@ -181,6 +184,7 @@ function toProduct(row: ProductRow): AdminProduct {
     seo_title: row.seo_title ?? "",
     seo_description: row.seo_description ?? "",
     gst_rate: row.gst_rate == null ? null : Number(row.gst_rate),
+    cess_rate: Number(row.cess_rate ?? 0),
     hsn: row.hsn ?? "",
     is_visible: row.is_visible,
     status: row.status ?? (row.is_visible ? "published" : "draft"),
@@ -231,7 +235,7 @@ export async function createProduct(input: { category_id: string; slug: string; 
 
 export async function updateProduct(
   id: string,
-  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "hsn" | "is_visible" | "status" | "subcategory" | "specs" | "low_stock_at" | "category_id" | "sort_order">>,
+  patch: Partial<Pick<AdminProduct, "name" | "description" | "brand" | "product_type" | "tags" | "seo_title" | "seo_description" | "gst_rate" | "cess_rate" | "hsn" | "is_visible" | "status" | "subcategory" | "specs" | "low_stock_at" | "category_id" | "sort_order">>,
 ) {
   const { error } = await db().from("products").update(patch).eq("id", id);
   if (error) throw error;

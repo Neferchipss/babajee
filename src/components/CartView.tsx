@@ -278,10 +278,10 @@ export default function CartView({ recs = [] }: { recs?: RecGroup[] }) {
 // out the same way place_order() will (lib/gst.ts). Until the rules load, or
 // if they can't, it shows the plain item total.
 // Each product's GST bracket comes from the catalogue; one without its own
-// uses the shop's default rate.
+// uses the shop's default rate. Cess (0057) only when switched on in Settings.
 function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined }) {
   const [rules, setRules] = useState<StoreSettings | null>(null);
-  const [rates, setRates] = useState<Map<string, number | null> | null>(null);
+  const [rates, setRates] = useState<Map<string, { gst: number | null; cess: number }> | null>(null);
   const slugs = [...new Set(cart.map((l) => l.slug))].sort().join(",");
   useEffect(() => {
     import("@/lib/orders-db")
@@ -298,7 +298,7 @@ function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined
   const b =
     sub !== undefined && rules && rates
       ? bill(
-          cart.map((l) => ({ gross: lineTotal(l) ?? 0, rate: rates.get(l.slug) ?? rules.gst_rate })),
+          cart.map((l) => ({ gross: lineTotal(l) ?? 0, rate: rates.get(l.slug)?.gst ?? rules.gst_rate, cess: rules.cess_enabled ? (rates.get(l.slug)?.cess ?? 0) : 0 })),
           rules.free_shipping_over != null && sub >= rules.free_shipping_over ? 0 : rules.shipping,
           rules.gst_inclusive,
         )
@@ -319,6 +319,12 @@ function CheckoutBill({ cart, sub }: { cart: CartLine[]; sub: number | undefined
             <div className="flex justify-between">
               <dt className="text-muted">{gstLabel(rules!.gst_inclusive, b.rate)}</dt>
               <dd className="tabular-nums">{rs(b.tax)}</dd>
+            </div>
+          )}
+          {b.cess > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-muted">{rules!.gst_inclusive ? "Includes cess" : "Cess"}</dt>
+              <dd className="tabular-nums">{rs(b.cess)}</dd>
             </div>
           )}
         </dl>

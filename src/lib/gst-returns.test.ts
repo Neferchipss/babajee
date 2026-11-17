@@ -100,3 +100,24 @@ test("3b adds the 180-day reversal to the net", () => {
   const t = gstr3b([doc({ number: "X", lines: [line(18, 100, false)] })], [], { igst: 0, cgst: 2, sgst: 2 });
   assert.deepEqual(t.rows[4].slice(2, 5), [0, 11, 11]);
 });
+
+// CESS (0057): its columns carry the cess, credit notes netted off
+test("cess fills the GSTR-1 and 3B cess columns", () => {
+  const withCess = [
+    doc({ number: "BJ/26-27/0101", lines: [{ ...line(28, 100, false), cess: 12 }] }),
+    doc({ kind: "credit", number: "BJ-CN/26-27/0101", against: { number: "BJ/26-27/0101", date: "2026-11-10", value: 140 }, lines: [{ ...line(28, 50, false), cess: 6 }] }),
+  ];
+  const t = gstr1(withCess);
+  const b2cs = t.find((x) => x.name === "gstr1-b2cs")!;
+  assert.deepEqual(b2cs.rows, [["OE", "27-Maharashtra", 28, 50, 6]]);
+  const hsn = t.find((x) => x.name === "gstr1-hsn")!;
+  assert.equal(hsn.rows[0][9], 6);
+  assert.equal(hsn.rows[0][3], 70); // value: (100 + 28 + 12) - (50 + 14 + 6)
+  const s3b = gstr3b(withCess, []);
+  assert.equal(s3b.rows[0][5], 6);
+});
+
+test("no cess leaves the cess columns at 0", () => {
+  const b2cs = gstr1(docs).find((t) => t.name === "gstr1-b2cs")!;
+  assert.ok(b2cs.rows.every((r) => r[4] === 0));
+});

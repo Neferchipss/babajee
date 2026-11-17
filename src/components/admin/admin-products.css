@@ -2704,6 +2704,79 @@ select.ape-line-input {
   color: var(--color-red-soft, #ff8a8a);
 }
 
+/* GST paid to the supplier: rate chips, the amount (typed over or not), and
+   a way back to the rate's amount */
+.ape-gst-paid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.ape-gst-paid .ape-chips {
+  flex-wrap: wrap;
+}
+.ape-gst-paid .ape-chips button {
+  min-width: 42px;
+  min-height: 34px;
+  font-size: 0.85rem;
+}
+.ape-gst-paid .ape-chips button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ape-gst-paid .ape-money input {
+  width: 96px;
+}
+.ape-line-sub {
+  display: block;
+  color: var(--ap-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* the GST behind the profit, written out */
+.ape-gst-note summary {
+  color: var(--ap-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  list-style: none;
+}
+.ape-gst-note summary::-webkit-details-marker {
+  display: none;
+}
+.ape-gst-note .ape-link {
+  font-size: inherit;
+}
+.ape-gst-note dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 10px 0 2px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.ape-gst-note dt {
+  color: var(--ap-muted);
+}
+.ape-gst-note dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ape-profit .ape-gst-note b {
+  font-size: inherit;
+  color: inherit;
+}
+@media (max-width: 520px) {
+  .ape-gst-note dl {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .ape-gst-note dd {
+    margin-bottom: 6px;
+  }
+}
+
 /* one product without sizes: the lines sit straight in the section */
 .ape-one {
   list-style: none;

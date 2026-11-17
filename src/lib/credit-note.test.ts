@@ -44,3 +44,20 @@ test("refunded shipping carries no GST", () => {
   assert.equal(cn.gst, 30.51);
   assert.equal(cn.total, 250);
 });
+
+// CESS (0057): the same case as supabase/tests/0057 (refund_keeps_cess)
+test("a refunded item with cess credits GST and cess", () => {
+  const o = {
+    id: "o",
+    address_state: "Maharashtra",
+    gst_inclusive: true,
+    gst_rate: null,
+    order_items: [{ id: "c", product_name: "C", variant_label: "", unit_price: 140, quantity: 1, gst_rate: 28, cess_rate: 12, hsn: "2402" }],
+    order_refunds: [{ id: "r", amount: 0, subtotal: 0, shipping: 0, tax: 0, order_refund_items: [{ refund_id: "r", order_item_id: "c", quantity: 1 }] }],
+  } as unknown as Order;
+  const cn = creditNoteOf(note(140), o, "Maharashtra");
+  assert.equal(cn.gst, 28);
+  assert.equal(cn.cess, 12);
+  assert.equal(cn.taxable, 100);
+  assert.equal(cn.total, 140);
+});

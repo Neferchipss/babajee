@@ -132,11 +132,13 @@ function Address({ o }: { o: Order }) {
 function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
   const inv = invoiceOf(o, shop.store_state);
   const intra = inv.split === "intra";
-  const taxCols = intra ? ["CGST", "SGST"] : [inv.split === "inter" ? "IGST" : "GST"];
+  // a Cess column only when the invoice carries cess (0057)
+  const hasCess = inv.cess > 0;
+  const taxCols = [...(intra ? ["CGST", "SGST"] : [inv.split === "inter" ? "IGST" : "GST"]), ...(hasCess ? ["Cess"] : [])];
   const anyHsn = inv.lines.some((l) => l.hsn);
   const units = inv.lines.reduce((n, l) => n + l.qty, 0);
   const shopCode = shop.store_state ? stateCode(shop.store_state) || shop.gstin.slice(0, 2) : shop.gstin.slice(0, 2);
-  const taxOf = (x: { cgst: number; sgst: number; igst: number; gst: number }) => (intra ? [x.cgst, x.sgst] : [inv.split === "inter" ? x.igst : x.gst]);
+  const taxOf = (x: { cgst: number; sgst: number; igst: number; gst: number; cess: number }) => [...(intra ? [x.cgst, x.sgst] : [inv.split === "inter" ? x.igst : x.gst]), ...(hasCess ? [x.cess] : [])];
   return (
     <article className="prt-page prt-inv">
       {o.is_test && <div className="prt-test">Test order</div>}
@@ -261,7 +263,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
                   {num(t)}
                 </td>
               ))}
-              <td className="r">{num(r2(inv.taxable + inv.gst))}</td>
+              <td className="r">{num(r2(inv.taxable + inv.gst + inv.cess))}</td>
             </tr>
           </tfoot>
         </table>
@@ -297,7 +299,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
                         {num(x)}
                       </td>
                     ))}
-                    <td className="r">{num(t.gst)}</td>
+                    <td className="r">{num(r2(t.gst + t.cess))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -317,6 +319,12 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
               <>
                 <dt>{inv.split === "inter" ? "IGST" : "GST"}</dt>
                 <dd>{inr(inv.gst)}</dd>
+              </>
+            )}
+            {hasCess && (
+              <>
+                <dt>Cess</dt>
+                <dd>{inr(inv.cess)}</dd>
               </>
             )}
             <dt>Shipping charges</dt>
@@ -357,8 +365,9 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
 function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: StoreSettings }) {
   const cn = creditNoteOf(n, o, shop.store_state);
   const intra = cn.split === "intra";
-  const taxCols = intra ? ["CGST", "SGST"] : [cn.split === "inter" ? "IGST" : "GST"];
-  const taxOf = (x: { cgst: number; sgst: number; igst: number; gst: number }) => (intra ? [x.cgst, x.sgst] : [cn.split === "inter" ? x.igst : x.gst]);
+  const cnCess = cn.cess > 0;
+  const taxCols = [...(intra ? ["CGST", "SGST"] : [cn.split === "inter" ? "IGST" : "GST"]), ...(cnCess ? ["Cess"] : [])];
+  const taxOf = (x: { cgst: number; sgst: number; igst: number; gst: number; cess: number }) => [...(intra ? [x.cgst, x.sgst] : [cn.split === "inter" ? x.igst : x.gst]), ...(cnCess ? [x.cess] : [])];
   const reason = (o.order_refunds ?? []).find((r) => r.id === n.refund_id)?.reason;
   return (
     <article className="prt-page prt-inv">
@@ -475,6 +484,12 @@ function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: Stor
             <dd>{inr(cn.taxable)}</dd>
             <dt>GST</dt>
             <dd>{inr(cn.gst)}</dd>
+            {cnCess && (
+              <>
+                <dt>Cess</dt>
+                <dd>{inr(cn.cess)}</dd>
+              </>
+            )}
             <dt className="inv-grand">Credit amount</dt>
             <dd className="inv-grand">{inr(n.amount)}</dd>
           </dl>

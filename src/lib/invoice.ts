@@ -3,8 +3,9 @@
 // when the buyer is in the shop's own state and IGST when not, a summary per
 // bracket and HSN code, the totals, and the amount in words. Prices are as
 // sold (each line's GST rate, the order's "inside the price" rule), so an
-// invoice never changes when the catalogue does.
-import { lineGst } from "./gst";
+// invoice never changes when the catalogue does. Cess (0057), where a line
+// carries it, sits on the same taxable value and is listed beside the GST.
+import { lineCess, lineGst } from "./gst";
 import type { Order } from "./orders-db";
 
 // GST state codes, the first two digits of a GSTIN
@@ -24,14 +25,15 @@ export function stateCode(state: string) {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; total: number };
+export type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 // one row of the tax summary: lines in the same bracket and HSN code
-export type TaxRow = { hsn: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number };
+export type TaxRow = { hsn: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess: number };
 export type Invoice = {
   lines: InvoiceLine[];
   summary: TaxRow[];
   taxable: number;
   gst: number;
+  cess: number;
   // same state: half each; other state: all IGST; shop's state unknown: just "GST"
   split: "intra" | "inter" | "unknown";
   cgst: number;
@@ -48,9 +50,11 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
   const split: Invoice["split"] = !shopState ? "unknown" : norm(shopState) === norm(o.address_state) ? "intra" : "inter";
   const lines = (o.order_items ?? []).map((i) => {
     const rate = i.gst_rate ?? o.gst_rate ?? 0;
+    const cessRate = i.cess_rate ?? 0;
     const gross = i.unit_price * i.quantity;
-    const gst = lineGst(gross, rate, incl);
-    const taxable = incl ? r2(gross - gst) : r2(gross);
+    const gst = lineGst(gross, rate, incl, cessRate);
+    const cess = lineCess(gross, rate, cessRate, incl);
+    const taxable = incl ? r2(gross - gst - cess) : r2(gross);
     const half = r2(gst / 2);
     return {
       name: i.product_name,
@@ -59,20 +63,22 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
       hsn: i.hsn ?? "",
       qty: i.quantity,
       rate,
+      cessRate,
       unit: r2(taxable / i.quantity),
       taxable,
       gst,
       cgst: split === "intra" ? half : 0,
       sgst: split === "intra" ? r2(gst - half) : 0,
       igst: split === "intra" ? 0 : gst,
-      total: r2(taxable + gst),
+      cess,
+      total: r2(taxable + gst + cess),
     };
   });
   const byKey = new Map<string, TaxRow>();
   for (const l of lines) {
     const k = `${l.rate}|${l.hsn}`;
-    const t = byKey.get(k) ?? { hsn: l.hsn, rate: l.rate, taxable: 0, cgst: 0, sgst: 0, igst: 0, gst: 0 };
-    byKey.set(k, { ...t, taxable: r2(t.taxable + l.taxable), cgst: r2(t.cgst + l.cgst), sgst: r2(t.sgst + l.sgst), igst: r2(t.igst + l.igst), gst: r2(t.gst + l.gst) });
+    const t = byKey.get(k) ?? { hsn: l.hsn, rate: l.rate, taxable: 0, cgst: 0, sgst: 0, igst: 0, gst: 0, cess: 0 };
+    byKey.set(k, { ...t, taxable: r2(t.taxable + l.taxable), cgst: r2(t.cgst + l.cgst), sgst: r2(t.sgst + l.sgst), igst: r2(t.igst + l.igst), gst: r2(t.gst + l.gst), cess: r2(t.cess + l.cess) });
   }
   const taxable = r2(lines.reduce((n, l) => n + l.taxable, 0));
   const gst = r2(lines.reduce((n, l) => n + l.gst, 0));
@@ -81,6 +87,7 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
     summary: [...byKey.values()].sort((a, b) => a.rate - b.rate || a.hsn.localeCompare(b.hsn)),
     taxable,
     gst,
+    cess: r2(lines.reduce((n, l) => n + l.cess, 0)),
     split,
     cgst: r2(lines.reduce((n, l) => n + l.cgst, 0)),
     sgst: r2(lines.reduce((n, l) => n + l.sgst, 0)),

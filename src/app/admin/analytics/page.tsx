@@ -244,24 +244,42 @@ export default function AnalyticsPage() {
                 <span>
                   <strong className={pc.kept < 0 ? "adm-profit-neg" : pc.kept > 0 ? "adm-profit-pos" : ""}>{money(Math.round(pc.kept))}</strong>
                 </span>
-                <span>GST collected</span>
-                <span>{money(Math.round(pc.gst_collected))}</span>
-                {pc.input_credit && (
+                {pc.itc > 0 && (
                   <>
-                    <span>GST inside the cost of what sold</span>
-                    <span>−{money(Math.round(pc.gst_paid))}</span>
+                    <span>Net profit if nothing were claimed back</span>
+                    <span>{money(Math.round(pc.kept_no_itc))}</span>
                   </>
                 )}
+                <span>GST collected from buyers</span>
+                <span>{money(Math.round(pc.gst_collected))}</span>
+                {pc.cess_collected > 0 && (
+                  <>
+                    <span>Cess collected (paid over in full)</span>
+                    <span>{money(Math.round(pc.cess_collected))}</span>
+                  </>
+                )}
+                <span>GST paid to suppliers on what sold</span>
+                <span>{money(Math.round(pc.gst_paid))}</span>
+                <span>Claimed back (input tax credit)</span>
+                <span>{pc.itc ? `−${money(Math.round(pc.itc))}` : money(0)}</span>
                 <span className="tot">Net GST payable</span>
-                <span className="tot">{money(Math.round(Math.max(0, pc.gst_collected - (pc.input_credit ? pc.gst_paid : 0))))}</span>
+                <span className="tot">{money(Math.round(Math.max(0, pc.gst_owed)))}</span>
               </div>
+              <p className="adm-muted adm-small anx-foot">
+                {!pc.input_credit
+                  ? "Nothing is claimed back: input tax credit is off in Settings, so all the GST collected is paid over and the GST paid to suppliers stays part of the cost."
+                  : pc.itc < pc.gst_paid
+                    ? `Of the ${money(Math.round(pc.gst_paid))} GST paid to suppliers, ${money(Math.round(pc.itc))} is claimed back: only bills from suppliers with a GSTIN count, and prices typed by hand count in full. The rest stays part of the cost.`
+                    : `All ${money(Math.round(pc.gst_paid))} GST paid to suppliers is claimed back against the GST collected.`}
+                {pc.estimated_gst_lines > 0 && ` For ${count(pc.estimated_gst_lines)} items sold before the GST paid was recorded, it is estimated at the selling rate.`}
+              </p>
               <p className="adm-muted adm-small anx-foot">
                 {pc.lines > 0 && pc.uncosted_lines === pc.lines
                   ? `None of the ${count(pc.lines)} items sold have a cost price yet. `
                   : pc.uncosted_lines > 0
                     ? `${count(pc.uncosted_lines)} of ${count(pc.lines)} items sold have no cost price, so profit counts the other ${count(pc.lines - pc.uncosted_lines)}. `
                     : ""}
-                Profit is the selling price with GST less the cost price (purchase + GST); &ldquo;Net profit (after GST)&rdquo; takes off the GST still owed on those sales. Cancelled and refunded orders and delivery are left out.
+                Profit is the selling price with GST less the cost price (purchase + GST paid to the supplier); &ldquo;Net profit (after GST)&rdquo; takes off the GST still owed on those sales, after what is claimed back. Cancelled and refunded orders and delivery are left out.
               </p>
             </section>
           </div>

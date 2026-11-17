@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [rate, setRate] = useState("18");
   const [inclusive, setInclusive] = useState(true);
   const [credit, setCredit] = useState(false);
+  const [cess, setCess] = useState(false);
   const [home, setHome] = useState("");
   const [returnDays, setReturnDays] = useState("7");
   const [unpaidHours, setUnpaidHours] = useState("48");
@@ -36,6 +37,7 @@ export default function SettingsPage() {
         setRate(String(s.gst_rate));
         setInclusive(s.gst_inclusive);
         setCredit(s.gst_input_credit);
+        setCess(s.cess_enabled);
         setHome(s.store_state);
         setReturnDays(String(s.return_days));
         setUnpaidHours(String(s.unpaid_hours));
@@ -91,6 +93,7 @@ export default function SettingsPage() {
         gst_rate: r,
         gst_inclusive: inclusive,
         gst_input_credit: credit,
+        cess_enabled: cess,
         store_state: home,
         return_days: days,
         unpaid_hours: hold,
@@ -267,6 +270,19 @@ export default function SettingsPage() {
                 : "All GST collected on sales is payable. Turn this on if the shop is GST-registered and claims ITC."}{" "}
               Example at {g.rate}%: purchase price {money(500)} + GST = cost price {money(exCost)}, selling price {money(u.sale)} incl. GST: gross profit {money(u.profit)}, net profit
               after GST {money(u.kept)}.
+            </span>
+          </div>
+
+          <div className="adm-label">
+            Cess
+            <button type="button" className={`adm-switch ${cess ? "is-on" : ""}`} aria-pressed={cess} disabled={!loaded} onClick={() => setCess(!cess)}>
+              <i aria-hidden />
+              {cess ? "Charging cess" : "No cess"}
+            </button>
+            <span className="adm-muted adm-small">
+              {cess
+                ? "Products with a cess rate (set on each product, under Price) carry it on top of GST: on the bill, the invoice and the GST returns. Orders already placed keep what they were charged."
+                : "Off: no cess is charged anywhere, whatever is set on a product. Turn it on only if your products attract a compensation cess (ask your CA)."}
             </span>
           </div>
         </section>

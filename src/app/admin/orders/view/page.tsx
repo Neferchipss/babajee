@@ -19,7 +19,6 @@ import {
   sendAgain,
   editOrder,
   errText,
-  getCosts,
   getOrder,
   getSettings,
   refundOrder,
@@ -29,7 +28,9 @@ import {
   setStep,
   settleBalance,
   setBuyerGstin,
+  getPurchases,
   soldCosts,
+  type SoldCost,
   updateOrder,
   undoRefund,
   type Order,
@@ -421,6 +422,12 @@ function OrderView() {
                 <>
                   <span>{gstLabel(o.gst_inclusive, o.gst_rate)}</span>
                   <span>{money(o.tax)}</span>
+                </>
+              )}
+              {(o.cess ?? 0) > 0 && (
+                <>
+                  <span>{o.gst_inclusive ? "Includes cess" : "Cess"}</span>
+                  <span>{money(o.cess ?? 0)}</span>
                 </>
               )}
               <span className="tot">Total</span>
@@ -1016,12 +1023,14 @@ function StepForm({
 // recorded. Same rules as Analytics (supabase/migrations/0017).
 function OrderProfit({ order: o }: { order: Order }) {
   const items = o.order_items ?? [];
-  const [data, setData] = useState<{ sold: Map<string, number>; now: Map<string, number>; credit: boolean } | null>(null);
+  const [data, setData] = useState<{ sold: Map<string, SoldCost>; now: Map<string, SoldCost>; credit: boolean } | null>(null);
 
   useEffect(() => {
     const its = o.order_items ?? [];
-    Promise.all([soldCosts(its.map((i) => i.id)), getCosts(its.flatMap((i) => (i.variant_id ? [i.variant_id] : []))), getSettings()])
-      .then(([sold, now, s]) => setData({ sold, now, credit: s.gst_input_credit }))
+    Promise.all([soldCosts(its.map((i) => i.id)), getPurchases(its.flatMap((i) => (i.variant_id ? [i.variant_id] : []))), getSettings()])
+      .then(([sold, now, s]) =>
+        setData({ sold, now: new Map([...now].map(([id, p]) => [id, { cost: p.cost, gst: p.gstPaid, itc: p.gstClaimable }])), credit: s.gst_input_credit }),
+      )
       .catch(() => setData(null));
   }, [o.order_items]);
 
@@ -1054,13 +1063,14 @@ function OrderProfit({ order: o }: { order: Order }) {
       continue;
     }
     if (!data.sold.has(i.id)) later++;
-    const u = unitProfit(i.unit_price, c, { rate: i.gst_rate ?? o.gst_rate ?? 0, inclusive: o.gst_inclusive, credit: data.credit });
+    const u = unitProfit(i.unit_price, c.cost, { rate: i.gst_rate ?? o.gst_rate ?? 0, inclusive: o.gst_inclusive, credit: data.credit }, { paid: c.gst, claimable: c.itc });
     const q = i.quantity - (back.get(i.id) ?? 0);
     const out = i.quantity - (shelved.get(i.id) ?? 0);
     sale += u.sale * q;
     cost += u.cost * out;
-    // after GST: the sale without GST less the cost (without its GST if claimed back)
-    kept += u.net * q - (data.credit ? (u.cost * 100) / (100 + (i.gst_rate ?? o.gst_rate ?? 0)) : u.cost) * out;
+    // after GST: the sale without GST less the cost, less the GST paid to
+    // the supplier that is claimed back
+    kept += u.net * q - (u.cost - u.itc) * out;
   }
   if (missing === 0) {
     sale -= extraG;

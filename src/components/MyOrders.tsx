@@ -507,6 +507,12 @@ export function MyOrder() {
                 <dd>{money(o.tax)}</dd>
               </>
             )}
+            {(o.cess ?? 0) > 0 && (
+              <>
+                <dt>{o.gst_inclusive ? "Includes cess" : "Cess"}</dt>
+                <dd>{money(o.cess ?? 0)}</dd>
+              </>
+            )}
             <dt className="tot">Total</dt>
             <dd className="tot">{money(o.total)}</dd>
             {(o.order_refunds ?? []).map((r) => (

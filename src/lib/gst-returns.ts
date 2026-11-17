@@ -20,7 +20,8 @@
 
 export const B2CL_LIMIT = 100000;
 
-export type DocLine = { hsn: string; name: string; qty: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number };
+// cess: the cess on the line (0057), absent or 0 for none
+export type DocLine = { hsn: string; name: string; qty: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess?: number };
 export type SaleDoc = {
   kind: "invoice" | "credit";
   number: string;
@@ -46,10 +47,10 @@ const taxed = (l: DocLine) => l.rate > 0;
 
 // taxed lines of one document, grouped by GST rate
 function byRate(lines: DocLine[]) {
-  const m = new Map<number, { rate: number; taxable: number; cgst: number; sgst: number; igst: number }>();
+  const m = new Map<number, { rate: number; taxable: number; cgst: number; sgst: number; igst: number; cess: number }>();
   for (const l of lines.filter(taxed)) {
-    const t = m.get(l.rate) ?? { rate: l.rate, taxable: 0, cgst: 0, sgst: 0, igst: 0 };
-    m.set(l.rate, { rate: l.rate, taxable: r2(t.taxable + l.taxable), cgst: r2(t.cgst + l.cgst), sgst: r2(t.sgst + l.sgst), igst: r2(t.igst + l.igst) });
+    const t = m.get(l.rate) ?? { rate: l.rate, taxable: 0, cgst: 0, sgst: 0, igst: 0, cess: 0 };
+    m.set(l.rate, { rate: l.rate, taxable: r2(t.taxable + l.taxable), cgst: r2(t.cgst + l.cgst), sgst: r2(t.sgst + l.sgst), igst: r2(t.igst + l.igst), cess: r2(t.cess + (l.cess ?? 0)) });
   }
   return [...m.values()].sort((a, b) => a.rate - b.rate);
 }
@@ -67,29 +68,29 @@ export function gstr1(docs: SaleDoc[], cancelled: string[] = []): Table[] {
   const cn = docs.filter((d) => d.kind === "credit");
 
   const b2b: Table = { name: "gstr1-b2b", head: ["GSTIN of recipient", "Receiver name", "Invoice number", "Invoice date", "Invoice value", "Place of supply", "Reverse charge", "Invoice type", "Rate", "Taxable value", "Cess amount"], rows: [] };
-  for (const d of inv.filter((x) => classOf(x) === "b2b")) for (const g of byRate(d.lines)) b2b.rows.push([d.gstin, d.party, d.number, d.date, d.value, d.pos, "N", "Regular B2B", g.rate, g.taxable, 0]);
+  for (const d of inv.filter((x) => classOf(x) === "b2b")) for (const g of byRate(d.lines)) b2b.rows.push([d.gstin, d.party, d.number, d.date, d.value, d.pos, "N", "Regular B2B", g.rate, g.taxable, g.cess]);
 
   const b2cl: Table = { name: "gstr1-b2cl", head: ["Invoice number", "Invoice date", "Invoice value", "Place of supply", "Rate", "Taxable value", "Cess amount"], rows: [] };
-  for (const d of inv.filter((x) => classOf(x) === "b2cl")) for (const g of byRate(d.lines)) b2cl.rows.push([d.number, d.date, d.value, d.pos, g.rate, g.taxable, 0]);
+  for (const d of inv.filter((x) => classOf(x) === "b2cl")) for (const g of byRate(d.lines)) b2cl.rows.push([d.number, d.date, d.value, d.pos, g.rate, g.taxable, g.cess]);
 
   // B2CS: by place of supply and rate, credit notes netted off
-  const cs = new Map<string, { pos: string; rate: number; taxable: number }>();
+  const cs = new Map<string, { pos: string; rate: number; taxable: number; cess: number }>();
   const addCs = (d: SaleDoc, sign: number) => {
     for (const g of byRate(d.lines)) {
       const k = `${d.pos}|${g.rate}`;
-      const t = cs.get(k) ?? { pos: d.pos, rate: g.rate, taxable: 0 };
-      cs.set(k, { ...t, taxable: r2(t.taxable + sign * g.taxable) });
+      const t = cs.get(k) ?? { pos: d.pos, rate: g.rate, taxable: 0, cess: 0 };
+      cs.set(k, { ...t, taxable: r2(t.taxable + sign * g.taxable), cess: r2(t.cess + sign * g.cess) });
     }
   };
   for (const d of inv.filter((x) => classOf(x) === "b2cs")) addCs(d, 1);
   for (const c of cn.filter((x) => classOf(x) === "b2cs")) addCs(c, -1);
-  const b2cs: Table = { name: "gstr1-b2cs", head: ["Type", "Place of supply", "Rate", "Taxable value", "Cess amount"], rows: [...cs.values()].sort((a, b) => a.pos.localeCompare(b.pos) || a.rate - b.rate).map((x) => ["OE", x.pos, x.rate, x.taxable, 0]) };
+  const b2cs: Table = { name: "gstr1-b2cs", head: ["Type", "Place of supply", "Rate", "Taxable value", "Cess amount"], rows: [...cs.values()].sort((a, b) => a.pos.localeCompare(b.pos) || a.rate - b.rate).map((x) => ["OE", x.pos, x.rate, x.taxable, x.cess]) };
 
   const cdnr: Table = { name: "gstr1-cdnr", head: ["GSTIN of recipient", "Receiver name", "Note number", "Note date", "Note type", "Place of supply", "Reverse charge", "Note value", "Rate", "Taxable value", "Cess amount", "Against invoice"], rows: [] };
-  for (const c of cn.filter((x) => classOf(x) === "b2b")) for (const g of byRate(c.lines)) cdnr.rows.push([c.gstin, c.party, c.number, c.date, "C", c.pos, "N", c.value, g.rate, g.taxable, 0, c.against?.number ?? ""]);
+  for (const c of cn.filter((x) => classOf(x) === "b2b")) for (const g of byRate(c.lines)) cdnr.rows.push([c.gstin, c.party, c.number, c.date, "C", c.pos, "N", c.value, g.rate, g.taxable, g.cess, c.against?.number ?? ""]);
 
   const cdnur: Table = { name: "gstr1-cdnur", head: ["UR type", "Note number", "Note date", "Note type", "Place of supply", "Note value", "Rate", "Taxable value", "Cess amount", "Against invoice"], rows: [] };
-  for (const c of cn.filter((x) => classOf(x) === "b2cl")) for (const g of byRate(c.lines)) cdnur.rows.push(["B2CL", c.number, c.date, "C", c.pos, c.value, g.rate, g.taxable, 0, c.against?.number ?? ""]);
+  for (const c of cn.filter((x) => classOf(x) === "b2cl")) for (const g of byRate(c.lines)) cdnur.rows.push(["B2CL", c.number, c.date, "C", c.pos, c.value, g.rate, g.taxable, g.cess, c.against?.number ?? ""]);
 
   // table 8: nil-rated (0%) supplies, credit notes netted off
   const nilOf = (reg: boolean, inter: boolean) =>
@@ -109,19 +110,20 @@ export function gstr1(docs: SaleDoc[], cancelled: string[] = []): Table[] {
   };
 
   // HSN summary: invoices less credit notes
-  const hs = new Map<string, { hsn: string; rate: number; qty: number; value: number; taxable: number; igst: number; cgst: number; sgst: number }>();
+  const hs = new Map<string, { hsn: string; rate: number; qty: number; value: number; taxable: number; igst: number; cgst: number; sgst: number; cess: number }>();
   for (const d of docs) {
     const sign = d.kind === "credit" ? -1 : 1;
     for (const l of d.lines) {
       const k = `${l.hsn}|${l.rate}`;
-      const t = hs.get(k) ?? { hsn: l.hsn, rate: l.rate, qty: 0, value: 0, taxable: 0, igst: 0, cgst: 0, sgst: 0 };
-      hs.set(k, { ...t, qty: t.qty + sign * l.qty, value: r2(t.value + sign * (l.taxable + l.gst)), taxable: r2(t.taxable + sign * l.taxable), igst: r2(t.igst + sign * l.igst), cgst: r2(t.cgst + sign * l.cgst), sgst: r2(t.sgst + sign * l.sgst) });
+      const t = hs.get(k) ?? { hsn: l.hsn, rate: l.rate, qty: 0, value: 0, taxable: 0, igst: 0, cgst: 0, sgst: 0, cess: 0 };
+      const c = l.cess ?? 0;
+      hs.set(k, { ...t, qty: t.qty + sign * l.qty, value: r2(t.value + sign * (l.taxable + l.gst + c)), taxable: r2(t.taxable + sign * l.taxable), igst: r2(t.igst + sign * l.igst), cgst: r2(t.cgst + sign * l.cgst), sgst: r2(t.sgst + sign * l.sgst), cess: r2(t.cess + sign * c) });
     }
   }
   const hsn: Table = {
     name: "gstr1-hsn",
     head: ["HSN", "UQC", "Total quantity", "Total value", "Rate", "Taxable value", "Integrated tax", "Central tax", "State/UT tax", "Cess"],
-    rows: [...hs.values()].sort((a, b) => a.hsn.localeCompare(b.hsn) || a.rate - b.rate).map((x) => [x.hsn || "(none)", "NOS", x.qty, x.value, x.rate, x.taxable, x.igst, x.cgst, x.sgst, 0]),
+    rows: [...hs.values()].sort((a, b) => a.hsn.localeCompare(b.hsn) || a.rate - b.rate).map((x) => [x.hsn || "(none)", "NOS", x.qty, x.value, x.rate, x.taxable, x.igst, x.cgst, x.sgst, x.cess]),
   };
 
   // document summary: first and last number of each series, cancelled included
@@ -143,20 +145,20 @@ export function gstr1(docs: SaleDoc[], cancelled: string[] = []): Table[] {
 // 180 days unpaid in this period; reclaim: ITC on such bills paid in it
 export function gstr3b(docs: SaleDoc[], itcBills: PurchaseDoc[], reversal: Tax3 = { igst: 0, cgst: 0, sgst: 0 }, reclaim: Tax3 = { igst: 0, cgst: 0, sgst: 0 }): Table {
   const sign = (d: SaleDoc) => (d.kind === "credit" ? -1 : 1);
-  const out = (k: "taxable" | "igst" | "cgst" | "sgst", pick: (l: DocLine) => boolean) => sum(docs, (d) => sign(d) * d.lines.filter(pick).reduce((n, l) => n + l[k], 0));
+  const out = (k: "taxable" | "igst" | "cgst" | "sgst" | "cess", pick: (l: DocLine) => boolean) => sum(docs, (d) => sign(d) * d.lines.filter(pick).reduce((n, l) => n + (l[k] ?? 0), 0));
   const claim = itcBills.filter((b) => b.in2b).flatMap((b) => b.lines.filter((l) => l.claimable));
   const itc = (k: "igst" | "cgst" | "sgst") => sum(claim, (l) => l[k]);
-  const o = { taxable: out("taxable", taxed), igst: out("igst", taxed), cgst: out("cgst", taxed), sgst: out("sgst", taxed) };
+  const o = { taxable: out("taxable", taxed), igst: out("igst", taxed), cgst: out("cgst", taxed), sgst: out("sgst", taxed), cess: out("cess", taxed) };
   const i = { igst: r2(itc("igst") + reclaim.igst), cgst: r2(itc("cgst") + reclaim.cgst), sgst: r2(itc("sgst") + reclaim.sgst) };
   return {
     name: "gstr3b-summary",
     head: ["Section", "Taxable value", "Integrated tax", "Central tax", "State/UT tax", "Cess"],
     rows: [
-      ["3.1(a) Outward taxable supplies", o.taxable, o.igst, o.cgst, o.sgst, 0],
+      ["3.1(a) Outward taxable supplies", o.taxable, o.igst, o.cgst, o.sgst, o.cess],
       ["3.1(c) Nil rated and exempted supplies", out("taxable", (l) => !taxed(l)), "", "", "", ""],
       ["4(A)(5) All other ITC (bills in this period's GSTR-2B, plus ITC reclaimed on bills paid after 180 days)", "", i.igst, i.cgst, i.sgst, 0],
       ["4(B)(2) ITC reversed: bills passing 180 days unpaid in this period", "", reversal.igst, reversal.cgst, reversal.sgst, 0],
-      ["Net tax payable (before cross-utilisation)", "", r2(o.igst - i.igst + reversal.igst), r2(o.cgst - i.cgst + reversal.cgst), r2(o.sgst - i.sgst + reversal.sgst), 0],
+      ["Net tax payable (before cross-utilisation)", "", r2(o.igst - i.igst + reversal.igst), r2(o.cgst - i.cgst + reversal.cgst), r2(o.sgst - i.sgst + reversal.sgst), o.cess],
     ],
   };
 }

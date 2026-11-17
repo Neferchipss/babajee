@@ -10,7 +10,8 @@ import { subcategoriesOf, type AdminCategory, type AdminProduct, type AdminVaria
 import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { formatPrice } from "@/lib/currency";
-import { costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
+import { GST_BRACKETS, supplierGst, unitProfit } from "@/lib/gst";
+import type { Purchase } from "@/lib/orders-db";
 import { photosFor, shootPhotos } from "@/lib/product-photos";
 import ProductStock from "@/components/admin/stock/ProductStock";
 
@@ -638,13 +639,16 @@ function AddPhotos({ label, busy, onFiles }: { label: string; busy: boolean; onF
 // ---------------------------------------------------------------- price
 //
 // The price, in the order the shop thinks of it:
-//   buying price (before GST) -> GST bracket -> cost price (worked out)
-//   -> selling price -> profit (selling price with GST - cost price)
-// With sizes or colours, one card each, GST chosen once for the product.
-// Buying prices live in an admin-only table (0015, 0030); the database adds
-// the GST to make the cost price, and follows a bracket change.
-type Purchase = { purchase: number | null; cost: number };
-type Rules = { rate: number; inclusive: boolean; credit: boolean };
+//   buying price (before GST) -> GST paid to the supplier -> cost price
+//   (worked out) -> selling price (at the product's GST bracket) -> profit,
+//   with a note of the GST behind it (collected, paid, claimed back, owed)
+// With sizes or colours, one card each, the selling bracket chosen once for
+// the product. Buying prices live in an admin-only table (0015, 0030, 0056);
+// the database adds the GST paid to make the cost price.
+type Rules = { rate: number; inclusive: boolean; credit: boolean; cess?: number };
+// GST paid to the supplier as typed: a rate (null: the selling bracket) and,
+// when typed over, the amount per piece
+type SupplierGst = { rate: number | null; amount: number | null };
 const SHOWN_BRACKETS = GST_BRACKETS.filter((b) => b > 0);
 
 function Pricing({
@@ -656,7 +660,7 @@ function Pricing({
   photos,
 }: {
   product: AdminProduct;
-  onPatch: (patch: { gst_rate?: number | null }) => void;
+  onPatch: (patch: { gst_rate?: number | null; cess_rate?: number }) => void;
   onVariant: (v: AdminVariant, patch: Partial<AdminVariant>) => void;
   onDeleteVariant: (v: AdminVariant) => void;
   onAdd: () => void;
@@ -667,7 +671,7 @@ function Pricing({
   // stock in moves the average buying price, so read again when a count moves
   const counts = variants.map((v) => `${v.stock_qty}${v.track_stock ? "t" : "u"}`).join(",");
   const [costs, setCosts] = useState<Map<string, Purchase> | null>(null);
-  const [shop, setShop] = useState<Rules | null>(null);
+  const [shop, setShop] = useState<(Rules & { cessOn: boolean }) | null>(null);
   const [err, setErr] = useState("");
 
   // again when the bracket changes: the database re-adds the GST to the cost
@@ -677,23 +681,23 @@ function Pricing({
       .then((m) => Promise.all([m.getPurchases(list), m.getSettings()]))
       .then(([c, s]) => {
         setCosts(c);
-        setShop({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit });
+        setShop({ rate: s.gst_rate, inclusive: s.gst_inclusive, credit: s.gst_input_credit, cessOn: s.cess_enabled });
       })
       .catch(() => setCosts(new Map()));
   }, [ids, product.gst_rate, counts]);
 
-  const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false };
+  const rules: Rules = { rate: product.gst_rate ?? shop?.rate ?? 18, inclusive: shop?.inclusive ?? true, credit: shop?.credit ?? false, cess: shop?.cessOn ? product.cess_rate : 0 };
   const many = variants.length > 1;
 
-  async function saveBuying(id: string, purchase: number | null) {
+  async function saveBuying(id: string, purchase: number | null, gst?: SupplierGst) {
     setErr("");
     try {
       const m = await import("@/lib/orders-db");
-      const cost = await m.setPurchase(id, purchase);
+      const got = await m.setPurchase(id, purchase, gst);
       setCosts((c) => {
         const n = new Map(c);
-        if (purchase == null || cost == null) n.delete(id);
-        else n.set(id, { purchase, cost });
+        if (!got) n.delete(id);
+        else n.set(id, got);
         return n;
       });
     } catch (e) {
@@ -704,7 +708,7 @@ function Pricing({
   const gst = (
     <div className="ape-line ape-line--gst">
       <span className="ape-line-label">
-        GST rate <small>this product&apos;s slab, charged on sales</small>
+        GST on sales <small>this product&apos;s slab, charged to the buyer</small>
       </span>
       <div className="ape-chips" role="group" aria-label="GST rate">
         {SHOWN_BRACKETS.map((b) => (
@@ -715,6 +719,8 @@ function Pricing({
       </div>
     </div>
   );
+  // cess on top of GST, only once switched on in Settings (0057)
+  const cessField = shop?.cessOn ? <CessField key={product.id} value={product.cess_rate} onSave={(n) => onPatch({ cess_rate: n })} /> : null;
 
   return (
     <section className="ape-fields ape-pricing">
@@ -724,6 +730,7 @@ function Pricing({
       ) : many ? (
         <>
           {gst}
+          {cessField}
           <ul className="ape-cards">
             {variants.map((v) => (
               <PriceRow
@@ -732,7 +739,7 @@ function Pricing({
                 card
                 have={costs.get(v.id)}
                 rules={rules}
-                onBuying={(n) => saveBuying(v.id, n)}
+                onBuying={(n, g) => saveBuying(v.id, n, g)}
                 onSave={(patch) => onVariant(v, patch)}
                 onDelete={() => onDeleteVariant(v)}
                 photos={photos(v)}
@@ -741,7 +748,7 @@ function Pricing({
           </ul>
         </>
       ) : (
-        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={gst} onBuying={(n) => saveBuying(variants[0].id, n)} onSave={(patch) => onVariant(variants[0], patch)} />
+        variants[0] && <PriceRow key={variants[0].id} variant={variants[0]} have={costs.get(variants[0].id)} rules={rules} gst={<>{gst}{cessField}</>} onBuying={(n, g) => saveBuying(variants[0].id, n, g)} onSave={(patch) => onVariant(variants[0], patch)} />
       )}
       {err && <p className="ape-err">{err}</p>}
       <button type="button" className="ape-chip" onClick={onAdd}>
@@ -786,7 +793,7 @@ function PriceRow({
   rules: Rules;
   gst?: ReactNode;
   photos?: ReactNode;
-  onBuying: (purchase: number | null) => void;
+  onBuying: (purchase: number | null, gst?: SupplierGst) => void;
   onSave: (patch: Partial<AdminVariant>) => void;
   onDelete?: () => void;
 }) {
@@ -799,16 +806,34 @@ function PriceRow({
     setSellWas(v.price);
     setSell(v.price ? String(v.price) : "");
   }
+  // GST paid to the supplier, as typed: the rate (null follows the selling
+  // bracket) and the amount, filled in from the rate until typed over
+  const [gRate, setGRate] = useState<number | null>(have?.supplierRate ?? null);
+  const [gAmt, setGAmt] = useState(have?.supplierGst != null ? String(have.supplierGst) : "");
   const [label, setLabel] = useState(v.label);
   const [confirm, setConfirm] = useState(false);
 
   // once an option is counted, its buying price is the average kept by stock
-  // in (Add stock, voids), so it is shown here, not typed
+  // in (Add stock, voids), so it is shown here, not typed; so is the GST paid
+  // once supplier bills feed it
   const fromStock = v.track_stock;
+  const fromBills = have?.source === "bills";
   const b = fromStock ? start : buy.trim() === "" ? null : Number(buy);
   const s = Number(sell) || 0;
-  const cost = b == null ? null : costOf(b, rules.rate);
-  const u = cost != null && s > 0 ? unitProfit(s, cost, rules) : null;
+  const rate = gRate ?? rules.rate;
+  const typedAmt = gAmt.trim() === "" ? null : Number(gAmt);
+  const paid = fromBills ? (have?.gstPaid ?? null) : b == null ? null : supplierGst(b, rate, typedAmt);
+  const claimable = fromBills ? (have?.gstClaimable ?? null) : paid;
+  const cost = b == null || paid == null ? null : Math.round((b + paid) * 100) / 100;
+  const u = cost != null && s > 0 ? unitProfit(s, cost, rules, { paid, claimable }) : null;
+  const money = (n: number) => formatPrice(n, { paise: true });
+  // the supplier GST as it now stands, saved with the purchase price
+  const saveGst = (next: SupplierGst) => {
+    if (b == null) return;
+    setGRate(next.rate);
+    setGAmt(next.amount == null ? "" : String(next.amount));
+    onBuying(b, next);
+  };
 
   return (
     <li className={card ? "ape-card" : "ape-one"}>
@@ -844,15 +869,59 @@ function PriceRow({
           <span className="ape-line-label">
             Purchase price (excl. GST) <small>type it until stock is added</small>
           </span>
-          <Money value={buy} label={`${v.label} purchase price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b)} />
+          <Money value={buy} label={`${v.label} purchase price, excl. GST`} placeholder="0" onChange={setBuy} onSave={() => b !== start && onBuying(b, { rate: gRate, amount: typedAmt })} />
         </label>
+      )}
+      {fromBills ? (
+        <div className="ape-line">
+          <span className="ape-line-label">
+            GST paid to supplier <small>average off the supplier bills, per piece</small>
+          </span>
+          <b className="ape-line-value">
+            {paid != null ? money(paid) : "–"}
+            {paid != null && claimable != null && claimable < paid && <small className="ape-line-sub"> {money(claimable)} of it claimable</small>}
+          </b>
+        </div>
+      ) : (
+        <div className="ape-line ape-line--gst">
+          <span className="ape-line-label">
+            GST paid to supplier <small>pick the rate on their bill; change the amount if their bill differs</small>
+          </span>
+          <div className="ape-gst-paid">
+            <div className="ape-chips" role="group" aria-label="GST rate the supplier charged">
+              {[0, ...SHOWN_BRACKETS].map((r) => (
+                <button key={r} type="button" className={rate === r ? "is-on" : ""} aria-pressed={rate === r} disabled={b == null} onClick={() => saveGst({ rate: r === rules.rate ? null : r, amount: null })}>
+                  {r}%
+                </button>
+              ))}
+            </div>
+            <Money
+              value={gAmt !== "" ? gAmt : paid != null ? paid.toFixed(2) : ""}
+              label={`${v.label} GST paid to the supplier, per piece`}
+              placeholder="0"
+              onChange={setGAmt}
+              onSave={() => {
+                // typed back to what the rate gives: no override
+                const auto = b == null ? null : supplierGst(b, rate);
+                const amount = typedAmt == null || typedAmt === auto ? null : typedAmt;
+                if (amount !== (have?.supplierGst ?? null) || gRate !== (have?.supplierRate ?? null)) saveGst({ rate: gRate, amount });
+                else if (amount == null) setGAmt("");
+              }}
+            />
+            {typedAmt != null && b != null && typedAmt !== supplierGst(b, rate) && (
+              <button type="button" className="ape-link" onClick={() => saveGst({ rate: gRate, amount: null })}>
+                Use {rate}% ({money(supplierGst(b, rate))})
+              </button>
+            )}
+          </div>
+        </div>
       )}
       {gst}
       <div className="ape-line">
         <span className="ape-line-label">
-          Cost price (incl. GST) <small>purchase price + {rules.rate}% GST</small>
+          Cost price (incl. GST) <small>purchase price + GST paid to supplier</small>
         </span>
-        <b className="ape-line-value">{cost != null ? formatPrice(cost, { paise: true }) : "–"}</b>
+        <b className="ape-line-value">{cost != null ? money(cost) : "–"}</b>
       </div>
       <label className="ape-line">
         <span className="ape-line-label">
@@ -872,9 +941,7 @@ function PriceRow({
               </b>{" "}
               per piece · {u.net > 0 ? ((u.kept / u.net) * 100).toFixed(1) : "0"}% margin
             </span>
-            <small>
-              After GST{rules.credit ? ", with input tax credit claimed" : ", input tax credit not claimed (Settings)"} · gross {formatPrice(u.profit, { paise: true })} before paying the GST collected
-            </small>
+            <GstNote u={u} credit={rules.credit} fromBills={fromBills} />
           </>
         ) : (
           <small>{b == null && !s ? "Type the purchase and selling price to see the profit." : b == null ? "Type the purchase price to see the profit." : "Type the selling price to see the profit."}</small>
@@ -882,6 +949,71 @@ function PriceRow({
       </div>
       {photos && <div className="ape-opt-photos">{photos}</div>}
     </li>
+  );
+}
+
+// The GST behind the profit, written out for one piece: what the buyer paid
+// and the GST in it, what the supplier was paid and the GST in that, how much
+// of it is claimed back and why, the GST left to pay over, and the profit
+// with and without the claim. The same sums as admin_profit() (0056).
+function GstNote({ u, credit, fromBills }: { u: ReturnType<typeof unitProfit>; credit: boolean; fromBills: boolean }) {
+  const money = (n: number) => formatPrice(n, { paise: true });
+  const signed = (n: number) => (n < 0 ? `−${money(-n)}` : money(n));
+  const why = !credit
+    ? "Nothing claimed back: input tax credit is off in Settings."
+    : u.itc === 0
+      ? fromBills
+        ? "Nothing claimed back: none of the supplier bills can be claimed (no supplier GSTIN, or not in GSTR-2B)."
+        : "Nothing claimed back: no GST was paid to the supplier."
+      : u.itc < u.paid
+        ? `Claimed back ${money(u.itc)} of the ${money(u.paid)}: only bills from suppliers with a GSTIN count.`
+        : `Claimed back all ${money(u.itc)} as input tax credit.`;
+  return (
+    <details className="ape-gst-note">
+      <summary>
+        After GST · gross {money(u.profit)} before paying the GST collected · <span className="ape-link">How this is worked out</span>
+      </summary>
+      <dl>
+        <dt>Sold for</dt>
+        <dd>
+          {money(u.sale)} = {money(u.net)} + <b>{money(u.collected)}</b> GST collected from the buyer
+          {u.cess > 0 && <> + {money(u.cess)} cess (paid over in full)</>}
+        </dd>
+        <dt>Cost</dt>
+        <dd>
+          {money(u.cost)} = {money(u.cost - u.paid)} + <b>{money(u.paid)}</b> GST paid to the supplier
+        </dd>
+        <dt>Rebate</dt>
+        <dd>{why}</dd>
+        <dt>GST you pay</dt>
+        <dd>
+          {money(u.collected)} collected − {money(u.itc)} claimed back = <b>{money(u.owed)}</b> to the government
+        </dd>
+        <dt>Profit</dt>
+        <dd>
+          {money(u.net)} − {money(u.cost)} + {money(u.itc)} claimed back = <b>{signed(u.kept)}</b>
+          {u.itc > 0 && <> ({signed(u.keptNoItc)} if nothing could be claimed back)</>}
+        </dd>
+      </dl>
+    </details>
+  );
+}
+
+// the cess rate, percent of the taxable value (0057)
+function CessField({ value, onSave }: { value: number; onSave: (n: number) => void }) {
+  const [v, setV] = useState(value ? String(value) : "");
+  const n = v.trim() === "" ? 0 : Number(v);
+  const ok = Number.isFinite(n) && n >= 0 && n <= 400;
+  return (
+    <label className="ape-line">
+      <span className="ape-line-label">
+        Cess <small>percent on top of GST; 0 for none</small>
+      </span>
+      <span className="ape-money ape-line-input">
+        <input inputMode="decimal" aria-label="Cess rate, percent" aria-invalid={!ok} placeholder="0" value={v} onChange={(e) => setV(e.target.value.replace(/[^\d.]/g, ""))} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()} onBlur={() => ok && n !== value && onSave(n)} />
+        <i aria-hidden>%</i>
+      </span>
+    </label>
   );
 }
 
