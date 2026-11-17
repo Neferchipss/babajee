@@ -4079,3 +4079,16 @@ body:has(.adm-frame) .ftr {
 .adm-tablecard .live-h { padding: 12px 14px 0; }
 .live-pages { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .live-pages li { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+
+/* Products → Import from a sheet */
+.imp { display: grid; gap: 14px; }
+.imp-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.imp-file { position: relative; overflow: hidden; cursor: pointer; }
+.imp-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.imp-file:has(input:focus-visible) { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+.imp-plan { display: grid; gap: 12px; }
+.imp-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.imp-head h2 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.imp-block summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.imp-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.9rem; }
+.imp-table td { vertical-align: top; }

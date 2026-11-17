@@ -48,6 +48,7 @@ const SECTIONS: Section[] = [
     pages: [
       { label: "All products", href: "/admin/products" },
       { label: "Add a product", href: "/admin/products/new" },
+      { label: "Import from a sheet", href: "/admin/products/import" },
       { label: "Drafts", href: "/admin/products?need=hidden" },
       { label: "Archived", href: "/admin/products?need=archived" },
       { label: "Reorder needed", href: "/admin/products?need=low", count: "low_stock", warn: true },
