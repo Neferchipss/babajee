@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RequireAdmin from "@/components/admin/RequireAdmin";
+import RequireAdmin, { RoleGate } from "@/components/admin/RequireAdmin";
 import { Toaster } from "@/components/admin/Toaster";
 import { Suspense } from "react";
 import AdminNav from "@/components/admin/AdminNav";
@@ -18,7 +18,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <AdminNav />
             </Suspense>
           </div>
-          <div className="adm-main">{children}</div>
+          <div className="adm-main">
+            <RoleGate>{children}</RoleGate>
+          </div>
           <Toaster />
         </div>
       </RequireAdmin>

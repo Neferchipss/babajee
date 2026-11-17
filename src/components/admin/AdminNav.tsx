@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { homeCounts, type HomeCounts } from "@/lib/orders-db";
 import LowStockWatch from "./LowStockWatch";
+import { can, canOpen, useStaff } from "@/lib/staff";
 
 // The admin's sections. On a wide screen a tree like the shop's category
 // list: each section, and under it on a guide line every page it holds, with
@@ -21,7 +22,7 @@ const I = (d: string) => (
   </svg>
 );
 
-const SECTIONS: Section[] = [
+const ALL_SECTIONS: Section[] = [
   { label: "Home", href: "/admin", icon: I("M3.5 9 10 3.5 16.5 9v7.5h-4.5v-5h-4v5H3.5z") },
   {
     label: "Orders",
@@ -85,7 +86,7 @@ const SECTIONS: Section[] = [
     icon: I("M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"),
     pages: [
       { label: "Store", href: "/admin/settings" },
-      { label: "Admins", href: "/admin/settings/team" },
+      { label: "Team and roles", href: "/admin/settings/team" },
       { label: "Activity log", href: "/admin/settings/activity" },
     ],
   },
@@ -98,9 +99,15 @@ export default function AdminNav() {
   const params = useSearchParams();
   const [counts, setCounts] = useState<HomeCounts | null>(null);
   const [low, setLow] = useState(0);
+  const { me } = useStaff();
+  const money = can(me?.role ?? null, "money");
   useEffect(() => {
-    homeCounts().then(setCounts, () => {});
-  }, [path]);
+    if (money) homeCounts().then(setCounts, () => {});
+  }, [path, money]);
+  // only what this person's role includes (0072)
+  const SECTIONS = ALL_SECTIONS.map((s) => ({ ...s, pages: s.pages?.filter((p) => canOpen(me?.role ?? null, p.href.split("?")[0])) }))
+    .filter((s) => canOpen(me?.role ?? null, s.href) || (s.pages?.length ?? 0) > 0)
+    .map((s) => (canOpen(me?.role ?? null, s.href) || !s.pages?.length ? s : { ...s, href: s.pages[0].href }));
 
   // a page matches on its path, and on its filter when it names one
   const pageOn = (href: string) => {
@@ -166,7 +173,7 @@ export default function AdminNav() {
         <span className="adm-ico">{I("M7 4.5H4.5v11h11V13M10.5 3.5h6v6M16.5 3.5 9 11")}</span>
         View shop
       </Link>
-      <LowStockWatch onCount={setLow} />
+      {money && <LowStockWatch onCount={setLow} />}
     </nav>
     {here?.pages && (
       <div className="adm-subnav" ref={sub} aria-label={`${here.label} pages`}>

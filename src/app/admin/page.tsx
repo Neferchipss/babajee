@@ -5,10 +5,42 @@ import { useEffect, useState } from "react";
 import { Delta, money, StatusPill, when } from "@/components/admin/ui";
 import { analytics, errText, homeCounts, listOrders, openFollowUps, type Analytics, type FollowUp, type HomeCounts, type Order } from "@/lib/orders-db";
 import { isoDay } from "@/lib/dates";
+import { can, roleLabel, useStaff, type StaffRole } from "@/lib/staff";
 
 // Admin home: today's numbers against yesterday, the work waiting on the
 // shop, and the latest orders.
-export default function AdminHome() {
+// the home for roles without orders and money (0072): where their work is
+export default function AdminHomeByRole() {
+  const { me } = useStaff();
+  if (me && !can(me.role, "money")) return <StaffHome role={me.role} />;
+  return <AdminHome />;
+}
+
+function StaffHome({ role }: { role: StaffRole | null }) {
+  const links: [string, string, string][] = [
+    ...(can(role, "catalog") ? ([["/admin/products", "Products", "Names, photos, descriptions, options, tags"], ["/admin/products/collections", "Collections", "Hand-picked or automatic shelves"], ["/admin/products/reviews", "Reviews", "Approve and answer"]] as [string, string, string][]) : []),
+    ...(can(role, "look") ? ([["/admin/storefront", "Storefront", "Banners, homepage, menus and the shop's design"]] as [string, string, string][]) : []),
+    ...(can(role, "content") ? ([["/admin/storefront/pages", "Pages and blog", "About, policies, posts, FAQs and search listings"]] as [string, string, string][]) : []),
+  ];
+  return (
+    <div>
+      <header className="adm-pagehead">
+        <h1>Welcome</h1>
+        <p>You&apos;re signed in as {roleLabel(role)}. These are the parts of the shop your role looks after.</p>
+      </header>
+      <div className="staff-home">
+        {links.map(([href, label, about]) => (
+          <Link key={href} href={href} className="adm-card">
+            <b>{label}</b>
+            <span className="adm-muted adm-small">{about}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminHome() {
   const [counts, setCounts] = useState<HomeCounts | null>(null);
   const [today, setToday] = useState<Analytics | null>(null);
   const [yday, setYday] = useState<Analytics | null>(null);
