@@ -104,14 +104,15 @@ export function RangePicker({ value, onChange }: { value: Range; onChange: (r: R
   );
 }
 
-// Overview / Traffic / Reports: the page's head, and on a phone (no
+// Overview / Traffic / Live / Reports: the page's head, and on a phone (no
 // sidebar) the tabs between them
 const ANALYTICS_HEAD = {
   overview: ["Overview", "How the shop is doing: sales, orders and profit for the dates you pick, against the period before."],
   traffic: ["Traffic", "Who visits, where they come from, and how far they get towards an order."],
+  live: ["Live view", "Who is on the shop right now: the page each visitor is on, whether they've added to a cart, and today so far. Refreshes by itself."],
   reports: ["Reports", "Tables to download for your accountant or to check stock: by product, by customer, stock, month by month, GST by state, and how deliveries are going."],
 } as const;
-export function AnalyticsTabs({ on }: { on: "overview" | "traffic" | "reports" }) {
+export function AnalyticsTabs({ on }: { on: "overview" | "traffic" | "live" | "reports" }) {
   return (
     <>
     <header className="adm-pagehead">
@@ -124,6 +125,9 @@ export function AnalyticsTabs({ on }: { on: "overview" | "traffic" | "reports" }
       </Link>
       <Link role="tab" aria-selected={on === "traffic"} href="/admin/analytics/traffic">
         Traffic
+      </Link>
+      <Link role="tab" aria-selected={on === "live"} href="/admin/analytics/live">
+        Live
       </Link>
       <Link role="tab" aria-selected={on === "reports"} href="/admin/analytics/reports">
         Reports

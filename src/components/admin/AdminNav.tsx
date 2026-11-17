@@ -74,6 +74,7 @@ const SECTIONS: Section[] = [
     pages: [
       { label: "Overview", href: "/admin/analytics" },
       { label: "Traffic", href: "/admin/analytics/traffic" },
+      { label: "Live view", href: "/admin/analytics/live" },
       { label: "Reports", href: "/admin/analytics/reports" },
     ],
   },

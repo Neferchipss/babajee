@@ -712,6 +712,17 @@ export async function adminCarts(): Promise<AdminCart[]> {
   return ((data ?? []) as AdminCart[]).map((c) => ({ ...c, lines: Array.isArray(c.lines) ? c.lines : [], reminded_at: c.reminded_at ?? null, reminders: Number(c.reminders ?? 0) }));
 }
 
+// Live view (0069): visits active in the last few minutes, the pages being
+// looked at, and today so far.
+export type LiveSession = { session: string; page: string; looking_at: string; last_at: string; started: string; device: string; referrer: string; campaign: string; pages: number; adds: number; checkout: boolean; customer: string };
+export type LiveView = { minutes: number; now: string; visitors: number; sessions: LiveSession[]; pages: { page: string; visitors: number }[]; today: { visits: number; orders: number; sales: number } };
+export async function liveView(minutes = 5): Promise<LiveView> {
+  const { data, error } = await db().rpc("admin_live_view", { p_minutes: minutes });
+  if (error) throw error;
+  const r = data as LiveView;
+  return { ...r, today: { visits: Number(r.today?.visits ?? 0), orders: Number(r.today?.orders ?? 0), sales: Number(r.today?.sales ?? 0) } };
+}
+
 // the shop sent this customer a reminder itself (0067)
 export async function markCartReminded(customer: string) {
   const { error } = await db().rpc("admin_mark_cart_reminded", { p_customer: customer });
