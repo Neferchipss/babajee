@@ -24,6 +24,8 @@ export default function SettingsPage() {
   const [unpaidHours, setUnpaidHours] = useState("48");
   const [methods, setMethods] = useState("UPI, Bank transfer, Cash");
   const [lowAt, setLowAt] = useState("3");
+  const [abandonHours, setAbandonHours] = useState("1");
+  const [expireDays, setExpireDays] = useState("30");
   // the shop's own details, for invoices
   const [store, setStore] = useState({ store_name: "Babajee", legal_name: "", gstin: "", store_address: "", store_phone: "", store_email: "", invoice_prefix: "BJ", invoice_note: "" });
   const [loaded, setLoaded] = useState(false);
@@ -44,6 +46,8 @@ export default function SettingsPage() {
         setUnpaidHours(String(s.unpaid_hours));
         setMethods(s.payment_methods.join(", "));
         setLowAt(String(s.low_stock_at));
+        setAbandonHours(String(s.cart_abandon_hours));
+        setExpireDays(String(s.cart_expire_days));
         setStore({
           store_name: s.store_name,
           legal_name: s.legal_name,
@@ -71,6 +75,12 @@ export default function SettingsPage() {
     const hold = Math.round(Number(unpaidHours) || 0);
     if (hold < 0 || hold > 720) {
       setErr("Unpaid orders can be held for 0 to 720 hours (30 days).");
+      return;
+    }
+    const abandon = Math.round(Number(abandonHours) || 0);
+    const expire = Math.round(Number(expireDays) || 0);
+    if (abandon < 1 || abandon > 720 || expire < 0 || expire > 365) {
+      setErr("A cart is abandoned after 1 to 720 hours, and cleared after 0 (never) to 365 days.");
       return;
     }
     const payMethods = [...new Set(methods.split(",").map((m) => m.trim()).filter(Boolean))];
@@ -101,6 +111,8 @@ export default function SettingsPage() {
         gst_inclusive: inclusive,
         gst_input_credit: credit,
         cess_enabled: cess,
+        cart_abandon_hours: abandon,
+        cart_expire_days: expire,
         store_state: home,
         return_days: days,
         unpaid_hours: hold,
@@ -141,6 +153,7 @@ export default function SettingsPage() {
           ["delivery", "Delivery"],
           ["gst", "GST"],
           ["returns", "Returns"],
+          ["carts", "Carts"],
           ["stock", "Low stock"],
           ["data", "Data export"],
         ].map(([id, label]) => (
@@ -293,6 +306,26 @@ export default function SettingsPage() {
                 : "Off: no cess is charged anywhere, whatever is set on a product. Turn it on only if your products attract a compensation cess (ask your CA)."}
             </span>
           </div>
+        </section>
+
+        <section className="adm-card" style={{ display: "grid", gap: 16 }}>
+          <h2 id="set-carts" style={{ margin: 0, scrollMarginTop: 140 }}>Carts</h2>
+          <label className="adm-label">
+            Hours before a cart counts as abandoned
+            <input className="adm-input" inputMode="numeric" value={abandonHours} disabled={!loaded} onChange={(e) => setAbandonHours(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">
+              A signed-in customer&apos;s cart left this long with no order shows under Orders → Carts → Abandoned, ready for a WhatsApp reminder you send yourself. Nothing is sent automatically.
+            </span>
+          </label>
+          <label className="adm-label">
+            Days before an untouched cart is cleared
+            <input className="adm-input" inputMode="numeric" value={expireDays} disabled={!loaded} onChange={(e) => setExpireDays(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">
+              {Number(expireDays) > 0
+                ? `Every night, carts nobody has changed for ${Number(expireDays)} day${Number(expireDays) === 1 ? "" : "s"} are emptied. Stock is never held by a cart, so this only tidies the list.`
+                : "0 means carts are never cleared."}
+            </span>
+          </label>
         </section>
 
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>

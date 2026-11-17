@@ -4051,3 +4051,14 @@ body:has(.adm-frame) .ftr {
     grid-template-columns: 1fr;
   }
 }
+
+/* Orders → Carts: cart-to-order counts (0067) */
+.cart-conv { margin-bottom: 14px; display: grid; gap: 10px; }
+.cart-conv-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cart-conv-head h2 { margin: 0; font-size: 1rem; }
+.cart-conv-head select { width: auto; }
+.cart-conv-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.cart-conv-row > div { display: grid; gap: 2px; }
+.cart-conv-row b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.cart-conv-row span { font-size: 0.8rem; color: var(--adm-muted, #777); }
+.cart-remind { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

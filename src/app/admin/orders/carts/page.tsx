@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { money, when } from "@/components/admin/ui";
-import { adminCarts, errText, type AdminCart } from "@/lib/orders-db";
+import { toast, toastError } from "@/components/admin/Toaster";
+import { adminCarts, cartConversion, errText, getSettings, markCartReminded, type AdminCart, type CartConversion } from "@/lib/orders-db";
 
 // Signed-in customers' carts (guests' carts stay in their browser). Active:
-// changed within the hour. Abandoned: left longer than that with no order
-// since. Each abandoned cart can be followed up on WhatsApp with a message
-// that lists what is in it.
-const IDLE_MS = 60 * 60 * 1000;
+// changed within the abandon window (Settings → Carts, 1 hour unless
+// changed). Abandoned: left longer than that with no order since. Each
+// abandoned cart can be followed up on WhatsApp with a message that lists
+// what is in it; the shop sends it itself and ticks it as reminded (0067).
+const HOUR = 60 * 60 * 1000;
 
 const cartValue = (c: AdminCart) => c.lines.reduce((n, l) => n + (l.price ?? 0) * l.qty, 0);
-const isActive = (c: AdminCart) => Date.now() - new Date(c.updated_at).getTime() < IDLE_MS;
-const isAbandoned = (c: AdminCart) => !isActive(c) && (!c.last_order_at || new Date(c.last_order_at) < new Date(c.updated_at));
+const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 1000) / 10}%` : "–");
 const optionOf = (variant: string) => (variant && variant !== "Default" && variant !== "Standard" ? variant : "");
 
 // a WhatsApp chat with the customer, the message already written
@@ -34,13 +35,37 @@ export default function CartsPage() {
   const [rows, setRows] = useState<AdminCart[] | null>(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<Tab>("abandoned");
+  const [idleHours, setIdleHours] = useState(1);
+  const [days, setDays] = useState(30);
+  const [conv, setConv] = useState<CartConversion | null>(null);
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     adminCarts().then(setRows, (e) => setErr(errText(e)));
+    getSettings().then((s) => setIdleHours(s.cart_abandon_hours), () => {});
   }, []);
+  useEffect(() => {
+    const to = new Date();
+    cartConversion(new Date(to.getTime() - days * 24 * HOUR), to).then(setConv, () => setConv(null));
+  }, [days]);
 
-  const abandoned = useMemo(() => (rows ?? []).filter(isAbandoned), [rows]);
-  const active = useMemo(() => (rows ?? []).filter(isActive), [rows]);
+  const isActive = (c: AdminCart) => now - new Date(c.updated_at).getTime() < idleHours * HOUR;
+  const isAbandoned = (c: AdminCart) => !isActive(c) && (!c.last_order_at || new Date(c.last_order_at) < new Date(c.updated_at));
+
+  async function reminded(c: AdminCart) {
+    try {
+      await markCartReminded(c.profile_id);
+      setRows((r) => (r ?? []).map((x) => (x.profile_id === c.profile_id ? { ...x, reminded_at: new Date().toISOString(), reminders: x.reminders + 1 } : x)));
+      toast(`Marked ${c.full_name || c.email} as reminded`);
+    } catch (x) {
+      toastError(x);
+    }
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const abandoned = useMemo(() => (rows ?? []).filter(isAbandoned), [rows, idleHours]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const active = useMemo(() => (rows ?? []).filter(isActive), [rows, idleHours]);
   const shown = tab === "abandoned" ? abandoned : active;
   const worth = abandoned.reduce((n, c) => n + cartValue(c), 0);
 
@@ -52,11 +77,34 @@ export default function CartsPage() {
       <header className="adm-pagehead">
         <h1>Carts</h1>
         <p>
-        Carts of signed-in customers. A cart counts as abandoned when it has been left for over an hour without an order. Guests&apos; carts stay in
-        their own browser, so they are not listed.
+        Carts of signed-in customers. A cart counts as abandoned when it has been left for over {idleHours === 1 ? "an hour" : `${idleHours} hours`} without an
+        order (change it in <Link href="/admin/settings#set-carts">Settings → Carts</Link>). Guests&apos; carts stay in their own browser, so they are not listed.
+        Reminders are sent by you on WhatsApp; the site never sends anything.
         </p>
       </header>
       {err && <p className="adm-err">{err}</p>}
+
+      <section className="adm-card cart-conv" aria-label="Cart to order">
+        <div className="cart-conv-head">
+          <h2>Cart to order</h2>
+          <select className="adm-input" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Over">
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+        </div>
+        {conv ? (
+          <div className="cart-conv-row">
+            <div><b>{conv.visits}</b><span>visits</span></div>
+            <div><b>{conv.carted}</b><span>added to cart · {pct(conv.carted, conv.visits)}</span></div>
+            <div><b>{conv.checkout}</b><span>reached checkout · {pct(conv.checkout, conv.carted)}</span></div>
+            <div><b>{conv.carted_ordered}</b><span>ordered · {pct(conv.carted_ordered, conv.carted)} of carts</span></div>
+            <div><b>{pct(conv.accounts_ordered, conv.accounts_carted)}</b><span>of signed-in carts ordered ({conv.accounts_ordered} of {conv.accounts_carted})</span></div>
+          </div>
+        ) : (
+          <p className="adm-muted adm-small">Counting needs the cart rules update (0067).</p>
+        )}
+      </section>
 
       <div className="adm-chips" role="tablist" style={{ marginBottom: 12 }}>
         <button type="button" role="tab" aria-selected={tab === "abandoned"} className={`adm-chip ${tab === "abandoned" ? "is-on" : ""}`} onClick={() => setTab("abandoned")}>
@@ -118,13 +166,24 @@ export default function CartsPage() {
                     </td>
                     {tab === "abandoned" && (
                       <td>
-                        {wa ? (
-                          <a className="adm-btn" href={wa} target="_blank" rel="noreferrer">
-                            Remind on WhatsApp
-                          </a>
-                        ) : (
-                          <span className="adm-muted adm-small">No phone number</span>
-                        )}
+                        <div className="cart-remind">
+                          {wa ? (
+                            <a className="adm-btn" href={wa} target="_blank" rel="noreferrer">
+                              Remind on WhatsApp
+                            </a>
+                          ) : (
+                            <span className="adm-muted adm-small">No phone number</span>
+                          )}
+                          <button type="button" className="adm-btn" onClick={() => reminded(c)}>
+                            Mark reminded
+                          </button>
+                          {c.reminded_at && (
+                            <span className="adm-muted adm-small">
+                              Reminded {c.reminders > 1 ? `${c.reminders}× · last ` : ""}
+                              {when(c.reminded_at)}
+                            </span>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>

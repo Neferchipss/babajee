@@ -702,11 +702,32 @@ export type AdminCart = {
   lines: AdminCartLine[];
   updated_at: string;
   last_order_at: string | null;
+  // reminders the shop sent by hand (0067)
+  reminded_at: string | null;
+  reminders: number;
 };
 export async function adminCarts(): Promise<AdminCart[]> {
   const { data, error } = await db().rpc("admin_carts");
   if (error) throw error;
-  return ((data ?? []) as AdminCart[]).map((c) => ({ ...c, lines: Array.isArray(c.lines) ? c.lines : [] }));
+  return ((data ?? []) as AdminCart[]).map((c) => ({ ...c, lines: Array.isArray(c.lines) ? c.lines : [], reminded_at: c.reminded_at ?? null, reminders: Number(c.reminders ?? 0) }));
+}
+
+// the shop sent this customer a reminder itself (0067)
+export async function markCartReminded(customer: string) {
+  const { error } = await db().rpc("admin_mark_cart_reminded", { p_customer: customer });
+  if (error) throw error;
+}
+
+// Cart-to-order conversion over a range (0067): visits, visits that added to
+// the cart, reached checkout, ordered, and added-then-ordered; signed-in
+// customers who added to a cart and of those who ordered.
+export type CartConversion = { visits: number; carted: number; checkout: number; ordered: number; carted_ordered: number; accounts_carted: number; accounts_ordered: number };
+export async function cartConversion(from: Date, to: Date): Promise<CartConversion> {
+  const { data, error } = await db().rpc("admin_cart_conversion", { p_from: from.toISOString(), p_to: to.toISOString() });
+  if (error) throw error;
+  const r = ((data ?? [])[0] ?? {}) as Record<string, unknown>;
+  const n = (k: string) => Number(r[k] ?? 0);
+  return { visits: n("visits"), carted: n("carted"), checkout: n("checkout"), ordered: n("ordered"), carted_ordered: n("carted_ordered"), accounts_carted: n("accounts_carted"), accounts_ordered: n("accounts_ordered") };
 }
 
 // Saved for later (the heart), from customers' accounts (migration 0033):
@@ -868,6 +889,10 @@ export type StoreSettings = {
   gst_input_credit: boolean;
   // CESS on top of GST, per product (0060); off unless switched on
   cess_enabled: boolean;
+  // a cart left this many hours with no order is abandoned; one untouched
+  // this many days is emptied, 0 = never (0067)
+  cart_abandon_hours: number;
+  cart_expire_days: number;
   store_state: string;
   // days after delivery a customer can ask for a return; 0 = no returns (0022)
   return_days: number;
@@ -906,9 +931,11 @@ export async function gstRates(slugs: string[]): Promise<Map<string, { gst: numb
 export async function getSettings(): Promise<StoreSettings> {
   // cess (0060) read on its own: a database without it still gives the rest
   const cessP = db().from("store_settings").select("cess_enabled").eq("id", 1).maybeSingle();
+  const cartP = db().from("store_settings").select("cart_abandon_hours, cart_expire_days").eq("id", 1).maybeSingle();
   const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   const cess = await cessP;
+  const cart = await cartP;
   return {
     shipping: toNumber(data.shipping),
     free_shipping_over: data.free_shipping_over == null ? null : toNumber(data.free_shipping_over),
@@ -916,6 +943,8 @@ export async function getSettings(): Promise<StoreSettings> {
     gst_inclusive: data.gst_inclusive,
     gst_input_credit: data.gst_input_credit,
     cess_enabled: !cess.error && !!cess.data?.cess_enabled,
+    cart_abandon_hours: (!cart.error && cart.data?.cart_abandon_hours) || 1,
+    cart_expire_days: !cart.error && cart.data ? (cart.data.cart_expire_days ?? 30) : 30,
     store_state: data.store_state ?? "",
     return_days: data.return_days ?? 7,
     unpaid_hours: data.unpaid_hours ?? 48,
