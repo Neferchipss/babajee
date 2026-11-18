@@ -151,7 +151,7 @@ export default function CategoryCard({ name, slug, line, products, onOpen, link,
           <ul key={`out-${leaving!.round}`} className="ccard-items ccard-items--out" data-n={gone.length} aria-hidden="true">
             {gone.map((p, i) => (
               <li key={p.slug} className="ccard-item" data-slot={i} style={{ "--i": i } as React.CSSProperties}>
-                <img src={thumb(p.images![0])} alt="" draggable={false} />
+                <img src={thumb(p.images![0])} alt="" loading="lazy" draggable={false} />
               </li>
             ))}
           </ul>
@@ -167,11 +167,11 @@ export default function CategoryCard({ name, slug, line, products, onOpen, link,
             <li key={p.slug} className="ccard-item" data-slot={i} style={{ "--i": i } as React.CSSProperties}>
               {onOpen ? (
                 <button type="button" onClick={() => onOpen(p.slug!)} aria-label={p.name}>
-                  <img src={thumb(p.images![0])} alt="" draggable={false} />
+                  <img src={thumb(p.images![0])} alt="" loading="lazy" draggable={false} />
                 </button>
               ) : (
                 <Link href={p.href} aria-label={p.name}>
-                  <img src={thumb(p.images![0])} alt="" draggable={false} />
+                  <img src={thumb(p.images![0])} alt="" loading="lazy" draggable={false} />
                 </Link>
               )}
             </li>

@@ -98,6 +98,9 @@ const VALUES = [
 
 // The same page in every theme. The theme CSS moves the pieces around:
 // a sidebar or a row of tabs, a banner or a title block, tiles or cards.
+const FIRST_CARDS = 36;
+const MORE_CARDS = 48;
+
 export default function CategoryView({ category, products: snapshot, categories: initialCategories, pick, open, tags: initialTags = [], tag }: Props) {
   // arrived on a product's own address (/shop/grinder/rotary-missile/): it
   // opens here, and the address becomes the shelf's (/shop/grinder/?p=…) so
@@ -115,6 +118,12 @@ export default function CategoryView({ category, products: snapshot, categories:
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   // phones and tablets: the search field opens from the title bar
   const [finding, setFinding] = useState(false);
+  // the shelf draws its first cards at once and the rest as the shopper
+  // nears the end (the all-products shelf has ~450: drawing every one made
+  // the page 1 MB and slow to show); search, filters and the sheet still use
+  // every product
+  const [limit, setLimit] = useState(FIRST_CARDS);
+  const more = useRef<HTMLLIElement>(null);
 
   // the search page and the all-products shelf list every product, under
   // their category; the search page takes its query from the address
@@ -226,6 +235,24 @@ export default function CategoryView({ category, products: snapshot, categories:
   const desk = useSyncExternalStore(onDeskChange, isDesk, () => false);
   // the sheet turns through the shelf, then what is out of stock at its end
   const sheetItems = [...shown, ...soldOut].filter((p) => p.slug && p.variants);
+  // the groups as drawn: whole groups until the card budget runs out
+  const groups = (brands ?? [{ brand: undefined, items: shown }]).reduce<{ list: { brand?: string; items: CardProduct[]; all: CardProduct[] }[]; left: number }>(
+    (acc, g) => {
+      if (acc.left <= 0) return acc;
+      acc.list.push({ ...g, all: g.items, items: g.items.slice(0, acc.left) });
+      acc.left -= g.items.length;
+      return acc;
+    },
+    { list: [], left: limit },
+  ).list;
+  const allDrawn = limit >= shown.length;
+  useEffect(() => {
+    const el = more.current;
+    if (!el || allDrawn) return;
+    const io = new IntersectionObserver((e) => e[0]?.isIntersecting && setLimit((n) => n + MORE_CARDS), { rootMargin: "1600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [allDrawn, limit]);
   const openAt = openSlug ? sheetItems.findIndex((p) => p.slug === openSlug) : -1;
 
   // the browser tab names the open product, as its own address would; back
@@ -367,15 +394,15 @@ export default function CategoryView({ category, products: snapshot, categories:
             </p>
           ) : (
             <ul className="cp-grid">
-              {(brands ?? [{ brand: undefined, items: shown }]).map((g) => [
+              {groups.map((g) => [
                 brands && category.slug === "all" && g.brand && slugOf.get(g.brand) ? (
                   <li key={`card-${g.brand}`} className="ccard-row">
-                    <CategoryCard name={g.brand} slug={slugOf.get(g.brand)!} count={g.items.length} products={g.items} onOpen={(s) => openSheet(s)} link variant={Math.max(0, categories.findIndex((c) => c.name === g.brand))} />
+                    <CategoryCard name={g.brand} slug={slugOf.get(g.brand)!} count={g.all.length} products={g.all} onOpen={(s) => openSheet(s)} link variant={Math.max(0, categories.findIndex((c) => c.name === g.brand))} />
                   </li>
                 ) : brands && (
                   <li key={`brand-${g.brand ?? ""}`} className="cp-brand">
                     <h2>{g.brand ?? "More"}</h2>
-                    <span>{g.items.length}</span>
+                    <span>{g.all.length}</span>
                   </li>
                 ),
                 ...g.items.map((p) => (
@@ -398,6 +425,7 @@ export default function CategoryView({ category, products: snapshot, categories:
                   />
                 )),
               ])}
+              {!allDrawn && <li ref={more} className="cp-more" aria-hidden="true" />}
             </ul>
           )}
           <SoldOutRow products={soldOut} onOpen={openSheet} />

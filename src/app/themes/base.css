@@ -195,6 +195,12 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
+/* the marker after the drawn cards: when it nears the screen, more are drawn */
+#site[data-scope="shop"] .cp-grid > .cp-more {
+  grid-column: 1 / -1;
+  height: 1px;
+  list-style: none;
+}
 #site[data-scope="shop"] .pc {
   position: relative;
 }

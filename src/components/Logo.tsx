@@ -20,7 +20,8 @@ export default function Logo({
       <Image
         src={logo}
         alt="Babajee, the smoke shop"
-        priority={priority}
+        // the first thing on screen (the age check, the header): asked for first
+        {...(priority ? { loading: "eager" as const, fetchPriority: "high" as const } : {})}
         className={`logo-dark h-auto ${className}`}
       />
       <Image
