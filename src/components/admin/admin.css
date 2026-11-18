@@ -4093,13 +4093,7 @@ body:has(.adm-frame) .ftr {
 .imp-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 0.9rem; }
 .imp-table td { vertical-align: top; }
 
-/* two-step sign-in (0072) */
-.tws { display: grid; gap: 10px; max-width: 560px; }
-.tws h2 { margin: 0; font-size: 1.05rem; }
-.tws-qr { background: #fff; padding: 8px; border-radius: 10px; }
-.tws-secret { font-family: ui-monospace, monospace; word-break: break-all; background: color-mix(in srgb, var(--adm-ink) 8%, transparent); padding: 2px 6px; border-radius: 6px; }
-.tws-code { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
-.tws-code .adm-input { width: 140px; letter-spacing: 0.2em; font-variant-numeric: tabular-nums; }
+/* staff roles (0072) */
 .adm-role-note { max-width: 560px; }
 .team-roles { display: grid; gap: 8px; }
 .team-roles > div { display: grid; gap: 2px; }

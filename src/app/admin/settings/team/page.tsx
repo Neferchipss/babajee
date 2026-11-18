@@ -3,17 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast, toastError } from "@/components/admin/Toaster";
-import TwoStep from "@/components/admin/TwoStep";
 import { when } from "@/components/admin/ui";
 import { isAdminDemo } from "@/lib/admin-api";
 import { errText } from "@/lib/orders-db";
-import { can, ROLES, roleLabel, setStaff, setTwoStepRequired, useStaff, type StaffMember, type StaffRole } from "@/lib/staff";
+import { can, ROLES, roleLabel, setStaff, useStaff, type StaffMember, type StaffRole } from "@/lib/staff";
 import { getSupabase } from "@/lib/supabase";
 
 // The team: who can open this admin and what each one's role lets them do
 // (0072), from owner down to front-end UI. Owners change anyone; admins add
-// and change the three roles under them. Each person can set up two-step
-// sign-in for themselves, and owners and admins can make it required for all.
+// and change the three roles under them.
 export default function TeamPage() {
   const { me } = useStaff();
   const [team, setTeam] = useState<StaffMember[] | null>(null);
@@ -22,7 +20,6 @@ export default function TeamPage() {
   const [role, setRole] = useState<StaffRole>("accounts");
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState("");
-  const [required, setRequired] = useState<boolean | null>(null);
   const manage = can(me?.role ?? null, "team");
   const owner = me?.role === "owner";
   // the roles this person may hand out
@@ -31,9 +28,9 @@ export default function TeamPage() {
   const load = async () => {
     if (isAdminDemo()) {
       setTeam([
-        { id: "1", name: "Shop owner", email: "owner@example.com", role: "owner", two_step: true, last_sign_in: new Date().toISOString(), joined: "", me: true },
-        { id: "2", name: "Accounts", email: "accounts@example.com", role: "accounts", two_step: false, last_sign_in: null, joined: "", me: false },
-        { id: "3", name: "Shop floor", email: "storefront@example.com", role: "storefront", two_step: false, last_sign_in: null, joined: "", me: false },
+        { id: "1", name: "Shop owner", email: "owner@example.com", role: "owner", last_sign_in: new Date().toISOString(), joined: "", me: true },
+        { id: "2", name: "Accounts", email: "accounts@example.com", role: "accounts", last_sign_in: null, joined: "", me: false },
+        { id: "3", name: "Shop floor", email: "storefront@example.com", role: "storefront", last_sign_in: null, joined: "", me: false },
       ]);
       return;
     }
@@ -47,13 +44,6 @@ export default function TeamPage() {
     // the demo's sample team is set at once; the real one arrives later
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
-    if (!isAdminDemo())
-      void getSupabase()
-        ?.from("store_settings")
-        .select("staff_2fa")
-        .eq("id", 1)
-        .maybeSingle()
-        .then(({ data, error }) => setRequired(error ? null : !!data?.staff_2fa));
   }, []);
 
   async function change(who: string, r: StaffRole | null, done: string) {
@@ -74,16 +64,6 @@ export default function TeamPage() {
     if (!email.trim()) return;
     await change(email.trim(), role, `${email.trim()} is now ${roleLabel(role)}`);
     setEmail("");
-  }
-
-  async function require(on: boolean) {
-    try {
-      await setTwoStepRequired(on);
-      setRequired(on);
-      toast(on ? "Two-step sign-in is now required for all staff" : "Two-step sign-in is up to each person");
-    } catch (x) {
-      toastError(errText(x));
-    }
   }
 
   const mayChange = (m: StaffMember) => manage && !m.me && (owner || !["owner", "admin"].includes(m.role));
@@ -124,7 +104,7 @@ export default function TeamPage() {
                   </span>
                 )}
                 <span className="adm-muted adm-small" style={{ display: "block" }}>
-                  {m.email} · {m.last_sign_in ? `last signed in ${when(m.last_sign_in).toLowerCase()}` : "never signed in"} · {m.two_step ? "two-step on" : "two-step off"}
+                  {m.email} · {m.last_sign_in ? `last signed in ${when(m.last_sign_in).toLowerCase()}` : "never signed in"}
                 </span>
               </span>
               {mayChange(m) ? (
@@ -188,24 +168,6 @@ export default function TeamPage() {
         </form>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <TwoStep mode="manage" />
-      </div>
-
-      {manage && required !== null && (
-        <section className="adm-card" style={{ display: "grid", gap: 8, marginTop: 16, maxWidth: 560 }}>
-          <h2 style={{ margin: 0, fontSize: "1.05rem" }}>Two-step sign-in for all staff</h2>
-          <p className="adm-muted adm-small" style={{ margin: 0 }}>
-            {required
-              ? "Required: nobody can use the admin until they've set it up and passed it at sign-in."
-              : "Up to each person. Turning this on asks everyone to set it up the next time they open the admin. Set yours up first."}
-          </p>
-          <button type="button" className={`adm-switch ${required ? "is-on" : ""}`} aria-pressed={required} onClick={() => require(!required)}>
-            <span aria-hidden="true" />
-            {required ? "Required for all staff" : "Not required"}
-          </button>
-        </section>
-      )}
     </div>
   );
 }

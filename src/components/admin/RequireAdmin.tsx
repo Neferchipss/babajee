@@ -6,16 +6,14 @@ import { isAdminDemo } from "@/lib/admin-api";
 import { useAuth } from "@/lib/auth";
 import { canOpen, roleLabel, useStaff } from "@/lib/staff";
 import { useSyncExternalStore } from "react";
-import TwoStep from "./TwoStep";
 
 // The real gate is row-level security and each admin function's own check
-// (0072: the staff role, and two-step sign-in where it's needed). This gives
-// a customer, a signed-out visitor, someone who still has to pass two-step
-// sign-in, or a role that doesn't include this page, a plain message instead
-// of a confusing empty screen.
+// (0072: the staff role). This gives a customer, a signed-out visitor, or a
+// role that doesn't include this page, a plain message instead of a
+// confusing empty screen.
 export default function RequireAdmin({ children }: { children: React.ReactNode }) {
   const { status, profile } = useAuth();
-  const { me, reload } = useStaff();
+  const { me } = useStaff();
   // a developer trying the screens with sample data (?demo=1, never in production)
   const demo = useSyncExternalStore(() => () => {}, isAdminDemo, () => false);
 
@@ -33,18 +31,6 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
         <Link href="/account" className="btn btn-primary mt-6">
           Go to your account
         </Link>
-      </div>
-    );
-  }
-  // two-step sign-in set up (or required by the shop) but not passed yet
-  if (me && !me.active) {
-    return (
-      <div className="adm-role-note">
-        <h1 className="text-3xl">One more step</h1>
-        <p className="mt-4 text-muted">{me.enrolled ? "Your account uses two-step sign-in." : "The shop asks all staff to use two-step sign-in."}</p>
-        <div className="mt-6">
-          <TwoStep mode="gate" onDone={reload} />
-        </div>
       </div>
     );
   }

@@ -1,4 +1,4 @@
--- Tests for migration 0072 (staff roles, two-step). Rolled back. Empty: passed.
+-- Tests for migration 0072 (staff roles; two-step was removed in 0075). Rolled back. Empty: passed.
 do $$
 declare
   own uuid; acc uuid; sf uuid; fe uuid; cust uuid;
@@ -94,12 +94,7 @@ begin
   perform public.admin_set_staff((select email from auth.users where id = fe), null);
   if (select role from public.profiles where id = fe) <> 'customer' or (select staff_role from public.profiles where id = fe) is not null then raise exception 'FAIL: removed'; end if;
 
-  -- two-step required: aal1 isn't staff, aal2 is
-  update public.store_settings set staff_2fa = true where id = 1;
-  perform set_config('request.jwt.claims', json_build_object('sub', own, 'role', 'authenticated', 'aal', 'aal1')::text, true);
-  if public.is_admin() then raise exception 'FAIL: two_step_required'; end if;
-  if not (public.my_staff() ->> 'required')::boolean or (public.my_staff() ->> 'active')::boolean then raise exception 'FAIL: my_staff %', public.my_staff(); end if;
-  perform set_config('request.jwt.claims', json_build_object('sub', own, 'role', 'authenticated', 'aal', 'aal2')::text, true);
-  if not public.is_admin() then raise exception 'FAIL: two_step_passed'; end if;
+  -- (the two-step checks that were here went with two-step sign-in, 0075)
+  perform set_config('request.jwt.claims', json_build_object('sub', own, 'role', 'authenticated')::text, true);
   if jsonb_array_length(public.admin_team()) < 2 then raise exception 'FAIL: team'; end if;
 end $$;
