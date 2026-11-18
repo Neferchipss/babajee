@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabaseConfigured = Boolean(URL && KEY);
+export { siteRoot, supabaseConfigured } from "./sb";
 
 let client: SupabaseClient | null = null;
 
@@ -18,11 +18,4 @@ export function getSupabase(): SupabaseClient | null {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
   return client;
-}
-
-// The site root as seen by the browser (handles the /babajee base path on
-// Pages), used for links inside auth emails.
-export function siteRoot() {
-  const at = window.location.pathname.indexOf("/account");
-  return window.location.origin + (at > 0 ? window.location.pathname.slice(0, at) : "");
 }

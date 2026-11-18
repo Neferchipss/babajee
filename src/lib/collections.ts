@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
 // Collections (migration 0041): hand-picked, ordered lists of products, each
 // with its own shelf on the shop. The shop reads the switched-on ones; the
@@ -21,15 +21,15 @@ const toCollection = (r: Row): Collection => ({
   product_slugs: (r.collection_items ?? []).slice().sort((a, b) => a.position - b.position).map(slugOf).filter(Boolean),
 });
 
-function db() {
-  const sb = getSupabase();
+async function db() {
+  const sb = await loadSupabase();
   if (!sb) throw new Error("Not connected to the database.");
   return sb;
 }
 
 // every collection the caller may see (the shop: switched-on ones), in order
 export async function listCollections(): Promise<Collection[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const { data, error } = await sb.from("collections").select(COLUMNS).order("sort_order").order("name");
   if (error) throw error;
@@ -45,24 +45,24 @@ const slugify = (s: string) =>
     .slice(0, 60) || "collection";
 
 export async function createCollection(name: string, sort_order: number): Promise<string> {
-  const { data, error } = await db().from("collections").insert({ name: name.trim(), slug: slugify(name), sort_order }).select("id").single();
+  const { data, error } = await (await db()).from("collections").insert({ name: name.trim(), slug: slugify(name), sort_order }).select("id").single();
   if (error) throw error;
   return data.id as string;
 }
 
 export async function updateCollection(id: string, patch: Partial<Pick<Collection, "name" | "tagline" | "is_visible" | "sort_order">>) {
-  const { error } = await db().from("collections").update(patch).eq("id", id);
+  const { error } = await (await db()).from("collections").update(patch).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteCollection(id: string) {
-  const { error } = await db().from("collections").delete().eq("id", id);
+  const { error } = await (await db()).from("collections").delete().eq("id", id);
   if (error) throw error;
 }
 
 // the collection's products, in this order (replaces what was there)
 export async function setCollectionProducts(id: string, productIds: string[]) {
-  const sb = db();
+  const sb = (await db());
   const { error: e1 } = await sb.from("collection_items").delete().eq("collection_id", id);
   if (e1) throw e1;
   if (!productIds.length) return;
@@ -81,7 +81,7 @@ export type CollectionRules = { mode: "manual" | "auto"; rules: Rule[]; match: "
 export const MANUAL: CollectionRules = { mode: "manual", rules: [], match: "all", sort: "best_selling", max_items: null };
 
 export async function listCollectionRules(): Promise<Map<string, CollectionRules>> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   const out = new Map<string, CollectionRules>();
   if (!sb) return out;
   const { data, error } = await sb.from("collections").select("id, mode, rules, match, sort, max_items");
@@ -91,20 +91,20 @@ export async function listCollectionRules(): Promise<Map<string, CollectionRules
 }
 
 export async function saveCollectionRules(id: string, r: CollectionRules) {
-  const { error } = await db().from("collections").update(r).eq("id", id);
+  const { error } = await (await db()).from("collections").update(r).eq("id", id);
   if (error) throw error;
 }
 
 // work its products out again now (they also follow every product change)
 export async function refreshCollection(id: string): Promise<number> {
-  const { data, error } = await db().rpc("admin_refresh_collection", { p_collection: id });
+  const { data, error } = await (await db()).rpc("admin_refresh_collection", { p_collection: id });
   if (error) throw error;
   return Number(data ?? 0);
 }
 
 export type TagOption = { id: string; name: string; category_id: string };
 export async function listAllTags(): Promise<TagOption[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const { data, error } = await sb.from("subcategories").select("id, name, category_id").order("name");
   if (error) return [];

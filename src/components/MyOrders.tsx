@@ -9,7 +9,7 @@ import { formatPrice } from "@/lib/currency";
 import { gstLabel } from "@/lib/gst";
 import { CUSTOMER_LABEL, STEPS, type OrderStatus } from "@/lib/order-status";
 import type { Order, OrderRequest } from "@/lib/orders-db";
-import { categoryTone } from "@/lib/tone";
+import { categoryTone } from "@/lib/category-tone";
 import { photosFor, thumb } from "@/lib/product-photos";
 import { trackLink } from "@/lib/tracking";
 import "./my-orders.css";

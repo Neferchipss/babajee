@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
 // Login history (migration 0040): sign-ins recorded by the database when a
 // session starts, and failed attempts reported by the login form. Admins only.
@@ -15,7 +15,7 @@ export type LoginEvent = {
 };
 
 export async function loginEvents(opts: { profile?: string; failedOnly?: boolean; limit?: number } = {}): Promise<LoginEvent[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const { data, error } = await sb.rpc("admin_login_events", { p_profile: opts.profile ?? null, p_failed_only: opts.failedOnly ?? false, p_limit: opts.limit ?? 200 });
   if (error) throw error;

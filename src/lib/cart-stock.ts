@@ -1,7 +1,7 @@
 "use client";
 
 import type { CartLine } from "./cart";
-import { UNCOUNTED } from "./catalog-db";
+import { UNCOUNTED } from "./stock-count";
 import { useLiveCatalog } from "./useLiveCatalog";
 
 // The cart against the shop's stock right now. A line can have sold out

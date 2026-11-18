@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { liveSearchCatalog, type DbSearchProduct } from "./catalog-db";
+import type { DbSearchProduct } from "./catalog-db";
 
 // Static exports supply the initial shelf. A successful public read (including
 // an empty catalogue) replaces it on arrival and when returning from admin.
@@ -14,7 +14,8 @@ let last: { at: number; rows: Promise<DbSearchProduct[] | null> } | null = null;
 function shared(force = false) {
   const now = Date.now();
   if (force || !last || now - last.at > FRESH_MS) {
-    const rows = liveSearchCatalog().catch(() => null);
+    // the catalogue module (and its database client) loads on first use
+    const rows = import("./catalog-db").then((m) => m.liveSearchCatalog()).catch(() => null);
     last = { at: now, rows };
     // a failed read isn't kept: the next ask tries again
     void rows.then((r) => {

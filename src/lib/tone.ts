@@ -1,5 +1,3 @@
-import { CATEGORIES } from "./catalog-data";
-
 const TONES = [
   "var(--color-rasta-red)",
   "var(--color-rasta-gold)",
@@ -8,8 +6,4 @@ const TONES = [
 
 export function toneAt(index: number) {
   return TONES[index % TONES.length];
-}
-
-export function categoryTone(slug: string) {
-  return toneAt(Math.max(0, CATEGORIES.findIndex((c) => c.slug === slug)));
 }

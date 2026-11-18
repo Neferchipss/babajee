@@ -6,7 +6,7 @@
 // written from Admin > Storefront. Every read falls back to nothing, so the
 // shop works the same on a database without 0073. With ?demo=1 on a
 // developer's machine the admin writes to memory instead.
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
 // the admin's demo (?demo=1, never in a production build); kept here rather
 // than imported, so the shop's pages don't carry the admin's code
@@ -84,8 +84,8 @@ function demo(): Tables {
   return mem;
 }
 
-function db() {
-  const sb = getSupabase();
+async function db() {
+  const sb = await loadSupabase();
   if (!sb) throw new Error("Not connected to the database.");
   return sb;
 }
@@ -96,7 +96,7 @@ const ORDER: Record<Key, string> = { site_banners: "position", home_sections: "p
 // every row (the admin sees switched-off ones too; the shop only live ones)
 export async function listRows<K extends Key>(table: K): Promise<Tables[K]> {
   if (isAdminDemo()) return structuredClone(demo()[table]);
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [] as unknown as Tables[K];
   const { data, error } = await sb
     .from(table)
@@ -121,17 +121,17 @@ export async function saveRow<K extends Key>(table: K, row: Partial<Tables[K][nu
     return String(k);
   }
   if (table === "page_seo") {
-    const { error } = await db().from(table).upsert(row);
+    const { error } = await (await db()).from(table).upsert(row);
     if (error) throw error;
     return String(row.path);
   }
   if (row.id) {
     const { id, ...patch } = row;
-    const { error } = await db().from(table).update(patch).eq("id", id);
+    const { error } = await (await db()).from(table).update(patch).eq("id", id);
     if (error) throw error;
     return id;
   }
-  const { data, error } = await db().from(table).insert(row).select("id").single();
+  const { data, error } = await (await db()).from(table).insert(row).select("id").single();
   if (error) throw error;
   return data.id as string;
 }
@@ -145,7 +145,7 @@ export async function deleteRow(table: Key, id: string) {
     );
     return;
   }
-  const { error } = await db()
+  const { error } = await (await db())
     .from(table)
     .delete()
     .eq(table === "page_seo" ? "path" : "id", id);
@@ -159,7 +159,7 @@ export async function reorder(table: "site_banners" | "home_sections" | "faqs" |
 
 export async function getLook(): Promise<Look> {
   if (isAdminDemo()) return { ...memLook };
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return { ...LOOK_DEFAULT };
   const { data, error } = await sb.from("site_look").select("design, announcement, announcement_link").eq("id", 1).maybeSingle();
   if (error || !data) return { ...LOOK_DEFAULT };
@@ -171,7 +171,7 @@ export async function saveLook(patch: Partial<Look>) {
     memLook = { ...memLook, ...patch };
     return;
   }
-  const { error } = await db().from("site_look").update(patch).eq("id", 1);
+  const { error } = await (await db()).from("site_look").update(patch).eq("id", 1);
   if (error) throw error;
 }
 
@@ -180,7 +180,7 @@ export async function uploadBannerImage(file: File): Promise<string> {
   if (isAdminDemo()) return URL.createObjectURL(file);
   const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const path = `banners/${crypto.randomUUID()}.${ext}`;
-  const sb = db();
+  const sb = await db();
   const { error } = await sb.storage.from("product-photos").upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
   if (error) throw error;
   return sb.storage.from("product-photos").getPublicUrl(path).data.publicUrl;
@@ -193,7 +193,7 @@ export async function liveBanners(): Promise<Banner[]> {
 }
 
 export async function bestSellerSlugs(limit = 12): Promise<string[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const { data, error } = await sb.rpc("shop_best_sellers", { p_days: 60, p_limit: limit });
   if (error) return [];
@@ -202,7 +202,7 @@ export async function bestSellerSlugs(limit = 12): Promise<string[]> {
 
 export async function findPage(kind: "page" | "post", slug: string): Promise<SitePage | null> {
   if (isAdminDemo()) return demo().site_pages.find((p) => p.kind === kind && p.slug === slug) ?? null;
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return null;
   const { data, error } = await sb.from("site_pages").select("*").eq("kind", kind).eq("slug", slug).maybeSingle();
   if (error) return null;

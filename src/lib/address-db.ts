@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 import { tidy, type Address, type AddressInput } from "./addresses";
 
 // Reads and writes for saved addresses. Kept apart from ./addresses so pages
@@ -9,7 +9,7 @@ const COLUMNS = "id, recipient_name, phone, line1, line2, landmark, city, state,
 // Filtered to their account here: the database also lets admins read every
 // customer's addresses, which must never land in an admin's own checkout.
 export async function listAddresses(): Promise<Address[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const { data: auth } = await sb.auth.getSession();
   const me = auth.session?.user.id;
@@ -27,7 +27,7 @@ export async function listAddresses(): Promise<Address[]> {
 // Insert when there is no id, update otherwise. The database keeps a single
 // default per customer, so marking this one default clears the others.
 export async function saveAddress(profileId: string, a: AddressInput, id?: string): Promise<Address> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const row = tidy(a);
   const query = id
@@ -39,14 +39,14 @@ export async function saveAddress(profileId: string, a: AddressInput, id?: strin
 }
 
 export async function deleteAddress(id: string) {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { error } = await sb.from("addresses").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function makeDefault(id: string) {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { error } = await sb.from("addresses").update({ is_default: true }).eq("id", id);
   if (error) throw error;
@@ -55,7 +55,7 @@ export async function makeDefault(id: string) {
 // The customer's default billing address (0066), read on its own: null when
 // there is none, or before that is in place.
 export async function billingDefault(): Promise<string | null> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return null;
   const { data: auth } = await sb.auth.getSession();
   const me = auth.session?.user.id;
@@ -66,7 +66,7 @@ export async function billingDefault(): Promise<string | null> {
 
 // one default billing address: marking this one clears the others (0066)
 export async function makeBillingDefault(id: string) {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { error } = await sb.from("addresses").update({ is_default_billing: true }).eq("id", id);
   if (error) throw error;

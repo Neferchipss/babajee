@@ -1,4 +1,4 @@
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
 // Product reviews (migration 0037). Anyone reads approved ones; a customer
 // writes one per product they had delivered (submit_review checks), and it
@@ -21,7 +21,7 @@ export type ReviewSummary = { average: number; count: number; reviews: Review[] 
 
 // a product's approved reviews, newest first, with their average
 export async function productReviews(slug: string): Promise<ReviewSummary> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return { average: 0, count: 0, reviews: [] };
   const { data, error } = await sb.from("product_reviews").select(COLUMNS).eq("product_slug", slug).eq("status", "approved").order("created_at", { ascending: false });
   if (error) throw error;
@@ -32,7 +32,7 @@ export async function productReviews(slug: string): Promise<ReviewSummary> {
 
 // the signed-in customer's own reviews, by product
 export async function myReviews(): Promise<Map<string, Review>> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return new Map();
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return new Map();
@@ -42,7 +42,7 @@ export async function myReviews(): Promise<Map<string, Review>> {
 }
 
 export async function submitReview(slug: string, rating: number, title: string, body: string): Promise<Review> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { data, error } = await sb.rpc("submit_review", { p_slug: slug, p_rating: rating, p_title: title, p_body: body });
   if (error) throw error;
@@ -54,7 +54,7 @@ export async function submitReview(slug: string, rating: number, title: string, 
 export type AdminReview = Review & { product_name: string };
 
 export async function adminReviews(): Promise<AdminReview[]> {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) return [];
   const [reviews, products] = await Promise.all([
     sb.from("product_reviews").select(COLUMNS).order("created_at", { ascending: false }),
@@ -66,14 +66,14 @@ export async function adminReviews(): Promise<AdminReview[]> {
 }
 
 export async function setReviewStatus(id: string, status: ReviewStatus) {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { error } = await sb.from("product_reviews").update({ status }).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteReview(id: string) {
-  const sb = getSupabase();
+  const sb = await loadSupabase();
   if (!sb) throw new Error("not connected");
   const { error } = await sb.from("product_reviews").delete().eq("id", id);
   if (error) throw error;

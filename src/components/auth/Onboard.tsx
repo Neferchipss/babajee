@@ -7,7 +7,7 @@ import { ageOf, readDob } from "@/lib/age";
 import { useAuth } from "@/lib/auth";
 import { MIN_AGE } from "@/lib/config";
 import { BASE_PATH } from "@/lib/site";
-import { getSupabase, supabaseConfigured } from "@/lib/supabase";
+import { loadSupabase, supabaseConfigured } from "@/lib/sb";
 import Logo from "@/components/Logo";
 import NotConnected from "./NotConnected";
 import "./onboard.css";
@@ -68,7 +68,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
 
   if (!supabaseConfigured) return <NotConnected />;
 
-  const sb = () => getSupabase()!;
+  const sb = async () => (await loadSupabase())!;
 
   async function sendCode(e?: React.FormEvent) {
     e?.preventDefault();
@@ -79,7 +79,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
     // the email shows the code (tools/auth_emails.py, sent through Resend);
     // emailRedirectTo only matters if an older link-style email is used
     const returnTo = embedded ? window.location.href : `${window.location.origin}${BASE_PATH}/account/login/?next=${encodeURIComponent(next)}`;
-    const { error } = await sb().auth.signInWithOtp({ email: to, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
+    const { error } = await (await sb()).auth.signInWithOtp({ email: to, options: { shouldCreateUser: true, emailRedirectTo: returnTo } });
     setBusy(false);
     if (error) return setErr(error.status === 429 ? "Too many codes asked for. Wait a few minutes and try again." : !error.status ? "We couldn't reach the shop. Check your connection." : error.message);
     setEmail(to);
@@ -94,7 +94,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
     if (!codeOk(token)) return setErr("Enter the code from the email.");
     setBusy(true);
     setErr("");
-    const { error } = await sb().auth.verifyOtp({ email, token, type: "email" });
+    const { error } = await (await sb()).auth.verifyOtp({ email, token, type: "email" });
     setBusy(false);
     if (error) return setErr(/expired|invalid/i.test(error.message) ? "That code is wrong or has expired. Check it, or send a new one." : error.message);
     await refreshProfile();
@@ -105,11 +105,11 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
     e.preventDefault();
     setBusy(true);
     setErr("");
-    const { error } = await sb().auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await (await sb()).auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) {
       const c = "code" in error ? error.code : undefined;
-      if (error.status) void sb().rpc("log_failed_login", { p_email: email.trim(), p_reason: c === "invalid_credentials" ? "Wrong email or password" : (c ?? "Other"), p_user_agent: navigator.userAgent }).then(() => {});
+      if (error.status) void (await sb()).rpc("log_failed_login", { p_email: email.trim(), p_reason: c === "invalid_credentials" ? "Wrong email or password" : (c ?? "Other"), p_user_agent: navigator.userAgent }).then(() => {});
       return setErr(c === "invalid_credentials" ? "That email and password don't match." : c === "email_not_confirmed" ? "This email isn't verified yet. Use a code instead." : error.message);
     }
     await refreshProfile();
@@ -129,7 +129,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
     }
     setBusy(true);
     setErr("");
-    const { error } = await sb().rpc("complete_profile", { p_name: name.trim(), p_phone: `+91 ${digits}`, p_dob: born });
+    const { error } = await (await sb()).rpc("complete_profile", { p_name: name.trim(), p_phone: `+91 ${digits}`, p_dob: born });
     setBusy(false);
     if (error) return setErr(error.message);
     await refreshProfile();

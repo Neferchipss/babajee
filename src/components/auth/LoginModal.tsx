@@ -1,7 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useRef, useState } from "react";
-import Onboard from "./Onboard";
+
+// the sign-in screens load when the window first opens, not with every page
+const Onboard = dynamic(() => import("./Onboard"));
 
 // Desktop: "Log in" opens a floating window over the page you're on (like the
 // delivery apps) instead of leaving it. Any link to /account/login or

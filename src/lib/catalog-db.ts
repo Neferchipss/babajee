@@ -8,6 +8,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { CATEGORIES, type CatalogProduct } from "./catalog-data";
 import { toNumber } from "./currency";
+import { UNCOUNTED } from "./stock-count";
 import { photosFor } from "./product-photos";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -75,7 +76,6 @@ function localCategoryDetail(slug: string) {
 // How many can be bought. Stock is only counted where the admin turned on
 // "Count stock" for the option (track_stock); an option that isn't counted is
 // always available, whatever its number says (most sit at 0, never set).
-export const UNCOUNTED = 999;
 function stockOf(v: { stock_qty: unknown; track_stock?: boolean | null }) {
   return v.track_stock ? toNumber(v.stock_qty) : UNCOUNTED;
 }

@@ -14,7 +14,7 @@
 // comes back and how many visits an order takes), the utm_ tags of the link
 // that started the visit, searches with how many products matched, and the
 // checkout steps.
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
 const SESSION_KEY = "bj-visit";
 const REF_KEY = "bj-visit-ref";
@@ -112,9 +112,8 @@ type VisitKind = "view" | "cart" | "checkout" | "product" | "add" | "search" | "
 
 export function track(kind: VisitKind, path = location.pathname, label = "", value?: number) {
   if (!counted(path)) return;
-  const sb = getSupabase();
   const id = session();
-  if (!sb || !id) return;
+  if (!id) return;
   // cart and checkout count once per visit
   if (kind === "cart" || kind === "checkout") {
     try {
@@ -131,5 +130,6 @@ export function track(kind: VisitKind, path = location.pathname, label = "", val
   } catch {}
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const clean = (base && path.startsWith(base) ? path.slice(base.length) : path).replace(/\/$/, "").replace(/\/\?/, "?") || "/";
-  void sb.rpc("track_event", { p_session: id, p_kind: kind, p_path: clean, p_referrer: ref, p_device: device(), p_label: label, p_visitor: visitor(), p_campaign: campaign, p_value: value ?? null }).then(() => {});
+  const args = { p_session: id, p_kind: kind, p_path: clean, p_referrer: ref, p_device: device(), p_label: label, p_visitor: visitor(), p_campaign: campaign, p_value: value ?? null };
+  void loadSupabase().then((sb) => sb?.rpc("track_event", args).then(() => {}));
 }

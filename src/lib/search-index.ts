@@ -1,8 +1,8 @@
 // Every product, as the search bar's suggestions read them: its name, where
 // it lives, its first photo, and the words it can be found by (name, brand,
-// category). Built from the stock sheet the site is listing.
+// category). Built from the live catalogue when it has arrived; until then
+// from the stock sheet, which loads the first time it is needed.
 import { brandOf } from "./brand";
-import { CATEGORIES } from "./catalog-data";
 import { photosFor } from "./product-photos";
 
 type Suggestion = {
@@ -15,17 +15,25 @@ type Suggestion = {
 };
 
 let index: Suggestion[] | null = null;
-const all = () =>
-  (index ??= CATEGORIES.flatMap((c) =>
-    c.products.map((p) => ({
-      slug: p.slug,
-      name: p.name,
-      category: c.name,
-      categorySlug: c.slug,
-      photo: photosFor(p.slug)[0],
-      words: `${p.name} ${brandOf(p.name).brand ?? ""} ${c.name}`.toLowerCase(),
-    })),
-  ));
+let loading = false;
+const all = () => {
+  if (!index && !loading) {
+    loading = true;
+    void import("./catalog-data").then(({ CATEGORIES }) => {
+      index = CATEGORIES.flatMap((c) =>
+        c.products.map((p) => ({
+          slug: p.slug,
+          name: p.name,
+          category: c.name,
+          categorySlug: c.slug,
+          photo: photosFor(p.slug)[0],
+          words: `${p.name} ${brandOf(p.name).brand ?? ""} ${c.name}`.toLowerCase(),
+        })),
+      );
+    });
+  }
+  return index ?? [];
+};
 
 // The products every word of the query is found in, best first: those where
 // each word starts a word of the name ("raw tr" -> RAW Rolling TRay before

@@ -5,10 +5,10 @@
 import type { CreditNoteRow } from "./credit-note";
 import { toNumber } from "./currency";
 import type { OrderStatus } from "./order-status";
-import { getSupabase } from "./supabase";
+import { loadSupabase } from "./sb";
 
-function db() {
-  const sb = getSupabase();
+async function db() {
+  const sb = await loadSupabase();
   if (!sb) throw new Error("Not connected to the database.");
   return sb;
 }
@@ -171,18 +171,18 @@ export type CheckoutAddress = Record<
 // The billing address on the customer's own pending order (0066); empty
 // fields: the same as delivery.
 export async function setOrderBilling(orderId: string, b: { name: string; line1: string; line2?: string; city: string; state: string; pincode: string }) {
-  const { error } = await db().rpc("set_order_billing", { p_order: orderId, p: b });
+  const { error } = await (await db()).rpc("set_order_billing", { p_order: orderId, p: b });
   if (error) throw error;
 }
 
 export async function placeOrder(lines: CheckoutLine[], address: CheckoutAddress, notes: string) {
-  const { data, error } = await db().rpc("place_order", { p_items: lines, p_address: address, p_notes: notes });
+  const { data, error } = await (await db()).rpc("place_order", { p_items: lines, p_address: address, p_notes: notes });
   if (error) throw error;
   const row = (data as { order_id: string; order_number: string }[])[0];
   // tie the order to the visit it came from (0048); analytics only, never blocks the order
   const { visitId } = await import("./track");
   const visit = visitId();
-  if (row && visit) void db().rpc("link_order_session", { p_order: row.order_id, p_session: visit }).then(() => {});
+  if (row && visit) void (await db()).rpc("link_order_session", { p_order: row.order_id, p_session: visit }).then(() => {});
   return row;
 }
 
@@ -193,7 +193,7 @@ const MINE =
   "*, order_items(id, product_name, variant_label, unit_price, quantity, product_variants(label, products(slug))), shipments(delivered_at, shipped_at, carrier), order_refunds(id, amount, subtotal, shipping, tax, returned, created_at), order_requests(id, kind, status, reply)";
 
 export async function listMyOrders(profileId: string): Promise<Order[]> {
-  const { data, error } = await db().from("orders").select(MINE).eq("profile_id", profileId).order("created_at", { ascending: false });
+  const { data, error } = await (await db()).from("orders").select(MINE).eq("profile_id", profileId).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(toOrder);
 }
@@ -201,23 +201,23 @@ export async function listMyOrders(profileId: string): Promise<Order[]> {
 // several orders in full, for printing invoices; oldest first
 export async function getOrders(ids: string[]): Promise<Order[]> {
   if (!ids.length) return [];
-  const { data, error } = await db().from("orders").select(FULL).in("id", ids).order("created_at");
+  const { data, error } = await (await db()).from("orders").select(FULL).in("id", ids).order("created_at");
   if (error) throw error;
   return (data ?? []).map(toOrder);
 }
 
 // the buyer's GSTIN on a B2B order; only before its invoice is issued (0051)
 export async function setBuyerGstin(orderId: string, gstin: string) {
-  const { error } = await db().rpc("admin_set_buyer_gstin", { p_order: orderId, p_gstin: gstin });
+  const { error } = await (await db()).rpc("admin_set_buyer_gstin", { p_order: orderId, p_gstin: gstin });
   if (error) throw error;
 }
 
 // credit notes for every refund on these invoiced orders that has none yet,
 // then all their notes (0051)
 export async function issueCreditNotes(ids: string[]): Promise<CreditNoteRow[]> {
-  const { error } = await db().rpc("admin_issue_credit_notes", { p_orders: ids });
+  const { error } = await (await db()).rpc("admin_issue_credit_notes", { p_orders: ids });
   if (error) throw error;
-  const { data, error: e2 } = await db().from("credit_notes").select("*").in("order_id", ids).order("issued_at");
+  const { data, error: e2 } = await (await db()).from("credit_notes").select("*").in("order_id", ids).order("issued_at");
   if (e2) throw e2;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), cess: toNumber(r.cess ?? 0), shipping: toNumber(r.shipping) }) as CreditNoteRow);
 }
@@ -231,7 +231,7 @@ export async function invoicedOrders(from: string, to: string): Promise<Order[]>
   const [a, b] = istRange(from, to);
   const out: Order[] = [];
   for (let at = 0; ; at += 500) {
-    const { data, error } = await db().from("orders").select(FULL).not("invoice_number", "is", null).gte("invoice_date", a).lt("invoice_date", b).order("invoice_date").order("id").range(at, at + 499);
+    const { data, error } = await (await db()).from("orders").select(FULL).not("invoice_number", "is", null).gte("invoice_date", a).lt("invoice_date", b).order("invoice_date").order("id").range(at, at + 499);
     if (error) throw error;
     out.push(...(data ?? []).map(toOrder));
     if ((data ?? []).length < 500) return out;
@@ -242,7 +242,7 @@ export async function invoicedOrders(from: string, to: string): Promise<Order[]>
 // (paid before invoices were issued automatically)
 export async function uninvoicedPaid(from: string, to: string): Promise<number> {
   const [, b] = istRange(from, to);
-  const { count, error } = await db().from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).lt("created_at", b);
+  const { count, error } = await (await db()).from("orders").select("id", { count: "exact", head: true }).is("invoice_number", null).not("paid_total", "is", null).neq("status", "cancelled").eq("is_test", false).lt("created_at", b);
   if (error) throw error;
   return count ?? 0;
 }
@@ -250,20 +250,20 @@ export async function uninvoicedPaid(from: string, to: string): Promise<number> 
 // credit notes issued in the range (0051)
 export async function creditNotesIn(from: string, to: string): Promise<CreditNoteRow[]> {
   const [a, b] = istRange(from, to);
-  const { data, error } = await db().from("credit_notes").select("*").gte("issued_at", a).lt("issued_at", b).order("issued_at");
+  const { data, error } = await (await db()).from("credit_notes").select("*").gte("issued_at", a).lt("issued_at", b).order("issued_at");
   if (error) throw error;
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ ...r, amount: toNumber(r.amount), tax: toNumber(r.tax), cess: toNumber(r.cess ?? 0), shipping: toNumber(r.shipping) }) as CreditNoteRow);
 }
 
 // invoice numbers for these orders (paid ones without one get the next in the series)
 export async function issueInvoices(ids: string[]) {
-  const { data, error } = await db().rpc("admin_issue_invoices", { p_orders: ids });
+  const { data, error } = await (await db()).rpc("admin_issue_invoices", { p_orders: ids });
   if (error) throw error;
   return (data ?? []) as { order_id: string; invoice_number: string | null; invoice_date: string | null }[];
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const { data, error } = await db().from("orders").select(FULL).eq("id", id).maybeSingle();
+  const { data, error } = await (await db()).from("orders").select(FULL).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? toOrder(data) : null;
 }
@@ -271,13 +271,13 @@ export async function getOrder(id: string): Promise<Order | null> {
 // ---------------------------------------------------------------- admin: orders
 
 export async function listOrders(): Promise<Order[]> {
-  const { data, error } = await db().from("orders").select(LIST).order("created_at", { ascending: false }).limit(1000);
+  const { data, error } = await (await db()).from("orders").select(LIST).order("created_at", { ascending: false }).limit(1000);
   if (error) throw error;
   return (data ?? []).map(toOrder);
 }
 
 export async function updateOrder(id: string, to: OrderStatus, opts: { note?: string; carrier?: string; tracking?: string; restock?: boolean } = {}) {
-  const { error } = await db().rpc("admin_update_order", {
+  const { error } = await (await db()).rpc("admin_update_order", {
     p_order: id,
     p_status: to,
     p_note: opts.note ?? "",
@@ -291,7 +291,7 @@ export async function updateOrder(id: string, to: OrderStatus, opts: { note?: st
 // Move an order to any step of the road, forward or back (0021). Going
 // back undoes what the later steps recorded (courier, delivery date, payment).
 export async function setStep(id: string, to: OrderStatus, opts: { note?: string; carrier?: string; tracking?: string } = {}) {
-  const { error } = await db().rpc("admin_set_step", {
+  const { error } = await (await db()).rpc("admin_set_step", {
     p_order: id,
     p_status: to,
     p_note: opts.note ?? "",
@@ -306,7 +306,7 @@ export async function setStep(id: string, to: OrderStatus, opts: { note?: string
 // "Mark paid": how the money came in. The database records the payment and
 // moves the order to paid (invoice, confirmation email) in one go.
 export async function markPaid(id: string, p: { method: string; reference?: string; received?: string | null; note?: string }) {
-  const { error } = await db().rpc("admin_mark_paid", {
+  const { error } = await (await db()).rpc("admin_mark_paid", {
     p_order: id,
     p_method: p.method,
     p_reference: p.reference ?? "",
@@ -319,7 +319,7 @@ export async function markPaid(id: string, p: { method: string; reference?: stri
 export type Payment = { id: string; order_id: string; method: string; reference: string; amount: number; status: string; received_on: string | null; created_at: string; note: string };
 export async function paymentsFor(orderIds: string[]): Promise<Payment[]> {
   if (!orderIds.length) return [];
-  const { data, error } = await db()
+  const { data, error } = await (await db())
     .from("payments")
     .select("id, order_id, method, reference, amount, status, received_on, created_at, note")
     .in("order_id", orderIds)
@@ -333,7 +333,7 @@ export type OrderContact = { id: string; order_id: string; body: string; channel
 export async function contactsFor(orderIds: string[]): Promise<Map<string, OrderContact[]>> {
   const out = new Map<string, OrderContact[]>();
   if (!orderIds.length) return out;
-  const { data, error } = await db()
+  const { data, error } = await (await db())
     .from("customer_notes")
     .select("id, order_id, body, channel, created_at, status")
     .in("order_id", orderIds)
@@ -348,19 +348,19 @@ export async function contactsFor(orderIds: string[]): Promise<Map<string, Order
 // then it's sent again, or it came back and is closed after its refund.
 export const FAIL_REASONS = ["Customer not home", "Wrong or incomplete address", "Phone unreachable", "Refused the parcel", "Other"];
 export async function deliveryFailed(id: string, reason: string, note = "") {
-  const { error } = await db().rpc("admin_delivery_failed", { p_order: id, p_reason: reason, p_note: note });
+  const { error } = await (await db()).rpc("admin_delivery_failed", { p_order: id, p_reason: reason, p_note: note });
   if (error) throw error;
 }
 export async function sendAgain(id: string, opts: { carrier?: string; tracking?: string; note?: string } = {}) {
-  const { error } = await db().rpc("admin_send_again", { p_order: id, p_carrier: opts.carrier ?? null, p_tracking: opts.tracking ?? null, p_note: opts.note ?? "" });
+  const { error } = await (await db()).rpc("admin_send_again", { p_order: id, p_carrier: opts.carrier ?? null, p_tracking: opts.tracking ?? null, p_note: opts.note ?? "" });
   if (error) throw error;
 }
 export async function cameBack(id: string, note = "") {
-  const { error } = await db().rpc("admin_came_back", { p_order: id, p_note: note });
+  const { error } = await (await db()).rpc("admin_came_back", { p_order: id, p_note: note });
   if (error) throw error;
 }
 export async function failedDeliveries(from: string, to: string): Promise<number> {
-  const { data, error } = await db().rpc("admin_failed_deliveries", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_failed_deliveries", { p_from: from, p_to: to });
   if (error) throw error;
   return Number(data ?? 0);
 }
@@ -371,7 +371,7 @@ export async function refundOrder(
   id: string,
   r: { lines: { item: string; qty: number }[]; shipping: number; amount: number; restock: boolean; returned: boolean; reason: string },
 ) {
-  const { error } = await db().rpc("admin_refund", {
+  const { error } = await (await db()).rpc("admin_refund", {
     p_order: id,
     p_lines: r.lines,
     p_shipping: r.shipping,
@@ -389,20 +389,20 @@ export type EditAddress = { line1: string; line2: string; landmark: string; city
 
 // Change an order before it ships: quantities, items, delivery, contact, address.
 export async function editOrder(id: string, e: { lines: EditLine[]; shipping: number | null; contact: EditContact | null; address: EditAddress | null }) {
-  const { error } = await db().rpc("admin_edit_order", { p_order: id, p_lines: e.lines, p_shipping: e.shipping, p_contact: e.contact, p_address: e.address });
+  const { error } = await (await db()).rpc("admin_edit_order", { p_order: id, p_lines: e.lines, p_shipping: e.shipping, p_contact: e.contact, p_address: e.address });
   if (error) throw error;
 }
 
 // Take back a refund recorded by mistake (0019): restocked items come off
 // the shelf again and a fully refunded order reopens where it was.
 export async function undoRefund(refundId: string) {
-  const { error } = await db().rpc("admin_undo_refund", { p_refund: refundId });
+  const { error } = await (await db()).rpc("admin_undo_refund", { p_refund: refundId });
   if (error) throw error;
 }
 
 // The difference an edit made to a paid order was collected or paid back.
 export async function settleBalance(id: string) {
-  const { error } = await db().rpc("admin_settle_balance", { p_order: id });
+  const { error } = await (await db()).rpc("admin_settle_balance", { p_order: id });
   if (error) throw error;
 }
 
@@ -419,12 +419,12 @@ export function refundsOf(o: Order) {
 }
 
 export async function addOrderComment(orderId: string, actorId: string, note: string) {
-  const { error } = await db().from("order_events").insert({ order_id: orderId, status: "comment", note, actor_id: actorId });
+  const { error } = await (await db()).from("order_events").insert({ order_id: orderId, status: "comment", note, actor_id: actorId });
   if (error) throw error;
 }
 
 export async function setOrderNotes(id: string, notes: string) {
-  const { error } = await db().from("orders").update({ notes }).eq("id", id);
+  const { error } = await (await db()).from("orders").update({ notes }).eq("id", id);
   if (error) throw error;
 }
 
@@ -433,7 +433,7 @@ export async function setOrderNotes(id: string, notes: string) {
 export type HomeCounts = Record<"requests" | "unpaid" | "to_pack" | "to_ship" | "in_transit" | "out_of_stock" | "low_stock" | "unpriced", number>;
 
 export async function homeCounts(): Promise<HomeCounts> {
-  const { data, error } = await db().rpc("admin_home_counts");
+  const { data, error } = await (await db()).rpc("admin_home_counts");
   if (error) throw error;
   return data as HomeCounts;
 }
@@ -477,7 +477,7 @@ function numbers<T>(x: T): T {
 // sales by category for a date range (migration 0035), biggest first
 export type CategorySales = { name: string; slug: string; qty: number; sales: number };
 export async function salesByCategory(from: string, to: string): Promise<CategorySales[]> {
-  const { data, error } = await db().rpc("admin_sales_by_category", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_sales_by_category", { p_from: from, p_to: to });
   if (error) throw error;
   return ((data ?? []) as CategorySales[]).map((r) => ({ ...r, qty: Number(r.qty), sales: Number(r.sales) }));
 }
@@ -487,7 +487,7 @@ export async function salesByCategory(from: string, to: string): Promise<Categor
 export type AgeBand = { band: string; buyers: number; orders: number; sales: number };
 export type AgeSales = { bands: AgeBand[]; accounts: { band: string; n: number }[] };
 export async function salesByAge(from: string, to: string): Promise<AgeSales> {
-  const { data, error } = await db().rpc("admin_sales_by_age", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_sales_by_age", { p_from: from, p_to: to });
   if (error) throw error;
   const d = (data ?? { bands: [], accounts: [] }) as AgeSales;
   return {
@@ -497,7 +497,7 @@ export async function salesByAge(from: string, to: string): Promise<AgeSales> {
 }
 
 export async function analytics(from: string, to: string): Promise<Analytics> {
-  const { data, error } = await db().rpc("admin_analytics", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_analytics", { p_from: from, p_to: to });
   if (error) throw error;
   return numbers(data as Analytics);
 }
@@ -527,7 +527,7 @@ export type Traffic = {
 };
 
 export async function traffic(from: string, to: string): Promise<Traffic> {
-  const { data, error } = await db().rpc("admin_traffic", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_traffic", { p_from: from, p_to: to });
   if (error) throw error;
   const t = numbers(data as Traffic);
   // first_visit is a timestamp, not a number
@@ -559,14 +559,14 @@ export type TrafficInsights = {
 };
 
 export async function trafficInsights(from: string, to: string): Promise<TrafficInsights> {
-  const { data, error } = await db().rpc("admin_traffic_insights", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_traffic_insights", { p_from: from, p_to: to });
   if (error) throw error;
   return numbers(data as TrafficInsights);
 }
 
 // the day (India time) of the first order, for the "All time" range
 export async function firstOrderDay(): Promise<string | null> {
-  const { data, error } = await db().from("orders").select("created_at").order("created_at", { ascending: true }).limit(1).maybeSingle();
+  const { data, error } = await (await db()).from("orders").select("created_at").order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (error) throw error;
   return data ? new Date(data.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
 }
@@ -577,7 +577,7 @@ export async function firstOrderDay(): Promise<string | null> {
 export type GeoCity = { city: string; state: string; customers: number; orders: number; sales: number; lat: number | null; lng: number | null };
 
 export async function geo(from: string, to: string): Promise<{ cities: GeoCity[]; customers: number }> {
-  const { data, error } = await db().rpc("admin_geo", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_geo", { p_from: from, p_to: to });
   if (error) throw error;
   const d = data as { cities: (Omit<GeoCity, "lat" | "lng"> & { lat: unknown; lng: unknown })[]; customers: number };
   return {
@@ -617,7 +617,7 @@ export type Customer = {
 };
 
 export async function setCustomerTags(id: string, tags: string[]) {
-  const { error } = await db().rpc("admin_set_customer_tags", { p_customer: id, p_tags: tags });
+  const { error } = await (await db()).rpc("admin_set_customer_tags", { p_customer: id, p_tags: tags });
   if (error) throw error;
 }
 
@@ -630,7 +630,7 @@ export type NewCustomer = {
 };
 // a customer typed in by the shop; their account can't sign in (0027)
 export async function addCustomer(c: NewCustomer): Promise<string> {
-  const { data, error } = await db().rpc("admin_add_customer", { p_name: c.name, p_phone: c.phone, p_email: c.email, p_address: c.address, p_tags: c.tags });
+  const { data, error } = await (await db()).rpc("admin_add_customer", { p_name: c.name, p_phone: c.phone, p_email: c.email, p_address: c.address, p_tags: c.tags });
   if (error) throw error;
   return data as string;
 }
@@ -638,25 +638,25 @@ export async function addCustomer(c: NewCustomer): Promise<string> {
 // groups the shop builds itself (lib/customer-groups.ts)
 export type Segment = { id: string; name: string; rules: import("./customer-groups").Rule[] };
 export async function listSegments(): Promise<Segment[]> {
-  const { data, error } = await db().from("customer_segments").select("id, name, rules").order("created_at");
+  const { data, error } = await (await db()).from("customer_segments").select("id, name, rules").order("created_at");
   if (error) throw error;
   return (data ?? []) as Segment[];
 }
 export async function saveSegment(s: { id?: string; name: string; rules: Segment["rules"] }, by: string | null): Promise<Segment> {
   const q = s.id
-    ? db().from("customer_segments").update({ name: s.name, rules: s.rules }).eq("id", s.id)
-    : db().from("customer_segments").insert({ name: s.name, rules: s.rules, created_by: by });
+    ? (await db()).from("customer_segments").update({ name: s.name, rules: s.rules }).eq("id", s.id)
+    : (await db()).from("customer_segments").insert({ name: s.name, rules: s.rules, created_by: by });
   const { data, error } = await q.select("id, name, rules").single();
   if (error) throw error;
   return data as Segment;
 }
 export async function deleteSegment(id: string) {
-  const { error } = await db().from("customer_segments").delete().eq("id", id);
+  const { error } = await (await db()).from("customer_segments").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function listCustomers(): Promise<Customer[]> {
-  const { data, error } = await db().rpc("admin_customers");
+  const { data, error } = await (await db()).rpc("admin_customers");
   if (error) throw error;
   return ((data ?? []) as Customer[]).map((c) => ({ ...c, orders: toNumber(c.orders), spent: toNumber(c.spent) }));
 }
@@ -707,7 +707,7 @@ export type AdminCart = {
   reminders: number;
 };
 export async function adminCarts(): Promise<AdminCart[]> {
-  const { data, error } = await db().rpc("admin_carts");
+  const { data, error } = await (await db()).rpc("admin_carts");
   if (error) throw error;
   return ((data ?? []) as AdminCart[]).map((c) => ({ ...c, lines: Array.isArray(c.lines) ? c.lines : [], reminded_at: c.reminded_at ?? null, reminders: Number(c.reminders ?? 0) }));
 }
@@ -717,7 +717,7 @@ export async function adminCarts(): Promise<AdminCart[]> {
 export type LiveSession = { session: string; page: string; looking_at: string; last_at: string; started: string; device: string; referrer: string; campaign: string; pages: number; adds: number; checkout: boolean; customer: string };
 export type LiveView = { minutes: number; now: string; visitors: number; sessions: LiveSession[]; pages: { page: string; visitors: number }[]; today: { visits: number; orders: number; sales: number } };
 export async function liveView(minutes = 5): Promise<LiveView> {
-  const { data, error } = await db().rpc("admin_live_view", { p_minutes: minutes });
+  const { data, error } = await (await db()).rpc("admin_live_view", { p_minutes: minutes });
   if (error) throw error;
   const r = data as LiveView;
   return { ...r, today: { visits: Number(r.today?.visits ?? 0), orders: Number(r.today?.orders ?? 0), sales: Number(r.today?.sales ?? 0) } };
@@ -725,7 +725,7 @@ export async function liveView(minutes = 5): Promise<LiveView> {
 
 // the shop sent this customer a reminder itself (0067)
 export async function markCartReminded(customer: string) {
-  const { error } = await db().rpc("admin_mark_cart_reminded", { p_customer: customer });
+  const { error } = await (await db()).rpc("admin_mark_cart_reminded", { p_customer: customer });
   if (error) throw error;
 }
 
@@ -734,7 +734,7 @@ export async function markCartReminded(customer: string) {
 // customers who added to a cart and of those who ordered.
 export type CartConversion = { visits: number; carted: number; checkout: number; ordered: number; carted_ordered: number; accounts_carted: number; accounts_ordered: number };
 export async function cartConversion(from: Date, to: Date): Promise<CartConversion> {
-  const { data, error } = await db().rpc("admin_cart_conversion", { p_from: from.toISOString(), p_to: to.toISOString() });
+  const { data, error } = await (await db()).rpc("admin_cart_conversion", { p_from: from.toISOString(), p_to: to.toISOString() });
   if (error) throw error;
   const r = ((data ?? [])[0] ?? {}) as Record<string, unknown>;
   const n = (k: string) => Number(r[k] ?? 0);
@@ -745,7 +745,7 @@ export async function cartConversion(from: Date, to: Date): Promise<CartConversi
 // products by how many customers saved them, test accounts left out.
 export type SavedProduct = { slug: string; name: string; category: string; category_slug: string; saves: number; last_saved: string };
 export async function savedProducts(): Promise<SavedProduct[]> {
-  const { data, error } = await db().rpc("admin_saved_products");
+  const { data, error } = await (await db()).rpc("admin_saved_products");
   if (error) throw error;
   return ((data ?? []) as SavedProduct[]).map((r) => ({ ...r, saves: Number(r.saves) }));
 }
@@ -761,7 +761,7 @@ export type CustomerActivity = {
   events: ActivityEvent[];
 };
 export async function customerActivity(id: string): Promise<CustomerActivity> {
-  const { data, error } = await db().rpc("admin_customer_activity", { p_profile: id });
+  const { data, error } = await (await db()).rpc("admin_customer_activity", { p_profile: id });
   if (error) throw error;
   const r = (data ?? {}) as Partial<CustomerActivity>;
   return { first: r.first ?? null, last_seen: r.last_seen ?? null, visits: Number(r.visits ?? 0), events: r.events ?? [] };
@@ -770,7 +770,7 @@ export async function customerActivity(id: string): Promise<CustomerActivity> {
 // one customer's saved products, newest first
 export type CustomerSaved = { slug: string; name: string; href: string; price: number | null; saved_at: string };
 export async function customerSaved(id: string): Promise<CustomerSaved[]> {
-  const { data, error } = await db().from("saved_products").select("product_slug, item, created_at").eq("profile_id", id).order("created_at", { ascending: false });
+  const { data, error } = await (await db()).from("saved_products").select("product_slug, item, created_at").eq("profile_id", id).order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((r) => {
     const it = (r.item ?? {}) as { name?: string; href?: string; price?: number | null };
@@ -791,17 +791,17 @@ export type CustomerAccount = {
   status_note: string;
 };
 export async function customerAccount(id: string): Promise<CustomerAccount | null> {
-  const { data, error } = await db().from("profiles").select("first_name, last_name, gender, customer_type, business_name, gstin, status, status_note").eq("id", id).maybeSingle();
+  const { data, error } = await (await db()).from("profiles").select("first_name, last_name, gender, customer_type, business_name, gstin, status, status_note").eq("id", id).maybeSingle();
   if (error) return null;
   return (data as CustomerAccount | null) ?? null;
 }
 export async function updateCustomer(id: string, patch: Partial<CustomerAccount>) {
-  const { error } = await db().rpc("admin_update_customer", { p_customer: id, p: patch });
+  const { error } = await (await db()).rpc("admin_update_customer", { p_customer: id, p: patch });
   if (error) throw error;
 }
 
 export async function customerDetail(id: string) {
-  const sb = db();
+  const sb = (await db());
   const [orders, addresses, notes] = await Promise.all([
     sb.from("orders").select(LIST).eq("profile_id", id).order("created_at", { ascending: false }),
     sb.from("addresses").select("id, label, recipient_name, phone, line1, line2, landmark, city, state, pincode, latitude, longitude, is_default").eq("profile_id", id).order("is_default", { ascending: false }),
@@ -821,7 +821,7 @@ export async function addCustomerNote(
   body: string,
   more: { kind?: "note" | "contact"; channel?: SupportChannel; order_id?: string | null; open?: boolean } = {},
 ) {
-  const { error } = await db()
+  const { error } = await (await db())
     .from("customer_notes")
     .insert({ profile_id: profileId, author_id: authorId, body, kind: more.kind ?? "note", channel: more.channel ?? "", order_id: more.order_id ?? null, status: more.open ? "open" : more.kind === "contact" ? "resolved" : null });
   if (error) throw error;
@@ -829,14 +829,14 @@ export async function addCustomerNote(
 
 // a follow-up done (or reopened)
 export async function setNoteStatus(id: string, status: "open" | "resolved") {
-  const { error } = await db().from("customer_notes").update({ status, resolved_at: status === "resolved" ? new Date().toISOString() : null }).eq("id", id);
+  const { error } = await (await db()).from("customer_notes").update({ status, resolved_at: status === "resolved" ? new Date().toISOString() : null }).eq("id", id);
   if (error) throw error;
 }
 
 // the customer's cancellation and return requests, with the shop's replies
 export async function requestsFor(orderIds: string[]): Promise<(OrderRequest & { order_id: string })[]> {
   if (!orderIds.length) return [];
-  const { data, error } = await db().from("order_requests").select("id, order_id, kind, status, reason, items, reply, created_at, resolved_at").in("order_id", orderIds);
+  const { data, error } = await (await db()).from("order_requests").select("id, order_id, kind, status, reason, items, reply, created_at, resolved_at").in("order_id", orderIds);
   if (error) throw error;
   return (data ?? []) as (OrderRequest & { order_id: string })[];
 }
@@ -844,7 +844,7 @@ export async function requestsFor(orderIds: string[]): Promise<(OrderRequest & {
 // follow-ups still open across all customers, oldest first, for Home
 export type FollowUp = { id: string; body: string; channel: SupportChannel; created_at: string; profile_id: string; name: string };
 export async function openFollowUps(): Promise<FollowUp[]> {
-  const { data, error } = await db().from("customer_notes").select("id, body, channel, created_at, profile_id, profiles(full_name)").eq("status", "open").order("created_at").limit(20);
+  const { data, error } = await (await db()).from("customer_notes").select("id, body, channel, created_at, profile_id, profiles(full_name)").eq("status", "open").order("created_at").limit(20);
   if (error) throw error;
   return (data ?? []).map((r) => {
     const pr = (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles) as { full_name?: string } | null;
@@ -870,7 +870,7 @@ export type StockMove = {
 };
 
 export async function stockHistory(variantIds?: string[]): Promise<StockMove[]> {
-  let q = db()
+  let q = (await db())
     .from("stock_movements")
     .select("id, variant_id, delta, qty_after, reason, order_id, receipt_id, note, created_at, product_variants(label, products(name)), orders(order_number)")
     .order("created_at", { ascending: false })
@@ -930,8 +930,8 @@ export async function gstRates(slugs: string[]): Promise<Map<string, { gst: numb
   if (!slugs.length) return new Map();
   // cess rates (0060) read on their own: none before that is in place
   const [{ data, error }, cess] = await Promise.all([
-    db().from("products").select("slug, gst_rate").in("slug", slugs),
-    db().from("products").select("slug, cess_rate").in("slug", slugs),
+    (await db()).from("products").select("slug, gst_rate").in("slug", slugs),
+    (await db()).from("products").select("slug, cess_rate").in("slug", slugs),
   ]);
   if (error) throw error;
   const c = new Map(cess.error ? [] : (cess.data ?? []).map((r) => [r.slug as string, toNumber(r.cess_rate ?? 0)]));
@@ -941,9 +941,9 @@ export async function gstRates(slugs: string[]): Promise<Map<string, { gst: numb
 // Readable by anyone: the checkout needs the delivery charge and GST rule.
 export async function getSettings(): Promise<StoreSettings> {
   // cess (0060) read on its own: a database without it still gives the rest
-  const cessP = db().from("store_settings").select("cess_enabled").eq("id", 1).maybeSingle();
-  const cartP = db().from("store_settings").select("cart_abandon_hours, cart_expire_days").eq("id", 1).maybeSingle();
-  const { data, error } = await db().from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const cessP = (await db()).from("store_settings").select("cess_enabled").eq("id", 1).maybeSingle();
+  const cartP = (await db()).from("store_settings").select("cart_abandon_hours, cart_expire_days").eq("id", 1).maybeSingle();
+  const { data, error } = await (await db()).from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
   if (error) throw error;
   const cess = await cessP;
   const cart = await cartP;
@@ -975,13 +975,13 @@ export async function getSettings(): Promise<StoreSettings> {
 // Low and out-of-stock options (0043): each with its product, stock and low mark.
 export type LowItem = { variant_id: string; product_id: string; product: string; option: string; stock: number; mark: number; out: boolean };
 export async function lowStock(): Promise<LowItem[]> {
-  const { data, error } = await db().rpc("admin_low_stock");
+  const { data, error } = await (await db()).rpc("admin_low_stock");
   if (error) throw error;
   return (data ?? []) as LowItem[];
 }
 
 export async function saveSettings(s: StoreSettings) {
-  const { error } = await db().from("store_settings").update(s).eq("id", 1);
+  const { error } = await (await db()).from("store_settings").update(s).eq("id", 1);
   if (error) throw error;
 }
 
@@ -1002,7 +1002,7 @@ export type Purchase = { purchase: number | null; cost: number; gstPaid: number 
 const num = (v: unknown) => (v == null ? null : toNumber(v));
 export async function getPurchases(variantIds: string[]): Promise<Map<string, Purchase>> {
   if (!variantIds.length) return new Map();
-  const { data, error } = await db().from("variant_costs").select("variant_id, purchase, cost, gst_paid, gst_claimable").in("variant_id", variantIds);
+  const { data, error } = await (await db()).from("variant_costs").select("variant_id, purchase, cost, gst_paid, gst_claimable").in("variant_id", variantIds);
   if (error) throw error;
   return new Map(
     (data ?? []).map((r) => [r.variant_id as string, { purchase: num(r.purchase), cost: toNumber(r.cost), gstPaid: num(r.gst_paid), gstClaimable: num(r.gst_claimable) }]),
@@ -1014,7 +1014,7 @@ export async function getPurchases(variantIds: string[]): Promise<Map<string, Pu
 // why. Kept with the reason; later bills average against it. Returns the
 // new cost price.
 export async function correctPurchase(variantId: string, purchase: number, gstRate: number | null, reason: string, gstAmount: number | null = null): Promise<number> {
-  const { data, error } = await db().rpc("admin_set_purchase", { p_variant: variantId, p_purchase: purchase, p_gst_rate: gstRate, p_reason: reason, p_gst_amount: gstAmount });
+  const { data, error } = await (await db()).rpc("admin_set_purchase", { p_variant: variantId, p_purchase: purchase, p_gst_rate: gstRate, p_reason: reason, p_gst_amount: gstAmount });
   if (error) throw error;
   return toNumber(data);
 }
@@ -1024,7 +1024,7 @@ export async function correctPurchase(variantId: string, purchase: number, gstRa
 // rate; null: worked out from the rate). The database works out the GST paid
 // and the cost price. null purchase clears it all (no cost known).
 export async function setPurchase(variantId: string, purchase: number | null, gst?: { rate: number | null; amount: number | null }): Promise<Purchase | null> {
-  const q = db().from("variant_costs");
+  const q = (await db()).from("variant_costs");
   if (purchase == null) {
     const { error } = await q.delete().eq("variant_id", variantId);
     if (error) throw error;
@@ -1038,7 +1038,7 @@ export async function setPurchase(variantId: string, purchase: number | null, gs
 
 // Units each product has sold, all time (cancelled orders and refunded units left out), by product id.
 export async function unitsSold(): Promise<Map<string, number>> {
-  const { data, error } = await db().rpc("admin_units_sold");
+  const { data, error } = await (await db()).rpc("admin_units_sold");
   if (error) throw error;
   return new Map(((data ?? []) as { product_id: string; units: number }[]).map((r) => [r.product_id, toNumber(r.units)]));
 }
@@ -1049,7 +1049,7 @@ export async function unitsSold(): Promise<Map<string, number>> {
 export type SoldCost = { cost: number; gst: number | null; itc: number | null };
 export async function soldCosts(itemIds: string[]): Promise<Map<string, SoldCost>> {
   if (!itemIds.length) return new Map();
-  const { data, error } = await db().from("order_item_costs").select("order_item_id, unit_cost, unit_gst, unit_itc").in("order_item_id", itemIds);
+  const { data, error } = await (await db()).from("order_item_costs").select("order_item_id, unit_cost, unit_gst, unit_itc").in("order_item_id", itemIds);
   if (error) throw error;
   return new Map((data ?? []).map((r) => [r.order_item_id as string, { cost: toNumber(r.unit_cost), gst: num(r.unit_gst), itc: num(r.unit_itc) }]));
 }
@@ -1088,7 +1088,7 @@ export type Profit = {
 };
 
 export async function profit(from: string, to: string): Promise<Profit> {
-  const { data, error } = await db().rpc("admin_profit", { p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_profit", { p_from: from, p_to: to });
   if (error) throw error;
   const p = data as Profit;
   const n = (x: unknown) => toNumber(x as number);
@@ -1128,11 +1128,11 @@ export type DeliveryKind = "couriers" | "places" | "late";
 export async function report(kind: ReportKind, from: string, to: string): Promise<ReportRow[]> {
   if (kind === "couriers" || kind === "places" || kind === "late") return deliveryReport(kind, from, to);
   if (INSIGHTS.includes(kind)) {
-    const { data, error } = await db().rpc("admin_insights", { p_kind: kind, p_from: from, p_to: to });
+    const { data, error } = await (await db()).rpc("admin_insights", { p_kind: kind, p_from: from, p_to: to });
     if (error) throw error;
     return (data ?? []) as ReportRow[];
   }
-  const { data, error } = await db().rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
+  const { data, error } = await (await db()).rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
 }
@@ -1142,26 +1142,26 @@ export async function report(kind: ReportKind, from: string, to: string): Promis
 // The customer's cancel button: an unpaid order cancels at once ("cancelled");
 // a paid one asks the shop ("requested").
 export async function cancelMyOrder(id: string, reason: string): Promise<"cancelled" | "requested"> {
-  const { data, error } = await db().rpc("customer_cancel_order", { p_order: id, p_reason: reason });
+  const { data, error } = await (await db()).rpc("customer_cancel_order", { p_order: id, p_reason: reason });
   if (error) throw error;
   return data as "cancelled" | "requested";
 }
 
 export async function requestReturn(id: string, items: { item: string; qty: number }[], reason: string, reasonCode = "") {
   // with the picked reason (0068); without it on a database that hasn't got it yet
-  let { error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason, p_reason_code: reasonCode });
-  if (error?.code === "PGRST202") ({ error } = await db().rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason }));
+  let { error } = await (await db()).rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason, p_reason_code: reasonCode });
+  if (error?.code === "PGRST202") ({ error } = await (await db()).rpc("customer_request_return", { p_order: id, p_items: items, p_reason: reason }));
   if (error) throw error;
 }
 
 export async function withdrawRequest(id: string) {
-  const { error } = await db().rpc("customer_withdraw_request", { p_request: id });
+  const { error } = await (await db()).rpc("customer_withdraw_request", { p_request: id });
   if (error) throw error;
 }
 
 // the shop's answer; accept after the refund or cancellation is recorded
 export async function resolveRequest(id: string, accept: boolean, reply: string) {
-  const { error } = await db().rpc("admin_resolve_request", { p_request: id, p_accept: accept, p_reply: reply });
+  const { error } = await (await db()).rpc("admin_resolve_request", { p_request: id, p_accept: accept, p_reply: reply });
   if (error) throw error;
 }
 
@@ -1182,14 +1182,14 @@ export type NewOrder = {
 // An order taken by the shop (phone, WhatsApp, counter); see 0018.
 export async function createOrder(n: NewOrder): Promise<{ id: string; number: string }> {
   const args = { p_customer: n.customer, p_contact: n.contact, p_address: n.address, p_lines: n.lines, p_shipping: n.shipping, p_notes: n.notes, p_paid: n.paid };
-  const { data, error } = n.gstin ? await db().rpc("admin_create_order_b2b", { ...args, p_gstin: n.gstin }) : await db().rpc("admin_create_order", args);
+  const { data, error } = n.gstin ? await (await db()).rpc("admin_create_order_b2b", { ...args, p_gstin: n.gstin }) : await (await db()).rpc("admin_create_order", args);
   if (error) throw error;
   const row = (data as { order_id: string; order_number: string }[])[0];
   return { id: row.order_id, number: row.order_number };
 }
 
 export async function customerAddresses(id: string): Promise<CustomerAddress[]> {
-  const { data, error } = await db()
+  const { data, error } = await (await db())
     .from("addresses")
     .select("id, label, recipient_name, phone, line1, line2, landmark, city, state, pincode, latitude, longitude, is_default")
     .eq("profile_id", id)
@@ -1217,7 +1217,7 @@ type ShipRow = {
 async function deliveryReport(kind: DeliveryKind, from: string, to: string): Promise<ReportRow[]> {
   const DAY = 864e5;
   const now = Date.now();
-  let q = db()
+  let q = (await db())
     .from("shipments")
     .select("carrier, tracking_number, shipped_at, delivered_at, orders(id, order_number, contact_name, address_city, address_state, status, delivery_attempts)")
     .not("shipped_at", "is", null)
