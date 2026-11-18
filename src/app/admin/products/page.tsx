@@ -294,7 +294,7 @@ function ProductsAdmin() {
       />
       <div className="ap-tools">
         <div className="ap-searchrow">
-          <input className="ap-search" type="search" placeholder="Search by name, brand, type or tag" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
+          <input className="ap-search" type="search" placeholder="Search by name, brand, keyword, SKU or barcode" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search products" />
           {/* on a phone the filter buttons fold into this one box */}
           <select className="ap-need-select" value={need} onChange={(e) => setNeed(e.target.value as Need)} aria-label="Show">
             {needList.map(([id, label, n]) => (
