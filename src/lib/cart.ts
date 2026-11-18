@@ -1,6 +1,6 @@
 "use client";
 
-import { loadSupabase } from "./sb";
+import { loadSupabase } from "./sb.ts";
 import { useSyncExternalStore } from "react";
 
 

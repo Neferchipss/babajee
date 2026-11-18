@@ -5,8 +5,8 @@
 // sold (each line's GST rate, the order's "inside the price" rule), so an
 // invoice never changes when the catalogue does. Cess (0060), where a line
 // carries it, sits on the same taxable value and is listed beside the GST.
-import { lineCess, lineGst } from "./gst";
-import type { Order } from "./orders-db";
+import { lineCess, lineGst } from "./gst.ts";
+import type { Order } from "./orders-db.ts";
 
 // GST state codes, the first two digits of a GSTIN
 const STATE_CODES: Record<string, string> = {
