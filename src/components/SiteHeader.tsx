@@ -19,7 +19,7 @@ const AdminSearch = dynamic(() => import("./admin/AdminSearch").then((m) => m.Ad
 const NAV = [
   { href: "/shop", label: "Shop" },
   { href: "/about", label: "About" },
-  { href: "/support", label: "Support" },
+  { href: "/faq/", label: "Help" },
   { href: "/contact", label: "Contact" },
 ];
 

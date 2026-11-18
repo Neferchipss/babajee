@@ -93,6 +93,18 @@ export function BlogList() {
   );
 }
 
+// what the help page answers until the shop writes its own (Admin > Storefront > FAQs)
+const STARTER: { topic: string; q: string; a: string }[] = [
+  { topic: "Orders and payment", q: "How do I pay?", a: "Place your order, then pay the total by one of the ways shown on your order page. We check the payment, mark the order paid and start packing." },
+  { topic: "Orders and payment", q: "How long is my order held before I pay?", a: "An unpaid order holds its items for a limited time (shown on your order). If it isn't paid by then it cancels itself and the items go back on the shelf." },
+  { topic: "Orders and payment", q: "How do I follow my order?", a: "Open Your orders from your account. Each order shows where it has got to: placed, paid, packed, shipped and delivered, with the courier's tracking once it ships." },
+  { topic: "Orders and payment", q: "Do I need an account to order?", a: "Yes. An account lets you place orders and follow them from payment to delivery." },
+  { topic: "Delivery", q: "What does delivery cost?", a: "The delivery charge, and the order value above which delivery is free, are shown in your cart before you order." },
+  { topic: "Returns and cancelling", q: "Can I cancel an order?", a: "An unpaid order can be cancelled from its page. Once it's paid, ask to cancel from the order page and we'll reply there." },
+  { topic: "Returns and cancelling", q: "How do I return something?", a: "For a few days after delivery, a delivered order shows Ask for a return. Pick the items and tell us why; we reply on the order page." },
+  { topic: "Your account", q: "Why do you ask my age?", a: "We sell to adults only, so we ask before you enter the site and again when you create an account." },
+];
+
 export function FaqList() {
   const [list, setList] = useState<Faq[] | null>(null);
   useEffect(() => {
@@ -101,14 +113,26 @@ export function FaqList() {
   const topics = [...new Set((list ?? []).map((f) => f.topic))];
   return (
     <div className="cpg-wrap">
-      <h1>Questions and answers</h1>
+      <h1>Help and questions</h1>
       <p className="cpg-muted">
         Can&apos;t find it here? <Link href="/contact/">Send us a message</Link>.
       </p>
       {list === null ? (
         <p className="cpg-muted">Loading.</p>
       ) : !list.length ? (
-        <p className="cpg-muted">No questions here yet.</p>
+        [...new Set(STARTER.map((x) => x.topic))].map((t) => (
+          <section key={t} className="cpg-faq">
+            <h2>{t}</h2>
+            {STARTER.filter((x) => x.topic === t).map((x) => (
+              <details key={x.q}>
+                <summary>{x.q}</summary>
+                <div className="cpg-body">
+                  <p>{x.a}</p>
+                </div>
+              </details>
+            ))}
+          </section>
+        ))
       ) : (
         topics.map((t) => (
           <section key={t} className="cpg-faq">

@@ -31,7 +31,7 @@ const LIST: { href: string; label: string; d: string }[] = [
   { href: "/", label: "Explore the shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
   { href: "/shop", label: "Shop products", d: "M4 6h16M4 12h16M4 18h10" },
   { href: "/about", label: "About Babajee", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
-  { href: "/support", label: "Help and support", d: "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z" },
+  { href: "/faq/", label: "Help and support", d: "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z" },
   { href: "/contact", label: "Contact us", d: "M4 6h16v12H4zM4 7l8 6 8-6" },
   { href: "/terms", label: "Terms and conditions", d: "M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" },
   { href: "/legal", label: "Legal", d: "M12 3v18M5 7h14M7 7l-3 7a3 3 0 0 0 6 0L7 7zM17 7l-3 7a3 3 0 0 0 6 0l-3-7M8 21h8" },

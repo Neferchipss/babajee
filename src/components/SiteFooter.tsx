@@ -29,9 +29,8 @@ const COLUMNS = [
   {
     title: "Help",
     links: [
-      { href: "/support", label: "Support" },
+      { href: "/faq/", label: "Questions and help" },
       { href: "/contact", label: "Contact" },
-      { href: "/faq", label: "Questions (FAQ)" },
       { href: "/blog", label: "Blog" },
       { href: "/about", label: "About Babajee" },
       { href: "/terms", label: "Terms" },
