@@ -46,6 +46,7 @@ const ALL_SECTIONS: Section[] = [
     icon: I("M10 2.8 16.5 6v8L10 17.2 3.5 14V6zM3.5 6 10 9.2 16.5 6M10 9.2v8"),
     pages: [
       { label: "Products", href: "/admin/products" },
+      { label: "Categories", href: "/admin/products/categories" },
       { label: "Add a product", href: "/admin/products/new" },
       { label: "Import from a sheet", href: "/admin/products/import" },
       { label: "Drafts", href: "/admin/products?need=hidden" },

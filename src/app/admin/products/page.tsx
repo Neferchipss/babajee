@@ -7,7 +7,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
 import ProductTable, { type NewRow } from "@/components/admin/ProductTable";
 import { toast, toastError } from "@/components/admin/Toaster";
-import { SubcategoryManager } from "@/components/admin/Subcategories";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
 import "@/components/admin/admin-products.css";
 import { adminApi } from "@/lib/admin-api";
@@ -85,7 +84,6 @@ function ProductsAdmin() {
   const [openId, setOpenId] = useState<string | null>(params.get("product"));
   const [selecting, setSelecting] = useState(false);
   // the category's own settings (name, on the shop, order) stay folded away until asked for
-  const [editCat, setEditCat] = useState(false);
   // cards (the shop's look) or a sheet (rows and columns); remembered on this device
   const [view, setView] = useState<"cards" | "sheet">(() => {
     try {
@@ -335,19 +333,12 @@ function ProductsAdmin() {
             </button>
           </span>
           {cat && (
-            <button
-              type="button"
-              className={`ap-chip ap-gear ${editCat ? "is-on" : ""}`}
-              aria-expanded={editCat}
-              aria-label="Category settings: name, show on the shop, order"
-              title="Category settings"
-              onClick={() => setEditCat((v) => !v)}
-            >
+            <Link className="ap-chip ap-gear" href={`/admin/products/categories?id=${cat}`} aria-label="Edit this category: its sub-categories, boxes and tax" title="Edit this category">
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <circle cx="10" cy="10" r="2.6" />
                 <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" />
               </svg>
-            </button>
+            </Link>
           )}
         </div>
         <div className="ap-needs" role="group" aria-label="Show">
@@ -358,29 +349,6 @@ function ProductsAdmin() {
           ))}
         </div>
       </div>
-
-      {editCat && cat && categories.some((c) => c.id === cat) && (
-        <CategoryTools
-          key={cat}
-          category={categories.find((c) => c.id === cat)!}
-          first={categories[0]?.id === cat}
-          last={categories[categories.length - 1]?.id === cat}
-          onChange={async (work) => {
-            try {
-              await work();
-              setCategories(await api.listCategories());
-              toast("Category saved");
-            } catch (e) {
-              setErr(errText(e));
-      toastError(e);
-            }
-          }}
-          api={api}
-          all={categories}
-          products={rows.filter((p) => p.category_id === cat)}
-          onTagged={load}
-        />
-      )}
 
       {selecting && (
         <div className="ap-bulk" role="region" aria-label="Selected products">
@@ -713,69 +681,3 @@ function QuickAdd({ categories, cat, onAdd }: { categories: AdminCategory[]; cat
 
 // The open category's own settings, where its products are: its name, whether
 // the shop shows it, and its place in the bar.
-function CategoryTools({
-  category: c,
-  all,
-  first,
-  last,
-  api,
-  onChange,
-  products,
-  onTagged,
-}: {
-  category: AdminCategory;
-  all: AdminCategory[];
-  first: boolean;
-  last: boolean;
-  api: ReturnType<typeof adminApi>;
-  onChange: (work: () => Promise<unknown>) => Promise<void>;
-  // its products, for filling its sub-categories from their names (0063)
-  products: AdminProduct[];
-  onTagged: () => void;
-}) {
-  const [name, setName] = useState(c.name);
-  const [line, setLine] = useState(c.tagline ?? "");
-  return (
-    <div className="ap-cat" role="group" aria-label={`${c.name} category`}>
-      <input
-        className="ap-cat-name"
-        value={name}
-        aria-label="Category name"
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        onBlur={() => name.trim() && name.trim() !== c.name && onChange(() => api.updateCategory(c.id, { name: name.trim() }))}
-      />
-      {/* the line under the category's name at the top of its shelf */}
-      <input
-        className="ap-cat-name ap-cat-line"
-        value={line}
-        placeholder="A line under the name on the shop, e.g. Every way to break it down."
-        aria-label={`Line shown under ${c.name} on the shop`}
-        maxLength={90}
-        onChange={(e) => setLine(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        onBlur={() => line.trim() !== (c.tagline ?? "") && onChange(() => api.updateCategory(c.id, { tagline: line.trim() || null }))}
-      />
-      <button type="button" className={`ap-chip ${c.is_visible ? "" : "is-on"}`} onClick={() => onChange(() => api.updateCategory(c.id, { is_visible: !c.is_visible }))}>
-        {c.is_visible ? "On the shop" : "Hidden from the shop"}
-      </button>
-      {/* bought in boxes: its products get a Boxes section (0061) */}
-      <button
-        type="button"
-        className={`ap-chip ${c.sold_in_boxes ? "is-on" : ""}`}
-        aria-pressed={!!c.sold_in_boxes}
-        title="Products here are bought in boxes: each option can have boxes (Box of 24, Box of 50), sold whole if you tick them"
-        onClick={() => onChange(() => api.updateCategory(c.id, { sold_in_boxes: !c.sold_in_boxes }))}
-      >
-        {c.sold_in_boxes ? "Sold in boxes" : "Loose only"}
-      </button>
-      <button type="button" className="ap-chip" disabled={first} aria-label={`Move ${c.name} left`} onClick={() => onChange(() => api.moveCategory(all, c.id, -1))}>
-        ← Move
-      </button>
-      <button type="button" className="ap-chip" disabled={last} aria-label={`Move ${c.name} right`} onClick={() => onChange(() => api.moveCategory(all, c.id, 1))}>
-        Move →
-      </button>
-      <SubcategoryManager api={api} categoryId={c.id} categorySlug={c.slug} categoryName={c.name} products={products} onTagged={onTagged} />
-    </div>
-  );
-}

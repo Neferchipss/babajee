@@ -18,6 +18,7 @@ type Api = Pick<
   | "createCategory"
   | "updateCategory"
   | "moveCategory"
+  | "deleteCategory"
   | "listProducts"
   | "getProduct"
   | "createProduct"
@@ -123,6 +124,11 @@ function makeDemo(): Api {
     },
     async updateCategory(id, patch) {
       Object.assign(cats.find((c) => c.id === id)!, patch);
+    },
+    async deleteCategory(id) {
+      if (products.some((p) => p.category_id === id)) throw new Error("Move or delete its products first: a category with products can't be deleted.");
+      const at = cats.findIndex((c) => c.id === id);
+      if (at >= 0) cats.splice(at, 1);
     },
     async moveCategory(_rows, id, direction) {
       const i = cats.findIndex((c) => c.id === id);

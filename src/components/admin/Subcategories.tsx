@@ -8,9 +8,9 @@ import { suggestTags, SUBCATEGORY_RULES } from "@/lib/subcategory-rules";
 import "./subcategories.css";
 
 type Api = ReturnType<typeof adminApi>;
-type List = { groups: SubGroup[]; tags: Subcategory[] };
+export type List = { groups: SubGroup[]; tags: Subcategory[] };
 
-function useSubcategories(api: Api, categoryId: string) {
+export function useSubcategories(api: Api, categoryId: string) {
   const [list, setList] = useState<List | null>(null);
   const [err, setErr] = useState("");
   const load = useCallback(
@@ -172,7 +172,7 @@ export function SubcategoryManager({
 // its name, shown before anything is saved: untick what's wrong, then save.
 // Makes the groups and tags that aren't there yet and adds the ticked tags to
 // each product (tags it already has stay).
-function StarterFill({
+export function StarterFill({
   api,
   categoryId,
   categorySlug,

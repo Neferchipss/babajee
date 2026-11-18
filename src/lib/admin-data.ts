@@ -145,6 +145,12 @@ export async function createCategory(input: { slug: string; name: string; sort_o
   if (error) throw error;
 }
 
+// a category with no products left (the database refuses one that has any)
+export async function deleteCategory(id: string) {
+  const { error } = await db().from("categories").delete().eq("id", id);
+  if (error) throw error.code === "23503" ? new Error("Move or delete its products first: a category with products can't be deleted.") : error;
+}
+
 export async function updateCategory(id: string, patch: Partial<Pick<AdminCategory, "name" | "sort_order" | "is_visible" | "tagline" | "sold_in_boxes">>) {
   const { error } = await db().from("categories").update(patch).eq("id", id);
   if (error) throw error;
