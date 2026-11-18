@@ -5,6 +5,7 @@ import PanoLanding from "@/components/PanoLanding";
 import { DESIGNS, getLook, type Design } from "@/lib/content";
 import type { HomeProduct } from "@/lib/catalog-db";
 import ShopHome from "./ShopHome";
+import { applyShopDesign } from "@/lib/shop-design";
 
 // The homepage in the design the shop has picked (Admin > Storefront, 0073):
 // Current is the painted walk-in (PanoLanding), the others are ShopHome.
@@ -37,9 +38,7 @@ export default function HomeSwitch({ pano, products, built }: { pano: PanoProps;
     getLook().then((l) => {
       if (!live) return;
       setPicked(l.design);
-      try {
-        localStorage.setItem(KEY, l.design);
-      } catch {}
+      applyShopDesign(l.design);
     });
     return () => {
       live = false;

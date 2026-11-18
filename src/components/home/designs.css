@@ -1,6 +1,6 @@
 /* The storefront designs (Admin > Storefront, 0073). Each is a set of
    tokens on [data-design]; the shop home (ShopHome.tsx) and the admin's
-   swatches draw with them. All light: a home's daylight.
+   swatches draw with them. Light by default; dark versions at the end.
    Babajee's logo colours are red #fd1618, yellow #fdee03 and green #04cb62;
    on cream and white they are deepened so words in them stay readable
    (4.5:1 for text, the bright ones kept for fills and accents). */
@@ -85,4 +85,64 @@
   --d-accent: #d3ab70;
   --d-accent-2: #04cb62;
   --d-accent-3: #fd1618;
+}
+
+/* After dark: each home in the shopper's dark mode, the same palette as the
+   rest of the shop in that design (src/app/themes/shop-designs.css).
+   Shopfront takes the shop's own midnight. */
+html[data-mode="dark"]:not(:has(.adm-frame)) [data-design="shopfront"] {
+  --d-bg: #0c0a1c;
+  --d-surface: #151232;
+  --d-card: #1c1840;
+  --d-ink: #f4efff;
+  --d-muted: #a39cd0;
+  --d-line: #2d2860;
+  --d-accent: #d3ab70;
+  --d-accent-ink: #0c0a1c;
+  --d-accent-2: #7ef0c4;
+  --d-accent-3: #ff8fb3;
+  --d-glow: #231d52;
+  --d-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+html[data-mode="dark"]:not(:has(.adm-frame)) [data-design="haveli"] {
+  --d-bg: #1e0f10;
+  --d-surface: #36191b;
+  --d-card: #2a1416;
+  --d-ink: #fbf1e1;
+  --d-muted: #c9ad92;
+  --d-line: #55282b;
+  --d-accent: #ff6a5f;
+  --d-accent-ink: #1e0f10;
+  --d-accent-2: #f2c200;
+  --d-accent-3: #5fd08e;
+  --d-glow: #3e1b1d;
+  --d-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+html[data-mode="dark"]:not(:has(.adm-frame)) [data-design="chai"] {
+  --d-bg: #1d140a;
+  --d-surface: #322412;
+  --d-card: #271b0e;
+  --d-ink: #fff3d6;
+  --d-muted: #d0b48a;
+  --d-line: #4d3a1d;
+  --d-accent: #f2b230;
+  --d-accent-ink: #1d140a;
+  --d-accent-2: #fdd835;
+  --d-accent-3: #ff7a59;
+  --d-glow: #3b2a10;
+  --d-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+html[data-mode="dark"]:not(:has(.adm-frame)) [data-design="courtyard"] {
+  --d-bg: #0d1a12;
+  --d-surface: #183022;
+  --d-card: #12241a;
+  --d-ink: #eef8ea;
+  --d-muted: #a7c4ae;
+  --d-line: #26452f;
+  --d-accent: #4fd38a;
+  --d-accent-ink: #0d1a12;
+  --d-accent-2: #fbe122;
+  --d-accent-3: #ff6a5c;
+  --d-glow: #1d3a26;
+  --d-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
 }

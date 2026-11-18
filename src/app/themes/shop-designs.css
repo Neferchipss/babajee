@@ -1,0 +1,298 @@
+/* The shop designs, shop-wide (Admin > Storefront). <html data-design> is
+   set before the first paint from the last design seen (layout boot script)
+   and kept up to date by the announcement loader (SiteExtras.tsx). Each
+   design sets the shop's own tokens, in light and in dark, so every page
+   (shelves, product, cart, checkout, account, pages) takes its colours
+   without a layout change. Current and Shopfront keep the shop's colours.
+   Never inside the admin: the boot script skips it there, and the page-wide
+   tokens below stop at the admin frame. Generated values; contrast checked
+   for text on the page and on panels (4.5:1 or better). */
+
+
+/* haveli, light */
+:root[data-design="haveli"][data-mode="light"]:not(:has(.adm-frame)) {
+  color-scheme: light;
+  --bb-fg: 43 26 18;
+  --bb-bg: 251 244 230;
+  --bb-sheet: #fffaf0;
+  --bb-scrim: rgb(43 26 18 / 0.36);
+  --color-char: #fbf4e6;
+  --color-iron: #fffaf0;
+  --color-ash: #f5e8cf;
+  --color-line: #e8d6b5;
+  --color-paper: #2b1a12;
+  --color-muted: #6f5444;
+  --color-ink: #2b1a12;
+  --color-plate: #f5e8cf;
+  --bb-hot: #c3141a;
+  --bb-maroon: #c3141a;
+  --bb-green: #167a43;
+  --bb-on-accent: #fffaf0;
+}
+html[data-theme="baba-poster"][data-design="haveli"][data-mode="light"] #site[data-scope="shop"] {
+  --color-char: #fbf4e6;
+  --color-iron: #fffaf0;
+  --color-ash: #f5e8cf;
+  --color-line: #e8d6b5;
+  --color-paper: #2b1a12;
+  --color-muted: #6f5444;
+  --color-plate: #f3ebdc;
+  --color-ink: #2b1a12;
+  --color-rasta-gold: #c3141a;
+  --plate-ink: #c3141a;
+  --bb-ink: #2b1a12;
+  --bb-maroon: #c3141a;
+  --bb-maroon-dk: #9e0f14;
+  --bb-rose: #c3141a;
+  --bb-blush: #f5e8cf;
+  --bb-green: #167a43;
+  --bb-green-dk: #0f5c31;
+  --bb-hot: #c3141a;
+  --bb-on-accent: #fffaf0;
+  --bb-swirl: none;
+  --bbn-edge: #e8d6b5;
+  --bbn-glow: 195 20 26;
+  --bbn-halo: transparent;
+  --bbn-deep: #f5e8cf;
+  --bbn-scrim: 251 244 230;
+}
+
+/* haveli, dark */
+:root[data-design="haveli"][data-mode="dark"]:not(:has(.adm-frame)) {
+  color-scheme: dark;
+  --bb-fg: 251 241 225;
+  --bb-bg: 30 15 16;
+  --bb-sheet: #2a1416;
+  --bb-scrim: rgb(30 15 16 / 0.6);
+  --color-char: #1e0f10;
+  --color-iron: #2a1416;
+  --color-ash: #36191b;
+  --color-line: #55282b;
+  --color-paper: #fbf1e1;
+  --color-muted: #c9ad92;
+  --color-ink: #1e0f10;
+  --color-plate: #36191b;
+  --bb-hot: #ff4b40;
+  --bb-maroon: #ff6a5f;
+  --bb-green: #5fd08e;
+  --bb-on-accent: #1e0f10;
+}
+html[data-theme="baba-poster"][data-design="haveli"][data-mode="dark"] #site[data-scope="shop"] {
+  --color-char: #1e0f10;
+  --color-iron: #2a1416;
+  --color-ash: #36191b;
+  --color-line: #55282b;
+  --color-paper: #fbf1e1;
+  --color-muted: #c9ad92;
+  --color-plate: #efe6d6;
+  --color-ink: #1e0f10;
+  --color-rasta-gold: #ff6a5f;
+  --plate-ink: #ff6a5f;
+  --bb-ink: #fbf1e1;
+  --bb-maroon: #ff6a5f;
+  --bb-maroon-dk: #ff958c;
+  --bb-rose: #ff6a5f;
+  --bb-blush: #36191b;
+  --bb-green: #5fd08e;
+  --bb-green-dk: #2f8f57;
+  --bb-hot: #ff4b40;
+  --bb-on-accent: #1e0f10;
+  --bb-swirl: none;
+  --bbn-edge: #55282b;
+  --bbn-glow: 255 106 95;
+  --bbn-halo: transparent;
+  --bbn-deep: #2e1416;
+  --bbn-scrim: 30 15 16;
+}
+
+/* chai, light */
+:root[data-design="chai"][data-mode="light"]:not(:has(.adm-frame)) {
+  color-scheme: light;
+  --bb-fg: 51 32 15;
+  --bb-bg: 255 247 226;
+  --bb-sheet: #fffdf5;
+  --bb-scrim: rgb(51 32 15 / 0.36);
+  --color-char: #fff7e2;
+  --color-iron: #fffdf5;
+  --color-ash: #ffefc2;
+  --color-line: #f0dca6;
+  --color-paper: #33200f;
+  --color-muted: #74593c;
+  --color-ink: #33200f;
+  --color-plate: #ffefc2;
+  --bb-hot: #b3261e;
+  --bb-maroon: #8a5a00;
+  --bb-green: #2f7d32;
+  --bb-on-accent: #fffdf5;
+}
+html[data-theme="baba-poster"][data-design="chai"][data-mode="light"] #site[data-scope="shop"] {
+  --color-char: #fff7e2;
+  --color-iron: #fffdf5;
+  --color-ash: #ffefc2;
+  --color-line: #f0dca6;
+  --color-paper: #33200f;
+  --color-muted: #74593c;
+  --color-plate: #f7eed6;
+  --color-ink: #33200f;
+  --color-rasta-gold: #8a5a00;
+  --plate-ink: #8a5a00;
+  --bb-ink: #33200f;
+  --bb-maroon: #8a5a00;
+  --bb-maroon-dk: #6b4500;
+  --bb-rose: #8a5a00;
+  --bb-blush: #ffefc2;
+  --bb-green: #2f7d32;
+  --bb-green-dk: #215a24;
+  --bb-hot: #b3261e;
+  --bb-on-accent: #fffdf5;
+  --bb-swirl: none;
+  --bbn-edge: #f0dca6;
+  --bbn-glow: 138 90 0;
+  --bbn-halo: transparent;
+  --bbn-deep: #ffefc2;
+  --bbn-scrim: 255 247 226;
+}
+
+/* chai, dark */
+:root[data-design="chai"][data-mode="dark"]:not(:has(.adm-frame)) {
+  color-scheme: dark;
+  --bb-fg: 255 243 214;
+  --bb-bg: 29 20 10;
+  --bb-sheet: #271b0e;
+  --bb-scrim: rgb(29 20 10 / 0.6);
+  --color-char: #1d140a;
+  --color-iron: #271b0e;
+  --color-ash: #322412;
+  --color-line: #4d3a1d;
+  --color-paper: #fff3d6;
+  --color-muted: #d0b48a;
+  --color-ink: #1d140a;
+  --color-plate: #322412;
+  --bb-hot: #ff7a59;
+  --bb-maroon: #f2b230;
+  --bb-green: #7fd39a;
+  --bb-on-accent: #1d140a;
+}
+html[data-theme="baba-poster"][data-design="chai"][data-mode="dark"] #site[data-scope="shop"] {
+  --color-char: #1d140a;
+  --color-iron: #271b0e;
+  --color-ash: #322412;
+  --color-line: #4d3a1d;
+  --color-paper: #fff3d6;
+  --color-muted: #d0b48a;
+  --color-plate: #f1e8d4;
+  --color-ink: #1d140a;
+  --color-rasta-gold: #f2b230;
+  --plate-ink: #f2b230;
+  --bb-ink: #fff3d6;
+  --bb-maroon: #f2b230;
+  --bb-maroon-dk: #ffd277;
+  --bb-rose: #f2b230;
+  --bb-blush: #322412;
+  --bb-green: #7fd39a;
+  --bb-green-dk: #3f8f57;
+  --bb-hot: #ff7a59;
+  --bb-on-accent: #1d140a;
+  --bb-swirl: none;
+  --bbn-edge: #4d3a1d;
+  --bbn-glow: 242 178 48;
+  --bbn-halo: transparent;
+  --bbn-deep: #2b1e0f;
+  --bbn-scrim: 29 20 10;
+}
+
+/* courtyard, light */
+:root[data-design="courtyard"][data-mode="light"]:not(:has(.adm-frame)) {
+  color-scheme: light;
+  --bb-fg: 19 38 26;
+  --bb-bg: 242 248 238;
+  --bb-sheet: #ffffff;
+  --bb-scrim: rgb(19 38 26 / 0.36);
+  --color-char: #f2f8ee;
+  --color-iron: #ffffff;
+  --color-ash: #e3f0db;
+  --color-line: #d5e6cb;
+  --color-paper: #13261a;
+  --color-muted: #4f6455;
+  --color-ink: #13261a;
+  --color-plate: #e3f0db;
+  --bb-hot: #d4231f;
+  --bb-maroon: #0f7a3d;
+  --bb-green: #0f7a3d;
+  --bb-on-accent: #ffffff;
+}
+html[data-theme="baba-poster"][data-design="courtyard"][data-mode="light"] #site[data-scope="shop"] {
+  --color-char: #f2f8ee;
+  --color-iron: #ffffff;
+  --color-ash: #e3f0db;
+  --color-line: #d5e6cb;
+  --color-paper: #13261a;
+  --color-muted: #4f6455;
+  --color-plate: #eef3ea;
+  --color-ink: #13261a;
+  --color-rasta-gold: #0f7a3d;
+  --plate-ink: #0f7a3d;
+  --bb-ink: #13261a;
+  --bb-maroon: #0f7a3d;
+  --bb-maroon-dk: #0b5c2e;
+  --bb-rose: #0f7a3d;
+  --bb-blush: #e3f0db;
+  --bb-green: #0f7a3d;
+  --bb-green-dk: #0b5c2e;
+  --bb-hot: #d4231f;
+  --bb-on-accent: #ffffff;
+  --bb-swirl: none;
+  --bbn-edge: #d5e6cb;
+  --bbn-glow: 15 122 61;
+  --bbn-halo: transparent;
+  --bbn-deep: #e3f0db;
+  --bbn-scrim: 242 248 238;
+}
+
+/* courtyard, dark */
+:root[data-design="courtyard"][data-mode="dark"]:not(:has(.adm-frame)) {
+  color-scheme: dark;
+  --bb-fg: 238 248 234;
+  --bb-bg: 13 26 18;
+  --bb-sheet: #12241a;
+  --bb-scrim: rgb(13 26 18 / 0.6);
+  --color-char: #0d1a12;
+  --color-iron: #12241a;
+  --color-ash: #183022;
+  --color-line: #26452f;
+  --color-paper: #eef8ea;
+  --color-muted: #a7c4ae;
+  --color-ink: #0d1a12;
+  --color-plate: #183022;
+  --bb-hot: #ff6a5c;
+  --bb-maroon: #4fd38a;
+  --bb-green: #4fd38a;
+  --bb-on-accent: #0d1a12;
+}
+html[data-theme="baba-poster"][data-design="courtyard"][data-mode="dark"] #site[data-scope="shop"] {
+  --color-char: #0d1a12;
+  --color-iron: #12241a;
+  --color-ash: #183022;
+  --color-line: #26452f;
+  --color-paper: #eef8ea;
+  --color-muted: #a7c4ae;
+  --color-plate: #e6efe3;
+  --color-ink: #0d1a12;
+  --color-rasta-gold: #4fd38a;
+  --plate-ink: #4fd38a;
+  --bb-ink: #eef8ea;
+  --bb-maroon: #4fd38a;
+  --bb-maroon-dk: #8fe8b5;
+  --bb-rose: #4fd38a;
+  --bb-blush: #183022;
+  --bb-green: #4fd38a;
+  --bb-green-dk: #2a9a5e;
+  --bb-hot: #ff6a5c;
+  --bb-on-accent: #0d1a12;
+  --bb-swirl: none;
+  --bbn-edge: #26452f;
+  --bbn-glow: 79 211 138;
+  --bbn-halo: transparent;
+  --bbn-deep: #152a1d;
+  --bbn-scrim: 13 26 18;
+}

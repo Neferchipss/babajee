@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLook, listRows, type MenuLink } from "@/lib/content";
+import { applyShopDesign } from "@/lib/shop-design";
 import "./site-extras.css";
 
 // From Admin > Storefront (0073): the announcement line along the top of
@@ -39,12 +40,14 @@ function menus(): Promise<MenuLink[]> {
 export function Announcement() {
   const [a, setA] = useState<{ text: string; link: string } | null>(null);
   useEffect(() => {
-    const had = cached<{ text: string; link: string }>(LOOK_KEY);
+    // the look (announcement and the shop design), read once per visit
+    const had = cached<{ text: string; link: string; design?: string }>(LOOK_KEY);
     let live = true;
-    (had ? Promise.resolve(had) : getLook().then((l) => ({ text: l.announcement, link: l.announcement_link }))).then((x) => {
+    (had?.design ? Promise.resolve(had) : getLook().then((l) => ({ text: l.announcement, link: l.announcement_link, design: l.design }))).then((x) => {
       if (!live) return;
       keep(LOOK_KEY, x);
       setA(x);
+      applyShopDesign(x.design);
     });
     return () => {
       live = false;
