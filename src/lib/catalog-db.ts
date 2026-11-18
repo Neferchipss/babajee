@@ -26,7 +26,8 @@ function client() {
 // database options not priced yet (still ₹0); it then renders as the
 // "xx.xx" placeholder.
 // compareAt: the higher "was" price, struck through on the card (0028)
-type DbVariant = { id: string; label: string; price?: number; stockQty: number; compareAt?: number };
+// pack: pieces in a box option (0061), for its per-piece price; absent for loose
+type DbVariant = { id: string; label: string; price?: number; stockQty: number; compareAt?: number; pack?: number };
 export type DbCardProduct = {
   slug: string;
   name: string;
@@ -81,11 +82,11 @@ function stockOf(v: { stock_qty: unknown; track_stock?: boolean | null }) {
 }
 
 function normalizeVariants(
-  rows: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown }[] | null,
+  rows: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown; pack_of?: number | null }[] | null,
 ): DbVariant[] {
   if (!rows?.length) return [{ id: "default", label: "Default", stockQty: 0 }];
   return rows.slice().sort((a, b) => a.sort_order - b.sort_order).map((v) => ({
-    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: stockOf(v), compareAt: toNumber(v.compare_at) || undefined,
+    id: v.id, label: v.label, price: toNumber(v.price) || undefined, stockQty: stockOf(v), compareAt: toNumber(v.compare_at) || undefined, ...(v.pack_of && v.pack_of > 1 ? { pack: v.pack_of } : {}),
   }));
 }
 
@@ -106,7 +107,7 @@ function toCard(row: {
   subcategory?: string | null;
   brand?: string | null;
   created_at?: string | null;
-  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown }[] | null;
+  product_variants: { id: string; label: string; price: unknown; stock_qty: unknown; track_stock?: boolean | null; sort_order: number; compare_at?: unknown; pack_of?: number | null }[] | null;
 }): DbCardProduct {
   const variants = normalizeVariants(row.product_variants);
   return {
@@ -182,7 +183,7 @@ async function liveCategoryDetail(slug: string) {
   if (!category) return null;
   const { data: products } = await sb
     .from("products")
-    .select("slug, name, sort_order, seo_title, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
+    .select("slug, name, sort_order, seo_title, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at, pack_of)")
     .eq("category_id", category.id)
     .order("sort_order");
   return {
@@ -264,7 +265,7 @@ export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   const tagsP = getShopTags();
   const { data, error } = await sb
     .from("products")
-    .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at), categories!inner(slug, name)")
+    .select("slug, name, subcategory, brand, created_at, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at, pack_of), categories!inner(slug, name)")
     .eq("is_visible", true).eq("categories.is_visible", true).order("sort_order");
   if (error) return null;
   const { ofProduct } = await tagsP;

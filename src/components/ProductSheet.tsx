@@ -6,7 +6,7 @@ import { addToCart, tossIntoJar } from "@/lib/cart";
 import { fadeIn } from "@/lib/fade-in";
 import AddLabel from "./AddLabel";
 import Branded from "./Branded";
-import type { BuyVariant } from "./ProductBuy";
+import { eachText, type BuyVariant } from "./ProductBuy";
 import { formatPrice } from "@/lib/currency";
 import { dealFor } from "@/lib/deal";
 import { hasOptionPhotos, photosFor, shelfPicks, thumb } from "@/lib/product-photos";
@@ -456,6 +456,7 @@ export default function ProductSheet({
                       <>
                         <span className="ps-opt-label">{o.label}</span>
                         <Price className="ps-opt-price" value={o.price} />
+                        {eachText(o, formatPrice) && <small className="ps-opt-each">{eachText(o, formatPrice)}</small>}
                       </>
                     )}
                   </button>
@@ -475,7 +476,10 @@ export default function ProductSheet({
                 {formatPrice(deal.price, { paise: true })} <s>{formatPrice(deal.mrp, { paise: true })}</s>
               </span>
             ) : (
-              <Price className="ps-bar-price" value={variant.price} />
+              <>
+                <Price className="ps-bar-price" value={variant.price} />
+                {eachText(variant, formatPrice) && <small className="ps-opt-each">{eachText(variant, formatPrice)}</small>}
+              </>
             )}
             </div>
             <button type="button" className="ps-add" data-added={added === p.slug} onClick={add} disabled={out}>

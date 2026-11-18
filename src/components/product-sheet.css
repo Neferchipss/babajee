@@ -846,3 +846,11 @@ html #site[data-scope] .ps .pa-initial {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* a box option's price per piece ("₹9 each") */
+.ps-opt-each {
+  display: block;
+  font-size: 0.72em;
+  font-weight: 500;
+  opacity: 0.75;
+}

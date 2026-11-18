@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { formatPrice } from "@/lib/currency";
+import { eachText } from "./ProductBuy";
 import { dealFor } from "@/lib/deal";
 import { fadeIn } from "@/lib/fade-in";
 import { hasOptionPhotos, photosFor, shelfPicks, thumb } from "@/lib/product-photos";
@@ -185,7 +186,10 @@ export default function ProductDesk({
                   <span className="pdk-off">{Math.round(((deal.mrp - deal.price) / deal.mrp) * 100)}% off</span>
                 </>
               ) : (
-                <Price className="pdk-now" value={variant.price} />
+                <>
+                  <Price className="pdk-now" value={variant.price} />
+                  {eachText(variant, formatPrice) && <span className="pdk-each">{eachText(variant, formatPrice)}</span>}
+                </>
               )}
               {p.unit && <span className="pdk-unit">{p.unit}</span>}
             </div>
@@ -215,6 +219,7 @@ export default function ProductDesk({
                         <>
                           <span>{o.label}</span>
                           {o.price ? <Price className="pdk-opt-price" value={o.price} /> : null}
+                          {eachText(o, formatPrice) && <small className="pdk-opt-each">{eachText(o, formatPrice)}</small>}
                         </>
                       )}
                     </button>
