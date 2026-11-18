@@ -277,7 +277,7 @@
     text-wrap: balance;
   }
   /* the dusk sky is dark: the line goes light */
-  html[data-mode="dark"]:not([data-look="daydream"]) .pano-front-tag {
+  html[data-mode="dark"] .pano-front-tag {
     color: #efe9dc;
     text-shadow: 0 1px 8px rgb(0 0 0 / 0.6);
   }
@@ -366,6 +366,6 @@ body:has(.pano:not([data-inside])) :is(.hdr, .lb) {
 }
 
 /* dark mode: the shopfront's backing (seen for a moment before its picture) is night, not paper */
-html[data-mode="dark"]:not([data-look="daydream"]) .pano-front {
+html[data-mode="dark"] .pano-front {
   background: #1d1f22;
 }

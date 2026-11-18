@@ -1,21 +1,21 @@
 /* the shop's own pages, blog and FAQs */
-.cp-wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; display: grid; gap: 14px; }
-.cp-wrap h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.1; margin: 0; }
-.cp-muted { color: var(--color-muted); margin: 0; }
-.cp-back { font-size: 0.9rem; color: var(--color-muted); }
-.cp-cover { width: 100%; border-radius: 16px; aspect-ratio: 16 / 9; object-fit: cover; }
-.cp-body { display: grid; gap: 12px; font-size: 1.06rem; line-height: 1.7; }
-.cp-body p, .cp-body ul { margin: 0; }
-.cp-body ul { padding-left: 1.2em; }
-.cp-body h3 { margin: 14px 0 0; font-size: 1.3rem; }
-.cp-body a { text-decoration: underline; text-underline-offset: 3px; }
-.cp-posts { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 14px; }
-.cp-posts a { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--color-line); border-radius: 16px; text-decoration: none; color: inherit; }
-.cp-posts a:hover { border-color: var(--color-muted); }
-.cp-posts img { width: 100%; border-radius: 10px; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 6px; }
-.cp-posts b { font-size: 1.2rem; }
-.cp-faq { display: grid; gap: 8px; margin-top: 14px; }
-.cp-faq h2 { font-size: 1.25rem; margin: 0; }
-.cp-faq details { border: 1px solid var(--color-line); border-radius: 12px; padding: 12px 16px; }
-.cp-faq summary { cursor: pointer; font-weight: 600; }
-.cp-faq details[open] summary { margin-bottom: 8px; }
+.cpg-wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; display: grid; gap: 14px; }
+.cpg-wrap h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.1; margin: 0; }
+.cpg-muted { color: var(--color-muted); margin: 0; }
+.cpg-back { font-size: 0.9rem; color: var(--color-muted); }
+.cpg-cover { width: 100%; border-radius: 16px; aspect-ratio: 16 / 9; object-fit: cover; }
+.cpg-body { display: grid; gap: 12px; font-size: 1.06rem; line-height: 1.7; }
+.cpg-body p, .cpg-body ul { margin: 0; }
+.cpg-body ul { padding-left: 1.2em; }
+.cpg-body h3 { margin: 14px 0 0; font-size: 1.3rem; }
+.cpg-body a { text-decoration: underline; text-underline-offset: 3px; }
+.cpg-posts { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 14px; }
+.cpg-posts a { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--color-line); border-radius: 16px; text-decoration: none; color: inherit; }
+.cpg-posts a:hover { border-color: var(--color-muted); }
+.cpg-posts img { width: 100%; border-radius: 10px; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 6px; }
+.cpg-posts b { font-size: 1.2rem; }
+.cpg-faq { display: grid; gap: 8px; margin-top: 14px; }
+.cpg-faq h2 { font-size: 1.25rem; margin: 0; }
+.cpg-faq details { border: 1px solid var(--color-line); border-radius: 12px; padding: 12px 16px; }
+.cpg-faq summary { cursor: pointer; font-weight: 600; }
+.cpg-faq details[open] summary { margin-bottom: 8px; }

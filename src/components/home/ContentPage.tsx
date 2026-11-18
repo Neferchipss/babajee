@@ -30,29 +30,29 @@ export function PageView({ kind }: { kind: "page" | "post" }) {
   }, [kind, slug]);
   const page = res?.slug === slug ? res.page : undefined;
 
-  if (page === undefined) return <p className="cp-wrap cp-muted">Loading.</p>;
+  if (page === undefined) return <p className="cpg-wrap cpg-muted">Loading.</p>;
   if (!page || !page.is_visible)
     return (
-      <div className="cp-wrap">
+      <div className="cpg-wrap">
         <h1>Not found</h1>
-        <p className="cp-muted">That {kind === "post" ? "post" : "page"} isn&apos;t here any more.</p>
+        <p className="cpg-muted">That {kind === "post" ? "post" : "page"} isn&apos;t here any more.</p>
         <Link href={kind === "post" ? "/blog/" : "/"}>{kind === "post" ? "All posts" : "Back to the shop"}</Link>
       </div>
     );
   return (
-    <article className="cp-wrap cp-article">
+    <article className="cpg-wrap cpg-article">
       {kind === "post" && (
-        <Link href="/blog/" className="cp-back">
+        <Link href="/blog/" className="cpg-back">
           ← All posts
         </Link>
       )}
       <h1>{page.title}</h1>
-      {kind === "post" && page.published_at && <p className="cp-muted">{DAY.format(new Date(page.published_at))}</p>}
+      {kind === "post" && page.published_at && <p className="cpg-muted">{DAY.format(new Date(page.published_at))}</p>}
       {page.cover_url && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="cp-cover" src={page.cover_url} alt="" />
+        <img className="cpg-cover" src={page.cover_url} alt="" />
       )}
-      <div className="cp-body">
+      <div className="cpg-body">
         <RichText body={page.body} />
       </div>
     </article>
@@ -65,15 +65,15 @@ export function BlogList() {
     listPosts().then(setPosts);
   }, []);
   return (
-    <div className="cp-wrap">
+    <div className="cpg-wrap">
       <h1>From the shop</h1>
-      <p className="cp-muted">Guides, new arrivals and notes from behind the counter.</p>
+      <p className="cpg-muted">Guides, new arrivals and notes from behind the counter.</p>
       {posts === null ? (
-        <p className="cp-muted">Loading.</p>
+        <p className="cpg-muted">Loading.</p>
       ) : !posts.length ? (
-        <p className="cp-muted">Nothing here yet. Check back soon.</p>
+        <p className="cpg-muted">Nothing here yet. Check back soon.</p>
       ) : (
-        <ul className="cp-posts">
+        <ul className="cpg-posts">
           {posts.map((p) => (
             <li key={p.id}>
               <Link href={`/blog/view/?slug=${p.slug}`}>
@@ -82,7 +82,7 @@ export function BlogList() {
                   <img src={p.cover_url} alt="" loading="lazy" />
                 )}
                 <b>{p.title}</b>
-                {p.published_at && <small className="cp-muted">{DAY.format(new Date(p.published_at))}</small>}
+                {p.published_at && <small className="cpg-muted">{DAY.format(new Date(p.published_at))}</small>}
                 {p.excerpt && <span>{p.excerpt}</span>}
               </Link>
             </li>
@@ -100,25 +100,25 @@ export function FaqList() {
   }, []);
   const topics = [...new Set((list ?? []).map((f) => f.topic))];
   return (
-    <div className="cp-wrap">
+    <div className="cpg-wrap">
       <h1>Questions and answers</h1>
-      <p className="cp-muted">
+      <p className="cpg-muted">
         Can&apos;t find it here? <Link href="/contact/">Send us a message</Link>.
       </p>
       {list === null ? (
-        <p className="cp-muted">Loading.</p>
+        <p className="cpg-muted">Loading.</p>
       ) : !list.length ? (
-        <p className="cp-muted">No questions here yet.</p>
+        <p className="cpg-muted">No questions here yet.</p>
       ) : (
         topics.map((t) => (
-          <section key={t} className="cp-faq">
+          <section key={t} className="cpg-faq">
             <h2>{t}</h2>
             {list
               .filter((f) => f.topic === t)
               .map((f) => (
                 <details key={f.id}>
                   <summary>{f.question}</summary>
-                  <div className="cp-body">
+                  <div className="cpg-body">
                     <RichText body={f.answer} />
                   </div>
                 </details>
