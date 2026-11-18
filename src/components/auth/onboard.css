@@ -398,20 +398,7 @@ body:has(.onb) .ftr {
     color: #14110b;
     text-align: center;
   }
-  .onb-hero-back {
-    position: absolute;
-    top: calc(env(safe-area-inset-top) + 10px);
-    left: 8px;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    color: inherit;
-    cursor: pointer;
-  }
+
   /* the logo keeps its colours on a dark tile, like an app icon */
   .onb-hero-logo {
     display: block;
@@ -426,27 +413,7 @@ body:has(.onb) .ftr {
     width: 100%;
     height: auto;
   }
-  .onb-hero-title {
-    margin: 22px 0 6px;
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.08;
-    text-wrap: balance;
-  }
-  .onb-hero-sub {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    opacity: 0.85;
-  }
-  .onb-hero-rule {
-    width: 56px;
-    height: 3px;
-    margin: 18px 0 0;
-    border-radius: 2px;
-    background: rgb(0 0 0 / 0.22);
-  }
+
   .onb-hero-art {
     display: grid;
     place-items: center;
@@ -709,16 +676,7 @@ html[data-mode="light"] .onb {
     padding: 12px 16px;
     flex: none;
   }
-  .onb-hero-title {
-    margin-top: 16px;
-    font-size: clamp(1.45rem, 6.5vw, 1.9rem);
-  }
-  .onb-hero-sub {
-    font-size: 0.98rem;
-  }
-  .onb-hero-rule {
-    display: none;
-  }
+
   .onb-hero-art {
     flex: 1 1 auto;
     height: auto;
@@ -728,11 +686,6 @@ html[data-mode="light"] .onb {
   }
 }
 /* short screens: the strapline goes before the form would */
-@media (max-width: 820px) and (max-height: 640px) {
-  .onb-hero-sub {
-    display: none;
-  }
-}
 
 /* ---------------------------------------------------------------- phones, first step (Zepto-like) */
 .onb-m-title,

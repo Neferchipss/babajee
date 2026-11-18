@@ -25,14 +25,12 @@ html[data-theme^="baba-"] #site[data-scope="shop"] {
   --bb-blush: #2e151a;
   --bb-green: #45c470;
   --bb-on-accent: #1a0a0c;
-  --bb-hdr-bg: rgb(23 10 12 / 0.9);
   --bb-swirl: url("../../assets/baba/swirl-night.webp");
   --bbn-edge: #5a2a31;
   /* the accent as an RGB triple, for glows and hairlines */
   --bbn-glow: 235 165 157;
   --bbn-halo: rgb(160 60 64 / 0.16);
   --bbn-deep: #2a1115;
-  --bbn-foot: #0f0607;
   --bbn-scrim: 10 4 5;
   --bbn-shadow: #000;
   --bbn-serif: var(--f-cormorant), "Cormorant Garamond", Georgia, serif;
@@ -96,28 +94,6 @@ html[data-theme^="baba-"] #site[data-scope="shop"] {
     text-transform: none;
   }
 
-  /* the third eye sits in a dark alcove, inked like the band */
-  & .bb-third-btn {
-    border-color: var(--bbn-shadow);
-    background: var(--bbn-deep);
-    box-shadow:
-      4px 4px 0 var(--bbn-shadow),
-      0 0 0 1px rgb(var(--bbn-glow) / 0.3);
-  }
-  & .bb-third-btn:hover {
-    box-shadow:
-      6px 6px 0 var(--bbn-shadow),
-      0 0 0 1px rgb(var(--bbn-glow) / 0.6),
-      0 0 30px rgb(var(--bbn-glow) / 0.25);
-  }
-  & .bb-third-hint,
-  & .bb-third-pick {
-    font-family: var(--bbn-serif);
-    font-size: 1.45rem;
-    font-style: italic;
-    font-weight: 500;
-  }
-
   & :is(.cp-cats a, .cp-strip-btn, .cp-search input, .cp-sort select) {
     border-color: var(--bbn-edge);
   }
@@ -150,44 +126,9 @@ html[data-theme^="baba-"] #site[data-scope="shop"] {
     border-top-color: var(--bbn-edge);
   }
 
-  /* ------------------------------------ shop index and product page */
-  & :is(.si-hero, .pd-buy, .pd-more-head) {
-    border-color: var(--bbn-edge);
-  }
-  & :is(.si-title, .pd-title) {
-    text-shadow:
-      3px 3px 0 var(--bbn-shadow),
-      0 0 34px rgb(var(--bbn-glow) / 0.18);
-  }
-  & .pd-more-title {
-    text-shadow: 2px 2px 0 var(--bbn-shadow);
-  }
   & :is(.si-card, .pd-opt, .qty, .pd-oos) {
     border-color: var(--bbn-edge);
   }
-  & .si-card:hover {
-    border-color: var(--bb-maroon);
-    box-shadow: 5px 5px 0 var(--bbn-shadow);
-  }
-  & .si-ico {
-    border-color: var(--bbn-shadow);
-  }
-  & .pd-opt[aria-checked="true"] {
-    border-color: var(--bb-maroon);
-  }
-  & .pd-media .pa {
-    border-color: var(--bbn-shadow);
-    box-shadow:
-      6px 6px 0 var(--bbn-shadow),
-      0 0 0 1px rgb(var(--bbn-glow) / 0.3);
-  }
-  & .pd-desc {
-    font-family: var(--bbn-serif);
-    font-size: 1.35rem;
-    font-style: italic;
-    line-height: 1.35;
-  }
-
 }
 
 @keyframes bbn-seen {

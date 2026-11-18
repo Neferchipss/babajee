@@ -1,7 +1,6 @@
 /* Baba's jar (CartJar). The glass is dark so it reads over the white
    product plates; the lid takes the theme's accent. */
 .jar {
-  --jar-ink: var(--bb-ink, #120c26);
   --jar-lid: var(--bb-maroon, var(--color-rasta-gold, #ff8fb3));
   position: relative;
   display: block;
@@ -9,10 +8,7 @@
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
-.jar-body {
-  display: block;
-  transform-origin: 50% 100%;
-}
+
 .jar-art {
   display: block;
   width: 100%;
@@ -48,43 +44,11 @@
   stroke: rgb(0 0 0 / 0.3);
   stroke-width: 1;
 }
-.jar-count {
-  position: absolute;
-  top: -4px;
-  right: -6px;
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 5px;
-  border: 2px solid var(--color-char, #0c0a1c);
-  border-radius: 11px;
-  background: var(--bb-green, var(--color-rasta-green, #7ef0c4));
-  color: #0c0a1c;
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1;
-  animation: jar-count 0.35s ease-out;
-}
-.jar-body[data-plop="true"] {
-  animation: jar-wobble 0.55s ease-out;
-}
+
 .jar:focus-visible {
   outline: 2px solid var(--jar-lid);
   outline-offset: 4px;
   border-radius: 12px;
-}
-
-/* in the product sheet's top bar */
-.jar-sheet {
-  width: 34px;
-}
-.jar-sheet .jar-count {
-  top: -6px;
-  right: -9px;
-  min-width: 19px;
-  height: 19px;
-  font-size: 0.65rem;
 }
 
 @keyframes jar-wobble {
@@ -100,9 +64,4 @@
   70% { transform: scale(1.25); }
   100% { transform: scale(1); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .jar-body[data-plop="true"],
-  .jar-count {
-    animation: none;
-  }
-}
+

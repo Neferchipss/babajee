@@ -1,8 +1,7 @@
 /* The landing's painted shop (PanoLanding.tsx): the panorama under the entry
    film, the shelf labels over it, and a way on to every product. The page
    frame, the words and the cue are shop-scene.css's. */
-.pano .pano-canvas,
-.pano .pano-film {
+.pano .pano-canvas {
   position: absolute;
   inset: 0;
   display: block;
@@ -20,13 +19,6 @@
 .pano .pano-canvas:focus-visible {
   outline: 3px solid var(--color-rasta-gold);
   outline-offset: -3px;
-}
-.pano .pano-film {
-  pointer-events: none;
-}
-/* the street's darkened left edge and frame go with the words */
-.pano .scene-landing {
-  transition: none;
 }
 
 /* a shelf's label: a small pill on the painted shelf */

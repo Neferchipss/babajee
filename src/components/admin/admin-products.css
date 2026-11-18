@@ -29,19 +29,6 @@
   }
 }
 
-.ap-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.ap-head h1 {
-  margin: 0;
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
 .ap-sub {
   margin: 4px 0 0;
   color: var(--ap-muted);
@@ -613,7 +600,7 @@
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
-.ape-warn,
+
 .ape-err {
   margin: -8px 0 0;
   padding: 10px 12px;
@@ -816,7 +803,6 @@
 .ape-field input,
 .ape-field select,
 .ape-field textarea,
-.ape-opt input,
 .ape-codes-grid input {
   width: 100%;
   min-width: 0;
@@ -831,11 +817,7 @@
 .ape-field textarea {
   resize: vertical;
 }
-.ape-price {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 12px;
-}
+
 .ape-money {
   position: relative;
   display: block;
@@ -854,30 +836,7 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.ape-opts {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.ape-opt {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 64px auto 32px;
-  align-items: center;
-  gap: 6px;
-}
-.ape-opt .ape-opt-price {
-  grid-column: 1 / -1;
-  margin-top: -4px;
-  font-size: 0.74rem;
-  color: var(--ap-muted);
-  display: none;
-}
-.ape-opt input {
-  padding: 9px 10px;
-  font-size: 0.92rem;
-}
+
 .ape-del {
   width: 32px;
   height: 32px;
@@ -915,21 +874,6 @@
   }
   .ape-thumbs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .ape-opt {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 56px;
-  }
-  .ape-opt .ape-switch,
-  .ape-opt .ape-del {
-    grid-row: 2;
-  }
-  .ape-opt .ape-switch {
-    grid-column: 1;
-    justify-self: start;
-  }
-  .ape-opt .ape-del {
-    grid-column: 3;
-    justify-self: end;
   }
 }
 
@@ -998,16 +942,7 @@
   font-size: 0.95rem;
   line-height: 1.25;
 }
-.apc-price--range {
-  justify-self: start;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-}
+
 .apc-open {
   margin-bottom: 4px;
 }
@@ -1032,34 +967,7 @@
   padding: 2px 0 10px;
   border-bottom: 1px dashed var(--ap-line);
 }
-.ape-opt-photo {
-  position: relative;
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--color-plate, #e7e6ec);
-  border: 1px solid var(--ap-line);
-}
-.ape-opt-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.ape-opt-photo button {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 0;
-  background: rgb(12 10 28 / 0.75);
-  color: #fff;
-  font-size: 0.8rem;
-  line-height: 1;
-  cursor: pointer;
-}
+
 .ape-opt-add {
   height: 52px;
   padding: 0 12px;
@@ -1159,27 +1067,6 @@
   height: 64px;
 }
 
-/* ------------------------------------------------------------ main price */
-.ape-price--main {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-}
-.ape-price--main .ape-hint {
-  margin: 0;
-}
-.ape-main-price {
-  padding: 9px 13px;
-  border-radius: 11px;
-  border: 1px solid var(--ap-line);
-  background: var(--ap-panel);
-  font-size: 1.15rem;
-  font-weight: 800;
-}
-.ape-main-price .ape-inline {
-  border: 0;
-  background: none;
-  padding-block: 0;
-}
 /* an option on the main price reads quieter than one with its own */
 .ape-money.is-main input {
   color: var(--ap-muted);
@@ -1188,27 +1075,7 @@
   border-color: color-mix(in srgb, var(--ap-hot) 55%, var(--ap-line));
   padding-right: 30px !important;
 }
-.ape-reset {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 0;
-  background: transparent;
-  color: var(--ap-hot);
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-.ape-own {
-  grid-column: 1 / -1;
-  margin-top: -2px;
-  font-size: 0.74rem;
-  color: var(--ap-hot);
-}
+
 .apc-price-row {
   display: flex;
   align-items: baseline;
@@ -1227,11 +1094,6 @@
   text-underline-offset: 3px;
 }
 
-/* stock: an untracked option's count, and the product's stock history */
-.ape-opt-stock.is-off {
-  text-align: center;
-  color: var(--ap-muted);
-}
 .ape-history {
   list-style: none;
   margin: 0;
@@ -1320,113 +1182,6 @@
   color: var(--ap-ink);
   font: inherit;
   font-weight: 700;
-}
-
-/* ------------------------------------------------------------------ cost and profit */
-.ape-costs {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-.ape-cost {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.1fr);
-  align-items: center;
-  gap: 12px;
-}
-.ape-cost-name,
-.ape-cost-calc,
-.ape-cost-profit {
-  display: grid;
-  gap: 2px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  min-width: 0;
-}
-.ape-cost small {
-  font-size: 0.76rem;
-  font-weight: 500;
-  color: var(--ap-muted);
-}
-.ape-cost input {
-  width: 100%;
-  min-width: 0;
-  padding: 9px 10px;
-  border-radius: 11px;
-  border: 1px solid var(--ap-line);
-  background: var(--ap-panel);
-  color: var(--color-paper);
-  font: inherit;
-  font-size: 0.95rem;
-}
-.ape-cost-profit {
-  font-variant-numeric: tabular-nums;
-}
-.ape-cost-profit.is-pos {
-  color: var(--color-green-soft);
-}
-.ape-cost-profit.is-neg {
-  color: var(--color-red-soft);
-}
-.ape-cost-calc {
-  font-weight: 500;
-  color: var(--ap-muted);
-  font-variant-numeric: tabular-nums;
-}
-.ape-cost-calc b {
-  color: var(--color-paper);
-}
-@media (max-width: 620px) {
-  .ape-cost {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--ap-line);
-  }
-  .ape-cost-name {
-    grid-column: 1 / -1;
-  }
-}
-
-/* GST bracket + HSN */
-.ape-gst {
-  display: grid;
-  gap: 10px;
-  margin-top: 4px;
-}
-.ape-gst-label,
-.ape-hsn > span {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-.ape-gst .adm-seg {
-  border-radius: 16px;
-  flex-wrap: wrap;
-  justify-self: start;
-  max-width: 100%;
-}
-.ape-hsn {
-  display: grid;
-  gap: 6px;
-  max-width: 260px;
-}
-.ape-hsn small {
-  font-weight: 500;
-  color: var(--ap-muted);
-}
-.ape-hsn input {
-  padding: 9px 10px;
-  border-radius: 11px;
-  border: 1px solid var(--ap-line);
-  background: var(--ap-panel);
-  color: var(--color-paper);
-  font: inherit;
-  font-size: 0.95rem;
-  font-variant-numeric: tabular-nums;
-}
-.ape-hsn input[aria-invalid="true"] {
-  border-color: var(--color-red-soft);
 }
 
 /* search and the Select button share a row */
@@ -1725,12 +1480,7 @@ select.apt-in {
   font-style: normal;
   font-weight: 700;
 }
-.apt-sub {
-  display: block;
-  padding-right: 8px;
-  color: var(--ap-muted);
-  font-size: 0.72rem;
-}
+
 .apt-static {
   padding-right: 8px;
   white-space: nowrap;
@@ -1788,36 +1538,7 @@ select.apt-in {
   gap: 10px;
   min-width: 0;
 }
-.apt-add {
-  padding: 8px 10px;
-  border: 1px dashed var(--ap-line);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--color-rasta-gold) 5%, transparent);
-}
-.apt-add-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.apt-add-plus {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px dashed var(--ap-muted);
-  border-radius: 8px;
-  color: var(--color-rasta-gold);
-  font-size: 1.3rem;
-}
-.apt-add-form .apt-add-name {
-  flex: 1 1 240px;
-  border-color: var(--ap-line);
-}
-.apt-add-form .apt-add-cat {
-  flex: 0 1 200px;
-  border-color: var(--ap-line);
-}
+
 .apt-add-go {
   height: 36px;
   padding: 0 16px;
@@ -1832,11 +1553,6 @@ select.apt-in {
 .apt-add-go:disabled {
   opacity: 0.45;
   cursor: default;
-}
-.apt-add-err {
-  flex-basis: 100%;
-  color: var(--color-red-soft);
-  font-size: 0.85rem;
 }
 
 /* the sheet on a phone: each product a two-line row instead of a wide table
@@ -1894,19 +1610,11 @@ select.apt-in {
   .apt .c-price .apt-in.is-num::before {
     content: "₹";
   }
-  .apt-sub {
-    padding: 0;
-  }
+
   .apt .c-stock .apt-in.is-num {
     width: 64px;
   }
-  .apt-add-form .apt-add-name,
-  .apt-add-form .apt-add-cat {
-    flex: 1 1 100%;
-  }
-  .apt-add-plus {
-    display: none;
-  }
+
   .apt-add-go {
     flex: 1;
     height: 40px;
@@ -1974,44 +1682,7 @@ select.apt-in {
 .apt-opt-form .apt-branch {
   width: 30px;
 }
-.apt-count {
-  padding: 4px 8px;
-  border: 1px dashed var(--ap-line);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ap-muted);
-  font: inherit;
-  font-size: 0.78rem;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.apt-count:hover {
-  border-color: var(--ap-ink);
-  color: var(--ap-ink);
-}
-.apt-stock {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.apt-stock .apt-in.is-num {
-  width: 72px;
-}
-.apt-uncount {
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--ap-muted);
-  font-size: 0.95rem;
-  cursor: pointer;
-  opacity: 0;
-}
-.apt-stock:hover .apt-uncount,
-.apt-uncount:focus-visible {
-  opacity: 1;
-}
+
 @media (max-width: 720px) {
   .apt tbody tr.apt-opt {
     padding-left: 20px;
@@ -2029,9 +1700,7 @@ select.apt-in {
   .apt-opt-form .apt-in.is-num {
     flex: 1 1 100%;
   }
-  .apt-uncount {
-    opacity: 1;
-  }
+
   .apt .c-price {
     flex-wrap: wrap;
   }
@@ -2180,27 +1849,6 @@ select.apt-in {
 .apt-open.apt-bin:hover {
   color: #c2334d;
   border-color: #c2334d;
-}
-.ape-danger {
-  padding-top: 14px;
-  border-top: 1px solid var(--ap-line);
-}
-.ape-delete {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-self: start;
-  padding: 9px 14px;
-  border: 1px solid rgb(194 51 77 / 0.45);
-  border-radius: 999px;
-  background: transparent;
-  color: #c2334d;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.ape-delete:hover {
-  background: rgb(194 51 77 / 0.08);
 }
 
 /* ------------------------------------------------------------------ search engine listing */
@@ -2491,10 +2139,7 @@ select.apt-in {
 .ape-fold-body .ape-codes-head {
   justify-content: flex-end;
 }
-.ape-fold-body > section.ape-danger {
-  border: 0;
-  padding: 0;
-}
+
 /* delete: quiet, at the very end */
 .ape-delete-link {
   all: unset;
@@ -2612,26 +2257,12 @@ select.ape-line-input {
   text-align: left;
   font-size: 0.98rem;
 }
-.ape-stock-input {
-  width: 90px !important;
-}
+
 .ape-line-value {
   font-size: 1.1rem;
   font-variant-numeric: tabular-nums;
 }
-.ape-line-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ape-line-right small {
-  color: var(--ap-muted);
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.ape-chip--sm {
-  margin: 0 !important;
-}
+
 .ape-pricing h3,
 .ape-plain h3 {
   margin-bottom: -4px;
@@ -2920,10 +2551,6 @@ select.ape-line-input {
   .ape-chips button {
     min-width: 44px;
   }
-}
-.ape-profit .ape-profit-warn {
-  color: var(--color-red-soft, #ff8a8a);
-  font-weight: 600;
 }
 
 /* a product's status (0041): draft, on the shop, archived */

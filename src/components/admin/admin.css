@@ -178,11 +178,7 @@
     grid-template-columns: minmax(0, 1fr) 300px;
   }
 }
-.adm-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-}
+
 .adm-muted {
   color: var(--adm-muted);
 }
@@ -668,14 +664,6 @@ textarea.adm-input {
   border-top: 2px dashed var(--adm-muted);
   opacity: 0.7;
 }
-.adm-tip {
-  min-height: 1.4em;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-}
-.adm-tip b {
-  font-weight: 800;
-}
 
 /* ranked bars: name and value on one line, the bar under them */
 .adm-bars {
@@ -789,11 +777,6 @@ textarea.adm-input {
   accent-color: var(--adm-gold);
 }
 
-/* stock counter in the inventory table */
-.adm-qty {
-  width: 84px;
-  text-align: right;
-}
 .adm-switch {
   width: 40px;
   height: 24px;
@@ -1083,14 +1066,6 @@ textarea.adm-input {
   .adm-pair.wide {
     grid-template-columns: minmax(0, 1fr) 320px;
   }
-}
-.adm-section-title {
-  margin: 14px 0 -4px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--adm-muted);
 }
 
 /* Home: the last tile of the strip opens Analytics */
@@ -2886,18 +2861,7 @@ th[aria-sort="ascending"] .adm-sort .down {
   justify-content: space-between;
   gap: 12px;
 }
-.geo-tip b {
-  font-size: 0.92rem;
-}
-.geo-tip span {
-  color: var(--adm-muted);
-  font-size: 0.72rem;
-}
-.geo-tip em {
-  margin-top: 4px;
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-}
+
 /* the side list: one list, switched between cities and states */
 .geo-list-head {
   display: flex;
@@ -3110,7 +3074,6 @@ th[aria-sort="ascending"] .adm-sort .down {
     grid-template-columns: 1fr;
   }
 }
-
 
 /* a customer's activity (CustomerActivity.tsx): three facts, then visits,
    newest first, each a short list of what they did */

@@ -62,13 +62,11 @@ html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] {
   --bb-green-dk: #0b6b49;
   --bb-hot: #d3ab70;
   --bb-on-accent: #0c0f14;
-  --bb-hdr-bg: rgb(255 255 255 / 0.9);
   --bb-swirl: none;
   --bbn-edge: #e7eaee;
   --bbn-glow: 211 171 112;
   --bbn-halo: transparent;
   --bbn-deep: #f0f2f5;
-  --bbn-foot: #f0f2f5;
   --bbn-scrim: 255 255 255;
 }
 
@@ -126,14 +124,12 @@ html[data-theme="baba-poster"][data-mode="dark"] #site[data-scope="shop"] {
   --bb-green-dk: #1a7f45;
   --bb-hot: #d3ab70;
   --bb-on-accent: #000000;
-  --bb-hdr-bg: rgb(0 0 0 / 0.94);
   --bb-swirl: none;
   --bb-tex: none;
   --bbn-edge: #272729;
   --bbn-glow: 211 171 112;
   --bbn-halo: transparent;
   --bbn-deep: #121213;
-  --bbn-foot: #000000;
   --bbn-scrim: 0 0 0;
   --bb-fg: 242 243 245;
   --bb-bg: 0 0 0;

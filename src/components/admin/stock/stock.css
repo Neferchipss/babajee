@@ -82,12 +82,7 @@
 .stk-hint {
   margin: 0;
 }
-.stk-preview {
-  margin: 0;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--ap-good);
-}
+
 .stk-submit {
   display: flex;
 }
@@ -105,15 +100,6 @@
 .stk-go:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.stk-sum {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 2px;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Add stock, simple: how many + price (each/total) on one row, GST, an

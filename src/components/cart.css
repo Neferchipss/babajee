@@ -368,11 +368,7 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
 .cv-muted {
   color: var(--color-muted, #a39cd0);
 }
-.cv-saved dt,
-.cv-saved dd {
-  color: var(--cv-green);
-  font-weight: 700;
-}
+
 .cv-total {
   margin-top: 4px;
   padding-top: 12px;
@@ -398,34 +394,6 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
   }
 }
 
-/* how to pay, then the pay button */
-.cv-paywith {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.cv-paywith-icon {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius);
-  background: rgb(var(--bb-fg) / 0.08);
-  color: var(--color-paper, #f4efff);
-}
-.cv-paywith-text {
-  display: grid;
-  line-height: 1.2;
-}
-.cv-paywith-text small {
-  color: var(--color-muted, #a39cd0);
-  font-size: 0.8rem;
-}
-.cv-paywith-text b {
-  font-size: 1rem;
-  font-weight: 800;
-}
 .cv-pay {
   display: grid;
   place-items: center;

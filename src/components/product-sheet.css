@@ -14,7 +14,6 @@
   --dial-rest: 0.6;
   /* the wheel at rest: the shrunk dial and its hint line */
   --pw-h: calc(var(--dial-h) * var(--dial-rest) + 24px);
-  --cats-h: 38px;
   /* the card stands on the wheel */
   --ps-foot: calc(var(--pw-h) + env(safe-area-inset-bottom) + 6px);
   position: fixed;
@@ -113,16 +112,13 @@
 }
 /* over the photo: dark frosted glass, so they read on any picture */
 .ps-round,
-.ps-full,
-.ps-top .wish,
-.ps-top .jar-sheet {
+.ps-top .wish {
   background: rgb(var(--bb-bg) / 0.55);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: inset 0 0 0 1px rgb(var(--bb-fg) / 0.1);
 }
-.ps-top .wish,
-.ps-top .jar-sheet {
+.ps-top .wish {
   display: grid;
   place-items: center;
   width: 40px;
@@ -130,9 +126,7 @@
   padding: 3px 0 0;
   border-radius: var(--radius-round);
 }
-.ps-top .jar-sheet .jar-art {
-  width: 24px;
-}
+
 .ps-round {
   display: grid;
   place-items: center;
@@ -143,16 +137,8 @@
   color: inherit;
   cursor: pointer;
 }
-.ps-full {
-  padding: 8px 14px;
-  border-radius: var(--radius-round);
-  color: inherit;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-decoration: none;
-}
+
 .ps-round:focus-visible,
-.ps-full:focus-visible,
 .ps-opt:focus-visible,
 .ps-add:focus-visible {
   outline: 2px solid var(--ps-pink);
@@ -411,15 +397,7 @@
   background: var(--color-plate, #1c1b21);
   object-fit: cover;
 }
-.ps-opts[data-swatches] .ps-opt-out {
-  position: absolute;
-  inset: auto 3px 3px;
-  border-radius: 0 0 var(--radius) var(--radius);
-  background: rgb(var(--bb-bg) / 0.75);
-  color: var(--color-paper, #f4efff);
-  font-size: 0.6rem;
-  text-align: center;
-}
+
 .ps-opt-label {
   font-size: 0.8rem;
   font-weight: 700;
@@ -428,10 +406,6 @@
   color: var(--ps-pink);
   font-size: 0.8rem;
   font-weight: 800;
-}
-.ps-opt-out {
-  color: var(--color-muted, #a39cd0);
-  font-size: 0.7rem;
 }
 
 .ps-bar {
@@ -600,51 +574,6 @@
   opacity: 0;
 }
 
-/* ---------------------------------------------- category chips */
-.ps-cats {
-  flex: none;
-  height: var(--cats-h);
-  margin-inline: -8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 8px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7px, #000 calc(100% - 7px), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 7px, #000 calc(100% - 7px), transparent);
-  animation: ps-fade 0.4s ease-out;
-}
-.ps-cats::-webkit-scrollbar {
-  display: none;
-}
-.ps-cat-chip {
-  flex: none;
-  height: 34px;
-  padding: 0 14px;
-  scroll-margin-inline: 8px;
-  border: 1.5px solid var(--color-line, #2d2860);
-  border-radius: var(--radius-round);
-  background: rgb(var(--bb-bg) / 0.6);
-  color: var(--color-muted, #a39cd0);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-}
-.ps-cat-chip[aria-current="true"] {
-  border-color: var(--ps-pink);
-  background: var(--ps-pink);
-  color: var(--bb-on-accent, #16061a);
-}
-.ps-cat-chip:focus-visible {
-  outline: 2px solid var(--ps-pink);
-  outline-offset: 2px;
-}
-
 /* tablets: a roomier card and a bigger picture */
 @media (min-width: 600px) and (min-height: 700px) {
   .ps-stack {
@@ -699,7 +628,6 @@ html[data-sheet] #site .cp-hero .bb-third {
   .ps {
     --dial-h: 88px;
     --pw-h: calc(var(--dial-h) * var(--dial-rest) + 4px);
-    --cats-h: 34px;
     z-index: 42;
   }
   .ps-stack {
@@ -725,9 +653,7 @@ html[data-sheet] #site .cp-hero .bb-third {
     height: 100%;
     max-height: 300px;
   }
-  .ps-cat-chip {
-    height: 30px;
-  }
+
   .ps-info {
     max-height: none;
     padding-top: 18px;

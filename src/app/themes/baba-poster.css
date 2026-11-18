@@ -29,13 +29,11 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   --bb-green-dk: #2c9a74;
   --bb-hot: #ff4d8d;
   --bb-on-accent: #16061a;
-  --bb-hdr-bg: rgb(12 10 28 / 0.9);
   --bb-swirl: url("../../assets/baba/night/swirl-midnight.webp");
   --bbn-edge: #3a3478;
   --bbn-glow: 255 143 179;
   --bbn-halo: rgb(120 80 220 / 0.22);
   --bbn-deep: #1a1640;
-  --bbn-foot: #06051a;
   --bbn-scrim: 8 6 22;
 
   /* below the band and the sticky header */
@@ -124,16 +122,6 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   & .bb-third {
     flex-direction: column;
     gap: 8px;
-  }
-  & .bb-third-btn {
-    width: 70px;
-  }
-  & .bb-third-copy {
-    width: auto;
-    padding: 0 16px;
-  }
-  & :is(.bb-third-hint, .bb-third-pick) {
-    font-size: 1.1rem;
   }
 
   /* the rail and toolbar sit tight above the wall */
@@ -302,7 +290,6 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
     right: 10px;
     bottom: 12px;
   }
-
 }
 
 /* ------------------------------------------- phones and tablets */
@@ -560,62 +547,19 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
   }
 }
 
-
 /* ---------------------------------------------------- product page */
 /* phones: a picture capped to the screen's height, so the name, price and
    Add come up soon; tablets upright: picture and details side by side */
 @media (max-width: 599px) {
   html[data-theme="baba-poster"] #site[data-scope="shop"] {
-    & .pd-main {
-      gap: 22px;
-      margin-top: 16px;
-    }
-    & .pd-media .pa {
-      width: min(100%, 36dvh);
-      margin-inline: auto;
-    }
-    & .pd-title {
-      font-size: clamp(1.9rem, 8vw, 2.6rem);
-    }
-    & .pd-buy {
-      margin-top: 18px;
-      padding-top: 18px;
-    }
-    /* clear of the floating jar in the corner */
-    & .pd-actions {
-      margin-top: 18px;
-      flex-wrap: nowrap;
-      padding-right: 64px;
-    }
-    & .pd-add {
-      min-width: 0;
-      padding-inline: 14px;
-      font-size: 0.85rem;
-      white-space: nowrap;
-    }
   }
 }
 @media (min-width: 600px) and (max-width: 860px) {
   html[data-theme="baba-poster"] #site[data-scope="shop"] {
-    & .pd-main {
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
-      gap: 32px;
-    }
-    & .pd-media {
-      position: sticky;
-      top: calc(var(--bb-band-h) + 96px);
-    }
-    & .pd-title {
-      font-size: clamp(2rem, 5vw, 2.8rem);
-    }
   }
 }
 /* "More in" holds four products: one row of four, not three and one */
-@media (min-width: 600px) and (max-width: 900px) {
-  html[data-theme="baba-poster"] #site[data-scope="shop"] .pd-more .cp-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
+
 /* narrow phones: the title gets the whole bar (the count is on the chips' side) */
 @media (max-width: 479px) {
   html[data-theme="baba-poster"] #site[data-scope="shop"] .cp-hero .cp-lede {
