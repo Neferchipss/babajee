@@ -12,8 +12,6 @@ import CategoryNav from "./CategoryNav";
 import CategorySwitch from "./CategorySwitch";
 import ShelfReader from "./baba/ShelfReader";
 import ShopBar from "./ShopBar";
-import DaydreamBloom from "./daydream/DaydreamBloom";
-import DaydreamHero from "./daydream/DaydreamHero";
 import { addToCart, tossIntoJar } from "@/lib/cart";
 import { track } from "@/lib/track";
 import ProductCard, { type CardProduct } from "./ProductCard";
@@ -294,7 +292,6 @@ export default function CategoryView({ category, products: snapshot, categories:
             <SearchIcon size={20} />
           </button>
         </div>
-        <DaydreamHero />
       </section>
 
       <div className="cp-body">
@@ -415,7 +412,6 @@ export default function CategoryView({ category, products: snapshot, categories:
           </ul>
         </div>
 
-        <DaydreamBloom />
       </div>
 
       <ShelfReader />

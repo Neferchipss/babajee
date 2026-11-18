@@ -134,54 +134,6 @@
   display: none;
 }
 
-/* ------------------------------------------------------ theme toggle */
-
-.theme-toggle {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  z-index: 55;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  max-width: calc(100vw - 24px);
-  padding: 5px;
-  overflow-x: auto;
-  transform: translateX(-50%);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: var(--radius-round);
-  background: rgb(14 14 14 / 0.86);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 10px 34px rgb(0 0 0 / 0.45);
-  font-family: system-ui, sans-serif;
-}
-.theme-toggle-label {
-  padding: 0 0.6rem 0 0.9rem;
-  color: #8f8d87;
-  font-size: 0.75rem;
-}
-.theme-toggle button {
-  flex: none;
-  padding: 0.5rem 0.9rem;
-  border: 0;
-  border-radius: var(--radius-round);
-  background: transparent;
-  color: #d3cec3;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-.theme-toggle button:hover {
-  background: rgb(255 255 255 / 0.1);
-}
-.theme-toggle button[aria-checked="true"] {
-  background: #f4f2ed;
-  color: #121212;
-}
-
 /* ------------------------------------- shared shop page structure */
 
 #site[data-scope="shop"] {
@@ -430,13 +382,6 @@
   #site[data-scope="shop"] .cp-toolbar .cp-count {
     order: 2;
     margin-left: 0;
-  }
-  .theme-toggle-label {
-    display: none;
-  }
-  .theme-toggle button {
-    padding: 0.5rem 0.65rem;
-    font-size: 0.75rem;
   }
 }
 

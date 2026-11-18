@@ -13,7 +13,7 @@ import { thumb } from "@/lib/product-photos";
 // product steps out and another pops up in its place, and a small tag drops
 // in from the top with a true fact about the newcomer (its price, how many
 // colours, or that it is new). The same card in every look: Light and Dark
-// keep it plain; Daydream puts the category's art behind the shape.
+// keep it plain.
 //
 // It sits at the top of a category's shelf, and on the all-products shelf it
 // heads each category's run of cards (so the grid breaks into sections).

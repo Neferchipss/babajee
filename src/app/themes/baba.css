@@ -475,10 +475,6 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
     background: var(--bb-swirl) center / 120px 120px, var(--bb-blush);
     color: var(--bb-maroon);
   }
-  /* Daydream's own marks share the slot; only Daydream shows them */
-  & .dd-category-mark {
-    display: none;
-  }
   & .si-num {
     grid-area: num;
     justify-self: end;

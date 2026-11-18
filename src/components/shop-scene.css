@@ -607,10 +607,6 @@ html:not([data-ribbon="on"]) body:has(.scene[data-intro="true"]) .hdr {
 .scene-back,
 .scene-box,
 body:has(.scene) .hdr,
-body:has(.scene) .theme-toggle {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
 .scene-spot,
 .scene-back {
   background: rgb(0 0 0 / 0.75);

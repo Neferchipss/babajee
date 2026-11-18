@@ -6,7 +6,6 @@ import { watchSystemMode } from "@/lib/mode";
 import BabaBand from "./baba/BabaBand";
 import CartBar from "./CartBar";
 import StoreButton from "./StoreButton";
-import ThemeToggle from "./ThemeToggle";
 
 // Wraps header, page and footer. Every page wears the shop's theme (its light and
 // dark, its type and colours): the shelves, the cart and checkout, and the pages
@@ -23,7 +22,6 @@ export default function SiteFrame({ children }: { children: ReactNode }) {
     <div id="site" data-scope={scope} className="flex min-h-dvh flex-col">
       {scope === "shop" && <BabaBand />}
       {children}
-      {scope === "shop" && <ThemeToggle />}
       <StoreButton />
       <CartBar />
     </div>

@@ -302,7 +302,7 @@ html[data-mode="dark"] #site .ccard[data-v] {
 /* ------------------------------------------------------------ the art */
 /* The card's illustration, drawn for this layout: it frames the words and
    the products and never runs behind them. A cut-out on transparency, so the
-   same art sits on every look's own card colour (Light, Dark, Daydream).
+   same art sits on every look's own card colour (Light and Dark).
    card-bg-1 for now on every card; the seven looks get one each. */
 #site .ccard[data-v] {
   background-image: url("../assets/themes/card-bg-1.webp");

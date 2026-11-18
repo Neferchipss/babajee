@@ -6,7 +6,7 @@ import "./site-footer.css";
 
 // The footer: the brand and a line about the shop, then three short columns
 // of links under small headings, and a closing line. Every look shares it;
-// each colours it from its own tokens (Daydream adds its landscape above).
+// each colours it from its own tokens.
 const COLUMNS = [
   {
     title: "Shop",

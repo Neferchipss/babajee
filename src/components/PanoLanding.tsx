@@ -31,8 +31,8 @@ const LINGER = 900; // ms a shelf's products stay out after the aim moves off
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 // the walk from the shopfront to the counter (3.5s): a wide one, and a tall
 // one for phones; each ends on the panorama's first view for its shape
-// Two looks of the same shop: Daydream (bright screenprint) and dusk (shady
-// teal and purple, shown in dark mode). Each has its shopfront (wide and
+// Two looks of the same shop: day (bright screenprint, in light mode) and
+// dusk (shady teal and purple, in dark mode). Each has its shopfront (wide and
 // tall), its walk-ins and its panorama; the shelves sit in the same places.
 type Look = "day" | "dusk";
 const ART = {
@@ -41,7 +41,7 @@ const ART = {
 } as const;
 const lookNow = (): Look => {
   const h = document.documentElement;
-  return h.dataset.mode === "dark" && h.dataset.look !== "daydream" ? "dusk" : "day";
+  return h.dataset.mode === "dark" ? "dusk" : "day";
 };
 const TALL = "(max-aspect-ratio: 4/5)";
 // the films are 3.5s; played a little faster, the walk takes 2.5s
@@ -267,7 +267,7 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
     return () => window.removeEventListener(SHOP_NOTE_EVENT, check);
   }, []);
 
-  // which look: follows light/dark (and Daydream), live
+  // which look: follows light/dark, live
   const [lookSeen, setLook] = useState<Look | null>(null);
   const look: Look = lookSeen ?? "day";
   // the screen's shape (which walk-in and shopfront), and whether the walk-in may load yet
