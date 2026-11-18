@@ -11,7 +11,7 @@ import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWo
 import "@/components/admin/admin-products.css";
 import { adminApi, isAdminDemo } from "@/lib/admin-api";
 import { Bin, Dialog } from "@/components/admin/ui";
-import { ProductOrdered, type AdminCategory, type AdminProduct } from "@/lib/admin-data";
+import { ProductOrdered, type AdminCategory, type AdminProduct, type ProductStatus } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
@@ -199,7 +199,7 @@ function ProductsAdmin() {
     const made = await api.getProduct(id);
     const v = made?.variants[0];
     await Promise.all([
-      d.brand || d.type || !d.visible ? api.updateProduct(id, { brand: d.brand, product_type: d.type, is_visible: d.visible }) : null,
+      d.brand || !d.visible ? api.updateProduct(id, { brand: d.brand, ...(d.visible ? {} : { status: "draft" as const }) }) : null,
       v && (d.price || !d.visible)
         ? api.upsertVariant(id, { id: v.id, price: d.price, is_visible: d.visible })
         : null,
@@ -240,11 +240,11 @@ function ProductsAdmin() {
     setDeleting(null);
   }
 
-  async function bulk(visible: boolean) {
+  async function bulk(status: ProductStatus) {
     setBulkBusy(true);
     try {
-      await api.bulkSetVisibility(rows, [...selected], visible);
-      toast(`${selected.size} product${selected.size === 1 ? "" : "s"} ${visible ? "shown on the shop" : "hidden from the shop"}`);
+      for (const p of rows.filter((r) => selected.has(r.id))) await api.setProductStatus(p, status);
+      toast(`${selected.size} product${selected.size === 1 ? "" : "s"} ${status === "published" ? "made Active" : status === "draft" ? "made drafts" : "archived"}`);
       setSelected(new Set());
       await load();
     } catch (e) {
@@ -352,11 +352,14 @@ function ProductsAdmin() {
       {selecting && (
         <div className="ap-bulk" role="region" aria-label="Selected products">
           <span>{selected.size ? `${selected.size} selected` : "Tick products to show or hide them together"}</span>
-          <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk(true)}>
-            Show on the shop
+          <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk("published")}>
+            Make Active
           </button>
-          <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk(false)}>
-            Hide
+          <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk("draft")}>
+            Make draft
+          </button>
+          <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk("archived")}>
+            Archive
           </button>
           {mayDelete && (
             <button type="button" className="ap-chip ap-chip-bad" disabled={!selected.size || bulkBusy} onClick={() => setDeleting(rows.filter((r) => selected.has(r.id)))}>
@@ -431,17 +434,6 @@ function ProductsAdmin() {
       toastError(e);
                   }
                 }}
-                onToggleVisible={async () => {
-                  try {
-                    await api.setProductVisibility(p, !p.is_visible);
-                    toast(`${p.name} ${p.is_visible ? "hidden from the shop" : "shown on the shop"}`);
-                    const fresh = await api.getProduct(p.id);
-                    if (fresh) replace(fresh);
-                  } catch (e) {
-                    setErr(errText(e));
-      toastError(e);
-                  }
-                }}
                 onClick={() => {
                   if (!selecting) return setOpenId(p.id === openId ? null : p.id);
                   setSelected((s) => {
@@ -466,7 +458,6 @@ function ProductsAdmin() {
             api={api}
             onChanged={replace}
             onClose={() => setOpenId(null)}
-            onDelete={mayDelete ? () => setDeleting([open]) : undefined}
             nav={{
               at: at + 1,
               of: shown.length,
@@ -492,7 +483,7 @@ function ProductsAdmin() {
               {deleting.length === 1 ? "It goes" : "They go"} for good, with {deleting.length === 1 ? "its" : "their"} options and photos. This can&apos;t be undone.
             </p>
             <p className="adm-muted adm-small" style={{ margin: 0 }}>
-              Anything that has been ordered stays, for those orders. To just take it off the shop, hide it.
+              Anything that has been ordered stays, for those orders. To take it off the shop but keep it, archive it instead.
             </p>
             <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
               <button type="button" className="adm-btn" disabled={delBusy} onClick={() => setDeleting(null)}>
@@ -517,7 +508,6 @@ function Card({
   onDelete,
   checked,
   onClick,
-  onToggleVisible,
   onSave,
   api,
 }: {
@@ -530,11 +520,9 @@ function Card({
   onDelete?: () => void;
   checked: boolean;
   onClick: () => void;
-  onToggleVisible: () => Promise<void>;
   // a change saved from the card itself (its name, its price), then the product re-read
   onSave: (work: () => Promise<unknown>) => Promise<void>;
 }) {
-  const [busy, setBusy] = useState(false);
   const n = needsOf(p);
   const st = stockOf(p);
   const photo = p.images[0]?.url ?? photosFor(p.slug)[0];
@@ -543,28 +531,8 @@ function Card({
   const hi = prices.length ? Math.max(...prices) : 0;
   return (
     <div className={`apc ${open ? "is-open" : ""} ${checked ? "is-checked" : ""} ${p.is_visible ? "" : "is-hidden"}`}>
-      {/* the eye, where the shop's card has its heart: shown on the shop, or hidden */}
-      {!selecting && (
-        <button
-          type="button"
-          className="apc-eye"
-          aria-pressed={!p.is_visible}
-          aria-label={p.is_visible ? `Hide ${p.name} from the shop` : `Show ${p.name} on the shop`}
-          title={p.is_visible ? "On the shop: tap to hide" : "Hidden: tap to show"}
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            await onToggleVisible();
-            setBusy(false);
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
-            <circle cx="12" cy="12" r="3" />
-            {!p.is_visible && <path className="apc-eye-slash" d="M4 4l16 16" />}
-          </svg>
-        </button>
-      )}
+      {/* its status, where the shop's card has its heart: drafts and archived ones say so */}
+      {p.status !== "published" && <span className={`apc-status is-${p.status}`}>{p.status === "draft" ? "Draft" : "Archived"}</span>}
       {!selecting && onDelete && (
         <button type="button" className="apc-bin" aria-label={`Delete ${p.name}`} title="Delete" onClick={onDelete}>
           <Bin />

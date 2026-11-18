@@ -5,13 +5,13 @@ import { Fragment, useState } from "react";
 import { mainPrice, needsOf, setMainPrice } from "@/components/admin/ProductEditor";
 import { Bin, SortTh, useSort } from "@/components/admin/ui";
 import type { adminApi } from "@/lib/admin-api";
-import type { AdminCategory, AdminProduct, AdminVariant } from "@/lib/admin-data";
+import type { AdminCategory, AdminProduct, AdminVariant, ProductStatus } from "@/lib/admin-data";
 import { BRAND_NAMES } from "@/lib/brand";
 import { photosFor } from "@/lib/product-photos";
 
 type Api = ReturnType<typeof adminApi>;
 
-export type NewRow = { name: string; categoryId: string; brand: string; type: string; price: number; visible: boolean };
+export type NewRow = { name: string; categoryId: string; brand: string; price: number; visible: boolean };
 
 // The catalogue as a sheet, for people who'd rather work in rows: every
 // cell edits in place and saves when you leave it (or press Enter, which
@@ -66,11 +66,10 @@ export default function ProductTable({
     name: { get: (p) => p.name, text: true },
     category: { get: (p) => catName(p.category_id), text: true },
     brand: { get: (p) => p.brand, text: true },
-    type: { get: (p) => p.product_type, text: true },
     price: { get: (p) => mainPrice(p) || null },
     stock: { get: (p) => stockTotal(p) },
     sold: { get: (p) => sold?.get(p.id) ?? 0 },
-    shown: { get: (p) => (p.is_visible ? 1 : 0) },
+    shown: { get: (p) => ["draft", "published", "archived"].indexOf(p.status) },
   });
   const flip = (id: string) =>
     setOpen((s) => {
@@ -89,13 +88,12 @@ export default function ProductTable({
               {selecting && <th aria-label="Select" />}
               <th aria-label="Photo" />
               <SortTh k="name" label="Name" sort={sort} onSort={toggle} />
-              {showCat && <SortTh k="category" label="Category" sort={sort} onSort={toggle} />}
+              {showCat && <SortTh k="category" label="Type" sort={sort} onSort={toggle} />}
               <SortTh k="brand" label="Brand" sort={sort} onSort={toggle} />
-              <SortTh k="type" label="Type" sort={sort} onSort={toggle} />
               <SortTh k="price" label="Price (₹)" sort={sort} onSort={toggle} right />
               <SortTh k="stock" label="Stock" sort={sort} onSort={toggle} right />
               <SortTh k="sold" label="Sold" sort={sort} onSort={toggle} right />
-              <SortTh k="shown" label="On shop" sort={sort} onSort={toggle} />
+              <SortTh k="shown" label="Status" sort={sort} onSort={toggle} />
               <th aria-label="Open" />
             </tr>
           </thead>
@@ -146,9 +144,6 @@ export default function ProductTable({
                     <td className="c-brand">
                       <Cell col="brand" value={p.brand} list="apt-brands" label={`Brand of ${p.name}`} onSave={(v) => save(() => api.updateProduct(p.id, { brand: v }))} />
                     </td>
-                    <td className="c-type">
-                      <Cell col="type" value={p.product_type} label={`Type of ${p.name}`} onSave={(v) => save(() => api.updateProduct(p.id, { product_type: v }))} />
-                    </td>
                     <td className="r c-price">
                       <Cell
                         col="price"
@@ -182,7 +177,7 @@ export default function ProductTable({
                       </span>
                     </td>
                     <td className="c-shop">
-                      <Switch on={p.is_visible} label={p.name} onFlip={() => save(() => api.setProductVisibility(p, !p.is_visible), `${p.name} ${p.is_visible ? "hidden from the shop" : "shown on the shop"}`)} />
+                      <StatusPick value={p.status} label={p.name} onPick={(st) => save(() => api.setProductStatus(p, st), `${p.name}: ${STATUS_LABEL[st]}`)} />
                     </td>
                     <td className="c-open">
                       {onDelete && (
@@ -364,10 +359,10 @@ function Cell({ value, onSave, label, col, num = false, list, placeholder }: { v
 // what you know and press Create (or Enter in any of its cells). Stock
 // comes in through Add stock. It lands in the sheet like any other row.
 function NewProductRow({ categories, category, showCat, onCreate }: { categories: AdminCategory[]; category: string; showCat: boolean; onCreate: (d: NewRow) => Promise<void> }) {
-  const blank = { name: "", brand: "", type: "", price: "" };
+  const blank = { name: "", brand: "", price: "" };
   const [d, setD] = useState(blank);
   const [cat, setCat] = useState(category || categories[0]?.id || "");
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   // follow the category tab when it changes
@@ -386,7 +381,6 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         name: d.name.trim(),
         categoryId: target,
         brand: d.brand.trim(),
-        type: d.type.trim(),
         price: Number(d.price) || 0,
         visible,
       });
@@ -436,12 +430,11 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
           </td>
         )}
         <td className="c-brand">{field("brand", "Brand", { list: "apt-brands" })}</td>
-        <td className="c-type">{field("type", "Type")}</td>
         <td className="r c-price">{field("price", "Price", { num: true })}</td>
         <td className="r c-stock" />
         <td className="c-sold" />
         <td className="c-shop">
-          <Switch on={visible} label="the new product" onFlip={() => setVisible((v) => !v)} />
+          <StatusPick value={visible ? "published" : "draft"} label="the new product" onPick={(st) => setVisible(st === "published")} />
         </td>
         <td className="c-open">
           <button type="button" className="apt-create" disabled={busy || !d.name.trim() || !target} onClick={() => void create()}>
@@ -455,5 +448,19 @@ function NewProductRow({ categories, category, showCat, onCreate }: { categories
         </tr>
       )}
     </>
+  );
+}
+
+// one status for a product (Draft / Active / Archived): whether it is on the shop follows it
+export const STATUS_LABEL: Record<ProductStatus, string> = { draft: "Draft", published: "Active", archived: "Archived" };
+function StatusPick({ value, label, onPick }: { value: ProductStatus; label: string; onPick: (s: ProductStatus) => void }) {
+  return (
+    <select className={`apt-status is-${value}`} value={value} aria-label={`Status of ${label}`} onChange={(e) => onPick(e.target.value as ProductStatus)}>
+      {(Object.keys(STATUS_LABEL) as ProductStatus[]).map((st) => (
+        <option key={st} value={st}>
+          {STATUS_LABEL[st]}
+        </option>
+      ))}
+    </select>
   );
 }

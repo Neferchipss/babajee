@@ -4,19 +4,15 @@ import Link from "next/link";
 
 import { errText } from "@/lib/orders-db";
 import { useEffect, useRef, useState } from "react";
-import { Bin } from "@/components/admin/ui";
-import { TagPicker } from "./Subcategories";
 import { type AdminCategory, type AdminProduct } from "@/lib/admin-data";
 import { isAdminDemo } from "@/lib/admin-api";
-import { BRAND_NAMES, brandOf } from "@/lib/brand";
 import { toast, toastError } from "@/components/admin/Toaster";
 import ProductStock from "@/components/admin/stock/ProductStock";
 import { Api, STATUSES, mainPrice, needsOf } from "./editor/ProductBasics";
 import { AddPhotos, PhotoGroup } from "./editor/Photos";
 import { useBoxes, usePhotoManager } from "./editor/useProductParts";
-import { HsnField, Pricing } from "./editor/Pricing";
-import { Fold, LowMark, SeoListing, SpecsEditor, StockHistory, TYPE_HINTS, TagEditor, VariantCodes, Videos, WeightSize } from "./editor/Details";
-import { BundleBlock } from "./editor/Bundle";
+import { Pricing } from "./editor/Pricing";
+import { LowMark, StockHistory } from "./editor/Details";
 
 // the product list and table use these too
 export { mainPrice, needsOf, needsWork, setMainPrice } from "./editor/ProductBasics";
@@ -97,7 +93,6 @@ export default function ProductEditor({
   api,
   onChanged,
   onClose,
-  onDelete,
   nav,
   sheet = true,
 }: {
@@ -107,16 +102,11 @@ export default function ProductEditor({
   // the product after a change, re-read from the database
   onChanged: (p: AdminProduct) => void;
   onClose?: () => void;
-  // asks before deleting the product; the page holds the confirm
-  onDelete?: () => void;
   nav?: { at: number; of: number; prev?: () => void; next?: () => void; nextNeeds?: () => void };
   sheet?: boolean;
 }) {
   const [status, setStatus] = useState<"" | "saving" | "saved">("");
   const [err, setErr] = useState("");
-  const [description, setDescription] = useState(product.description);
-  const [brand, setBrand] = useState(product.brand);
-  const [ptype, setPtype] = useState(product.product_type);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -300,91 +290,12 @@ export default function ProductEditor({
           )}
         />
 
-        {/* category, plainly */}
-        <section className="ape-fields ape-plain">
-          <label className="ape-line">
-            <span className="ape-line-label">Category</span>
-            <select className="ape-line-input" value={product.category_id} onChange={(e) => run(() => api.updateProduct(product.id, { category_id: e.target.value }))}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-
-        {/* everything else, one tap away */}
-        <Fold title="More" summary="Description, codes, weight and size, videos, Google listing, delete">
-          <section className="ape-fields">
-            <h3>Description</h3>
-            <label className="ape-field ape-field--wide">
-              <span>What the customer reads</span>
-              <textarea
-                rows={3}
-                value={description}
-                placeholder="Pack size, material, what it fits"
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={() => description !== product.description && run(() => api.updateProduct(product.id, { description: description.trim() }))}
-              />
-            </label>
-            <label className="ape-field">
-              <span>Brand</span>
-              <input
-                list="ape-brands"
-                value={brand}
-                placeholder={brandOf(product.name).brand ?? "No brand"}
-                onChange={(e) => setBrand(e.target.value)}
-                onBlur={() => brand.trim() !== product.brand && run(() => api.updateProduct(product.id, { brand: brand.trim() }))}
-              />
-              <datalist id="ape-brands">
-                {BRAND_NAMES.map((b) => (
-                  <option key={b} value={b} />
-                ))}
-              </datalist>
-            </label>
-            <label className="ape-field">
-              <span>Type</span>
-              <input
-                list="ape-types"
-                value={ptype}
-                placeholder="Cones, papers, tray…"
-                onChange={(e) => setPtype(e.target.value)}
-                onBlur={() => ptype.trim() !== product.product_type && run(() => api.updateProduct(product.id, { product_type: ptype.trim() }))}
-              />
-              <datalist id="ape-types">
-                {TYPE_HINTS.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
-            </label>
-            <TagPicker key={`sub-${product.id}-${product.category_id}`} api={api} product={product} categorySlug={categories.find((c) => c.id === product.category_id)?.slug ?? product.category_slug ?? ""} onChanged={() => run(async () => {})} />
-            <div className="ape-field ape-field--wide">
-              <span id="ape-tags-label">Tags (for search)</span>
-              <TagEditor tags={product.tags} onChange={(tags) => run(() => api.updateProduct(product.id, { tags }))} />
-            </div>
-          </section>
-
-          <SpecsEditor key={`specs-${product.id}`} specs={product.specs} onSave={(specs) => run(() => api.updateProduct(product.id, { specs }))} />
-
-          <HsnField key={`hsn-${product.id}`} product={product} onSave={(hsn) => run(() => api.updateProduct(product.id, { hsn }))} />
-
-          <VariantCodes product={product} categorySlug={categories.find((c) => c.id === product.category_id)?.slug ?? product.category_slug ?? ""} onSave={(id, patch) => run(() => api.upsertVariant(product.id, { id, ...patch }))} />
-
-          <WeightSize product={product} onSave={(id, patch) => run(() => api.upsertVariant(product.id, { id, ...patch }))} />
-
-          <BundleBlock key={`bundle-${product.id}`} api={api} product={product} onSaved={() => run(async () => {})} />
-
-          <Videos key={`vid-${product.id}`} urls={product.video_urls} onSave={(video_urls) => run(() => api.updateProduct(product.id, { video_urls }))} />
-
-          <SeoListing key={`seo-${product.id}`} product={product} categoryName={categories.find((c) => c.id === product.category_id)?.name ?? product.category_name ?? ""} onSave={(patch) => run(() => api.updateProduct(product.id, patch))} />
-
-          {onDelete && (
-            <button type="button" className="ape-delete-link" onClick={onDelete} title="For good, with its sizes, colours and photos. If it has been ordered it stays: hide it instead.">
-              <Bin /> Delete this product
-            </button>
-          )}
-        </Fold>
+        {/* the rest (description, type and sub-categories, codes, tax, the
+            search listing) is on the product's full page */}
+        <p className="ape-hint ape-more">
+          Description, type and sub-categories, codes, tax and the search listing are on the{" "}
+          <Link href={`/admin/products/edit?id=${product.id}${isAdminDemo() ? "&demo=1" : ""}`}>full page</Link>.
+        </p>
       </div>
     </div>
   );
