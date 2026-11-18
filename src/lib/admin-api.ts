@@ -7,6 +7,7 @@
 import * as real from "./admin-data";
 import type { AdminCategory, AdminImage, AdminProduct, AdminVariant, BoxPreset, BoxSize, SubGroup, Subcategory } from "./admin-data";
 import { CATEGORIES } from "./catalog-data";
+import { slugify } from "./slug";
 
 export const isAdminDemo = () =>
   process.env.NODE_ENV !== "production" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
@@ -238,7 +239,7 @@ function makeDemo(): Api {
       const name = (rest.name ?? "").trim();
       if (subTags.some((t) => t.category_id === categoryId && t.name.toLowerCase() === name.toLowerCase())) throw new Error("This category already has a sub-category with that name or address.");
       const id = uid();
-      subTags.push({ id, category_id: categoryId, slug: real.slugify(name), name, group_id: rest.group_id ?? null, sort_order: rest.sort_order ?? subTags.length, is_visible: true, seo_title: "", seo_description: "" });
+      subTags.push({ id, category_id: categoryId, slug: slugify(name, { max: 60 }), name, group_id: rest.group_id ?? null, sort_order: rest.sort_order ?? subTags.length, is_visible: true, seo_title: "", seo_description: "" });
       return id;
     },
     async deleteSubcategory(id) {
