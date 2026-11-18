@@ -430,3 +430,13 @@ export async function withPageSeo<T extends { title?: unknown; description?: str
     ...(data.description ? { description: data.description } : {}),
   };
 }
+
+// The homepage design picked in Admin > Storefront (0073), read at build so
+// the page opens in it; the page checks again once it's open, for a change
+// made since the build. null: no database, or no design table yet.
+export async function getSiteDesign(): Promise<string | null> {
+  const sb = client();
+  if (!sb) return null;
+  const { data, error } = await sb.from("site_look").select("design").eq("id", 1).maybeSingle();
+  return error || !data ? null : (data.design as string);
+}

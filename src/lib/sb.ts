@@ -4,7 +4,31 @@
 
 export const supabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-export const loadSupabase = () => import("./supabase").then((m) => m.getSupabase());
+// The page settles first: the library is fetched once the page has loaded
+// and the phone is idle (at most 1.5 s more), so it never competes with
+// what the shopper is waiting to see. Taps and sign-ins come later anyway.
+// Once it has loaded (say the account pages asked for it at once), nobody
+// waits again.
+let settled: Promise<void> | null = null;
+export function afterLoad(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  return (settled ??= new Promise<void>((done) => {
+    const idle = () => {
+      if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(() => done(), { timeout: 1500 });
+      else window.setTimeout(done, 200);
+    };
+    if (document.readyState === "complete") idle();
+    else window.addEventListener("load", idle, { once: true });
+  }));
+}
+
+let lib: Promise<typeof import("./supabase")> | null = null;
+const importNow = () => (lib ??= import("./supabase"));
+
+// for pages that need the database straight away (account, admin, checkout)
+export const loadSupabaseNow = () => importNow().then((m) => m.getSupabase());
+
+export const loadSupabase = () => (lib ? importNow() : afterLoad().then(importNow)).then((m) => m.getSupabase());
 
 // The site root as seen by the browser (handles the /babajee base path on
 // Pages), used for links inside auth emails.

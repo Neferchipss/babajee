@@ -1,5 +1,6 @@
 "use client";
 
+import { loadSupabase } from "./sb";
 import { useSyncExternalStore } from "react";
 
 // Saved for later (the heart on a product). It lives in this browser's
@@ -109,11 +110,8 @@ const row = (profile: string, i: SavedItem) => ({
 function remote(work: (sb: Sb, profile: string) => PromiseLike<unknown>) {
   const profile = me;
   if (!profile) return;
-  import("./supabase")
-    .then(({ getSupabase }) => {
-      const sb = getSupabase();
-      return sb ? work(sb, profile) : undefined;
-    })
+  loadSupabase()
+    .then((sb) => (sb ? work(sb, profile) : undefined))
     .then(undefined, () => {});
 }
 
@@ -123,8 +121,7 @@ export async function linkSaved(profile: string | null) {
   me = profile;
   if (!profile) return;
   try {
-    const { getSupabase } = await import("./supabase");
-    const sb = getSupabase();
+    const sb = await loadSupabase();
     if (!sb) return;
     // this account's own (admins may read everyone's: never merge those in)
     const { data, error } = await sb.from("saved_products").select("product_slug, item, created_at").eq("profile_id", profile).order("created_at", { ascending: false });

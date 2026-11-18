@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import HomeSwitch from "@/components/home/HomeSwitch";
-import { getHomeProducts, getIndexCategories, getShelfPicks, withPageSeo } from "@/lib/catalog-db";
+import { getHomeProducts, getIndexCategories, getShelfPicks, getSiteDesign, withPageSeo } from "@/lib/catalog-db";
 import { absUrl } from "@/lib/site";
 
 const META: Metadata = {
@@ -22,6 +22,7 @@ export default async function Home() {
   const shelves = await getShelfPicks(categories.map((c) => c.slug));
   // for the storefront designs' home (Admin > Storefront)
   const products = await getHomeProducts(categories);
+  const design = await getSiteDesign();
   // for search engines: the shop itself, and its search box (Google can show
   // a search field under the result that lands on the shop's search page)
   const data = [
@@ -37,7 +38,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
-      <HomeSwitch pano={{ shelves, categories: categories.map(({ slug, name, count }) => ({ slug, name, count })) }} products={products} />
+      <HomeSwitch pano={{ shelves, categories: categories.map(({ slug, name, count }) => ({ slug, name, count })) }} products={products} built={design} />
     </>
   );
 }

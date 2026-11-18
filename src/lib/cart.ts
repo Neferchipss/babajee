@@ -1,5 +1,6 @@
 "use client";
 
+import { loadSupabase } from "./sb";
 import { useSyncExternalStore } from "react";
 
 
@@ -76,8 +77,7 @@ function pushSoon() {
 async function push(profile: string | null) {
   if (!profile) return;
   try {
-    const { getSupabase } = await import("./supabase");
-    const sb = getSupabase();
+    const sb = await loadSupabase();
     if (!sb) return;
     await sb.from("carts").upsert({ profile_id: profile, lines: read() }, { onConflict: "profile_id" });
   } catch {}
@@ -89,8 +89,7 @@ export async function linkCart(profile: string | null) {
   me = profile;
   if (!profile) return;
   try {
-    const { getSupabase } = await import("./supabase");
-    const sb = getSupabase();
+    const sb = await loadSupabase();
     if (!sb) return;
     const { data, error } = await sb.from("carts").select("lines").eq("profile_id", profile).maybeSingle();
     if (error || me !== profile) return;

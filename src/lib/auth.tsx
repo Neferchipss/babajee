@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { linkCart } from "./cart";
+import { loadSupabaseNow } from "./sb";
 import { linkSaved } from "./wishlist";
 
 // The provider sits in the root layout, but the Supabase client is about
@@ -12,7 +13,7 @@ import { linkSaved } from "./wishlist";
 // and elsewhere once the page has settled (a session left from a sign-in is
 // still picked up, just later).
 const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-const loadClient = () => import("./supabase").then((m) => m.getSupabase());
+const loadClient = loadSupabaseNow;
 const NEEDS_SESSION = /^\/(account|admin|checkout)(\/|$)/;
 
 export type Profile = {

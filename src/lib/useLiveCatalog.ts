@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DbSearchProduct } from "./catalog-db";
+import { afterLoad } from "./sb";
 
 // Static exports supply the initial shelf. A successful public read (including
 // an empty catalogue) replaces it on arrival and when returning from admin.
@@ -15,7 +16,10 @@ function shared(force = false) {
   const now = Date.now();
   if (force || !last || now - last.at > FRESH_MS) {
     // the catalogue module (and its database client) loads on first use
-    const rows = import("./catalog-db").then((m) => m.liveSearchCatalog()).catch(() => null);
+    const rows = afterLoad()
+      .then(() => import("./catalog-db"))
+      .then((m) => m.liveSearchCatalog())
+      .catch(() => null);
     last = { at: now, rows };
     // a failed read isn't kept: the next ask tries again
     void rows.then((r) => {
