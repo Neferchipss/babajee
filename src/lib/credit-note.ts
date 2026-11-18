@@ -1,5 +1,6 @@
 import { lineCess, lineGst } from "./gst.ts";
 import type { Order } from "./orders-db.ts";
+import { round2 as r2 } from "./currency.ts";
 
 // A GST credit note for one refund on an invoiced order (0051), laid out like
 // the invoice. The lines follow the database's refund_tax exactly:
@@ -24,7 +25,6 @@ type CreditNote = {
   split: "intra" | "inter" | "unknown";
 };
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function creditNoteOf(cn: CreditNoteRow, o: Order, shopState: string): CreditNote {

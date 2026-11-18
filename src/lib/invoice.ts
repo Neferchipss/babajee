@@ -7,6 +7,7 @@
 // carries it, sits on the same taxable value and is listed beside the GST.
 import { lineCess, lineGst } from "./gst.ts";
 import type { Order } from "./orders-db.ts";
+import { round2 as r2 } from "./currency.ts";
 
 // GST state codes, the first two digits of a GSTIN
 const STATE_CODES: Record<string, string> = {
@@ -23,7 +24,6 @@ export function stateCode(state: string) {
   return k ? STATE_CODES[k] : "";
 }
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 // one row of the tax summary: lines in the same bracket and HSN code

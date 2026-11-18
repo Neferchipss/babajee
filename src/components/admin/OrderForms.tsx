@@ -6,8 +6,8 @@ import { listProducts, type AdminProduct } from "@/lib/admin-data";
 import { STATES } from "@/lib/addresses";
 import { bill, gstLabel } from "@/lib/gst";
 import { refundsOf, type EditAddress, type EditContact, type EditLine, type Order } from "@/lib/orders-db";
+import { round2 as r2 } from "@/lib/currency";
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 const num = (s: string) => (s.trim() === "" ? 0 : Number(s));
 
 export function Stepper({ value, max, onChange, label }: { value: number; max: number; onChange: (n: number) => void; label: string }) {

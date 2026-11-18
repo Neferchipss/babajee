@@ -1,3 +1,4 @@
+import { round2 as r2 } from "./currency.ts";
 // GST return working files for one period, from documents already worked out
 // (invoices via invoiceOf, credit notes via creditNoteOf, purchase bills):
 // the GSTR-1 tables (B2B, B2CL, B2CS, CDNR, CDNUR, nil-rated, HSN, document
@@ -41,7 +42,6 @@ export type Tax3 = { igst: number; cgst: number; sgst: number };
 
 export type Table = { name: string; head: string[]; rows: (string | number)[][] };
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 const sum = <T>(xs: T[], f: (x: T) => number) => r2(xs.reduce((n, x) => n + f(x), 0));
 const taxed = (l: DocLine) => l.rate > 0;
 

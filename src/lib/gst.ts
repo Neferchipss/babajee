@@ -1,3 +1,4 @@
+import { round2 } from "./currency.ts";
 // GST and profit arithmetic, shared by the checkout, the order pages and the
 // admin. It mirrors place_order(), order_retax() and admin_profit() in
 // supabase/migrations/0030_gst_brackets.sql: change one, change both.
@@ -21,7 +22,6 @@ type GstRules = {
   cess?: number; // percent on the taxable value (0060), 0 or absent: none
 };
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // GST on a line worth `gross` on the shelf (line_gst_c() in 0060)
 export function lineGst(gross: number, rate: number, inclusive: boolean, cess = 0) {

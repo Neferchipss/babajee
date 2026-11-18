@@ -9,6 +9,7 @@ import { amountInWords, invoiceOf, stateCode } from "@/lib/invoice";
 import { creditNoteOf, type CreditNoteRow } from "@/lib/credit-note";
 import { errText, getOrders, getSettings, issueCreditNotes, issueInvoices, type Order, type StoreSettings } from "@/lib/orders-db";
 import "./print.css";
+import { round2 as r2 } from "@/lib/currency";
 
 // Invoices, or credit notes (&doc=cn), for one order or many, as A4 pages: print them,
 // or "Save as PDF" in the print dialog to download. Opened from an order
@@ -25,7 +26,6 @@ export default function PrintPage() {
 const inr = (n: number) => n.toLocaleString("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 // plain amounts for table cells, two decimals, Indian grouping
 const num = (n: number) => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const r2 = (n: number) => Math.round(n * 100) / 100;
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 const noop = () => () => {};
 // 210 mm is 794 CSS px; narrower screens shrink the sheet to fit

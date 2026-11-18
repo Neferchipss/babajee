@@ -1,4 +1,5 @@
 import type { Receipt } from "./db.ts";
+import { round2 as r2 } from "../currency.ts";
 
 // Purchases report: one row per posted bill line, tidy for an analyst to join
 // (ISO dates, plain numbers, no currency signs or thousands separators).
@@ -6,7 +7,6 @@ import type { Receipt } from "./db.ts";
 // shop's and the supplier's GSTINs were known, otherwise all three are 0.
 export const PURCHASES_HEAD = ["bill_date", "supplier", "supplier_gstin", "bill_no", "product", "option", "qty", "unit_price", "taxable", "rate", "gst", "cgst", "sgst", "igst", "claimable", "kind"];
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 const cell = (v: unknown) => {
   const t = v == null ? "" : String(v);
   return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;

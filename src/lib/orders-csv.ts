@@ -2,6 +2,7 @@
 // one row per order, or one row per item for packing or stock counts.
 import { STATUS_LABEL } from "./order-status";
 import type { Customer, Order } from "./orders-db";
+import { round2 as r2 } from "./currency.ts";
 
 const STAMP = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Kolkata",
@@ -20,7 +21,6 @@ const cell = (v: unknown) => {
   return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 };
 const sheet = (rows: unknown[][]) => "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n");
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function ordersCsv(orders: Order[]) {
   const head = [

@@ -17,3 +17,7 @@ export function formatPrice(value: unknown, { paise = false } = {}): string {
   const s = INR.format(n);
   return `₹${/\.\d$/.test(s) ? `${s}0` : s}`;
 }
+
+// Rupees to the paisa, as every bill, invoice, return and export rounds
+// them (one copy here instead of one per file).
+export const round2 = (n: number) => Math.round(n * 100) / 100;

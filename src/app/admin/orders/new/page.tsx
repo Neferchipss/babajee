@@ -9,6 +9,7 @@ import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, gstLabel } from "@/lib/gst";
 import { createOrder, customerAddresses, errText, getSettings, listCustomers, type Customer, type CustomerAddress, type StoreSettings } from "@/lib/orders-db";
+import { round2 as r2 } from "@/lib/currency";
 
 // An order the shop takes itself: by phone, on WhatsApp, at the counter.
 // Pick (or type) the customer, add items, and it lands in Orders like any
@@ -17,7 +18,6 @@ type Line = Pick & { qty: number; typed: string };
 type Addr = { line1: string; line2: string; landmark: string; city: string; state: string; pincode: string; latitude: number | null; longitude: number | null };
 const NO_ADDR: Addr = { line1: "", line2: "", landmark: "", city: "", state: "", pincode: "", latitude: null, longitude: null };
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export default function NewOrderPage() {
   const router = useRouter();

@@ -5,6 +5,7 @@ import { invoiceOf, stateCode } from "./invoice";
 import { creditNotesIn, getOrders, getSettings, invoicedOrders, uninvoicedPaid, type Order } from "./orders-db";
 import { getReceipt, listReceipts, type Receipt } from "./stock-in/db";
 import { getSupabase } from "./supabase";
+import { round2 as r2 } from "./currency.ts";
 
 // Everything a GST return needs for one date range, worked out from the
 // documents themselves (invoices, credit notes, supplier bills), and handed
@@ -12,7 +13,6 @@ import { getSupabase } from "./supabase";
 // Tally sales and purchase registers. Test orders are left out; invoices
 // later cancelled are listed as cancelled.
 const ist = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; reclaim: Tax3; warnings: string[] };
 
