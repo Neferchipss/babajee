@@ -52,7 +52,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0c0a1c",
+  // the browser bar: the page colour in light and in dark
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0a1c" },
+  ],
 };
 
 // Runs before first paint: restores the age answer, the chosen shop theme and
