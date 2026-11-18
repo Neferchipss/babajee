@@ -74,7 +74,7 @@ export function OrderProfit({ order: o }: { order: Order }) {
       <h2>Profit</h2>
       {missing === items.length ? (
         <p className="adm-muted adm-small" style={{ margin: 0 }}>
-          No cost price entered for {items.length === 1 ? "this item" : "these items"}. Add it on the product to see the profit.
+          No cost price entered for {items.length === 1 ? "this item" : "these items"}. Add it in Inventory → Stock to see the profit.
         </p>
       ) : (
         <>
@@ -88,7 +88,7 @@ export function OrderProfit({ order: o }: { order: Order }) {
               {money(Math.round(profit * 100) / 100)}
               {sale > 0 && <small className="adm-muted"> · {((profit / sale) * 100).toFixed(1)}%</small>}
             </span>
-            <span>Net profit (after GST)</span>
+            <span>Profit after GST is paid</span>
             <span>{money(Math.round(kept * 100) / 100)}</span>
           </div>
           <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>

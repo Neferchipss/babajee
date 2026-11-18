@@ -8,7 +8,7 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, gstLabel } from "@/lib/gst";
-import { createOrder, customerAddresses, errText, getSettings, listCustomers, type Customer, type CustomerAddress, type StoreSettings } from "@/lib/orders-db";
+import { createOrder, customerAccount, customerAddresses,errText, getSettings, listCustomers, type Customer, type CustomerAddress, type StoreSettings } from "@/lib/orders-db";
 import { round2 as r2 } from "@/lib/currency";
 
 // An order the shop takes itself: by phone, on WhatsApp, at the counter.
@@ -70,6 +70,10 @@ export default function NewOrderPage() {
         if (as[0]) applyAddress(as[0]);
       })
       .catch(() => setSaved([]));
+    // a business customer's GSTIN, from their account, goes on the order
+    customerAccount(c.id)
+      .then((a) => setGstin(a?.customer_type === "business" && a.gstin ? a.gstin.toUpperCase() : ""))
+      .catch(() => {});
   }
 
   function applyAddress(a: CustomerAddress) {
@@ -94,6 +98,7 @@ export default function NewOrderPage() {
   function clearCustomer() {
     setWho(null);
     setSaved([]);
+    setGstin("");
     setContact({ name: "", phone: "", email: "" });
     setAddr(NO_ADDR);
   }

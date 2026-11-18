@@ -462,7 +462,7 @@ function OrderView() {
               {refunds.amount > 0 && (
                 <>
                   <span>
-                    <strong>Net profit (after GST)</strong>
+                    <strong>Kept after refunds</strong>
                   </span>
                   <span>
                     <strong>{money((paid ?? 0) - refunds.amount)}</strong>
@@ -531,6 +531,19 @@ function OrderView() {
                 ))}
             </p>
             <AddressMap lat={o.address_latitude} lng={o.address_longitude} label={`${o.contact_name}, ${o.address_line1}`} />
+            {/* where the bill goes, when the customer gave one apart from delivery (0066) */}
+            {o.billing_line1 && (
+              <>
+                <h3 className="ov-h3">Bill to</h3>
+                <p className="adm-small ov-addr">
+                  {[o.billing_name, o.billing_line1, o.billing_line2, [o.billing_city, o.billing_state].filter(Boolean).join(", ") + (o.billing_pincode ? ` ${o.billing_pincode}` : "")]
+                    .filter(Boolean)
+                    .map((l, i) => (
+                      <span key={i}>{l}</span>
+                    ))}
+                </p>
+              </>
+            )}
             <BuyerGstin key={`${o.id}-${o.buyer_gstin ?? ""}`} o={o} busy={busy} onSave={(g) => act(() => setBuyerGstin(o.id, g), g ? "Buyer's GSTIN saved" : "Buyer's GSTIN removed")} />
             {ship && (
               <>
