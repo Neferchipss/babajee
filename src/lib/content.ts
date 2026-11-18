@@ -7,6 +7,7 @@
 // shop works the same on a database without 0073. With ?demo=1 on a
 // developer's machine the admin writes to memory instead.
 import { loadSupabase } from "./sb";
+import { slugify as slugifyAs } from "./slug";
 
 // the admin's demo (?demo=1, never in a production build); kept here rather
 // than imported, so the shop's pages don't carry the admin's code
@@ -213,12 +214,6 @@ export async function listPosts(): Promise<SitePage[]> {
   return (await listRows("site_pages")).filter((p) => p.kind === "post" && p.is_visible).sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
 }
 
-export const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "page";
+export const slugify = (s: string) => slugifyAs(s, { max: 80, fallback: "page" });
 
 export { blocks, inline } from "./rich-text";

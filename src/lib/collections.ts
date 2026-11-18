@@ -1,4 +1,5 @@
 import { loadSupabase } from "./sb";
+import { slugify } from "./slug";
 
 // Collections (migration 0041): hand-picked, ordered lists of products, each
 // with its own shelf on the shop. The shop reads the switched-on ones; the
@@ -36,16 +37,8 @@ export async function listCollections(): Promise<Collection[]> {
   return ((data ?? []) as Row[]).map(toCollection);
 }
 
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "collection";
-
 export async function createCollection(name: string, sort_order: number): Promise<string> {
-  const { data, error } = await (await db()).from("collections").insert({ name: name.trim(), slug: slugify(name), sort_order }).select("id").single();
+  const { data, error } = await (await db()).from("collections").insert({ name: name.trim(), slug: slugify(name, { max: 60, fallback: "collection" }), sort_order }).select("id").single();
   if (error) throw error;
   return data.id as string;
 }

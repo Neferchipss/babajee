@@ -6,6 +6,7 @@
 import { toNumber } from "./currency";
 import { uncounted } from "./stock-in/db";
 import { getSupabase } from "./supabase";
+import { slugify } from "./slug";
 
 // sold_in_boxes: its products are bought (and may be sold) in boxes (0061)
 export type AdminCategory = { id: string; slug: string; name: string; sort_order: number; is_visible: boolean; tagline?: string | null; sold_in_boxes?: boolean };
@@ -300,13 +301,6 @@ export async function setProductStatus(product: AdminProduct, status: ProductSta
 // the shop: "Size", "Percs"). products: how many carry each.
 export type SubGroup = { id: string; name: string; sort_order: number };
 export type Subcategory = { id: string; slug: string; name: string; group_id: string | null; sort_order: number; is_visible: boolean; seo_title: string; seo_description: string; products: number };
-export const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-
 export async function listSubcategories(categoryId: string): Promise<{ groups: SubGroup[]; tags: Subcategory[] }> {
   const [g, t] = await Promise.all([
     db().from("subcategory_groups").select("id, name, sort_order").eq("category_id", categoryId).order("sort_order").order("name"),
@@ -333,7 +327,7 @@ export async function saveSubcategory(categoryId: string, tag: Partial<Subcatego
   const name = (patch.name ?? "").trim();
   const { data, error } = await db()
     .from("subcategories")
-    .insert({ category_id: categoryId, name, slug: patch.slug || slugify(name), group_id: patch.group_id ?? null, sort_order: patch.sort_order ?? 0 })
+    .insert({ category_id: categoryId, name, slug: patch.slug || slugify(name, { max: 60 }), group_id: patch.group_id ?? null, sort_order: patch.sort_order ?? 0 })
     .select("id")
     .single();
   if (error) throw subcategoryTaken(error);
