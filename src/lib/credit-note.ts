@@ -12,7 +12,7 @@ import { round2 as r2 } from "./currency.ts";
 // GST is CGST+SGST in the shop's own state and IGST otherwise. Each rate is
 // a pair (GST, cess) since 0060's refund_taxes(); with no cess, as before.
 export type CreditNoteRow = { id: string; number: string; order_id: string; refund_id: string | null; issued_at: string; amount: number; tax: number; cess?: number; shipping: number };
-type CreditLine = { name: string; option: string; hsn: string; qty: number; rate: number; cessRate: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
+type CreditLine = { name: string; option: string; hsn: string; qty: number; pieces?: number; rate: number; cessRate: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 type CreditNote = {
   lines: CreditLine[];
   taxable: number;
@@ -68,9 +68,9 @@ export function creditNoteOf(cn: CreditNoteRow, o: Order, shopState: string): Cr
   let lines: CreditLine[];
   if (w > 0 && rest < w) {
     const k = rest / w;
-    lines = refunded.map((x) => line(x.i.product_name, x.i.variant_label, x.i.hsn ?? "", x.qty, r2(x.gross * k), rateOf(x.i), cessOf(x.i)));
+    lines = refunded.map((x) => ({ ...line(x.i.product_name, x.i.variant_label, x.i.hsn ?? "", x.qty, r2(x.gross * k), rateOf(x.i), cessOf(x.i)), pieces: x.qty * (x.i.pack ?? 1) }));
   } else {
-    lines = refunded.map((x) => line(x.i.product_name, x.i.variant_label, x.i.hsn ?? "", x.qty, x.gross, rateOf(x.i), cessOf(x.i)));
+    lines = refunded.map((x) => ({ ...line(x.i.product_name, x.i.variant_label, x.i.hsn ?? "", x.qty, x.gross, rateOf(x.i), cessOf(x.i)), pieces: x.qty * (x.i.pack ?? 1) }));
     const extra = r2(rest - w);
     if (extra > 0) {
       // by (GST, cess) pair, in the database's order

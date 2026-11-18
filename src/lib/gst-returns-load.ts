@@ -63,12 +63,12 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
       pos: posOf(o.address_state),
       inter: inv.split === "inter",
       value: valueOf(o),
-      lines: inv.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst, cess: l.cess })),
+      lines: inv.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, pieces: l.pieces, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst, cess: l.cess })),
     });
   }
   if (tests) warnings.push(`${tests} test order${tests === 1 ? " was" : "s were"} left out.`);
   if (cancelled.length) warnings.push(`${cancelled.length} invoice${cancelled.length === 1 ? " was" : "s were"} cancelled after issue and ${cancelled.length === 1 ? "is" : "are"} counted as cancelled in the document summary.`);
-  if (noHsn.size) warnings.push(`${noHsn.size} product${noHsn.size === 1 ? " has" : "s have"} no HSN code on its invoice (set them in Products › GST & HSN; new orders pick them up).`);
+  if (noHsn.size) warnings.push(`${noHsn.size} product${noHsn.size === 1 ? " has" : "s have"} no HSN code on its invoice (set them in Finance › GST & HSN; new orders pick them up).`);
 
   // credit notes may correct invoices from an earlier period
   const noteOrders = new Map<string, Order>((await getOrders([...new Set(notes.map((n) => n.order_id))])).map((o) => [o.id, o]));
@@ -87,7 +87,7 @@ export async function loadReturns(from: string, to: string): Promise<ReturnData>
       pos: posOf(o.address_state),
       inter: cn.split === "inter",
       value: r2(n.amount),
-      lines: cn.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst, cess: l.cess })),
+      lines: cn.lines.map((l) => ({ hsn: l.hsn, name: l.name, qty: l.qty, pieces: l.pieces, rate: l.rate, taxable: l.taxable, cgst: l.cgst, sgst: l.sgst, igst: l.igst, gst: l.gst, cess: l.cess })),
     });
   }
   if (badPos.size) warnings.push(`Unrecognised state on some orders (${[...badPos].join(", ")}): their place of supply shows as "--". Fix before filing.`);

@@ -80,6 +80,9 @@ const ALL_SECTIONS: Section[] = [
     icon: I("M4 3.5h12v13H4zM7 7h6M7 10h6M7 13h3"),
     pages: [
       { label: "GST & HSN", href: "/admin/finance/gst" },
+      { label: "Invoices and credit notes", href: "/admin/finance/invoices" },
+      { label: "GST returns and Tally", href: "/admin/finance/returns" },
+      { label: "Profit and GST", href: "/admin/analytics#profit" },
     ],
   },
   {

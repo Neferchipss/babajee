@@ -28,6 +28,8 @@ export type OrderItem = {
   // the cess rate it sold at and the cess on the line (0060; 0 = none)
   cess_rate?: number;
   cess?: number;
+  // pieces in one of this line's option (a box of 50: 50), from the option today; 1 for loose
+  pack?: number;
   // the product's slug, for its photo (customer list only; null if it was removed or hidden)
   slug?: string | null;
   // the product as it is in the shop today, for "Buy again" (customer order page)
@@ -128,6 +130,7 @@ export function toOrder(row: Record<string, unknown>): Order {
         label?: string;
         price?: number | string;
         is_visible?: boolean;
+        pack_of?: number;
         products?: { slug?: string; is_visible?: boolean; hsn?: string; categories?: { slug?: string } | null } | null;
       } | null;
       const raw = i as OrderItem & { product_variants?: PV };
@@ -137,7 +140,7 @@ export function toOrder(row: Record<string, unknown>): Order {
         pv && p?.slug && pv.label !== undefined && pv.price !== undefined
           ? { slug: p.slug, category: p.categories?.slug ?? "", label: pv.label, price: toNumber(pv.price), ok: !!(pv.is_visible && p.is_visible && toNumber(pv.price) > 0) }
           : null;
-      return { ...rest, unit_price: toNumber(i.unit_price), cess_rate: toNumber(i.cess_rate ?? 0), cess: toNumber(i.cess ?? 0), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), hsn: (i.hsn as string | undefined) || (o.invoice_number ? "" : (p?.hsn ?? "")), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}) };
+      return { ...rest, unit_price: toNumber(i.unit_price), cess_rate: toNumber(i.cess_rate ?? 0), cess: toNumber(i.cess ?? 0), ...(i.gst_rate != null ? { gst_rate: toNumber(i.gst_rate) } : {}), hsn: (i.hsn as string | undefined) || (o.invoice_number ? "" : (p?.hsn ?? "")), ...(pv !== undefined ? { slug: p?.slug ?? null, live } : {}), ...(pv?.pack_of && pv.pack_of > 1 ? { pack: pv.pack_of } : {}) };
     }),
     order_events: o.order_events?.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)),
     paid_total: o.paid_total == null ? null : toNumber(o.paid_total),
@@ -149,6 +152,6 @@ export function toOrder(row: Record<string, unknown>): Order {
 // the list carries enough for the spreadsheet export (items, address, refunds)
 export const LIST = "*, order_items(product_name, variant_label, sku, unit_price, quantity), order_refunds(amount, subtotal, shipping, tax), order_requests(id, kind, status, reason)";
 export const FULL =
-  "*, order_items(*, product_variants(label, price, is_visible, products(slug, is_visible, hsn, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
+  "*, order_items(*, product_variants(label, price, is_visible, pack_of, products(slug, is_visible, hsn, categories(slug)))), order_events(*), shipments(*), order_refunds(*, order_refund_items(*)), order_requests(*)";
 
 // ---------------------------------------------------------------- customer

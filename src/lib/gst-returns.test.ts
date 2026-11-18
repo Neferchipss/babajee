@@ -121,3 +121,10 @@ test("no cess leaves the cess columns at 0", () => {
   const b2cs = gstr1(docs).find((t) => t.name === "gstr1-b2cs")!;
   assert.ok(b2cs.rows.every((r) => r[4] === 0));
 });
+
+test("hsn summary counts a box line as its pieces", () => {
+  const box = { ...line(18, 900, false, "2402", 2), pieces: 100 };
+  const loose = line(18, 50, false, "2402", 5);
+  const hsn = gstr1([doc({ number: "BJ/26-27/0101", lines: [box, loose] })]).find((t) => t.name === "gstr1-hsn")!;
+  assert.equal(hsn.rows.find((r) => r[0] === "2402")![2], 105);
+});

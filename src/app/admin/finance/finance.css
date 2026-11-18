@@ -1,0 +1,7 @@
+/* Finance › Invoices and credit notes */
+.fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.fin-kpis > .adm-card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; }
+.fin-kpis b { font-size: 1.35rem; }
+.fin-table { overflow-x: auto; }
+.fin-table .r { text-align: right; white-space: nowrap; }
+.fin-table td small { display: block; }

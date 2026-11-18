@@ -248,7 +248,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
                 <td className="c">{i + 1}</td>
                 <td>
                   {l.name}
-                  {(l.option || l.sku) && <small>{[l.option, l.sku && `SKU ${l.sku}`].filter(Boolean).join(" · ")}</small>}
+                  {(l.option || l.sku) && <small>{[l.option, l.pieces !== l.qty && `${l.pieces} pcs`, l.sku && `SKU ${l.sku}`].filter(Boolean).join(" · ")}</small>}
                 </td>
                 {anyHsn && <td className="c">{l.hsn || "–"}</td>}
                 <td className="r">{l.qty}</td>
@@ -459,7 +459,7 @@ function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: Stor
                 <td className="c">{i + 1}</td>
                 <td>
                   {l.name}
-                  {(l.option || l.hsn) && <small>{[l.option, l.hsn && `HSN ${l.hsn}`].filter(Boolean).join(" · ")}</small>}
+                  {(l.option || l.hsn) && <small>{[l.option, l.pieces && l.pieces !== l.qty && `${l.pieces} pcs`, l.hsn && `HSN ${l.hsn}`].filter(Boolean).join(" · ")}</small>}
                 </td>
                 <td className="r">{l.qty}</td>
                 <td className="r">{num(l.taxable)}</td>

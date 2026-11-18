@@ -22,7 +22,7 @@ import { round2 as r2 } from "./currency.ts";
 const B2CL_LIMIT = 100000;
 
 // cess: the cess on the line (0060), absent or 0 for none
-export type DocLine = { hsn: string; name: string; qty: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess?: number };
+export type DocLine = { hsn: string; name: string; qty: number; pieces?: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess?: number };
 export type SaleDoc = {
   kind: "invoice" | "credit";
   number: string;
@@ -117,7 +117,7 @@ export function gstr1(docs: SaleDoc[], cancelled: string[] = []): Table[] {
       const k = `${l.hsn}|${l.rate}`;
       const t = hs.get(k) ?? { hsn: l.hsn, rate: l.rate, qty: 0, value: 0, taxable: 0, igst: 0, cgst: 0, sgst: 0, cess: 0 };
       const c = l.cess ?? 0;
-      hs.set(k, { ...t, qty: t.qty + sign * l.qty, value: r2(t.value + sign * (l.taxable + l.gst + c)), taxable: r2(t.taxable + sign * l.taxable), igst: r2(t.igst + sign * l.igst), cgst: r2(t.cgst + sign * l.cgst), sgst: r2(t.sgst + sign * l.sgst), cess: r2(t.cess + sign * c) });
+      hs.set(k, { ...t, qty: t.qty + sign * (l.pieces ?? l.qty), value: r2(t.value + sign * (l.taxable + l.gst + c)), taxable: r2(t.taxable + sign * l.taxable), igst: r2(t.igst + sign * l.igst), cgst: r2(t.cgst + sign * l.cgst), sgst: r2(t.sgst + sign * l.sgst), cess: r2(t.cess + sign * c) });
     }
   }
   const hsn: Table = {

@@ -5,8 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AnalyticsTabs, RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { dayLabel } from "@/lib/dates";
-import { getReceipt, listReceipts } from "@/lib/stock-in/db";
-import { purchasesCsv } from "@/lib/stock-in/purchases-csv";
 import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
 
 // Report tables: one date range, one report at a time, every column sortable,
@@ -384,53 +382,6 @@ export default function ReportsPage() {
     URL.revokeObjectURL(a.href);
   }
 
-  // Purchases: one row per posted supplier-bill line, fetched on demand
-  const [buying, setBuying] = useState(false);
-  const [buyErr, setBuyErr] = useState("");
-  async function downloadPurchases() {
-    setBuying(true);
-    setBuyErr("");
-    try {
-      const bills = (await listReceipts(range.from, range.to)).filter((r) => r.status === "posted");
-      const full = [];
-      for (let i = 0; i < bills.length; i += 8) full.push(...(await Promise.all(bills.slice(i, i + 8).map((b) => getReceipt(b.id)))));
-      const blob = new Blob([purchasesCsv(full)], { type: "text/csv;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `babajee-purchases-${range.from}-to-${range.to}.csv`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch (e) {
-      setBuyErr(errText(e));
-    } finally {
-      setBuying(false);
-    }
-  }
-
-  // GST returns and Tally registers for the range, as zips
-  const [making, setMaking] = useState<"" | "returns" | "registers">("");
-  const [retErr, setRetErr] = useState("");
-  const [retWarn, setRetWarn] = useState<string[]>([]);
-  async function downloadReturns(which: "returns" | "registers") {
-    setMaking(which);
-    setRetErr("");
-    try {
-      const m = await import("@/lib/gst-returns-load");
-      const d = await m.loadReturns(range.from, range.to);
-      setRetWarn(d.warnings);
-      const blob = which === "returns" ? m.returnsZip(d, range.from, range.to) : m.registersZip(d, range.from, range.to);
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `babajee-${which === "returns" ? "gst-returns" : "tally-registers"}-${range.from}-to-${range.to}.zip`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } catch (e) {
-      setRetErr(errText(e));
-    } finally {
-      setMaking("");
-    }
-  }
-
   const by = (key: string) => setSort((s) => (s?.key === key ? (s.desc ? { key, desc: false } : null) : { key, desc: true }));
 
   return (
@@ -532,43 +483,13 @@ export default function ReportsPage() {
       <section className="adm-card rpt">
         <div className="rpt-head">
           <div>
-            <h2>Purchases</h2>
-            <p className="adm-muted adm-small">
-              One row per line on each posted stock entry dated in the range (supplier bills, opening stock and quick adds, told apart by the last column): supplier and GSTIN, bill number, product, quantity, price, taxable value, GST rate and the CGST, SGST and IGST, and whether the credit is claimable. Voided entries are left out. Dates are YYYY-MM-DD and numbers are plain, for joining in a spreadsheet.
-            </p>
+            <h2>GST returns, Tally and purchases</h2>
+            <p className="adm-muted adm-small">The GSTR-1 and GSTR-3B files, Tally registers and the purchases CSV are in Finance, with the invoice and credit note list.</p>
           </div>
-          <button type="button" className="adm-btn" disabled={buying} onClick={downloadPurchases}>
-            {buying ? "Preparing." : "Download CSV"}
-          </button>
+          <Link className="adm-btn" href="/admin/finance/returns">
+            Open Finance
+          </Link>
         </div>
-        {buyErr && <p className="adm-err">{buyErr}</p>}
-      </section>
-
-      <section className="adm-card rpt">
-        <div className="rpt-head">
-          <div>
-            <h2>GST returns and Tally registers</h2>
-            <p className="adm-muted adm-small">
-              For the range above (usually one month). <b>GST returns</b>: the GSTR-1 tables (B2B, B2CL, B2CS, credit notes, HSN summary, document summary) and a GSTR-3B summary with ITC from bills ticked as in GSTR-2B. <b>Tally registers</b>: sales and purchase registers. Built from the invoices, credit notes and supplier bills here; check with the CA before filing.
-            </p>
-          </div>
-          <div className="rpt-btns">
-            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("returns")}>
-              {making === "returns" ? "Preparing." : "GST returns (zip)"}
-            </button>
-            <button type="button" className="adm-btn" disabled={!!making} onClick={() => downloadReturns("registers")}>
-              {making === "registers" ? "Preparing." : "Tally registers (zip)"}
-            </button>
-          </div>
-        </div>
-        {retErr && <p className="adm-err">{retErr}</p>}
-        {retWarn.length > 0 && (
-          <ul className="adm-small rpt-warn">
-            {retWarn.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-        )}
       </section>
     </div>
   );

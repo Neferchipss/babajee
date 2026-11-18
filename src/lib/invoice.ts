@@ -25,7 +25,7 @@ export function stateCode(state: string) {
 }
 
 
-type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
+type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; pieces: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 // one row of the tax summary: lines in the same bracket and HSN code
 type TaxRow = { hsn: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess: number };
 type Invoice = {
@@ -62,6 +62,8 @@ export function invoiceOf(o: Order, shopState: string): Invoice {
       sku: i.sku,
       hsn: i.hsn ?? "",
       qty: i.quantity,
+      // a box line counts its pieces (HSN summary, "Box of 50 = 50 pcs")
+      pieces: i.quantity * (i.pack ?? 1),
       rate,
       cessRate,
       unit: r2(taxable / i.quantity),
