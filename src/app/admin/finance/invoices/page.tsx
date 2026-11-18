@@ -25,7 +25,7 @@ export default function InvoicesPage() {
       const [invoices, notes, missing] = await Promise.all([invoicedOrders(range.from, range.to), creditNotesIn(range.from, range.to), uninvoicedPaid(range.from, range.to)]);
       const noteOrders = new Map((await getOrders([...new Set(notes.map((n) => n.order_id))])).map((o) => [o.id, o]));
       setRes({ ask, invoices: invoices.filter((o) => !o.is_test), notes, noteOrders, missing });
-    })().catch((e) => setRes({ ask, err: errText(e) }));
+    })().catch((e) => setRes({ ask, err: errText(e) || "Couldn't load the invoices. Sign in again and retry." }));
   }, [ask, range.from, range.to]);
 
   const d = res?.ask === ask && "invoices" in res ? res : null;

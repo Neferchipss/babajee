@@ -3701,7 +3701,7 @@ body:has(.adm-frame) .ftr {
   bottom: 0;
   z-index: 5;
   padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(to top, rgb(var(--bb-bg, 0 0 0)) 70%, transparent);
+  background: linear-gradient(to top, var(--color-char, #000) 70%, transparent);
 }
 /* the tree, tighter: everything fits on one screen */
 @media (min-width: 1000px) {
