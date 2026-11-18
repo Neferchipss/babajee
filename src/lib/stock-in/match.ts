@@ -3,6 +3,8 @@ export type Candidate = {
   product: string;
   option: string;
   sku: string | null;
+  // a box's pieces (0061); 1 or missing: loose
+  pack?: number;
 };
 
 export type Mapping = {

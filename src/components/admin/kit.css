@@ -178,3 +178,6 @@
   color: var(--adm-muted);
   font-weight: 500;
 }
+/* small form dialogs (buying price…) */
+.prd-dialog { display: grid; gap: 10px; min-width: 0; }
+.prd-dialog h2 { margin: 0; font-size: 1.1rem; }

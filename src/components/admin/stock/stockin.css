@@ -286,3 +286,8 @@
   color: var(--adm-muted);
   font-weight: 400;
 }
+
+/* a bill line: bought as boxes or loose (0061) */
+.sti-kind { margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; border: 1px solid var(--adm-line); color: var(--adm-muted); white-space: nowrap; }
+.sti-kind.is-box { border-color: var(--adm-gold); color: var(--adm-gold); }
+.sti-pieces { margin: 0; }

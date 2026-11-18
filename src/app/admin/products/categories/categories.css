@@ -36,7 +36,8 @@
 .cat-add { display: flex; gap: 8px; flex-wrap: wrap; }
 .cat-add .adm-input { flex: 1 1 180px; width: auto; min-width: 0; }
 .cat-add select.adm-input { flex: 0 1 160px; }
-.cat-dialog { display: grid; gap: 12px; min-width: min(460px, 80vw); }
+.cat-dialog { display: grid; gap: 12px; min-width: 0; }
+.adm-dialog:has(.cat-dialog) { width: min(520px, calc(100vw - 32px)); }
 .cat-dialog h2 { margin: 0; font-size: 1.1rem; }
 .cat-seo { border: 1px solid var(--adm-line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; margin: 0; }
 .cat-seo legend { font-weight: 600; padding: 0 4px; }

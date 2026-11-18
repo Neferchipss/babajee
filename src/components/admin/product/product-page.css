@@ -62,7 +62,10 @@
 .prd-serp small { color: var(--adm-muted); }
 .prd-serp b { color: #1a0dab; font-weight: 500; }
 .prd-serp span { font-size: 0.85rem; color: var(--adm-muted); }
-.prd-dialog { display: grid; gap: 10px; min-width: min(420px, 80vw); }
+.prd-dialog { display: grid; gap: 10px; min-width: 0; }
 .prd-dialog h2 { margin: 0; font-size: 1.1rem; }
 /* the stock block brings its own heading */
 .prd-card .stk > h3 { display: none; }
+.prd-stocklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.prd-stocklist li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--adm-line); }
+.prd-stocklist b { font-variant-numeric: tabular-nums; }

@@ -16,8 +16,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Confirm, Failed, GstPicker, Loading, SaveBar, Toggle } from "@/components/admin/kit";
 import { toast, toastError } from "@/components/admin/Toaster";
-import { Dialog } from "@/components/admin/ui";
-import ProductStock from "@/components/admin/stock/ProductStock";
 import { AddPhotos, PhotoGroup } from "@/components/admin/editor/Photos";
 import { BoxSetup, BoxesBlock } from "@/components/admin/editor/Boxes";
 import { BundleBlock } from "@/components/admin/editor/Bundle";
@@ -411,8 +409,22 @@ function Editor({ api, product, categories, shop, onReload }: { api: Api; produc
 
           {/* ------------------------------------------------ stock */}
           <section className="adm-card prd-card">
-            <h2>Stock</h2>
-            <ProductStock product={product} rules={{ rate: rules.rate }} onChanged={() => void onReload()} />
+            <div className="prd-card-head">
+              <h2>Stock</h2>
+              <Link className="adm-btn" href={`/admin/inventory/stock?product=${product.id}`}>
+                Add or adjust in Inventory
+              </Link>
+            </div>
+            <ul className="prd-stocklist">
+              {product.variants
+                .filter((v) => !v.unit_variant_id)
+                .map((v) => (
+                  <li key={v.id}>
+                    <span>{many ? v.label : "In stock"}</span>
+                    <b>{v.track_stock ? v.stock_qty : "Not counted"}</b>
+                  </li>
+                ))}
+            </ul>
             {product.variants.some((v) => v.track_stock) && (
               <label className="adm-label prd-narrow">
                 Low-stock alert at
@@ -486,7 +498,7 @@ function Editor({ api, product, categories, shop, onReload }: { api: Api; produc
             )}
           </section>
 
-          {can(role, "catalog") && <CostCard product={product} options={live} rules={rules} onChanged={onReload} />}
+          {can(role, "catalog") && <CostCard product={product} options={live} rules={rules} />}
 
           <SearchListing d={d} set={set} slug={product.slug} catName={cat?.name ?? ""} catSlug={cat?.slug ?? ""} />
 
@@ -604,9 +616,8 @@ function Organise({ api, d, set, categories }: { api: Api; d: Draft; set: (p: Pa
 }
 
 // ---------------------------------------------------------------- cost and profit
-function CostCard({ product, options, rules, onChanged }: { product: AdminProduct; options: Option[]; rules: Rules; onChanged: () => Promise<void> }) {
+function CostCard({ product, options, rules }: { product: AdminProduct; options: Option[]; rules: Rules }) {
   const [costs, setCosts] = useState<Map<string, Purchase> | null>(null);
-  const [fixing, setFixing] = useState<AdminVariant | null>(null);
   const ids = product.variants.map((v) => v.id).join(",");
   const reload = useCallback(
     () =>
@@ -648,92 +659,15 @@ function CostCard({ product, options, rules, onChanged }: { product: AdminProduc
                   <dd className={u ? (u.kept < 0 ? "is-neg" : "is-pos") : ""}>{u ? `${money(u.kept)} · ${u.net > 0 ? ((u.kept / u.net) * 100).toFixed(1) : "0"}%` : "–"}</dd>
                 </dl>
                 {u && <GstNote u={u} credit={rules.credit} fromBills={v.track_stock} />}
-                <button type="button" className="prd-linkbtn" onClick={() => setFixing(v)}>
-                  {buy == null ? "Set the buying price" : v.track_stock ? "Correct the buying price" : "Change the buying price"}
-                </button>
               </div>
             );
           })
       )}
-      <p className="adm-muted adm-small">Buying prices also come from purchase bills (Inventory).</p>
-      <BuyingPrice
-        key={fixing?.id ?? "none"}
-        variant={fixing}
-        have={fixing ? costs?.get(fixing.id) : undefined}
-        rate={rules.rate}
-        onClose={() => setFixing(null)}
-        onSaved={async () => {
-          setFixing(null);
-          await reload();
-          await onChanged();
-          toast("Buying price saved");
-        }}
-      />
+      <p className="adm-muted adm-small">
+        Buying prices come from purchase bills.{" "}
+        <Link href={`/admin/inventory/stock?product=${product.id}`}>Set or correct them in Inventory → Stock</Link>.
+      </p>
     </section>
-  );
-}
-
-function BuyingPrice({ variant, have, rate, onClose, onSaved }: { variant: AdminVariant | null; have?: Purchase; rate: number; onClose: () => void; onSaved: () => Promise<void> }) {
-  const counted = !!variant?.track_stock;
-  const [price, setPrice] = useState(have?.purchase != null ? String(have.purchase) : "");
-  const [gst, setGst] = useState(String(have?.gstPaid != null && have.purchase ? Math.round((have.gstPaid / have.purchase) * 1000) / 10 : rate));
-  const [why, setWhy] = useState(have?.purchase == null ? "Opening stock" : "");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    if (!variant) return;
-    const n = Number(price);
-    const r = Number(gst);
-    if (!(price.trim() !== "" && n >= 0)) return setErr("Enter the buying price before GST.");
-    if (!(r >= 0 && r <= 100)) return setErr("Enter the GST rate on the bill.");
-    if (counted && why.trim().length < 3) return setErr("Say why, for the activity log.");
-    setBusy(true);
-    setErr("");
-    try {
-      const m = await import("@/lib/orders-db");
-      if (counted) await m.correctPurchase(variant.id, n, r, why.trim());
-      else await m.setPurchase(variant.id, n, { rate: r, amount: null });
-      await onSaved();
-    } catch (x) {
-      setErr(errText(x));
-    }
-    setBusy(false);
-  }
-  return (
-    <Dialog open={!!variant} onClose={onClose}>
-      {variant && (
-        <form className="prd-dialog" onSubmit={save}>
-          <h2>Buying price · {variant.label}</h2>
-          <p className="adm-muted adm-small">
-            {counted ? "Its stock is counted, so this corrects the average from the bills. Bills added later average against it; the old price and your reason go in the activity log." : "Per piece, before GST."}
-          </p>
-          <label className="adm-label">
-            Price before GST (₹)
-            <input className="adm-input" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} />
-          </label>
-          <label className="adm-label">
-            GST % on the supplier&apos;s bill
-            <input className="adm-input" inputMode="decimal" value={gst} onChange={(e) => setGst(e.target.value.replace(/[^\d.]/g, ""))} />
-          </label>
-          {counted && (
-            <label className="adm-label">
-              Why
-              <input className="adm-input" value={why} maxLength={300} placeholder="e.g. opening count entered at the wrong price" onChange={(e) => setWhy(e.target.value)} />
-            </label>
-          )}
-          {err && <p className="adm-err">{err}</p>}
-          <div className="adm-actions">
-            <button type="button" className="adm-btn" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="adm-btn pri" disabled={busy}>
-              {busy ? "Saving" : "Save"}
-            </button>
-          </div>
-        </form>
-      )}
-    </Dialog>
   );
 }
 

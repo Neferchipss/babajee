@@ -2829,3 +2829,5 @@ select.ape-line-input {
 .apt-status { font: inherit; font-size: 0.85rem; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--adm-line); background: var(--adm-panel); color: var(--adm-ink); }
 .apt-status.is-published { border-color: var(--adm-good); color: var(--adm-good); font-weight: 600; }
 .ape-full { margin-left: auto; text-decoration: none; }
+.ape .prd-stocklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ape .prd-stocklist li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--adm-line); }

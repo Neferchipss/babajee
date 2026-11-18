@@ -57,12 +57,11 @@ const ALL_SECTIONS: Section[] = [
   },
   {
     label: "Inventory",
-    href: "/admin/inventory/purchases",
+    href: "/admin/inventory/stock",
     icon: I("M3 6.5 10 3l7 3.5v7L10 17l-7-3.5zM3 6.5l7 3.5 7-3.5M10 10v7M6.5 4.8l7 3.5"),
     pages: [
+      { label: "Stock", href: "/admin/inventory/stock" },
       { label: "Purchase bills", href: "/admin/inventory/purchases" },
-      { label: "Low stock", href: "/admin/products?need=low", count: "low_stock", warn: true },
-      { label: "Out of stock", href: "/admin/products?need=out", count: "out_of_stock", warn: true },
     ],
   },
   {
@@ -149,7 +148,7 @@ export function useAdminNav() {
   const current = sections.find((s) => s.pages?.some((p) => pageOn(p.href))) ?? sections.find(loose);
   const sectionOn = (s: Section) => s.href === current?.href;
   const n = (p: Page) => (p.count && counts ? (counts[p.count as keyof HomeCounts] ?? 0) : 0);
-  const sectionCount = (s: Section) => (s.href === "/admin/orders" && counts ? counts.unpaid + counts.to_pack + counts.to_ship : s.href === "/admin/inventory/purchases" ? low : 0);
+  const sectionCount = (s: Section) => (s.href === "/admin/orders" && counts ? counts.unpaid + counts.to_pack + counts.to_ship : s.href === "/admin/inventory/stock" ? low : 0);
   // same page, another filter: let the page switch without reloading
   const tap = (href: string) => () => {
     const [p, q] = href.split("?");

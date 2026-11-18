@@ -107,7 +107,7 @@ export default function LineEditor({
       ) : (
         <ul className="sti-rows">
           {lines.map((l, i) => (
-            <Row key={l.variant_id} line={l} name={lineName(byId.get(l.variant_id))} note={noteOf?.(l.variant_id) ?? null} onPatch={(p) => patch(i, p)} onRemove={() => onChange(lines.filter((_, k) => k !== i))} />
+            <Row key={l.variant_id} line={l} pack={byId.get(l.variant_id)?.pack ?? 1} name={lineName(byId.get(l.variant_id))} note={noteOf?.(l.variant_id) ?? null} onPatch={(p) => patch(i, p)} onRemove={() => onChange(lines.filter((_, k) => k !== i))} />
           ))}
         </ul>
       )}
@@ -134,7 +134,7 @@ export default function LineEditor({
   );
 }
 
-function Row({ line, name, note, onPatch, onRemove }: { line: Line; name: string; note: string | null; onPatch: (p: Partial<Line>) => void; onRemove: () => void }) {
+function Row({ line, name, pack, note, onPatch, onRemove }: { line: Line; name: string; pack: number; note: string | null; onPatch: (p: Partial<Line>) => void; onRemove: () => void }) {
   // the price is typed as text so "12." and "0.5" survive while typing
   const [price, setPrice] = useState(priceEntered(line) ? String(line.unit_price) : "");
   // a price set from outside (an uploaded sheet) shows in the box
@@ -142,19 +142,28 @@ function Row({ line, name, note, onPatch, onRemove }: { line: Line; name: string
   return (
     <li className="sti-row">
       <div className="sti-row-head">
-        <span className="sti-row-name">{name}</span>
+        <span className="sti-row-name">
+          {name}
+          <span className={`sti-kind ${pack > 1 ? "is-box" : ""}`}>{pack > 1 ? `Box of ${pack}` : "Loose"}</span>
+        </span>
         <button type="button" className="adm-btn sti-x" aria-label={`Remove ${name}`} onClick={onRemove}>
           Remove
         </button>
       </div>
       {note && <p className="adm-small sti-voidnote" style={{ margin: 0 }}>{note}</p>}
+      {pack > 1 && line.qty > 0 && (
+        <p className="adm-small adm-muted sti-pieces">
+          = {(line.qty * pack).toLocaleString("en-IN")} pieces into stock
+          {priceEntered(line) ? ` · ${formatPrice(line.unit_price / pack, { paise: true })} per piece before GST` : ""}
+        </p>
+      )}
       <div className="sti-row-grid">
         <label className="adm-label">
-          Qty
+          {pack > 1 ? "Boxes" : "Qty"}
           <input className="adm-input" inputMode="numeric" value={line.qty ? String(line.qty) : ""} placeholder="0" onChange={(e) => onPatch({ qty: Number(e.target.value.replace(/\D/g, "")) })} />
         </label>
         <label className="adm-label">
-          Price before GST
+          {pack > 1 ? "Price per box before GST" : "Price before GST"}
           <input
             className="adm-input"
             inputMode="decimal"

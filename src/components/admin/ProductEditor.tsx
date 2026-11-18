@@ -7,12 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import { type AdminCategory, type AdminProduct } from "@/lib/admin-data";
 import { isAdminDemo } from "@/lib/admin-api";
 import { toast, toastError } from "@/components/admin/Toaster";
-import ProductStock from "@/components/admin/stock/ProductStock";
 import { Api, STATUSES, mainPrice, needsOf } from "./editor/ProductBasics";
 import { AddPhotos, PhotoGroup } from "./editor/Photos";
 import { useBoxes, usePhotoManager } from "./editor/useProductParts";
 import { Pricing } from "./editor/Pricing";
-import { LowMark, StockHistory } from "./editor/Details";
+import { StockHistory } from "./editor/Details";
 
 // the product list and table use these too
 export { mainPrice, needsOf, needsWork, setMainPrice } from "./editor/ProductBasics";
@@ -141,16 +140,7 @@ export default function ProductEditor({
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const tracked = product.variants.some((v) => v.track_stock);
   const { boxMode, setup: boxSetup, addBox } = useBoxes(product, categories, api, run);
-  // the shop's GST rate, the default for stock bought in a product with no bracket of its own
-  const [shopRate, setShopRate] = useState(18);
-  useEffect(() => {
-    import("@/lib/orders-db")
-      .then((m) => m.getSettings())
-      .then((s) => setShopRate(s.gst_rate))
-      .catch(() => {});
-  }, []);
   const { many, uploading, addFiles, itemsOf, groupProps, dragRef } = usePhotoManager(product, api, run, (n) => toast(`${n} photo${n === 1 ? "" : "s"} added to ${product.name}`));
   const needs = needsOf(product);
 
@@ -259,10 +249,25 @@ export default function ProductEditor({
         </section>
 
         {/* stock, before the price: add stock, correct a count, what moved */}
-        <ProductStock product={product} rules={{ rate: product.gst_rate ?? shopRate }} onChanged={() => void run(async () => {})} />
+        {/* stock is shown here; it changes in Inventory > Stock */}
+        <section className="ape-fields">
+          <h3>Stock</h3>
+          <ul className="prd-stocklist">
+            {product.variants
+              .filter((v) => !v.unit_variant_id)
+              .map((v) => (
+                <li key={v.id}>
+                  <span>{many ? v.label : "In stock"}</span>
+                  <b>{v.track_stock ? v.stock_qty : "Not counted"}</b>
+                </li>
+              ))}
+          </ul>
+          <Link className="ape-chip" href={`/admin/inventory/stock?product=${product.id}${isAdminDemo() ? "&demo=1" : ""}`}>
+            Add or adjust stock in Inventory
+          </Link>
+        </section>
 
         <section className="ape-fields">
-          {tracked && <LowMark key={`low-${product.id}`} product={product} onSave={(low_stock_at) => run(() => api.updateProduct(product.id, { low_stock_at }))} />}
           <StockHistory variants={product.variants} />
         </section>
 

@@ -99,6 +99,12 @@ export async function voidReceipt(id: string) {
   if (error) throw error;
 }
 
+// stock counting on or off for one loose option (0078); a reason goes in the history
+export async function setCounting(variant_id: string, on: boolean, note = "") {
+  const { error } = await db().rpc("admin_set_counting", { p_variant: variant_id, p_on: on, p_note: note });
+  if (error) throw error;
+}
+
 export async function correctStock(variant_id: string, count: number, note: string) {
   const { error } = await db().rpc("admin_correct_stock", { p_variant: variant_id, p_count: count, p_note: note });
   if (error) throw error;
@@ -143,11 +149,11 @@ export async function billNumbers(ids: string[]): Promise<Map<string, string>> {
 
 // Every option, for matching bill lines to the shop's products.
 export async function stockCatalogue(): Promise<Candidate[]> {
-  type Row = { id: string; label: string | null; sku: string | null; products: { name: string } | { name: string }[] | null };
+  type Row = { id: string; label: string | null; sku: string | null; pack_of?: number | null; products: { name: string } | { name: string }[] | null };
   // PostgREST caps a response at max_rows (1000 by default), so read in pages
   const rows: Row[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await db().from("product_variants").select("id, label, sku, products(name)").order("id").range(from, from + 999);
+    const { data, error } = await db().from("product_variants").select("id, label, sku, pack_of, products(name)").order("id").range(from, from + 999);
     if (error) throw error;
     const page = (data ?? []) as unknown as Row[];
     rows.push(...page);
@@ -160,6 +166,7 @@ export async function stockCatalogue(): Promise<Candidate[]> {
       product: p?.name ?? "",
       option: !r.label || r.label === "Default" ? "" : r.label,
       sku: r.sku || null,
+      pack: r.pack_of ?? 1,
     };
   });
 }
