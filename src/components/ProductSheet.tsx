@@ -17,6 +17,7 @@ import ProductWheel, { type WheelSteer } from "./ProductWheel";
 import "./product-sheet.css";
 import { track } from "@/lib/track";
 import { RatingLine, ReviewsPanel } from "./ProductReviews";
+import { DetailsPanel } from "./ProductDetails";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { buzz } from "@/lib/buzz";
 
@@ -61,6 +62,7 @@ export default function ProductSheet({
   const [added, setAdded] = useState("");
   // the product whose reviews are open over the card (phones)
   const [reviewsOf, setReviewsOf] = useState("");
+  const [detailsOf, setDetailsOf] = useState("");
   const card = useRef<HTMLElement>(null);
   const steerRef = useRef<WheelSteer | null>(null);
   const at = useRef({ i: start, n: products.length });
@@ -431,7 +433,13 @@ export default function ProductSheet({
             <h2 id="ps-title" className="ps-title">
               <Branded name={p.name} />
             </h2>
-            <RatingLine slug={p.slug} onOpen={() => setReviewsOf(p.slug)} />
+            <div className="ps-links">
+              <RatingLine slug={p.slug} onOpen={() => setReviewsOf(p.slug)} />
+              {/* what it is, what's in a set, specifications, videos: the same as the desktop page */}
+              <button type="button" className="ps-details" onClick={() => setDetailsOf(p.slug)}>
+                Details
+              </button>
+            </div>
             {showOptions && (
               <div className="ps-opts" role="radiogroup" aria-label="Options" data-swatches={hasOptionPhotos(p.slug) || undefined}>
                 {p.variants.map((o, k) => (
@@ -468,6 +476,7 @@ export default function ProductSheet({
           </div>
 
           {reviewsOf === p.slug && <ReviewsPanel slug={p.slug} name={p.name} onClose={() => setReviewsOf("")} />}
+          {detailsOf === p.slug && <DetailsPanel slug={p.slug} name={p.name} option={variant.label} onClose={() => setDetailsOf("")} />}
           <footer className="ps-bar">
             <div className="ps-bar-what">
               <span className="ps-bar-label">{variant.label}</span>

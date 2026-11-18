@@ -854,3 +854,27 @@ html #site[data-scope] .ps .pa-initial {
   font-weight: 500;
   opacity: 0.75;
 }
+
+/* the rating and Details, side by side under the name */
+.ps-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ps-details {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+/* the details panel scrolls like the reviews one */
+.pd-sheet .pdk-about:first-of-type {
+  margin-top: 4px;
+}
