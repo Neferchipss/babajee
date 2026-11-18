@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { actionsFor, eventText, STEPS, type OrderAction, type OrderStatus } from "@/lib/order-status";
 import { gstLabel } from "@/lib/gst";
 import { trackLink } from "@/lib/tracking";
-import { addOrderComment, cameBack, deliveryFailed, FAIL_REASONS, sendAgain, editOrder, errText, getOrder, getSettings, paymentsFor, refundOrder, refundsOf, resolveRequest, setOrderNotes, setStep, settleBalance, setBuyerGstin, updateOrder, undoRefund, type Order, type OrderRequest, type Payment, type Refund } from "@/lib/orders-db";
+import { addOrderComment, contactsFor, type OrderContact, cameBack, deliveryFailed, FAIL_REASONS, sendAgain, editOrder, errText, getOrder, getSettings, paymentsFor, refundOrder, refundsOf, resolveRequest, setOrderNotes, setStep, settleBalance, setBuyerGstin, updateOrder, undoRefund, type Order, type OrderRequest, type Payment, type Refund } from "@/lib/orders-db";
 import { Confirm } from "@/components/admin/order/Confirm";
 import { Roadmap, STEP_DO, STEP_LABEL, StepForm } from "@/components/admin/order/Steps";
 import { OrderProfit } from "@/components/admin/order/OrderProfit";
@@ -56,6 +56,7 @@ function OrderView() {
   const [paying, setPaying] = useState(false);
   const [logging, setLogging] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [contacts, setContacts] = useState<OrderContact[]>([]);
   const [methods, setMethods] = useState<string[]>(["UPI", "Bank transfer", "Cash"]);
   useEffect(() => {
     getSettings()
@@ -68,6 +69,10 @@ function OrderView() {
         .then((r) => {
           setO(r);
           if (r) paymentsFor([r.id]).then(setPayments).catch(() => setPayments([]));
+          if (r)
+            contactsFor([r.id])
+              .then((m) => setContacts(m.get(r.id) ?? []))
+              .catch(() => setContacts([]));
           setNotes(r?.notes ?? "");
           // from the list's "Ship…": straight to the courier form
           const u = new URLSearchParams(window.location.search);
@@ -185,10 +190,15 @@ function OrderView() {
   }
   const phone = o.contact_phone.replace(/\D/g, "");
   const wa = phone.length === 10 ? `91${phone}` : phone.length === 12 && phone.startsWith("91") ? phone : "";
-  // status changes already sit on the road; activity keeps everything else
-  const activity = (o.order_events ?? []).filter(
-    (e) => ["comment", "edited", "refund", "return", "balance", "refund_undone", "request", "delivery_failed", "sent_again"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note),
-  );
+  // status changes already sit on the road; activity keeps everything else,
+  // with the calls and messages logged against the order (newest first)
+  const CH: Record<string, string> = { call: "Call", whatsapp: "WhatsApp", email: "Email" };
+  const timeline = [
+    ...(o.order_events ?? [])
+      .filter((e) => ["comment", "edited", "refund", "return", "balance", "refund_undone", "request", "delivery_failed", "sent_again"].includes(e.status) || ((e.status === "cancelled" || e.status === "refunded") && e.note))
+      .map((e) => ({ id: e.id, kind: e.status, text: eventText(e.status, e.note), at: e.created_at })),
+    ...contacts.map((c) => ({ id: c.id, kind: "contact", text: `${CH[c.channel] ?? "Contact"}: ${c.body}${c.status === "open" ? " · follow-up open" : ""}`, at: c.created_at })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
 
   const next =
     o.status === "pending"
@@ -275,7 +285,8 @@ function OrderView() {
             <span className="ov-gap" />
             {o.paid_total != null && o.status !== "cancelled" && (
               <Link href={`/admin/orders/print?ids=${o.id}&doc=invoice`} className="adm-btn" target="_blank">
-                {o.invoice_number ? `Invoice ${o.invoice_number}` : "Invoice"}
+                {/* issued when the order was paid (0051); an older order gets its number on first print */}
+                {o.invoice_number ? `Invoice ${o.invoice_number}` : "Issue invoice"}
               </Link>
             )}
             {o.invoice_number && (o.order_refunds ?? []).length > 0 && (
@@ -474,26 +485,59 @@ function OrderView() {
 
           <OrderProfit order={o} />
 
+          {/* everything said about the order in one place: its note, staff
+              comments, calls and messages logged, and what changed */}
           <section className="adm-card">
-            <h2>Comments and changes</h2>
+            <h2>Notes and activity</h2>
+            <label className="adm-label">
+              <span>
+                Order note <span className="adm-muted">· the customer&apos;s note at checkout, or yours</span>
+              </span>
+              <textarea className="adm-input" value={notes} onChange={(e) => setNotes(e.target.value)} aria-label="Order note" rows={2} />
+            </label>
+            {notes !== o.notes && (
+              <div className="adm-actions" style={{ marginTop: 8 }}>
+                <button type="button" className="adm-btn" onClick={() => setNotes(o.notes)}>
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  className="adm-btn pri"
+                  disabled={busy}
+                  onClick={() =>
+                    setOrderNotes(o.id, notes)
+                      .then(load)
+                      .then(() => toast("Note saved"))
+                      .catch((e) => (setErr(errText(e)), toastError(e)))
+                  }
+                >
+                  Save note
+                </button>
+              </div>
+            )}
             <form onSubmit={postComment} className="ov-comment">
-              <input className="adm-input" placeholder="Leave a comment for staff (the customer never sees it)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" />
+              <input className="adm-input" placeholder="Comment for staff (the customer never sees it)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" />
               <button className="adm-btn" disabled={busy || !comment.trim()}>
                 Post
               </button>
+              {o.profile_id && (
+                <button type="button" className="adm-btn" onClick={() => setLogging(true)}>
+                  Log a call or message
+                </button>
+              )}
             </form>
-            {activity.length > 0 ? (
+            {timeline.length > 0 ? (
               <ol className="adm-tl">
-                {activity.map((e) => (
-                  <li key={e.id} className={e.status === "comment" ? "comment" : ""}>
-                    <span>{eventText(e.status, e.note)}</span>
-                    <time dateTime={e.created_at}>{when(e.created_at)}</time>
+                {timeline.map((e) => (
+                  <li key={e.id} className={e.kind === "comment" || e.kind === "contact" ? "comment" : ""}>
+                    <span>{e.text}</span>
+                    <time dateTime={e.at}>{when(e.at)}</time>
                   </li>
                 ))}
               </ol>
             ) : (
               <p className="adm-muted adm-small" style={{ margin: "12px 0 0" }}>
-                Nothing yet. Edits, refunds and comments show here; status changes are on the road above.
+                Nothing yet. Comments, calls and messages, edits and refunds show here; status changes are on the road above.
               </p>
             )}
           </section>
@@ -567,27 +611,6 @@ function OrderView() {
               </>
             )}
           </section>
-
-          <section className="adm-card">
-            <h2>Notes</h2>
-            <textarea className="adm-input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Customer's note, or yours" aria-label="Order notes" />
-            {notes !== o.notes && (
-              <button
-                type="button"
-                className="adm-btn"
-                style={{ marginTop: 8 }}
-                disabled={busy}
-                onClick={() =>
-                  setOrderNotes(o.id, notes)
-                    .then(load)
-                    .then(() => toast("Notes saved"))
-                    .catch((e) => (setErr(errText(e)), toastError(e)))
-                }
-              >
-                Save notes
-              </button>
-            )}
-          </section>
         </div>
       </div>
 
@@ -617,6 +640,7 @@ function OrderView() {
             onDone={() => {
               setLogging(false);
               toast(`Logged on ${o.order_number}`);
+              void load();
             }}
           />
         )}

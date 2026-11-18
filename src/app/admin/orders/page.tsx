@@ -73,7 +73,8 @@ function Orders() {
     window.addEventListener("adm-nav", go);
     return () => window.removeEventListener("adm-nav", go);
   }, []);
-  const [q, setQ] = useState("");
+  // ?q= from a link (a message's order number) starts the search
+  const [q, setQ] = useState(() => params.get("q") ?? "");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);

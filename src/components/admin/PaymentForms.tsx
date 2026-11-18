@@ -90,6 +90,8 @@ export function MarkPaidForm({ order: o, methods, onDone, onCancel }: { order: O
 
 // quick outcomes for a payment call; "Call back" also opens a follow-up on Home
 const OUTCOMES = ["No answer", "Will pay today", "Will pay later", "Call back", "Wrong number", "Wants to cancel"];
+// after payment: delivery, a question, a complaint
+const AFTER = ["No answer", "Call back", "Asked about delivery", "Address changed", "Complaint", "Sorted"];
 
 export function LogContactForm({ order: o, userId, onDone, onCancel }: { order: Order; userId: string | undefined; onDone: () => void; onCancel: () => void }) {
   const [channel, setChannel] = useState<SupportChannel>("call");
@@ -99,6 +101,8 @@ export function LogContactForm({ order: o, userId, onDone, onCancel }: { order: 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const body = [outcome, note.trim()].filter(Boolean).join(": ");
+  const unpaid = o.status === "pending";
+  const outcomes = unpaid ? OUTCOMES : AFTER;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -108,7 +112,7 @@ export function LogContactForm({ order: o, userId, onDone, onCancel }: { order: 
     if (!body) return setErr("Pick what happened, or write a note.");
     setBusy(true);
     try {
-      await addCustomerNote(o.profile_id, userId, `Payment for ${o.order_number}: ${body}`, { kind: "contact", channel, order_id: o.id, open: follow });
+      await addCustomerNote(o.profile_id, userId, `${unpaid ? "Payment for " : ""}${o.order_number}: ${body}`, { kind: "contact", channel, order_id: o.id, open: follow });
       onDone();
     } catch (x) {
       setErr(errText(x));
@@ -141,7 +145,7 @@ export function LogContactForm({ order: o, userId, onDone, onCancel }: { order: 
       <fieldset className="adm-fieldset">
         <legend>What happened</legend>
         <div className="adm-chips">
-          {OUTCOMES.map((x) => (
+          {outcomes.map((x) => (
             <button
               key={x}
               type="button"

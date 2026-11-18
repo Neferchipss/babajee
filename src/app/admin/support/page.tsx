@@ -30,12 +30,12 @@ export default function SupportPage() {
     void load();
   }, []);
 
-  async function mark(m: Msg, status: Msg["status"], note = m.note) {
+  async function mark(m: Msg, status: Msg["status"], note = m.note, said?: string) {
     try {
       const { error } = await getSupabase()!.from("support_messages").update({ status, note }).eq("id", m.id);
       if (error) throw error;
       setRows((r) => (r ?? []).map((x) => (x.id === m.id ? { ...x, status, note } : x)));
-      toast(status === "open" ? "Back to open" : status === "replied" ? "Marked replied" : "Closed");
+      toast(said ?? (status === "open" ? "Back to open" : status === "replied" ? "Marked replied" : "Closed"));
     } catch (e) {
       toastError(errText(e));
     }
@@ -74,7 +74,7 @@ export default function SupportPage() {
               <div className="sup-head">
                 <span>
                   <b>{m.name}</b> <span className="adm-pill">{TOPIC[m.topic] ?? m.topic}</span>
-                  {m.order_number && <span className="adm-muted adm-small"> · order {m.order_number}</span>}
+                  {m.order_number && <span className="adm-muted adm-small"> · order <Link href={`/admin/orders?q=${encodeURIComponent(m.order_number)}`}>{m.order_number}</Link></span>}
                 </span>
                 <span className="adm-muted adm-small">{when(m.created_at)}</span>
               </div>
@@ -89,6 +89,19 @@ export default function SupportPage() {
                   </>
                 )}
               </div>
+              {/* staff only: what was said back, what's pending */}
+              <input
+                key={`${m.id}-${m.note}`}
+                className="adm-input sup-note"
+                defaultValue={m.note}
+                maxLength={500}
+                placeholder="Staff note (only staff see it): what you replied, what's pending"
+                aria-label="Staff note"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== m.note) void mark(m, m.status, v, "Note saved");
+                }}
+              />
               <div className="adm-actions">
                 <a className="adm-btn" href={`mailto:${m.email}?subject=${encodeURIComponent("Your message to Babajee")}`}>
                   Reply by email
