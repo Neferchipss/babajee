@@ -283,7 +283,7 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <span className="adm-muted adm-small">For products that don&apos;t have their own bracket. Set each product&apos;s bracket on the product, under Cost and profit.</span>
+              <span className="adm-muted adm-small">For products that don&apos;t have their own bracket. Set each product&apos;s bracket on the product page (Tax card), or for a whole type in Finance › GST &amp; HSN.</span>
             </label>
   
             <label className="adm-label">
@@ -335,7 +335,7 @@ export default function SettingsPage() {
               </button>
               <span className="adm-muted adm-small">
                 {cess
-                  ? "Products with a cess rate (set on each product, under Price) carry it on top of GST: on the bill, the invoice and the GST returns. Orders already placed keep what they were charged."
+                  ? "Products with a cess rate (set on each product page, Tax card) carry it on top of GST: on the bill, the invoice and the GST returns. Orders already placed keep what they were charged."
                   : "Off: no cess is charged anywhere, whatever is set on a product. Turn it on only if your products attract a compensation cess (ask your CA)."}
               </span>
             </div>

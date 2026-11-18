@@ -8,7 +8,7 @@ import CustomerActivity from "@/components/admin/CustomerActivity";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { useAuth } from "@/lib/auth";
-import { customerAccount, customerDetail, customerSaved, errText, listCustomers, setCustomerTags, updateCustomer, type Customer, type CustomerAccount, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
+import { customerAccount, customerDetail, customerSaved, errText, getCustomer, setCustomerTags, updateCustomer, type Customer, type CustomerAccount, type CustomerAddress, type CustomerNote, type CustomerSaved, type Order } from "@/lib/orders-db";
 import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
 import SupportHistory from "@/components/admin/SupportHistory";
 import { ageOf, dobLabel } from "@/lib/age";
@@ -36,9 +36,9 @@ function CustomerView() {
 
   const load = useCallback(
     () =>
-      Promise.all([listCustomers(), customerDetail(id)])
-        .then(([all, detail]) => {
-          setC(all.find((x) => x.id === id) ?? null);
+      Promise.all([getCustomer(id), customerDetail(id)])
+        .then(([one, detail]) => {
+          setC(one);
           setD(detail);
         })
         .catch((e) => setErr(errText(e))),

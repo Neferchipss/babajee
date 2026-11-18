@@ -41,7 +41,8 @@ function Stock() {
   const [shopLow, setShopLow] = useState(3);
   const [shopRate, setShopRate] = useState(18);
   const [err, setErr] = useState("");
-  const [filter, setFilter] = useState<Filter>(params.get("product") ? "all" : "counted");
+  const asked = params.get("show") as Filter | null;
+  const [filter, setFilter] = useState<Filter>(params.get("product") ? "all" : asked && ["counted", "low", "out", "uncounted", "all"].includes(asked) ? asked : "counted");
   const [cat, setCat] = useState("");
   const [q, setQ] = useState("");
   const [busyId, setBusyId] = useState("");

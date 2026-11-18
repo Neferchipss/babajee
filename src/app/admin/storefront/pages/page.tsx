@@ -78,7 +78,7 @@ function Writing({ kind }: { kind: "page" | "post" }) {
               <button type="button" className={p.id === open ? "is-on" : ""} onClick={() => setOpen(p.id)}>
                 <span>{p.title}</span>
                 <small className="adm-muted">
-                  /{kind === "post" ? "blog" : "pages"}/{p.slug} · {p.is_visible ? "live" : "draft"}
+                  /{kind === "post" ? "blog" : "pages"}/view/?slug={p.slug} · {p.is_visible ? "live" : "draft"}
                 </small>
               </button>
             </li>
@@ -352,7 +352,9 @@ function Seo() {
 
 function SeoRow({ path, name, have }: { path: string; name: string; have: PageSeo }) {
   const [d, setD] = useState(have);
-  const dirty = JSON.stringify(d) !== JSON.stringify(have);
+  // what is saved now: after a save, the button settles until the next change
+  const [saved, setSaved] = useState(have);
+  const dirty = JSON.stringify(d) !== JSON.stringify(saved);
   return (
     <article className="adm-card sfm-item">
       <b>
@@ -375,7 +377,7 @@ function SeoRow({ path, name, have }: { path: string; name: string; have: PageSe
         disabled={!dirty}
         onClick={() =>
           saveRow("page_seo", d).then(
-            () => toast("Saved: it takes effect with the shop's next update"),
+            () => (setSaved(d), toast("Saved: it takes effect with the shop's next update")),
             (e) => toastError(errText(e)),
           )
         }

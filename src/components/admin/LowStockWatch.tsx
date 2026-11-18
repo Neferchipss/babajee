@@ -55,7 +55,7 @@ export default function LowStockWatch({ onCount }: { onCount: (n: number) => voi
           const n = new Notification(`Babajee: ${title}`, { body, tag: "bj-low-stock" });
           n.onclick = () => {
             window.focus();
-            router.push("/admin/products?need=low");
+            router.push("/admin/inventory/stock?show=low");
           };
         }
       } catch {}

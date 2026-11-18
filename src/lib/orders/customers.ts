@@ -61,6 +61,16 @@ export async function listCustomers(): Promise<Customer[]> {
   if (error) throw error;
   return ((data ?? []) as Customer[]).map((c) => ({ ...c, orders: toNumber(c.orders), spent: toNumber(c.spent) }));
 }
+// One customer's row (0080); before 0080 is applied, picked out of the full list.
+export async function getCustomer(id: string): Promise<Customer | null> {
+  const { data, error } = await (await db()).rpc("admin_customer", { p_id: id });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") return (await listCustomers()).find((x) => x.id === id) ?? null;
+    throw error;
+  }
+  const c = ((data ?? []) as Customer[])[0];
+  return c ? { ...c, orders: toNumber(c.orders), spent: toNumber(c.spent) } : null;
+}
 // a private note, or a logged contact with the customer that can need a follow-up (0044)
 export type SupportChannel = "" | "whatsapp" | "call" | "email" | "in_person" | "instagram" | "other";
 export type CustomerNote = {

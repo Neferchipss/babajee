@@ -55,7 +55,7 @@ function NewProduct() {
         }
       }
       await updateProduct(id, { status: "draft" });
-      const p = Math.round(Number(price) || 0);
+      const p = Math.round((Number(price) || 0) * 100) / 100;
       if (p > 0) {
         const made = await getProduct(id);
         const v = made?.variants[0];
@@ -96,7 +96,7 @@ function NewProduct() {
         </label>
         <label className="adm-label">
           Selling price, ₹ (optional)
-          <input className="adm-input" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder="Can be added later" />
+          <input className="adm-input" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1"))} placeholder="Can be added later" />
         </label>
         <div className="adm-actions">
           <button className="adm-btn pri" disabled={saving || !name.trim() || !categoryId}>

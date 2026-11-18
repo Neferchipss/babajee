@@ -116,7 +116,7 @@ export default function NewOrderPage() {
   const sub = r2(live.reduce((n, l) => n + priceOf(l) * l.qty, 0));
   const autoShip = settings ? (settings.free_shipping_over != null && sub >= settings.free_shipping_over ? 0 : settings.shipping) : 0;
   const shipping = ship == null ? autoShip : Number(ship) || 0;
-  const total = settings ? bill(live.map((l) => ({ gross: priceOf(l) * l.qty, rate: l.gst ?? settings.gst_rate })), shipping, settings.gst_inclusive) : null;
+  const total = settings ? bill(live.map((l) => ({ gross: priceOf(l) * l.qty, rate: l.gst ?? settings.gst_rate, cess: settings.cess_enabled ? l.cess : 0 })), shipping, settings.gst_inclusive) : null;
 
   const problem = !live.length
     ? "Add at least one item."
@@ -235,6 +235,12 @@ export default function NewOrderPage() {
                 <>
                   <span>{gstLabel(!!settings?.gst_inclusive, total.rate)}</span>
                   <span>{money(total.tax)}</span>
+                </>
+              )}
+              {total && total.cess > 0 && (
+                <>
+                  <span>{settings?.gst_inclusive ? "Includes cess" : "Cess"}</span>
+                  <span>{money(total.cess)}</span>
                 </>
               )}
               <span className="tot">Total</span>

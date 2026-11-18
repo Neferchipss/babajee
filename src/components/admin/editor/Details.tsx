@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useState } from "react";
+import { absUrl } from "@/lib/site";
 import { autoDescription, autoTitle, DESC_MAX, fullTitle, TITLE_MAX } from "@/lib/seo";
 import { suggestSku } from "@/lib/sku";
 import { type AdminProduct, type AdminVariant, type Spec } from "@/lib/admin-data";
@@ -132,7 +133,7 @@ export function SeoListing({
           <i aria-hidden="true">B</i>
           <span>
             Babajee
-            <small>neferchipss.github.io › {slugPath}</small>
+            <small>{absUrl("/").replace(/^https?:\/\//, "").replace(/\/$/, "")} › {slugPath}</small>
           </span>
         </span>
         <b className="ape-serp-title">{shownT.length > TITLE_MAX + 11 ? `${shownT.slice(0, TITLE_MAX + 10)}…` : shownT}</b>

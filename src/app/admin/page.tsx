@@ -18,7 +18,7 @@ export default function AdminHomeByRole() {
 
 function StaffHome({ role }: { role: StaffRole | null }) {
   const links: [string, string, string][] = [
-    ...(can(role, "catalog") ? ([["/admin/products", "Products", "Names, photos, descriptions, options, tags"], ["/admin/products/collections", "Collections", "Hand-picked or automatic shelves"], ["/admin/products/reviews", "Reviews", "Approve and answer"]] as [string, string, string][]) : []),
+    ...(can(role, "catalog") ? ([["/admin/products", "Products", "Names, photos, descriptions, options, tags"], ["/admin/products/collections", "Collections", "Hand-picked or automatic shelves"], ["/admin/products/reviews", "Reviews", "Approve or hide"]] as [string, string, string][]) : []),
     ...(can(role, "look") ? ([["/admin/storefront", "Storefront", "Banners, homepage, menus and the shop's design"]] as [string, string, string][]) : []),
     ...(can(role, "content") ? ([["/admin/storefront/pages", "Pages and blog", "About, policies, posts, FAQs and search listings"]] as [string, string, string][]) : []),
   ];
@@ -75,9 +75,9 @@ function AdminHome() {
         [counts.to_pack, "paid orders to pack", "/admin/orders?tab=paid"],
         [counts.to_ship, "packed orders to ship", "/admin/orders?tab=packed"],
         [counts.in_transit, "orders on their way", "/admin/orders?tab=shipped"],
-        [counts.out_of_stock, "tracked options out of stock", "/admin/products?need=out"],
-        [counts.low_stock, "tracked options running low", "/admin/products?need=low"],
-        [counts.unpriced, "options with no price, which can't be ordered", "/admin/products"],
+        [counts.out_of_stock, "tracked options out of stock", "/admin/inventory/stock?show=out"],
+        [counts.low_stock, "tracked options running low", "/admin/inventory/stock?show=low"],
+        [counts.unpriced, "options with no price, which can't be ordered", "/admin/products?need=price"],
       ]
     : [];
 

@@ -85,7 +85,7 @@ export default function ShopHome({ design, products, categories }: { design: Exc
           case "collection": {
             const c = cols.get(s.ref);
             if (!c) return null;
-            return <Row key={s.id} title={s.title || c.name} sub={c.tagline} items={pick(c.slugs, s.item_count)} href={`/shop/collection/${s.ref}/`} />;
+            return <Row key={s.id} title={s.title || c.name} sub={c.tagline} items={pick(c.slugs, s.item_count)} href={`/shop/collections?c=${encodeURIComponent(s.ref)}`} />;
           }
           case "category": {
             const cat = categories.find((c) => c.slug === s.ref);

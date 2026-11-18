@@ -166,12 +166,12 @@ export default function AnalyticsPage() {
             <section className="adm-card">
               <h2>Sales breakdown</h2>
               <div className="adm-kv anx-kv">
-                <span>Gross sales (incl. GST)</span>
+                <span>Gross sales (at shelf price)</span>
                 <span>{money(a.gross)}</span>
                 <span>Returns</span>
                 <span>{a.returns ? `−${money(a.returns)}` : money(0)}</span>
                 <span>
-                  <strong>Net sales (excl. GST)</strong>
+                  <strong>Net sales (after returns)</strong>
                 </span>
                 <span>
                   <strong>{money(net(a))}</strong>

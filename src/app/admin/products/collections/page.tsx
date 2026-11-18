@@ -266,7 +266,7 @@ function Editor({ c, products, onSave, onDelete, auto, cats, tags, onRules }: Ed
         />
       </label>
       <p className="adm-muted adm-small" style={{ margin: 0 }}>
-        On the shop at /shop/collection/{c.slug}
+        On the shop at /shop/collections?c={c.slug}
         {c.is_visible && !inIt.length ? " · add products, or it shows an empty shelf" : ""}
       </p>
 
