@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { errText } from "@/lib/orders-db";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
 import ProductTable, { type NewRow } from "@/components/admin/ProductTable";
 import { toast, toastError } from "@/components/admin/Toaster";
 import ProductEditor, { EditableName, EditablePrice, mainPrice, needsOf, needsWork, setMainPrice } from "@/components/admin/ProductEditor";
 import "@/components/admin/admin-products.css";
-import { adminApi } from "@/lib/admin-api";
+import { adminApi, isAdminDemo } from "@/lib/admin-api";
 import { Bin, Dialog } from "@/components/admin/ui";
 import { ProductOrdered, type AdminCategory, type AdminProduct } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/currency";
@@ -64,6 +64,7 @@ export default function ProductsAdminPage() {
 function ProductsAdmin() {
   const params = useSearchParams();
   const api = adminApi();
+  const router = useRouter();
   // deleting a product: owners and admins only (the database refuses others)
   const mayDelete = can(useStaff().me?.role ?? null, "delete");
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -184,12 +185,10 @@ function ProductsAdmin() {
     let slug = slugify(name);
     for (let n = 2; rows.some((r) => r.slug === slug); n++) slug = `${slugify(name)}-${n}`;
     const id = await api.createProduct({ category_id: categoryId, slug, name, description: "" });
-    const fresh = await api.getProduct(id);
-    if (fresh) setRows((rs) => [fresh, ...rs]);
-    setNeed("all");
-    setQuery("");
-    setOpenId(id);
-    toast(`${name} added`);
+    // every new product starts as a draft, and opens on its full page
+    await api.updateProduct(id, { status: "draft" });
+    toast(`${name} added as a draft`);
+    router.push(`/admin/products/edit?id=${id}${isAdminDemo() ? "&demo=1" : ""}`);
   }
 
   // a product made on the sheet's empty row, with what was typed into it

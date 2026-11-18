@@ -21,7 +21,8 @@ export function toast(text: string, opts: { tone?: Tone; link?: { label: string;
 
 // a failure as a notice, with the database's own sentence when it has one
 export function toastError(e: unknown) {
-  const msg = e && typeof e === "object" && "message" in e && typeof e.message === "string" ? e.message : "That didn't go through. Try again.";
+  // a message as it stands, or an error's own message
+  const msg = typeof e === "string" && e ? e : e && typeof e === "object" && "message" in e && typeof e.message === "string" ? e.message : "That didn't go through. Try again.";
   toast(msg, { tone: "bad" });
 }
 

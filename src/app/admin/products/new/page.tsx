@@ -62,7 +62,7 @@ function NewProduct() {
         if (v) await upsertVariant(id, { id: v.id, price: p });
       }
       toast(`${name.trim()} added as a draft`);
-      router.push(`/admin/products?product=${id}`);
+      router.push(`/admin/products/edit?id=${id}`);
     } catch (x) {
       setErr(errText(x));
       setSaving(false);
@@ -76,7 +76,7 @@ function NewProduct() {
       </Link>
       <header className="adm-pagehead">
         <h1>Add a product</h1>
-        <p>Name it and pick its category. It starts as a draft: add its photos and price in the next step, then set it to On the shop.</p>
+        <p>Name it and pick its type. It starts as a draft and opens on its own page, where you add photos, prices and the rest, then make it Active.</p>
       </header>
       {err && <p className="adm-err">{err}</p>}
       <form onSubmit={submit} className="adm-card" style={{ display: "grid", gap: 14 }}>
@@ -85,7 +85,7 @@ function NewProduct() {
           <input className="adm-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="RAW Classic King Size Slim" autoFocus required />
         </label>
         <label className="adm-label">
-          Category
+          Type
           <select className="adm-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
