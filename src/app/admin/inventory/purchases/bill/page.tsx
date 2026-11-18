@@ -54,7 +54,7 @@ function Bill() {
   }
 
   const back = (
-    <Link href="/admin/products/stock-in" className="adm-back adm-only-narrow">
+    <Link href="/admin/inventory/purchases" className="adm-back adm-only-narrow">
       ← Purchases
     </Link>
   );
@@ -67,7 +67,7 @@ function Bill() {
           <h1>Bill not found</h1>
         </header>
         {err && <p className="adm-err">{err}</p>}
-        <Link href="/admin/products/stock-in" className="adm-btn">
+        <Link href="/admin/inventory/purchases" className="adm-btn">
           Back to Purchases
         </Link>
       </div>

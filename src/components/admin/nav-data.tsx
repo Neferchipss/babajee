@@ -41,21 +41,27 @@ const ALL_SECTIONS: Section[] = [
     ],
   },
   {
-    label: "Products",
+    label: "Catalogue",
     href: "/admin/products",
     icon: I("M10 2.8 16.5 6v8L10 17.2 3.5 14V6zM3.5 6 10 9.2 16.5 6M10 9.2v8"),
     pages: [
-      { label: "All products", href: "/admin/products" },
+      { label: "Products", href: "/admin/products" },
       { label: "Add a product", href: "/admin/products/new" },
       { label: "Import from a sheet", href: "/admin/products/import" },
       { label: "Drafts", href: "/admin/products?need=hidden" },
       { label: "Archived", href: "/admin/products?need=archived" },
-      { label: "Reorder needed", href: "/admin/products?need=low", count: "low_stock", warn: true },
-      { label: "Out of stock", href: "/admin/products?need=out", count: "out_of_stock", warn: true },
-      { label: "Purchases", href: "/admin/products/stock-in" },
-      { label: "GST & HSN", href: "/admin/products/tax" },
       { label: "Collections", href: "/admin/products/collections" },
       { label: "Reviews", href: "/admin/products/reviews" },
+    ],
+  },
+  {
+    label: "Inventory",
+    href: "/admin/inventory/purchases",
+    icon: I("M3 6.5 10 3l7 3.5v7L10 17l-7-3.5zM3 6.5l7 3.5 7-3.5M10 10v7M6.5 4.8l7 3.5"),
+    pages: [
+      { label: "Purchase bills", href: "/admin/inventory/purchases" },
+      { label: "Low stock", href: "/admin/products?need=low", count: "low_stock", warn: true },
+      { label: "Out of stock", href: "/admin/products?need=out", count: "out_of_stock", warn: true },
     ],
   },
   {
@@ -66,6 +72,14 @@ const ALL_SECTIONS: Section[] = [
       { label: "All customers", href: "/admin/customers" },
       { label: "Messages", href: "/admin/support" },
       { label: "Sign-ins", href: "/admin/customers/sign-ins" },
+    ],
+  },
+  {
+    label: "Finance",
+    href: "/admin/finance/gst",
+    icon: I("M4 3.5h12v13H4zM7 7h6M7 10h6M7 13h3"),
+    pages: [
+      { label: "GST & HSN", href: "/admin/finance/gst" },
     ],
   },
   {
@@ -128,9 +142,13 @@ export function useAdminNav() {
     const want = new URLSearchParams(q ?? "");
     return KEYS.every((k) => (want.get(k) ?? "") === (params.get(k) ?? "") || (!want.get(k) && params.get(k) === "all"));
   };
-  const sectionOn = (s: Section) => (s.href === "/admin" ? path === "/admin" : path === s.href || path.startsWith(`${s.href}/`) || !!s.pages?.some((p) => p.href.split("?")[0] === path));
+  // the section open now: the one with this exact page (filter included);
+  // otherwise the one whose address this page sits under
+  const loose = (s: Section) => (s.href === "/admin" ? path === "/admin" : path === s.href.split("?")[0] || path.startsWith(`${s.href.split("?")[0]}/`) || !!s.pages?.some((p) => p.href.split("?")[0] === path));
+  const current = sections.find((s) => s.pages?.some((p) => pageOn(p.href))) ?? sections.find(loose);
+  const sectionOn = (s: Section) => s.href === current?.href;
   const n = (p: Page) => (p.count && counts ? (counts[p.count as keyof HomeCounts] ?? 0) : 0);
-  const sectionCount = (s: Section) => (s.href === "/admin/orders" && counts ? counts.unpaid + counts.to_pack + counts.to_ship : s.href === "/admin/products" ? low : 0);
+  const sectionCount = (s: Section) => (s.href === "/admin/orders" && counts ? counts.unpaid + counts.to_pack + counts.to_ship : s.href === "/admin/inventory/purchases" ? low : 0);
   // same page, another filter: let the page switch without reloading
   const tap = (href: string) => () => {
     const [p, q] = href.split("?");

@@ -16,6 +16,7 @@ import { ProductOrdered, type AdminCategory, type AdminProduct } from "@/lib/adm
 import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
+import { can, useStaff } from "@/lib/staff";
 
 type Need = "all" | "photo" | "price" | "hidden" | "archived" | "low" | "out";
 
@@ -64,6 +65,8 @@ export default function ProductsAdminPage() {
 function ProductsAdmin() {
   const params = useSearchParams();
   const api = adminApi();
+  // deleting a product: owners and admins only (the database refuses others)
+  const mayDelete = can(useStaff().me?.role ?? null, "delete");
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [rows, setRows] = useState<AdminProduct[]>([]);
   // units each product has sold, all time (admin_units_sold, 0030)
@@ -388,9 +391,11 @@ function ProductsAdmin() {
           <button type="button" className="ap-chip" disabled={!selected.size || bulkBusy} onClick={() => bulk(false)}>
             Hide
           </button>
-          <button type="button" className="ap-chip ap-chip-bad" disabled={!selected.size || bulkBusy} onClick={() => setDeleting(rows.filter((r) => selected.has(r.id)))}>
-            Delete
-          </button>
+          {mayDelete && (
+            <button type="button" className="ap-chip ap-chip-bad" disabled={!selected.size || bulkBusy} onClick={() => setDeleting(rows.filter((r) => selected.has(r.id)))}>
+              Delete
+            </button>
+          )}
           <button type="button" className="ap-link" onClick={() => setSelected(new Set(shown.map((p) => p.id)))}>
             Select all {shown.length}
           </button>
@@ -416,7 +421,7 @@ function ProductsAdmin() {
             }
             onOpen={(id) => setOpenId(id === openId ? null : id)}
             onCreate={tableAdd}
-            onDelete={(p) => setDeleting([p])}
+            onDelete={mayDelete ? (p) => setDeleting([p]) : undefined}
             category={cat}
             sold={sold}
             onSave={async (id, work, msg) => {
@@ -447,7 +452,7 @@ function ProductsAdmin() {
                 selecting={selecting}
                 checked={selected.has(p.id)}
                 api={api}
-                onDelete={() => setDeleting([p])}
+                onDelete={mayDelete ? () => setDeleting([p]) : undefined}
                 onSave={async (work) => {
                   try {
                     await work();
@@ -494,7 +499,7 @@ function ProductsAdmin() {
             api={api}
             onChanged={replace}
             onClose={() => setOpenId(null)}
-            onDelete={() => setDeleting([open])}
+            onDelete={mayDelete ? () => setDeleting([open]) : undefined}
             nav={{
               at: at + 1,
               of: shown.length,
@@ -555,7 +560,7 @@ function Card({
   sold: number;
   open: boolean;
   selecting: boolean;
-  onDelete: () => void;
+  onDelete?: () => void;
   checked: boolean;
   onClick: () => void;
   onToggleVisible: () => Promise<void>;
@@ -593,7 +598,7 @@ function Card({
           </svg>
         </button>
       )}
-      {!selecting && (
+      {!selecting && onDelete && (
         <button type="button" className="apc-bin" aria-label={`Delete ${p.name}`} title="Delete" onClick={onDelete}>
           <Bin />
         </button>

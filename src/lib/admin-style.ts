@@ -1,6 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { getSupabase } from "./supabase";
 
 // The admin's design, picked by each person (Settings > Admin design), kept
 // in this browser. Each is its own layout (frame, menu, page style), drawn
@@ -31,7 +32,7 @@ export const ADMIN_STYLES: { id: AdminStyle; name: string; based: string; about:
   {
     id: "studio",
     name: "Studio",
-    based: "My pick: for people who work in it all day",
+    based: "For people who work in it all day",
     about: "A slim icon rail, a panel with the section's pages, a breadcrumb bar, and a command search (Ctrl K) to jump to any page or find any order, product or customer by typing. Compact, fast, keyboard-first.",
     points: ["Ctrl K: jump anywhere by typing", "Icon rail + pages panel (folds away for more room)", "Breadcrumbs: always know where you are", "Compact tables, more on screen"],
   },
@@ -65,9 +66,43 @@ export function useAdminStyle(): AdminStyle {
   return useSyncExternalStore(subscribe, read, () => "current");
 }
 
-export function setAdminStyle(s: AdminStyle) {
+function keep(s: AdminStyle) {
   try {
     localStorage.setItem(KEY, s);
   } catch {}
   window.dispatchEvent(new Event(EVENT));
+}
+
+// a person's pick: kept on their account (profiles.admin_design, 0077) so it
+// follows them to any device, and in this browser so the admin opens in it
+// at once
+export function setAdminStyle(s: AdminStyle) {
+  keep(s);
+  const sb = getSupabase();
+  if (!sb) return;
+  void sb.auth.getUser().then(({ data }) => {
+    if (data.user) void sb.from("profiles").update({ admin_design: s }).eq("id", data.user.id);
+  });
+}
+
+// on opening the admin: the account's pick, when it differs from this browser's
+export function useAccountAdminStyle(userId: string | null) {
+  useEffect(() => {
+    if (!userId) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    let live = true;
+    void sb
+      .from("profiles")
+      .select("admin_design")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        const d = !error ? (data?.admin_design as string | null) : null;
+        if (live && ok(d) && d !== read()) keep(d);
+      });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
 }

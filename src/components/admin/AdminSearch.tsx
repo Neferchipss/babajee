@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { money, StatusPill, when } from "@/components/admin/ui";
 import { listProducts, type AdminProduct } from "@/lib/admin-data";
 import { listCustomers, listOrders, type Customer, type Order } from "@/lib/orders-db";
+import { can, canOpen, useStaff, type StaffRole } from "@/lib/staff";
 
 // One search box across the admin: orders (number, name, phone, email, city,
 // pincode), products (name, category, options, SKU), customers and the admin
@@ -18,12 +19,15 @@ const PAGES: { title: string; href: string; words: string }[] = [
   { title: "Orders", href: "/admin/orders", words: "orders unpaid pack ship" },
   { title: "New order", href: "/admin/orders/new", words: "new order create phone whatsapp counter manual draft" },
   { title: "Carts", href: "/admin/orders/carts", words: "carts abandoned active jar left recovery remind" },
-  { title: "Products", href: "/admin/products", words: "products catalogue inventory stock categories" },
+  { title: "Products", href: "/admin/products", words: "products catalogue categories" },
+  { title: "Purchase bills", href: "/admin/inventory/purchases", words: "purchases bills suppliers stock in inventory buying opening stock" },
+  { title: "GST & HSN", href: "/admin/finance/gst", words: "gst hsn tax rate finance" },
+  { title: "Admin design", href: "/admin/settings/design", words: "admin design look layout shopify ease studio" },
   { title: "Add a product", href: "/admin/products/new", words: "new product add create" },
   { title: "Reviews", href: "/admin/products/reviews", words: "reviews ratings stars approve moderate feedback" },
   { title: "Collections", href: "/admin/products/collections", words: "collections staff picks gift ideas hand-picked lists featured" },
   { title: "Sign-ins", href: "/admin/customers/sign-ins", words: "sign-ins logins login history failed password security" },
-  { title: "Admins", href: "/admin/settings/team", words: "admins team staff users access people" },
+  { title: "Team and roles", href: "/admin/settings/team", words: "admins team staff users access people roles" },
   { title: "Activity log", href: "/admin/settings/activity", words: "activity log audit history changes who changed" },
   { title: "Customers", href: "/admin/customers", words: "customers people buyers" },
   { title: "Analytics", href: "/admin/analytics", words: "analytics stats sales profit visitors" },
@@ -32,14 +36,18 @@ const PAGES: { title: string; href: string; words: string }[] = [
 ];
 
 type Data = { orders: Order[]; products: AdminProduct[]; customers: Customer[] };
-let cache: { at: number; data: Promise<Data> } | null = null;
+let cache: { at: number; role: string; data: Promise<Data> } | null = null;
 
-// fresh for a minute, so a new order shows without a reload
-function load(): Promise<Data> {
-  if (!cache || Date.now() - cache.at > 60_000) {
-    const data = Promise.all([listOrders(), listProducts(), listCustomers()]).then(([orders, products, customers]) => ({ orders, products, customers }));
+// fresh for a minute, so a new order shows without a reload. Only what the
+// person's role may see is fetched: orders and customers for money roles,
+// products for catalogue roles (0072, 0077).
+function load(role: StaffRole | null): Promise<Data> {
+  const key = role ?? "";
+  if (!cache || cache.role !== key || Date.now() - cache.at > 60_000) {
+    const money = can(role, "money");
+    const data = Promise.all([money ? listOrders() : [], can(role, "catalog") ? listProducts() : [], money ? listCustomers() : []]).then(([orders, products, customers]) => ({ orders, products, customers }));
     data.catch(() => (cache = null));
-    cache = { at: Date.now(), data };
+    cache = { at: Date.now(), role: key, data };
   }
   return cache.data;
 }
@@ -107,12 +115,14 @@ export function AdminSearch() {
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const list = useId();
+  const { me } = useStaff();
+  const role = me?.role ?? null;
 
-  const hits = useMemo(() => search(q, data), [q, data]);
+  const hits = useMemo(() => search(q, data).filter((h) => h.group !== "Pages" || canOpen(role, h.href.split("?")[0])), [q, data, role]);
   const cur = Math.min(at, Math.max(hits.length - 1, 0));
 
   function warm() {
-    load()
+    load(role)
       .then((d) => {
         setData(d);
         setFailed(false);

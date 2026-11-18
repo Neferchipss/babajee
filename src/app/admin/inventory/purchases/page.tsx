@@ -141,7 +141,7 @@ function Bills({ bills, range, setRange, onNew }: { bills: ReceiptRow[] | null; 
           <ul className="sti-list">
             {bills.map((b) => (
               <li key={b.id}>
-                <Link href={`/admin/products/stock-in/bill?id=${b.id}`} className={`sti-item ${b.status === "void" ? "is-void" : ""}`}>
+                <Link href={`/admin/inventory/purchases/bill?id=${b.id}`} className={`sti-item ${b.status === "void" ? "is-void" : ""}`}>
                   <div className="sti-item-head">
                     <b>{b.kind === "opening" ? "Opening stock" : b.kind === "quick" ? "Stock added (no bill)" : `Bill ${b.bill_no || "(no number)"}`}</b>
                     <span className={`adm-pill ${b.status === "void" ? "off" : "done"}`}>{b.status === "void" ? "Voided" : "Posted"}</span>

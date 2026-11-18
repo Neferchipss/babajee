@@ -13,7 +13,7 @@ export default function DesignPage() {
     <div className="dsn">
       <header className="adm-pagehead">
         <h1>Admin design</h1>
-        <p>Four ways the admin can look and work. Pick one and the admin switches at once. Every page, button and permission is the same in all four; only the layout and look change. Your pick is for you, on this device.</p>
+        <p>Four ways the admin can look and work. Pick one and the admin switches at once. Every page, button and permission is the same in all four; only the layout and look change. Your pick is saved on your account, so it follows you to any device.</p>
       </header>
       <div className="dsn-grid">
         {ADMIN_STYLES.map((d) => (

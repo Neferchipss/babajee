@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
                           <b>ITC to reverse: unpaid over 180 days</b>
                           {unpaid.map((u) => (
                             <div key={u.id}>
-                              <Link href={`/admin/products/stock-in/bill?id=${u.id}`}>
+                              <Link href={`/admin/inventory/purchases/bill?id=${u.id}`}>
                                 Bill {u.bill_no} · {u.supplier ?? "supplier"}
                               </Link>{" "}
                               · {u.days} days · {m2(Number(u.gst) || 0)} GST

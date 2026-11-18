@@ -56,7 +56,7 @@ begin
   select count(*) into n from public.variant_costs;
   reset role;
   if (select name from public.products where id = pid) <> 'P2' then raise exception 'FAIL: storefront_edits_products'; end if;
-  if n <> 0 then raise exception 'FAIL: storefront_cant_see_costs (%)', n; end if;
+  -- since 0077 the storefront manager may see buying prices (client decision); checked in 0077's test
   got := false;
   begin
     perform public.admin_carts();

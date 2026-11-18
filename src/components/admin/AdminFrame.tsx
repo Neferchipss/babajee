@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
-import { useAdminStyle } from "@/lib/admin-style";
+import { useAccountAdminStyle, useAdminStyle } from "@/lib/admin-style";
+import { useAuth } from "@/lib/auth";
 import AdminNav from "./AdminNav";
 import RequireAdmin, { RoleGate } from "./RequireAdmin";
 import { Toaster } from "./Toaster";
@@ -16,6 +17,7 @@ import "./shells/shells.css";
 // step aside while they're open.
 export default function AdminFrame({ children }: { children: React.ReactNode }) {
   const style = useAdminStyle();
+  useAccountAdminStyle(useAuth().user?.id ?? null);
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.admShell = style;

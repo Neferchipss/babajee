@@ -8,13 +8,13 @@ import { useAuth } from "./auth";
 import { getSupabase } from "./supabase";
 
 export type StaffRole = "owner" | "admin" | "accounts" | "storefront" | "frontend";
-type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "team" | "export" | "delete";
+export type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "team" | "export" | "delete";
 
 export const ROLES: { id: StaffRole; label: string; about: string }[] = [
   { id: "owner", label: "Owner", about: "Everything, including the team and who is an owner or admin." },
   { id: "admin", label: "Admin", about: "Everything except owners and admins: can add store account, storefront and front-end staff." },
   { id: "accounts", label: "Store account", about: "Orders, customers, stock, purchases, prices and costs, GST, profit and reports. Not settings, the team or deleting products." },
-  { id: "storefront", label: "Storefront manager", about: "Products, photos, categories, collections, reviews, and the shop's banners, pages, blog, FAQs, menus and SEO. No orders, customers or money." },
+  { id: "storefront", label: "Storefront manager", about: "Everything about products: details, photos, prices, GST, buying prices, stock, boxes, purchase bills and suppliers; categories, collections, reviews; and the shop's banners, pages, blog, FAQs, menus and SEO. No orders, customers, money reports or settings." },
   { id: "frontend", label: "Front-end UI", about: "The shop's look only: banners, homepage sections, menus and theme." },
 ];
 export const roleLabel = (r: string | null | undefined) => ROLES.find((x) => x.id === r)?.label ?? "Staff";
@@ -37,8 +37,8 @@ const PAGES: [string, Area][] = [
   ["/admin/orders", "money"],
   ["/admin/customers", "money"],
   ["/admin/analytics", "money"],
-  ["/admin/products/stock-in", "money"],
-  ["/admin/products/tax", "money"],
+  ["/admin/inventory", "catalog"],
+  ["/admin/finance", "money"],
   ["/admin/products", "catalog"],
   ["/admin/storefront/pages", "content"],
   ["/admin/storefront", "look"],

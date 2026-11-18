@@ -1,0 +1,180 @@
+/* The admin's shared building blocks (kit.tsx). Colours from the --adm-*
+   tokens, so every admin design restyles them. */
+
+.kit-savebar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 12px;
+  background: var(--adm-ink);
+  color: var(--adm-panel);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+}
+.kit-savebar > span {
+  font-weight: 600;
+}
+.kit-savebar-actions {
+  display: flex;
+  gap: 8px;
+}
+.kit-savebar .adm-btn:not(.pri) {
+  color: var(--adm-panel);
+  border-color: color-mix(in srgb, var(--adm-panel) 40%, transparent);
+  background: transparent;
+}
+
+.kit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.kit-toggle span {
+  display: grid;
+  gap: 1px;
+}
+.kit-toggle small {
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+}
+.kit-toggle.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.kit-switch {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--adm-line);
+  background: color-mix(in srgb, var(--adm-muted) 25%, transparent);
+  cursor: pointer;
+  padding: 0;
+}
+.kit-switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--adm-panel);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s ease;
+}
+.kit-switch.is-on {
+  background: var(--adm-good);
+  border-color: var(--adm-good);
+}
+.kit-switch.is-on i {
+  transform: translateX(16px);
+}
+.kit-switch:focus-visible {
+  outline: 2px solid var(--adm-gold);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-switch i {
+    transition: none;
+  }
+}
+
+.kit-confirm {
+  display: grid;
+  gap: 12px;
+  max-width: 440px;
+}
+.kit-confirm h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.kit-confirm-body {
+  color: var(--adm-muted);
+}
+.kit-danger {
+  background: var(--adm-bad);
+  border-color: var(--adm-bad);
+  color: #fff;
+}
+
+.kit-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--adm-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+}
+.kit-tabs button {
+  flex: none;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--adm-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kit-tabs button.is-on {
+  color: var(--adm-ink);
+  border-bottom-color: var(--adm-gold);
+}
+.kit-tabs b {
+  font-size: 0.75rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-muted) 20%, transparent);
+}
+
+.kit-gst select {
+  width: auto;
+  min-width: 170px;
+}
+
+.kit-state {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 24px 0;
+  color: var(--adm-muted);
+}
+.kit-state b {
+  color: var(--adm-ink);
+}
+.kit-state p {
+  margin: 0;
+}
+.kit-failed b {
+  color: var(--adm-bad);
+}
+
+.kit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kit-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kit-count {
+  margin-left: 8px;
+  font-size: 0.6em;
+  color: var(--adm-muted);
+  font-weight: 500;
+}

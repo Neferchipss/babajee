@@ -31,7 +31,7 @@ export default function AdminNav() {
             <Link href={s.href} className="adm-sec-link" aria-current={on && (!s.pages || pageOn(s.href)) ? "page" : undefined} onClick={tap(s.href)}>
               <span className="adm-ico">{s.icon}</span>
               {s.label}
-              {total > 0 && <span className={`n ${s.href === "/admin/products" ? "is-low" : ""}`}>{total}</span>}
+              {total > 0 && <span className={`n ${s.href === "/admin/inventory/purchases" ? "is-low" : ""}`}>{total}</span>}
             </Link>
             {s.pages && (
               <ul className="adm-tree">
