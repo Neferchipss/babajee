@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { type OrderAction } from "@/lib/order-status";
 import { updateOrder, type Order } from "@/lib/orders-db";
-import { knownCouriers } from "./Steps";
+import { CourierInput } from "./Steps";
 
 export function Confirm({
   action,
@@ -34,12 +34,7 @@ export function Confirm({
           <h2>Ship {order.order_number}</h2>
           <label className="adm-label">
             Courier
-            <input className="adm-input" list="ov-couriers" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Delhivery, DTDC, India Post…" autoFocus />
-            <datalist id="ov-couriers">
-              {knownCouriers().map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <CourierInput id="ov-couriers" value={carrier} onChange={setCarrier} />
           </label>
           <label className="adm-label">
             Tracking number

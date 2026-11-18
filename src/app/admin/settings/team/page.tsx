@@ -20,6 +20,8 @@ export default function TeamPage() {
   const [role, setRole] = useState<StaffRole>("accounts");
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState("");
+  // accounts kept out of visits and analytics (0046), switched here (0079)
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const manage = can(me?.role ?? null, "team");
   const owner = me?.role === "owner";
   // the roles this person may hand out
@@ -38,7 +40,12 @@ export default function TeamPage() {
     if (!sb) return;
     const { data, error } = await sb.rpc("admin_team");
     if (error) setErr(errText(error));
-    else setTeam(((data ?? []) as StaffMember[]).map((m) => ({ ...m, role: m.role ?? "owner" })));
+    else {
+      const list = ((data ?? []) as StaffMember[]).map((m) => ({ ...m, role: m.role ?? "owner" }));
+      setTeam(list);
+      const h = await sb.from("profiles").select("id, hidden").in("id", list.map((m) => m.id));
+      if (!h.error) setHidden(new Set(((h.data ?? []) as { id: string; hidden: boolean }[]).filter((x) => x.hidden).map((x) => x.id)));
+    }
   };
   useEffect(() => {
     // the demo's sample team is set at once; the real one arrives later
@@ -64,6 +71,24 @@ export default function TeamPage() {
     if (!email.trim()) return;
     await change(email.trim(), role, `${email.trim()} is now ${roleLabel(role)}`);
     setEmail("");
+  }
+
+  async function track(m: StaffMember, off: boolean) {
+    setBusy(true);
+    try {
+      const { error } = await getSupabase()!.rpc("admin_set_hidden", { p_profile: m.id, p_hidden: off });
+      if (error) throw error;
+      setHidden((h) => {
+        const n = new Set(h);
+        if (off) n.add(m.id);
+        else n.delete(m.id);
+        return n;
+      });
+      toast(off ? `${m.name || m.email}'s visits are no longer recorded` : `${m.name || m.email}'s visits are recorded again`);
+    } catch (x) {
+      toastError(errText(x));
+    }
+    setBusy(false);
   }
 
   const mayChange = (m: StaffMember) => manage && !m.me && (owner || !["owner", "admin"].includes(m.role));
@@ -106,6 +131,12 @@ export default function TeamPage() {
                 <span className="adm-muted adm-small" style={{ display: "block" }}>
                   {m.email} · {m.last_sign_in ? `last signed in ${when(m.last_sign_in).toLowerCase()}` : "never signed in"}
                 </span>
+                {manage && (
+                  <label className="adm-check adm-small team-track">
+                    <input type="checkbox" checked={hidden.has(m.id)} disabled={busy} onChange={(e) => track(m, e.target.checked)} />
+                    Keep out of visits and analytics
+                  </label>
+                )}
               </span>
               {mayChange(m) ? (
                 <span className="adm-actions">

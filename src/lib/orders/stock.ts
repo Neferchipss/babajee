@@ -67,6 +67,11 @@ export type StoreSettings = {
   store_email: string;
   invoice_prefix: string;
   invoice_note: string;
+  // for bank transfers and UPI: on the invoice and given to customers who pay that way (0005)
+  bank_account_name: string;
+  bank_account_number: string;
+  bank_ifsc: string;
+  bank_upi_id: string;
 };
 // Each product's own GST bracket (null: the shop's default rate) and cess
 // rate (0060; charged only with cess switched on), by slug. Readable by anyone.
@@ -86,7 +91,7 @@ export async function getSettings(): Promise<StoreSettings> {
   // cess (0060) read on its own: a database without it still gives the rest
   const cessP = (await db()).from("store_settings").select("cess_enabled").eq("id", 1).maybeSingle();
   const cartP = (await db()).from("store_settings").select("cart_abandon_hours, cart_expire_days").eq("id", 1).maybeSingle();
-  const { data, error } = await (await db()).from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note").eq("id", 1).single();
+  const { data, error } = await (await db()).from("store_settings").select("shipping, free_shipping_over, gst_rate, gst_inclusive, gst_input_credit, store_state, return_days, unpaid_hours, payment_methods, low_stock_at, store_name, legal_name, gstin, store_address, store_phone, store_email, invoice_prefix, invoice_note, bank_account_name, bank_account_number, bank_ifsc, bank_upi_id").eq("id", 1).single();
   if (error) throw error;
   const cess = await cessP;
   const cart = await cartP;
@@ -112,7 +117,22 @@ export async function getSettings(): Promise<StoreSettings> {
     store_email: data.store_email ?? "",
     invoice_prefix: data.invoice_prefix ?? "BJ",
     invoice_note: data.invoice_note ?? "",
+    bank_account_name: data.bank_account_name ?? "",
+    bank_account_number: data.bank_account_number ?? "",
+    bank_ifsc: data.bank_ifsc ?? "",
+    bank_upi_id: data.bank_upi_id ?? "",
   };
+}
+// The shop's courier list (0079), offered when an order is shipped. Read and
+// saved on its own: null where the database doesn't have it yet.
+export async function getCouriers(): Promise<string[] | null> {
+  const { data, error } = await (await db()).from("store_settings").select("couriers").eq("id", 1).maybeSingle();
+  if (error || !data) return null;
+  return (data.couriers as string[] | null) ?? [];
+}
+export async function saveCouriers(list: string[]) {
+  const { error } = await (await db()).from("store_settings").update({ couriers: list }).eq("id", 1);
+  if (error) throw error;
 }
 // Low and out-of-stock options (0043): each with its product, stock and low mark.
 export type LowItem = { variant_id: string; product_id: string; product: string; option: string; stock: number; mark: number; out: boolean };

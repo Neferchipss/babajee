@@ -60,10 +60,22 @@ export default function StorefrontPage() {
   }
 
   const reload = () => listRows("home_sections").then(setSections);
-  async function update(s: HomeSection, patch: Partial<HomeSection>) {
+  // the same rule as banners, menus and pages: a switch or picker saves at
+  // once; typed words wait for Save (with Undo) so half a sentence never goes live
+  const [drafts, setDrafts] = useState<Record<string, { title?: string; body?: string }>>({});
+  const draftOf = (s: HomeSection) => ({ title: drafts[s.id]?.title ?? s.title, body: drafts[s.id]?.body ?? s.body });
+  const dirty = (s: HomeSection) => draftOf(s).title !== s.title || draftOf(s).body !== s.body;
+  const dropDraft = (id: string) =>
+    setDrafts((d) => {
+      const n = { ...d };
+      delete n[id];
+      return n;
+    });
+  async function update(s: HomeSection, patch: Partial<HomeSection>, said = "Saved") {
     setSections((l) => (l ?? []).map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
     try {
       await saveRow("home_sections", { id: s.id, ...patch });
+      toast(said);
     } catch (e) {
       toastError(errText(e));
       void reload();
@@ -179,7 +191,7 @@ export default function StorefrontPage() {
                   </div>
                   <div className="sfm-sec-fields">
                     {s.kind !== "banners" && (
-                      <input className="adm-input" defaultValue={s.title} maxLength={120} placeholder="Heading" aria-label="Heading" onBlur={(e) => e.target.value !== s.title && update(s, { title: e.target.value })} />
+                      <input className="adm-input" value={draftOf(s).title} maxLength={120} placeholder="Heading" aria-label="Heading" onChange={(e) => setDrafts((d) => ({ ...d, [s.id]: { ...d[s.id], title: e.target.value } }))} />
                     )}
                     {k?.needsRef === "category" && (
                       <select className="adm-input" value={s.ref} aria-label="Category" onChange={(e) => update(s, { ref: e.target.value })}>
@@ -213,11 +225,29 @@ export default function StorefrontPage() {
                       </select>
                     )}
                     {s.kind === "text" && (
-                      <textarea className="adm-input" rows={3} defaultValue={s.body} maxLength={2000} placeholder="A few words about the shop" aria-label="Words" onBlur={(e) => e.target.value !== s.body && update(s, { body: e.target.value })} />
+                      <textarea className="adm-input" rows={3} value={draftOf(s).body} maxLength={2000} placeholder="A few words about the shop" aria-label="Words" onChange={(e) => setDrafts((d) => ({ ...d, [s.id]: { ...d[s.id], body: e.target.value } }))} />
                     )}
                     <label className="adm-small sfm-show">
-                      <input type="checkbox" checked={s.is_visible} onChange={(e) => update(s, { is_visible: e.target.checked })} /> Shown
+                      <input type="checkbox" checked={s.is_visible} onChange={(e) => update(s, { is_visible: e.target.checked }, e.target.checked ? "Shown on the homepage" : "Hidden from the homepage")} /> Shown
                     </label>
+                    {dirty(s) && (
+                      <span className="adm-actions">
+                        <button type="button" className="adm-btn" onClick={() => dropDraft(s.id)}>
+                          Undo
+                        </button>
+                        <button
+                          type="button"
+                          className="adm-btn pri"
+                          onClick={() => {
+                            const d = draftOf(s);
+                            dropDraft(s.id);
+                            void update(s, { title: d.title, body: d.body });
+                          }}
+                        >
+                          Save
+                        </button>
+                      </span>
+                    )}
                   </div>
                 </li>
               );

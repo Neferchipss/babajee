@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { when } from "@/components/admin/ui";
 import { STEPS, type OrderStatus } from "@/lib/order-status";
-import { type Order } from "@/lib/orders-db";
+import { getCouriers, type Order } from "@/lib/orders-db";
 
 // Where the order has got to, as a road: placed, paid, packed, shipped,
 // delivered, each with when it happened. Every step is a button: tap one
@@ -139,7 +139,7 @@ export function StepForm({
           {to === "delivered" && <p className="adm-muted" style={{ margin: 0 }}>It never went through Shipped. Add the courier if you have it, or leave it blank.</p>}
           <label className="adm-label">
             Courier
-            <input className="adm-input" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Delhivery, DTDC, India Post…" autoFocus />
+            <CourierInput id="ov-step-couriers" value={carrier} onChange={setCarrier} />
           </label>
           <label className="adm-label">
             Tracking number
@@ -162,12 +162,36 @@ export function StepForm({
 }
 // couriers used before on this device, most recent first, then the common ones
 export const COURIER_KEY = "bj-couriers";
-export function knownCouriers(): string[] {
+export function knownCouriers(shop?: string[] | null): string[] {
   let mine: string[] = [];
   try {
     mine = JSON.parse(localStorage.getItem(COURIER_KEY) ?? "[]") as string[];
   } catch {}
-  return [...new Set([...mine, "Delhivery", "DTDC", "Blue Dart", "India Post", "Xpressbees", "Ekart", "Shadowfax"])];
+  return [...new Set([...mine, ...(shop?.length ? shop : ["Delhivery", "DTDC", "Blue Dart", "India Post", "Xpressbees", "Ekart", "Shadowfax"])])];
+}
+// the same, with the shop's own list from Settings › Delivery and couriers (0079)
+export function useCouriers(): string[] {
+  const [shop, setShop] = useState<string[] | null>(null);
+  useEffect(() => {
+    getCouriers()
+      .then(setShop)
+      .catch(() => {});
+  }, []);
+  return knownCouriers(shop);
+}
+// a courier box with the known couriers to pick from
+export function CourierInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id: string }) {
+  const list = useCouriers();
+  return (
+    <>
+      <input className="adm-input" list={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={list.slice(0, 3).join(", ") + "…"} autoFocus />
+      <datalist id={id}>
+        {list.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+    </>
+  );
 }
 export function rememberCourier(name: string) {
   const c = name.trim();
