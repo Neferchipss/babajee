@@ -21,7 +21,7 @@ export const FIELDS: { id: RuleField; label: string; kind: Kind }[] = [
   { id: "account", label: "Account", kind: "account" },
 ];
 
-export const OPS: Record<Kind, { id: string; label: string; noValue?: boolean }[]> = {
+const OPS: Record<Kind, { id: string; label: string; noValue?: boolean }[]> = {
   money: [
     { id: "gte", label: "is at least" },
     { id: "lte", label: "is at most" },
@@ -60,7 +60,7 @@ export const blankRule = (field: RuleField = "spent"): Rule => ({ field, op: ops
 const DAY = 864e5;
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-export function meets(c: Customer, r: Rule): boolean {
+function meets(c: Customer, r: Rule): boolean {
   const n = Number(r.value);
   const v = r.value.trim();
   switch (r.field) {

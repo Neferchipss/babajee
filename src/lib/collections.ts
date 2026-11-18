@@ -36,7 +36,7 @@ export async function listCollections(): Promise<Collection[]> {
   return ((data ?? []) as Row[]).map(toCollection);
 }
 
-export const slugify = (s: string) =>
+const slugify = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFKD")

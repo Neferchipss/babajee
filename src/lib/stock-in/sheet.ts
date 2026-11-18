@@ -1,6 +1,6 @@
 import { unzipSync, strFromU8 } from "fflate";
 
-export type SheetFile = { name: string; bytes: Uint8Array };
+type SheetFile = { name: string; bytes: Uint8Array };
 
 /** Reads a .csv or the first worksheet of an .xlsx into rows of strings. */
 export function readSheet(file: SheetFile): string[][] {

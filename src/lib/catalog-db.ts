@@ -25,7 +25,7 @@ function client() {
 // database options not priced yet (still ₹0); it then renders as the
 // "xx.xx" placeholder.
 // compareAt: the higher "was" price, struck through on the card (0028)
-export type DbVariant = { id: string; label: string; price?: number; stockQty: number; compareAt?: number };
+type DbVariant = { id: string; label: string; price?: number; stockQty: number; compareAt?: number };
 export type DbCardProduct = {
   slug: string;
   name: string;
@@ -46,7 +46,7 @@ export type DbCardProduct = {
   // its sub-categories' slugs (0063), for the shelf's tag chips
   tags?: string[];
 };
-export type DbCategory = { slug: string; name: string };
+type DbCategory = { slug: string; name: string };
 
 // In development and on the GitHub Pages preview, when the database gives
 // back nothing (paused project, no network), the local stock sheet stands in
@@ -70,17 +70,6 @@ function localCategoryDetail(slug: string) {
   const c = CATEGORIES.find((x) => x.slug === slug);
   if (!c) return null;
   return { category: { slug: c.slug, name: c.name }, products: c.products.map(localCard) };
-}
-
-function localProductDetail(categorySlug: string, productSlug: string) {
-  const c = CATEGORIES.find((x) => x.slug === categorySlug);
-  const p = c?.products.find((x) => x.slug === productSlug);
-  if (!c || !p) return null;
-  return {
-    category: { slug: c.slug, name: c.name },
-    product: { slug: p.slug, name: p.name, description: null as string | null, variants: localVariants(p) },
-    more: c.products.filter((x) => x.slug !== productSlug).slice(0, 4).map(localCard),
-  };
 }
 
 // How many can be bought. Stock is only counted where the admin turned on
@@ -136,7 +125,7 @@ function toCard(row: {
 
 // All categories, in the client's chosen order. Categories default to
 // visible, so this is the full 19 unless one is deliberately hidden.
-export async function getCategories(): Promise<DbCategory[]> {
+async function getCategories(): Promise<DbCategory[]> {
   const sb = client();
   const data = sb ? (await sb.from("categories").select("slug, name").order("sort_order")).data : null;
   if (data?.length || !useLocal) return data ?? [];
@@ -204,11 +193,11 @@ async function liveCategoryDetail(slug: string) {
 
 // A product's description and brand, for the desktop product page (the
 // shelf's cards don't carry them). Empty when there is none or no database.
-export type ProductSpec = { label: string; value: string };
+type ProductSpec = { label: string; value: string };
 // Its weight and size per option, and its video links (0062), with them.
-export type OptionSize = { label: string; weight_g: number | null; length_cm: number | null; width_cm: number | null; height_cm: number | null };
+type OptionSize = { label: string; weight_g: number | null; length_cm: number | null; width_cm: number | null; height_cm: number | null };
 // what a bundle option holds (0071): "2 × Raw Classic King Size"
-export type BundleIncludes = { label: string; items: { qty: number; name: string; option: string }[] };
+type BundleIncludes = { label: string; items: { qty: number; name: string; option: string }[] };
 
 export async function getProductDescription(productSlug: string): Promise<{ description: string; brand: string; specs: ProductSpec[]; videos: string[]; sizes: OptionSize[]; includes: BundleIncludes[] }> {
   const none = { description: "", brand: "", specs: [], videos: [], sizes: [], includes: [] };
@@ -254,43 +243,6 @@ async function bundleIncludes(sb: NonNullable<ReturnType<typeof client>>, produc
     }));
 }
 
-export async function getProductDetail(categorySlug: string, productSlug: string) {
-  const live = await liveProductDetail(categorySlug, productSlug);
-  return live || !useLocal ? live : localProductDetail(categorySlug, productSlug);
-}
-
-async function liveProductDetail(categorySlug: string, productSlug: string) {
-  const sb = client();
-  if (!sb) return null;
-  const { data: category } = await sb.from("categories").select("id, slug, name").eq("slug", categorySlug).maybeSingle();
-  if (!category) return null;
-  const { data: product } = await sb
-    .from("products")
-    .select("id, slug, name, description, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
-    .eq("category_id", category.id)
-    .eq("slug", productSlug)
-    .maybeSingle();
-  const variants = normalizeVariants(product?.product_variants ?? null);
-  if (!product) return null;
-  const { data: moreRows } = await sb
-    .from("products")
-    .select("slug, name, sort_order, product_variants(id, label, price, stock_qty, track_stock, sort_order, compare_at)")
-    .eq("category_id", category.id)
-    .neq("slug", productSlug)
-    .order("sort_order")
-    .limit(8);
-  return {
-    category: { slug: category.slug, name: category.name },
-    product: {
-      slug: product.slug,
-      name: product.name,
-      description: product.description,
-      variants,
-    },
-    more: (moreRows ?? []).map(toCard).slice(0, 4),
-  };
-}
-
 // Preserve old product URLs in the static export.
 export async function getStaticProductParams(): Promise<{ category: string; product: string }[]> {
   const sb = client();
@@ -305,14 +257,6 @@ export async function getStaticProductParams(): Promise<{ category: string; prod
 }
 
 export type DbSearchProduct = DbCardProduct & { categorySlug: string; categoryName: string };
-
-export async function getSearchCatalog(): Promise<DbSearchProduct[]> {
-  const live = await liveSearchCatalog();
-  if (live !== null || !useLocal) return live ?? [];
-  return CATEGORIES.flatMap((c) =>
-    c.products.map((p) => ({ ...localCard(p), categorySlug: c.slug, categoryName: c.name })),
-  );
-}
 
 export async function liveSearchCatalog(): Promise<DbSearchProduct[] | null> {
   const sb = client();
@@ -401,7 +345,7 @@ export async function getHomeProducts(cats: { slug: string; name: string }[]): P
   return lists.flat();
 }
 
-export type ShelfPick = { slug: string; name: string; cat: string; image: string };
+type ShelfPick = { slug: string; name: string; cat: string; image: string };
 export async function getShelfPicks(slugs: string[], per = 4): Promise<Record<string, ShelfPick[]>> {
   const out: Record<string, ShelfPick[]> = {};
   await Promise.all(
@@ -421,7 +365,7 @@ export async function getShelfPicks(slugs: string[], per = 4): Promise<Record<st
 
 // Everything the page titles need, for every visible product, read once per
 // build (each of the ~450 product pages asks; one query answers them all).
-export type SeoProduct = {
+type SeoProduct = {
   slug: string;
   categorySlug: string;
   categoryName: string;
@@ -436,7 +380,7 @@ export type SeoProduct = {
   inStock: boolean;
 };
 let seoCache: Promise<SeoProduct[]> | null = null;
-export function getSeoCatalog(): Promise<SeoProduct[]> {
+function getSeoCatalog(): Promise<SeoProduct[]> {
   return (seoCache ??= (async () => {
     const sb = client();
     const data = sb

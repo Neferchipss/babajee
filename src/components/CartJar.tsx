@@ -1,26 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useState } from "react";
-import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
+import { useId } from "react";
 import "./cart-jar.css";
 
-// Baba's jar: the cart. Every item added drops in as a pebble, so the jar
-// fills up as you shop, and it wobbles when something lands. It sits in the
-// top of the product sheet, where the product is thrown into it (the bar's
-// cart button takes it everywhere else).
-const ROWS = 4;
+// Baba's jar, drawn for the cart page; each item can show as a pebble.
 const COLS = 4;
-const CAP = ROWS * COLS;
-// pebble colours, chosen per product so a mixed jar looks mixed
-const PEBBLES = ["#ff8fb3", "#7ef0c4", "#ffd36e", "#b9a4ff", "#ff6b6b", "#8fd3ff"];
-
-const hash = (s: string) => {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-};
-
 export function JarArt({ pebbles }: { pebbles: string[] }) {
   // its own clip per jar: a shared one hidden with another jar hides these too
   const clip = `jar-in-${useId().replace(/:/g, "")}`;
@@ -47,42 +31,5 @@ export function JarArt({ pebbles }: { pebbles: string[] }) {
       <rect className="jar-lid" x="13" y="5" width="38" height="12" rx="4" />
       <path className="jar-lid-line" d="M17 11 h30" />
     </svg>
-  );
-}
-
-export default function CartJar({ variant }: { variant: "sheet" }) {
-  const cart = useCart();
-  const [plop, setPlop] = useState(0);
-  const count = cartCount(cart);
-
-  useEffect(() => {
-    const onLand = () => setPlop((p) => p + 1);
-    window.addEventListener(LANDED_EVENT, onLand);
-    return () => window.removeEventListener(LANDED_EVENT, onLand);
-  }, []);
-
-  const pebbles: string[] = [];
-  for (const line of cart) {
-    const c = PEBBLES[hash(line.slug) % PEBBLES.length];
-    for (let q = 0; q < line.qty && pebbles.length < CAP; q++) pebbles.push(c);
-  }
-
-  return (
-    <Link
-      href="/cart"
-      className={`jar jar-${variant}`}
-      data-jar={variant}
-      data-empty={count === 0}
-      aria-label={count === 0 ? "Cart, empty" : `Cart, ${count} item${count === 1 ? "" : "s"}`}
-    >
-      <span key={plop} className="jar-body" data-plop={plop > 0}>
-        <JarArt pebbles={pebbles} />
-      </span>
-      {count > 0 && (
-        <b key={`n${count}`} className="jar-count" aria-hidden="true">
-          {count > 99 ? "99+" : count}
-        </b>
-      )}
-    </Link>
   );
 }

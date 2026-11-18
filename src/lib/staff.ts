@@ -8,7 +8,7 @@ import { useAuth } from "./auth";
 import { getSupabase } from "./supabase";
 
 export type StaffRole = "owner" | "admin" | "accounts" | "storefront" | "frontend";
-export type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "team" | "export" | "delete";
+type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "team" | "export" | "delete";
 
 export const ROLES: { id: StaffRole; label: string; about: string }[] = [
   { id: "owner", label: "Owner", about: "Everything, including the team and who is an owner or admin." },
@@ -49,14 +49,14 @@ const PAGES: [string, Area][] = [
   ["/admin/settings", "settings"],
   ["/admin", "staff"],
 ];
-export function areaOf(path: string): Area {
+function areaOf(path: string): Area {
   const p = path.replace(/\/$/, "") || "/";
   const hit = PAGES.filter(([pre]) => p === pre || p.startsWith(`${pre}/`)).sort((a, b) => b[0].length - a[0].length)[0];
   return hit ? hit[1] : "settings";
 }
 export const canOpen = (role: StaffRole | null, path: string) => can(role, areaOf(path));
 
-export type Me = { role: StaffRole | null; active: boolean };
+type Me = { role: StaffRole | null; active: boolean };
 
 // the signed-in person's role; a database without 0072
 // treats every admin as an owner, as before

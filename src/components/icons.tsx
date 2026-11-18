@@ -27,14 +27,6 @@ export const UserIcon = ({ size = 22, className }: P) => (
   </svg>
 );
 
-export const CartIcon = ({ size = 22, className }: P) => (
-  <svg {...svg(size, className)}>
-    <path d="M3 4h2.5l2 11h10.5l2-8H7" />
-    <circle cx="9.5" cy="19" r="1.3" />
-    <circle cx="17" cy="19" r="1.3" />
-  </svg>
-);
-
 // the cart, as Baba's jar
 export const JarIcon = ({ size = 22, className }: P) => (
   <svg {...svg(size, className)}>

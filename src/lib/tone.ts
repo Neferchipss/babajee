@@ -1,6 +1,6 @@
 import { CATEGORIES } from "./catalog-data";
 
-export const TONES = [
+const TONES = [
   "var(--color-rasta-red)",
   "var(--color-rasta-gold)",
   "var(--color-rasta-green)",

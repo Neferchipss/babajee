@@ -14,7 +14,7 @@
 
 export const GST_BRACKETS = [0, 5, 12, 18, 28, 40] as const;
 
-export type GstRules = {
+type GstRules = {
   rate: number; // percent, e.g. 18
   inclusive: boolean;
   credit: boolean; // the shop claims back the GST on supplier bills

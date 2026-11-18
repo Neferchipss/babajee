@@ -5,7 +5,7 @@ import { brandOf } from "./brand";
 import { CATEGORIES } from "./catalog-data";
 import { photosFor } from "./product-photos";
 
-export type Suggestion = {
+type Suggestion = {
   slug: string;
   name: string;
   category: string;

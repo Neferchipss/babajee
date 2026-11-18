@@ -8,7 +8,7 @@ import { firstOrderDay } from "@/lib/orders-db";
 // The date range shared by Analytics and Reports: a few presets plus any two
 // dates. The choice is remembered for the browser tab, so moving between the
 // two pages keeps it.
-export type Range = { id: string; from: string; to: string };
+type Range = { id: string; from: string; to: string };
 
 const PRESETS = [
   { id: "today", label: "Today", from: () => isoDay(0), to: () => isoDay(0) },

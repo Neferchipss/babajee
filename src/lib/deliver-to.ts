@@ -7,7 +7,7 @@ import { EMPTY_ADDRESS, shortLine, type Address, type AddressInput, type Pin } f
 // or just a spot (the phone's location, or a pin dropped by a guest). Kept in
 // this browser so checkout can start from it. Same key the header always
 // used, so a location found before this existed still shows.
-export type DeliverTo = {
+type DeliverTo = {
   area: string; // the bold part in the header, e.g. "Home" or "Khar"
   line: string; // the grey part, e.g. "Hill Road, Mumbai 400050"
   addressId?: string; // set when it is a saved address

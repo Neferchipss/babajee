@@ -51,17 +51,7 @@ export type Receipt = {
   lines: ReceiptLine[];
 };
 
-export type PurchaseGstMonth = {
-  month: string; // YYYY-MM
-  taxable: number;
-  gst: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
-  claimable_gst: number;
-};
-
-export type PostReceiptInput = {
+type PostReceiptInput = {
   kind: ReceiptKind;
   supplier_id?: string | null;
   bill_no?: string;
@@ -143,12 +133,6 @@ export async function trackAllStock(): Promise<number> {
   return (data ?? 0) as number;
 }
 
-export async function purchaseGst(from: string, to: string): Promise<PurchaseGstMonth[]> {
-  const { data, error } = await db().rpc("admin_purchase_gst", { p_from: from, p_to: to });
-  if (error) throw error;
-  return (data ?? []) as PurchaseGstMonth[];
-}
-
 // Bill numbers by receipt id, for labelling stock movements.
 export async function billNumbers(ids: string[]): Promise<Map<string, string>> {
   if (!ids.length) return new Map();
@@ -198,7 +182,7 @@ export async function unpaidBills(days = 180): Promise<UnpaidBill[]> {
 }
 
 // the ticks on a supplier bill: in GSTR-2B (and which month's), and paid on
-export type ReceiptFlags = { in_2b: boolean; in_2b_month: string | null; paid_on: string | null };
+type ReceiptFlags = { in_2b: boolean; in_2b_month: string | null; paid_on: string | null };
 export async function getReceiptFlags(id: string): Promise<ReceiptFlags> {
   const { data, error } = await db().from("stock_receipts").select("in_2b, in_2b_month, paid_on").eq("id", id).maybeSingle();
   if (error) throw error;

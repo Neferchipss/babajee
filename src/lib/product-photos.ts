@@ -49,16 +49,13 @@ export const hasOptionPhotos = (slug: string | undefined) => {
 // The shoot's photos of a product as they are built into the site (ignoring any
 // added in the admin), each with the option it shows, if its photos are split
 // by option. `path` is the file under public/; `src`, its address.
-export type ShootPhoto = { src: string; path: string; option: string | null };
+type ShootPhoto = { src: string; path: string; option: string | null };
 export function shootPhotos(slug: string | undefined): ShootPhoto[] {
   const list = slug ? PHOTOS[slug] : undefined;
   if (!list) return [];
   const groups = VARIANTS[slug!] ?? [];
   return list.map((path, i) => ({ src: BASE + path, path, option: groups.find(([, ns]) => ns.includes(i + 1))?.[0] ?? null }));
 }
-
-// the product page's gallery follows the option chosen beside it
-export const OPTION_EVENT = "bb:option";
 
 
 // the names of a product's options that have their own photos, in order

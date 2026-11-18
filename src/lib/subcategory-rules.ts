@@ -6,8 +6,8 @@
 // the shelf already filters by brand.
 
 type Test = RegExp | ((name: string) => boolean);
-export type TagRule = { tag: string; test: Test };
-export type GroupRule = { group: string; tags: TagRule[] };
+type TagRule = { tag: string; test: Test };
+type GroupRule = { group: string; tags: TagRule[] };
 
 // the size in inches in a name: 14", 10'', 10 inch
 const inches = (n: string) => {

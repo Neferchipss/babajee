@@ -18,7 +18,7 @@
 // - 3B 4(A)(5): GST on claimable lines of supplier bills in this period's
 //   GSTR-2B; 4(B)(2): ITC on bills unpaid 180 days after their date.
 
-export const B2CL_LIMIT = 100000;
+const B2CL_LIMIT = 100000;
 
 // cess: the cess on the line (0060), absent or 0 for none
 export type DocLine = { hsn: string; name: string; qty: number; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess?: number };

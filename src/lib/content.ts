@@ -221,4 +221,4 @@ export const slugify = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "page";
 
-export { blocks, inline, type Block, type Inline } from "./rich-text";
+export { blocks, inline } from "./rich-text";

@@ -108,7 +108,7 @@ function counted(path: string) {
 // time, with the product's name, for the customer's activity.
 // search: label = what was typed, value = products that matched.
 // step: label = a checkout step ("submit", "blocked: …", "error: …").
-export type VisitKind = "view" | "cart" | "checkout" | "product" | "add" | "search" | "step";
+type VisitKind = "view" | "cart" | "checkout" | "product" | "add" | "search" | "step";
 
 export function track(kind: VisitKind, path = location.pathname, label = "", value?: number) {
   if (!counted(path)) return;

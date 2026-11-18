@@ -9,7 +9,7 @@ import { lineCess, lineGst } from "./gst";
 import type { Order } from "./orders-db";
 
 // GST state codes, the first two digits of a GSTIN
-export const STATE_CODES: Record<string, string> = {
+const STATE_CODES: Record<string, string> = {
   "Jammu and Kashmir": "01", "Himachal Pradesh": "02", Punjab: "03", Chandigarh: "04", Uttarakhand: "05", Haryana: "06", Delhi: "07",
   Rajasthan: "08", "Uttar Pradesh": "09", Bihar: "10", Sikkim: "11", "Arunachal Pradesh": "12", Nagaland: "13", Manipur: "14",
   Mizoram: "15", Tripura: "16", Meghalaya: "17", Assam: "18", "West Bengal": "19", Jharkhand: "20", Odisha: "21", Chhattisgarh: "22",
@@ -25,10 +25,10 @@ export function stateCode(state: string) {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
+type InvoiceLine = { name: string; option: string; sku: string | null; hsn: string; qty: number; rate: number; cessRate: number; unit: number; taxable: number; gst: number; cgst: number; sgst: number; igst: number; cess: number; total: number };
 // one row of the tax summary: lines in the same bracket and HSN code
-export type TaxRow = { hsn: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess: number };
-export type Invoice = {
+type TaxRow = { hsn: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number; gst: number; cess: number };
+type Invoice = {
   lines: InvoiceLine[];
   summary: TaxRow[];
   taxable: number;

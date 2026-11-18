@@ -139,7 +139,6 @@ export function cartSums(cart: CartLine[]) {
   }
   return { count: cartCount(cart), total };
 }
-export const cartTotal = (cart: CartLine[]) => cartSums(cart).total;
 
 export function addToCart(item: CartItem, qty = 1) {
   const key = `${item.slug}::${item.variant}`;

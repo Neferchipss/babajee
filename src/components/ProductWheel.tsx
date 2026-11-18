@@ -4,7 +4,7 @@ import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "re
 import { SEE_EVENT } from "./baba/gaze";
 import ProductArt from "./ProductArt";
 
-export type WheelItem = { key: string; name: string; tone: string };
+type WheelItem = { key: string; name: string; tone: string };
 // How the card drives the wheel: grab it, drag it by fractions of a product,
 // release it onto a product; at says where it is.
 export type WheelSteer = {

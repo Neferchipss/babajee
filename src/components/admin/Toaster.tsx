@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 // the one <Toaster /> in the admin layout shows them, newest at the bottom,
 // and lets each fade after a few seconds (errors stay a little longer).
 // They live in the layout, so a notice survives moving to another page.
-export type Tone = "ok" | "bad" | "info";
+type Tone = "ok" | "bad" | "info";
 type Note = { id: number; text: string; tone: Tone; link?: { label: string; href: string } };
 
 const EVENT = "adm-toast";

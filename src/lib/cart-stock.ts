@@ -8,7 +8,7 @@ import { useLiveCatalog } from "./useLiveCatalog";
 // since it went in the jar, or be asking for more than are left. Only
 // options whose stock is counted can be short (catalog-db stockOf); while
 // the live catalogue is loading, nothing is flagged.
-export type LineStock = { out: true } | { left: number } | null;
+type LineStock = { out: true } | { left: number } | null;
 
 export function useCartStock(cart: CartLine[]) {
   const catalog = useLiveCatalog();

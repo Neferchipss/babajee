@@ -54,7 +54,7 @@ const PREFIXES = BRANDS.flatMap(([brand, ...ps]) => ps.map((p) => [p, brand] as 
   (a, b) => b[0].length - a[0].length,
 );
 
-export type Branded = { brand?: string; title: string };
+type Branded = { brand?: string; title: string };
 
 // { brand, title }: title is the name without the brand in front, for
 // showing under the brand. Collaborations ("Raw x Ryot ...") and names that

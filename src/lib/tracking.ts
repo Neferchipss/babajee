@@ -3,7 +3,7 @@
 // Post, Shadowfax) only have a page to type it into, so the number is copied
 // and pasted there. A courier we don't know gets a web search for its
 // tracking, which usually lands on the right page.
-export type TrackLink = { url: string; site: string; direct: boolean };
+type TrackLink = { url: string; site: string; direct: boolean };
 
 const COURIERS: { match: RegExp; site: string; url: (n: string) => string; direct?: false }[] = [
   { match: /delhivery/, site: "Delhivery", url: (n) => `https://www.delhivery.com/track-v2/package/${n}` },

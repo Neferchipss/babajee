@@ -17,7 +17,6 @@ import "./shop-home.css";
 // home rather than a catalogue: warm colours, room to breathe, slow
 // banners, a welcome, and somewhere to sit down (the sections read like
 // rooms).
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const DEFAULT_SECTIONS: HomeSection[] = (["banners", "categories", "best_sellers", "new_arrivals"] as const).map((kind, i) => ({
   id: kind,
   kind,
@@ -313,4 +312,3 @@ export function RichText({ body }: { body: string }) {
   );
 }
 
-export { BASE };

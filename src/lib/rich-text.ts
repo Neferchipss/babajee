@@ -1,7 +1,7 @@
 // A page's body is plain text with a few marks: "## " a heading, "- " a list
 // line, a blank line between paragraphs, **bold**, and [words](/link). Turned
 // into blocks here (never raw HTML), so nothing typed can run on the shop.
-export type Block = { type: "h"; text: string } | { type: "p"; text: string } | { type: "ul"; items: string[] };
+type Block = { type: "h"; text: string } | { type: "p"; text: string } | { type: "ul"; items: string[] };
 export function blocks(body: string): Block[] {
   const out: Block[] = [];
   for (const chunk of body.replace(/\r/g, "").split(/\n{2,}/)) {
@@ -17,7 +17,7 @@ export function blocks(body: string): Block[] {
 }
 
 // inline marks: **bold** and [label](href) (https or a path on the shop only)
-export type Inline = { t: "text"; v: string } | { t: "b"; v: string } | { t: "a"; v: string; href: string };
+type Inline = { t: "text"; v: string } | { t: "b"; v: string } | { t: "a"; v: string; href: string };
 export function inline(text: string): Inline[] {
   const out: Inline[] = [];
   const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https:\/\/[^)\s]+|\/[^)\s]*)\)/g;

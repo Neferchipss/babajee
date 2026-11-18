@@ -77,7 +77,7 @@ const norm = (s: string) =>
     .replace(/[^a-z0-9%/]+/g, " ")
     .trim();
 // names compared without case, spaces or punctuation: "Raw Classic 1¼" = "raw-classic 1 ¼"
-export const nameKey = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "");
+const nameKey = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "");
 
 // which column holds which field: the header row, matched by the names above
 export function mapHeaders(header: string[]): Partial<Record<ImportField, number>> {
@@ -107,11 +107,11 @@ export type ExistingVariant = { id: string; label: string; price: number; compar
 export type ExistingProduct = { id: string; name: string; category_id: string; brand: string; description: string; hsn: string; gst_rate: number | null; tags: string[]; variants: ExistingVariant[] };
 export type ExistingCategory = { id: string; slug: string; name: string };
 
-export type Change = { field: ImportField; from: string; to: string };
+type Change = { field: ImportField; from: string; to: string };
 export type RowProblem = { row: number; message: string };
 
-export type VariantPatch = { price?: number; compare_at?: number | null; sku?: string; barcode?: string; weight_g?: number };
-export type ProductPatch = { brand?: string; description?: string; hsn?: string; gst_rate?: number; tags?: string[] };
+type VariantPatch = { price?: number; compare_at?: number | null; sku?: string; barcode?: string; weight_g?: number };
+type ProductPatch = { brand?: string; description?: string; hsn?: string; gst_rate?: number; tags?: string[] };
 
 export type PlanUpdate = {
   row: number;

@@ -12,7 +12,7 @@ import { can, canOpen, useStaff } from "@/lib/staff";
 // to switch in place: the "adm-nav" event, which the orders and products
 // pages listen for.
 export type Page = { label: string; href: string; count?: keyof HomeCounts | "attention"; warn?: boolean };
-export type Section = { label: string; href: string; icon: ReactNode; pages?: Page[] };
+type Section = { label: string; href: string; icon: ReactNode; pages?: Page[] };
 
 export const I = (d: string) => (
   <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -20,7 +20,7 @@ export const I = (d: string) => (
   </svg>
 );
 
-export const ALL_SECTIONS: Section[] = [
+const ALL_SECTIONS: Section[] = [
   { label: "Home", href: "/admin", icon: I("M3.5 9 10 3.5 16.5 9v7.5h-4.5v-5h-4v5H3.5z") },
   {
     label: "Orders",
@@ -103,7 +103,7 @@ export const ALL_SECTIONS: Section[] = [
   },
 ];
 
-export const KEYS = ["tab", "need"];
+const KEYS = ["tab", "need"];
 
 
 export function useAdminNav() {

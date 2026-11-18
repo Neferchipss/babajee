@@ -15,7 +15,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
 const stack: HTMLElement[] = [];
 
 const shown = (el: HTMLElement) => el.getClientRects().length > 0 && !el.closest("[inert], [aria-hidden='true']");
-export const focusablesIn = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(shown);
+const focusablesIn = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(shown);
 
 type Options = {
   // what to focus on opening: an element, the first control ("first", the

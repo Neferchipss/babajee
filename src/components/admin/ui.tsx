@@ -86,7 +86,6 @@ export function when(iso: string) {
   if (d.getFullYear() === now.getFullYear()) return `${DAY.format(d)} ${t}`;
   return DAY_Y.format(d);
 }
-export const shortDay = (iso: string) => DAY.format(new Date(iso));
 export const money = (n: number) => formatPrice(n, { paise: n % 1 !== 0 });
 
 // Off for "All time": there is no period before it, so no ↑↓ pills and no

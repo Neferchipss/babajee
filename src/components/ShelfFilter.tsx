@@ -13,7 +13,7 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 // on as chips above the products (ActiveFilters), each one tap to remove.
 
 export type Sort = "featured" | "price-asc" | "price-desc" | "discount" | "new" | "az" | "za";
-export const SORTS: { id: Sort; label: string }[] = [
+const SORTS: { id: Sort; label: string }[] = [
   { id: "featured", label: "Featured" },
   { id: "price-asc", label: "Price: low to high" },
   { id: "price-desc", label: "Price: high to low" },
@@ -74,7 +74,7 @@ export function sortProducts(list: CardProduct[], sort: Sort) {
 export const filterCount = (f: Filters) => f.prices.length + f.brands.length + f.cats.length + (f.stock ? 1 : 0) + (f.sale ? 1 : 0);
 
 // what's on, as removable chips: [label, the filters without it]
-export function activeChips(f: Filters): [string, Filters][] {
+function activeChips(f: Filters): [string, Filters][] {
   return [
     ...f.prices.map((id): [string, Filters] => [BANDS.find((b) => b.id === id)?.label ?? id, { ...f, prices: f.prices.filter((x) => x !== id) }]),
     ...(f.stock ? [["In stock", { ...f, stock: false }] as [string, Filters]] : []),

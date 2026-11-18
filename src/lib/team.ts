@@ -26,11 +26,6 @@ export async function listAdmins(): Promise<Admin[]> {
   return (data ?? []) as Admin[];
 }
 
-export async function setAdmin(email: string, on: boolean) {
-  const { error } = await db().rpc("admin_set_admin", { p_email: email, p_on: on });
-  if (error) throw error;
-}
-
 export async function auditLog(opts: { areas?: string[]; actor?: string; before?: number; limit?: number } = {}): Promise<AuditEntry[]> {
   const { data, error } = await db().rpc("admin_audit_log", {
     p_area: opts.areas?.length ? opts.areas.join(",") : null,

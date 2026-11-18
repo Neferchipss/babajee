@@ -14,7 +14,7 @@ import { getSupabase } from "./supabase";
 const ist = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; reclaim: Tax3; warnings: string[] };
+type ReturnData = { sales: SaleDoc[]; cancelled: string[]; bills: PurchaseDoc[]; itcBills: PurchaseDoc[]; reversal: Tax3; reclaim: Tax3; warnings: string[] };
 
 async function receipts(ids: string[]): Promise<Receipt[]> {
   const out: Receipt[] = [];

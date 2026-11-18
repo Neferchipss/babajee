@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useEffect } from "react";
 import { useAdminStyle } from "@/lib/admin-style";
 import AdminNav from "./AdminNav";
@@ -58,14 +57,5 @@ export default function AdminFrame({ children }: { children: React.ReactNode }) 
         <Toaster />
       </RequireAdmin>
     </div>
-  );
-}
-
-// a link to the design picker, for the menus
-export function DesignLink({ className = "" }: { className?: string }) {
-  return (
-    <Link href="/admin/settings/design" className={className}>
-      Admin design
-    </Link>
   );
 }

@@ -25,7 +25,7 @@ function readPref(): ModePref {
   return "system";
 }
 
-export function applyMode() {
+function applyMode() {
   const pref = readPref();
   const mode = pref === "system" ? (prefersLight() ? "light" : "dark") : pref;
   const root = document.documentElement;
