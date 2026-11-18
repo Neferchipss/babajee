@@ -12,6 +12,7 @@ import DeliverTo from "./address/DeliverTo";
 import ProfileMenu from "./ProfileMenu";
 import "./shop-bar.css";
 import { shelfLeaving } from "@/lib/shelf-switch";
+import { buzz } from "@/lib/buzz";
 
 
 // Each category is its own page, so the strip is built afresh on every tap.
@@ -27,11 +28,6 @@ function remember(list: HTMLElement, ink: HTMLElement, from: number) {
   if (!r.width) return;
   carry = { left: list.scrollLeft, x: r.left - box.left + list.scrollLeft, w: r.width, from, t: Date.now() };
 }
-const buzz = () => {
-  try {
-    navigator.vibrate?.(6);
-  } catch {}
-};
 // the underline, under a tab (or where it was)
 function inkAt(i: HTMLElement, x: number, w: number, animate: boolean) {
   i.style.transition = animate ? "" : "none";
@@ -184,7 +180,7 @@ export default function ShopBar({
   const tap = (slug: string, el: HTMLElement) => {
     if (slug === active) return;
     if (slug !== "all") shelfLeaving();
-    buzz();
+    buzz(6);
     pendingRef.current = slug;
     setPending(slug);
     const box = strip.current;

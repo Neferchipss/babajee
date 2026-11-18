@@ -18,6 +18,7 @@ import "./product-sheet.css";
 import { track } from "@/lib/track";
 import { RatingLine, ReviewsPanel } from "./ProductReviews";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { buzz } from "@/lib/buzz";
 
 // set once the swipe hint has shown on this device
 const SWIPE_HINT = "bj-swipe-hint";
@@ -36,12 +37,6 @@ export type SheetProduct = {
 
 // the space between one product's card and the next in the carousel
 const CARD_GAP = 16;
-
-const buzz = (p: number | number[]) => {
-  try {
-    navigator.vibrate?.(p);
-  } catch {}
-};
 
 // A product opened from the shelf, as a card floating over it, with the
 // whole category on a wheel underneath (see ProductWheel). Turning the wheel

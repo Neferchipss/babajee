@@ -3,6 +3,7 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SEE_EVENT } from "./baba/gaze";
 import ProductArt from "./ProductArt";
+import { buzz } from "@/lib/buzz";
 
 type WheelItem = { key: string; name: string; tone: string };
 // How the card drives the wheel: grab it, drag it by fractions of a product,
@@ -24,12 +25,6 @@ const SPAN = 6; // products drawn either side of the middle
 const HOLD_MS = 550;
 
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
-const buzz = (p: number | number[]) => {
-  try {
-    navigator.vibrate?.(p);
-  } catch {}
-};
-
 type Live = {
   pos: number; // where the dial is, in products (fractional while turning)
   vel: number; // products per second

@@ -14,16 +14,11 @@ import { JarArt } from "./CartJar";
 import ProductArt from "./ProductArt";
 import "./cart.css";
 import { useCartStock } from "@/lib/cart-stock";
+import { buzz } from "@/lib/buzz";
 
 export type { RecGroup };
 
 const rs = (n: number | undefined) => formatPrice(n, { paise: true });
-const buzz = (p: number | number[]) => {
-  try {
-    navigator.vibrate?.(p);
-  } catch {}
-};
-
 type Undo = { text: string; restore: () => void };
 
 const Bin = () => (

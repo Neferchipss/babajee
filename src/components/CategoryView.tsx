@@ -22,6 +22,7 @@ import ProductSheet from "./ProductSheet";
 import ProductDesk from "./ProductDesk";
 import { shelfArrived } from "@/lib/shelf-switch";
 import type { ShopTag } from "@/lib/catalog-db";
+import { buzz } from "@/lib/buzz";
 
 type Props = {
   category: { slug: string; name: string; tagline?: string };
@@ -416,9 +417,7 @@ export default function CategoryView({ category, products: snapshot, categories:
                             const v = p.variants![0];
                             addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
                             tossIntoJar(from);
-                            try {
-                              navigator.vibrate?.([10, 40, 10]);
-                            } catch {}
+                            buzz([10, 40, 10]);
                           }
                         : undefined
                     }
