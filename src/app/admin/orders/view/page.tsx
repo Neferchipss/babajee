@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { actionsFor, eventText, STEPS, type OrderAction, type OrderStatus } from "@/lib/order-status";
 import { gstLabel } from "@/lib/gst";
 import { trackLink } from "@/lib/tracking";
-import { addOrderComment, contactsFor, type OrderContact, cameBack, deliveryFailed, FAIL_REASONS, sendAgain, editOrder, errText, getOrder, getSettings, paymentsFor, refundOrder, refundsOf, resolveRequest, setOrderNotes, setStep, settleBalance, setBuyerGstin, updateOrder, undoRefund, type Order, type OrderRequest, type Payment, type Refund } from "@/lib/orders-db";
+import { addOrderComment, contactsFor, type OrderContact, cameBack, deliveryFailed, DELIVERY_DEFAULTS, getDeliveryRules, sendAgain, editOrder, errText, getOrder, getSettings, paymentsFor, refundOrder, refundsOf, resolveRequest, setOrderNotes, setStep, settleBalance, setBuyerGstin, updateOrder, undoRefund, type Order, type OrderRequest, type Payment, type Refund } from "@/lib/orders-db";
 import { Confirm } from "@/components/admin/order/Confirm";
 import { Roadmap, STEP_DO, STEP_LABEL, StepForm } from "@/components/admin/order/Steps";
 import { OrderProfit } from "@/components/admin/order/OrderProfit";
@@ -42,7 +42,9 @@ function OrderView() {
   const [declining, setDeclining] = useState<OrderRequest | null>(null);
   // a failed delivery: recording it, sending it again, the parcel coming back
   const [failing, setFailing] = useState(false);
-  const [failWhy, setFailWhy] = useState(FAIL_REASONS[0]);
+  // the reasons to pick from (Settings › Delivery, 0081)
+  const [reasons, setReasons] = useState(DELIVERY_DEFAULTS.fail_reasons);
+  const [failWhy, setFailWhy] = useState(DELIVERY_DEFAULTS.fail_reasons[0]);
   const [failNote, setFailNote] = useState("");
   const [resending, setResending] = useState(false);
   const [reCarrier, setReCarrier] = useState("");
@@ -61,6 +63,9 @@ function OrderView() {
   useEffect(() => {
     getSettings()
       .then((s) => setMethods(s.payment_methods))
+      .catch(() => {});
+    getDeliveryRules()
+      .then((r) => r && setReasons(r.fail_reasons))
       .catch(() => {});
   }, []);
   const load = useCallback(
@@ -295,7 +300,7 @@ function OrderView() {
               </Link>
             )}
             {o.status === "shipped" && !o.delivery_failed_at && (
-              <button type="button" className="adm-btn" disabled={busy} onClick={() => (setFailWhy(FAIL_REASONS[0]), setFailNote(""), setFailing(true))}>
+              <button type="button" className="adm-btn" disabled={busy} onClick={() => (setFailWhy(reasons[0]), setFailNote(""), setFailing(true))}>
                 Delivery failed
               </button>
             )}
@@ -714,7 +719,7 @@ function OrderView() {
             <label className="adm-label">
               What happened
               <select className="adm-input" value={failWhy} onChange={(e) => setFailWhy(e.target.value)}>
-                {FAIL_REASONS.map((r) => (
+                {reasons.map((r) => (
                   <option key={r}>{r}</option>
                 ))}
               </select>

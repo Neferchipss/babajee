@@ -136,6 +136,23 @@ export async function getCouriers(): Promise<string[] | null> {
   if (error || !data) return null;
   return (data.couriers as string[] | null) ?? [];
 }
+// The delivery rules (0081): failed-delivery reasons and the days after which
+// a shipped order is late. Read on their own: the code's defaults where the
+// database doesn't have them yet (null: not editable there).
+export type DeliveryRules = { fail_reasons: string[]; late_days: number };
+export const DELIVERY_DEFAULTS: DeliveryRules = {
+  fail_reasons: ["Customer not home", "Wrong or incomplete address", "Phone unreachable", "Refused the parcel", "Other"],
+  late_days: 7,
+};
+export async function getDeliveryRules(): Promise<DeliveryRules | null> {
+  const { data, error } = await (await db()).from("store_settings").select("fail_reasons, late_days").eq("id", 1).maybeSingle();
+  if (error || !data) return null;
+  return { fail_reasons: (data.fail_reasons as string[] | null)?.length ? (data.fail_reasons as string[]) : DELIVERY_DEFAULTS.fail_reasons, late_days: Number(data.late_days) || DELIVERY_DEFAULTS.late_days };
+}
+export async function saveDeliveryRules(r: DeliveryRules) {
+  const { error } = await (await db()).from("store_settings").update(r).eq("id", 1);
+  if (error) throw error;
+}
 export async function saveCouriers(list: string[]) {
   const { error } = await (await db()).from("store_settings").update({ couriers: list }).eq("id", 1);
   if (error) throw error;

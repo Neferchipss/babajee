@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnalyticsTabs, RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { dayLabel } from "@/lib/dates";
-import { errText, LATE_DAYS, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
+import { errText, report, type ReportKind, type ReportRow } from "@/lib/orders-db";
 
 // Report tables: one date range, one report at a time, every column sortable,
 // totals at the foot, and the whole table downloadable as CSV for a
@@ -113,7 +113,7 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "delivered", label: "Delivered", fmt: "count", total: true },
       { key: "delivered_rate", label: "Delivered %", fmt: "pct" },
       { key: "on_the_way", label: "On the way", fmt: "count", total: true },
-      { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
+      { key: "late", label: "Late", fmt: "count", total: true },
       { key: "failed", label: "Failed", fmt: "count", total: true },
       { key: "came_back", label: "Returned to origin (RTO)", csv: "Came back", fmt: "count", total: true },
       { key: "avg_days", label: "Avg days", fmt: "num" },
@@ -130,7 +130,7 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
       { key: "delivered", label: "Delivered", fmt: "count", total: true },
       { key: "delivered_rate", label: "Delivered %", fmt: "pct" },
       { key: "on_the_way", label: "On the way", fmt: "count", total: true },
-      { key: "late", label: `Out ${LATE_DAYS}+ days`, fmt: "count", total: true },
+      { key: "late", label: "Late", fmt: "count", total: true },
       { key: "failed", label: "Failed", fmt: "count", total: true },
       { key: "avg_days", label: "Avg days", fmt: "num" },
       { key: "slowest", label: "Slowest (days)", fmt: "num" },
@@ -139,7 +139,7 @@ const REPORTS: { id: ReportKind; label: string; about: string; cols: Col[] }[] =
   {
     id: "late",
     label: "Late deliveries",
-    about: `Every order shipped ${LATE_DAYS} or more days ago and still not delivered, longest first, whatever the dates above. Chase these with the courier or the customer.`,
+    about: "Every order shipped and still not delivered after the days set in Settings › Delivery (7 unless changed), longest first, whatever the dates above. Chase these with the courier or the customer.",
     cols: [
       { key: "order", label: "Order", fmt: "text", href: (r) => `/admin/orders/view?id=${r.order_id}` },
       { key: "customer", label: "Customer", fmt: "text" },
@@ -431,7 +431,7 @@ export default function ReportsPage() {
         {!rows && !err ? (
           <p className="adm-muted">Loading.</p>
         ) : rows && rows.length === 0 ? (
-          <p className="adm-muted rpt-empty">{kind === "late" ? `Nothing late: every order shipped ${LATE_DAYS}+ days ago has arrived.` : "Nothing in this range."}</p>
+          <p className="adm-muted rpt-empty">{kind === "late" ? "Nothing late: every order shipped long enough ago has arrived." : "Nothing in this range."}</p>
         ) : (
           rows && (
             <div className="rpt-scroll">

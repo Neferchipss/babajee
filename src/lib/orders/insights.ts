@@ -1,3 +1,4 @@
+import { getDeliveryRules } from "./stock";
 import { db } from "./core";
 
 export type HomeCounts = Record<"requests" | "unpaid" | "to_pack" | "to_ship" | "in_transit" | "out_of_stock" | "low_stock" | "unpriced", number>;
@@ -189,13 +190,15 @@ export type ShipRow = {
 export async function deliveryReport(kind: DeliveryKind, from: string, to: string): Promise<ReportRow[]> {
   const DAY = 864e5;
   const now = Date.now();
+  // Settings › Delivery (0081), else the default
+  const lateDays = (await getDeliveryRules().catch(() => null))?.late_days ?? LATE_DAYS;
   let q = (await db())
     .from("shipments")
     .select("carrier, tracking_number, shipped_at, delivered_at, orders(id, order_number, contact_name, address_city, address_state, status, delivery_attempts)")
     .not("shipped_at", "is", null)
     .order("shipped_at", { ascending: true })
     .limit(5000);
-  if (kind === "late") q = q.is("delivered_at", null).lt("shipped_at", new Date(now - LATE_DAYS * DAY).toISOString());
+  if (kind === "late") q = q.is("delivered_at", null).lt("shipped_at", new Date(now - lateDays * DAY).toISOString());
   else q = q.gte("shipped_at", `${from}T00:00:00+05:30`).lte("shipped_at", `${to}T23:59:59.999+05:30`);
   const { data, error } = await q;
   if (error) throw error;
@@ -237,7 +240,7 @@ export async function deliveryReport(kind: DeliveryKind, from: string, to: strin
       shipped: list.length,
       delivered: done.length,
       on_the_way: out.length,
-      late: out.filter((r) => now - new Date(r.shipped_at!).getTime() >= LATE_DAYS * DAY).length,
+      late: out.filter((r) => now - new Date(r.shipped_at!).getTime() >= lateDays * DAY).length,
       failed: list.filter((r) => r.orders!.delivery_attempts > 0).length,
       came_back: list.filter((r) => !r.delivered_at && r.orders!.status === "refunded").length,
       avg_days: days.length ? Math.round((days.reduce((a, b) => a + b, 0) / days.length) * 10) / 10 : null,

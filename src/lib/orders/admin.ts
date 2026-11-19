@@ -73,7 +73,6 @@ export async function contactsFor(orderIds: string[]): Promise<Map<string, Order
 }
 // Failed deliveries (0039): the courier couldn't deliver a shipped order;
 // then it's sent again, or it came back and is closed after its refund.
-export const FAIL_REASONS = ["Customer not home", "Wrong or incomplete address", "Phone unreachable", "Refused the parcel", "Other"];
 export async function deliveryFailed(id: string, reason: string, note = "") {
   const { error } = await (await db()).rpc("admin_delivery_failed", { p_order: id, p_reason: reason, p_note: note });
   if (error) throw error;

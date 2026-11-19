@@ -6,7 +6,7 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
-import { errText, getCouriers, getSettings, saveCouriers, saveSettings, type StoreSettings } from "@/lib/orders-db";
+import { errText, getCouriers, getDeliveryRules, getSettings, saveCouriers, saveDeliveryRules, saveSettings, type DeliveryRules, type StoreSettings } from "@/lib/orders-db";
 import { can, useStaff } from "@/lib/staff";
 import { downloadAllData } from "@/lib/export-all";
 
@@ -502,6 +502,7 @@ export default function SettingsPage() {
       </form>
 
       {topic === "delivery" && <Couriers editable={editable} />}
+      {topic === "delivery" && <DeliveryRulesCard editable={editable} />}
       {topic === "data" && <DataExport />}
     </div>
   );
@@ -551,6 +552,73 @@ function Couriers({ editable }: { editable: boolean }) {
             <button type="button" className="adm-btn pri" style={{ justifySelf: "start" }} disabled={busy} onClick={go}>
               {busy ? "Saving" : "Save couriers"}
             </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+// failed-delivery reasons and when a shipment counts as late (0081), saved on their own
+function DeliveryRulesCard({ editable }: { editable: boolean }) {
+  const [rules, setRules] = useState<DeliveryRules | null | undefined>(undefined);
+  const [reasons, setReasons] = useState("");
+  const [late, setLate] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    getDeliveryRules()
+      .then((r) => {
+        setRules(r);
+        if (r) {
+          setReasons(r.fail_reasons.join(", "));
+          setLate(String(r.late_days));
+        }
+      })
+      .catch(() => setRules(null));
+  }, []);
+  const next: DeliveryRules = { fail_reasons: [...new Set(reasons.split(",").map((x) => x.trim()).filter(Boolean))], late_days: Math.round(Number(late) || 0) };
+  const dirty = !!rules && (next.fail_reasons.join(",") !== rules.fail_reasons.join(",") || next.late_days !== rules.late_days);
+  async function go() {
+    if (!next.fail_reasons.length || next.fail_reasons.length > 12 || next.fail_reasons.some((x) => x.length > 60)) return toastError("List 1 to 12 reasons, each up to 60 characters.");
+    if (next.late_days < 1 || next.late_days > 60) return toastError("Late is 1 to 60 days after shipping.");
+    setBusy(true);
+    try {
+      await saveDeliveryRules(next);
+      setRules(next);
+      toast("Delivery rules saved");
+    } catch (e) {
+      toastError(e);
+    }
+    setBusy(false);
+  }
+  return (
+    <section className="adm-card" style={{ display: "grid", gap: 12, maxWidth: 560, marginTop: 16 }}>
+      <h2 style={{ margin: 0 }}>Delivery problems</h2>
+      {rules === null ? (
+        <p className="adm-muted adm-small" style={{ margin: 0 }}>
+          These need a database update (0081) that hasn&apos;t been applied yet. Until then the standard reasons and 7 days are used.
+        </p>
+      ) : (
+        <>
+          <label className="adm-label">
+            Reasons a delivery can fail, separated by commas
+            <input className="adm-input" value={reasons} disabled={rules === undefined || !editable} onChange={(e) => setReasons(e.target.value)} />
+            <span className="adm-muted adm-small">The choices when you record a failed delivery on an order. Orders already marked keep the reason they were given.</span>
+          </label>
+          <label className="adm-label">
+            Days after shipping before an order counts as late
+            <input className="adm-input" inputMode="numeric" value={late} disabled={rules === undefined || !editable} onChange={(e) => setLate(e.target.value.replace(/\D/g, ""))} />
+            <span className="adm-muted adm-small">Late orders are listed in Analytics › Reports › Late deliveries, to chase with the courier.</span>
+          </label>
+          {editable && dirty && (
+            <span className="adm-actions">
+              <button type="button" className="adm-btn" onClick={() => (setReasons(rules!.fail_reasons.join(", ")), setLate(String(rules!.late_days)))}>
+                Discard
+              </button>
+              <button type="button" className="adm-btn pri" disabled={busy} onClick={go}>
+                {busy ? "Saving" : "Save delivery problems"}
+              </button>
+            </span>
           )}
         </>
       )}
