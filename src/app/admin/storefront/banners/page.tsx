@@ -78,6 +78,18 @@ function BannerEditor({ b, first, last, onMove, onChanged }: { b: Banner; first:
   const dirty = JSON.stringify(d) !== JSON.stringify(b);
   const set = (p: Partial<Banner>) => setD({ ...d, ...p });
 
+  // On the homepage: saves at once, on its own (other edits wait for Save), with Undo
+  async function show(on: boolean) {
+    setD((x) => ({ ...x, is_visible: on }));
+    try {
+      await saveRow("site_banners", { id: d.id, is_visible: on });
+      toast(on ? "Banner on the homepage" : "Banner off the homepage", { undo: () => void show(!on) });
+      onChanged();
+    } catch (e) {
+      setD((x) => ({ ...x, is_visible: !on }));
+      toastError(errText(e));
+    }
+  }
   async function save(patch: Partial<Banner> = {}) {
     const next = { ...d, ...patch };
     for (const u of [next.link_url, next.image_url])
@@ -116,7 +128,7 @@ function BannerEditor({ b, first, last, onMove, onChanged }: { b: Banner; first:
     <article className="adm-card sfm-item">
       <div className="sfm-item-head">
         <label className="adm-small sfm-show">
-          <input type="checkbox" checked={d.is_visible} disabled={busy} onChange={(e) => save({ is_visible: e.target.checked })} /> On the homepage
+          <input type="checkbox" checked={d.is_visible} disabled={busy} onChange={(e) => show(e.target.checked)} /> On the homepage
         </label>
         <span className="col-move">
           <button type="button" aria-label="Move up" disabled={first} onClick={() => onMove(-1)}>

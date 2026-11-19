@@ -65,6 +65,18 @@ export default function MenusPage() {
 function MenuRow({ m, first, last, onMove, onChanged }: { m: MenuLink; first: boolean; last: boolean; onMove: (d: number) => void; onChanged: () => void }) {
   const [d, setD] = useState(m);
   const dirty = JSON.stringify(d) !== JSON.stringify(m);
+  // Shown: saves at once, on its own, with Undo
+  async function show(on: boolean) {
+    setD((x) => ({ ...x, is_visible: on }));
+    try {
+      await saveRow("site_menus", { id: d.id, is_visible: on });
+      toast(on ? `${d.label} shown` : `${d.label} hidden`, { undo: () => void show(!on) });
+      onChanged();
+    } catch (e) {
+      setD((x) => ({ ...x, is_visible: !on }));
+      toastError(errText(e));
+    }
+  }
   async function save(x: Partial<MenuLink> = {}) {
     const next = { ...d, ...x };
     if (!/^(https:\/\/|\/)/.test(next.href)) {
@@ -82,7 +94,7 @@ function MenuRow({ m, first, last, onMove, onChanged }: { m: MenuLink; first: bo
   return (
     <div className="sfm-sec-fields">
       <label className="adm-small sfm-show">
-        <input type="checkbox" checked={d.is_visible} onChange={(e) => save({ is_visible: e.target.checked })} /> Shown
+        <input type="checkbox" checked={d.is_visible} onChange={(e) => show(e.target.checked)} /> Shown
       </label>
       <input className="adm-input" maxLength={40} value={d.label} aria-label="Words" onChange={(e) => setD({ ...d, label: e.target.value })} />
       <input className="adm-input" maxLength={300} value={d.href} aria-label="Goes to" placeholder="/pages/view/?slug=about-us" onChange={(e) => setD({ ...d, href: e.target.value })} />

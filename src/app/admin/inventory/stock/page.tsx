@@ -118,7 +118,8 @@ function Stock() {
     try {
       const m = await import("@/lib/stock-in/db");
       await m.setCounting(r.v.id, on, note);
-      toast(on ? `Counting ${r.p.name}${r.v.label !== "Default" ? ` · ${r.v.label}` : ""}` : "Stopped counting");
+      // put back with one click (the history keeps both lines)
+      toast(on ? `Counting ${r.p.name}${r.v.label !== "Default" ? ` · ${r.v.label}` : ""}` : "Stopped counting", { undo: () => void counting(r, !on, "Undone") });
       await load();
     } catch (e) {
       toastError(errText(e));

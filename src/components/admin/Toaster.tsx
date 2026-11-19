@@ -9,14 +9,15 @@ import { useEffect, useRef, useState } from "react";
 // and lets each fade after a few seconds (errors stay a little longer).
 // They live in the layout, so a notice survives moving to another page.
 type Tone = "ok" | "bad" | "info";
-type Note = { id: number; text: string; tone: Tone; link?: { label: string; href: string } };
+// undo: a switch that saved at once can be put back for 5 seconds
+type Note = { id: number; text: string; tone: Tone; link?: { label: string; href: string }; undo?: () => void };
 
 const EVENT = "adm-toast";
 let next = 1;
 
-export function toast(text: string, opts: { tone?: Tone; link?: { label: string; href: string } } = {}) {
+export function toast(text: string, opts: { tone?: Tone; link?: { label: string; href: string }; undo?: () => void } = {}) {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<Note>(EVENT, { detail: { id: next++, text, tone: opts.tone ?? "ok", link: opts.link } }));
+  window.dispatchEvent(new CustomEvent<Note>(EVENT, { detail: { id: next++, text, tone: opts.tone ?? "ok", link: opts.link, undo: opts.undo } }));
 }
 
 // a failure as a notice, with the database's own sentence when it has one
@@ -35,7 +36,7 @@ export function Toaster() {
     timers.current.delete(id);
     setNotes((ns) => ns.filter((n) => n.id !== id));
   };
-  const arm = (n: Note) => timers.current.set(n.id, setTimeout(() => drop(n.id), n.tone === "bad" ? 6000 : 3500));
+  const arm = (n: Note) => timers.current.set(n.id, setTimeout(() => drop(n.id), n.tone === "bad" ? 6000 : n.undo ? 5000 : 3500));
 
   useEffect(() => {
     const t = timers.current;
@@ -71,6 +72,18 @@ export function Toaster() {
             <Link href={n.link.href} className="adm-toast-link" onClick={() => drop(n.id)}>
               {n.link.label}
             </Link>
+          )}
+          {n.undo && (
+            <button
+              type="button"
+              className="adm-toast-link"
+              onClick={() => {
+                n.undo!();
+                drop(n.id);
+              }}
+            >
+              Undo
+            </button>
           )}
           <button type="button" className="adm-toast-x" aria-label="Dismiss" onClick={() => drop(n.id)}>
             ×

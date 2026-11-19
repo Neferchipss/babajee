@@ -71,11 +71,13 @@ export default function StorefrontPage() {
       delete n[id];
       return n;
     });
-  async function update(s: HomeSection, patch: Partial<HomeSection>, said = "Saved") {
+  async function update(s: HomeSection, patch: Partial<HomeSection>, said = "Saved", undoable = false) {
     setSections((l) => (l ?? []).map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
     try {
       await saveRow("home_sections", { id: s.id, ...patch });
-      toast(said);
+      // a switch can be put back: the fields as they were before
+      const was = Object.fromEntries(Object.keys(patch).map((k) => [k, s[k as keyof HomeSection]])) as Partial<HomeSection>;
+      toast(said, undoable ? { undo: () => void update({ ...s, ...patch }, was, "Undone") } : {});
     } catch (e) {
       toastError(errText(e));
       void reload();
@@ -228,7 +230,7 @@ export default function StorefrontPage() {
                       <textarea className="adm-input" rows={3} value={draftOf(s).body} maxLength={2000} placeholder="A few words about the shop" aria-label="Words" onChange={(e) => setDrafts((d) => ({ ...d, [s.id]: { ...d[s.id], body: e.target.value } }))} />
                     )}
                     <label className="adm-small sfm-show">
-                      <input type="checkbox" checked={s.is_visible} onChange={(e) => update(s, { is_visible: e.target.checked }, e.target.checked ? "Shown on the homepage" : "Hidden from the homepage")} /> Shown
+                      <input type="checkbox" checked={s.is_visible} onChange={(e) => update(s, { is_visible: e.target.checked }, e.target.checked ? "Shown on the homepage" : "Hidden from the homepage", true)} /> Shown
                     </label>
                     {dirty(s) && (
                       <span className="adm-actions">

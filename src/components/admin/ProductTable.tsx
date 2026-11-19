@@ -43,7 +43,8 @@ export default function ProductTable({
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
   // msg: what the notice says; by default "Saved · <product>"
-  onSave: (id: string, work: () => Promise<unknown>, msg?: string) => Promise<void>;
+  // undo: puts a one-click change (the status) back, offered on its toast
+  onSave: (id: string, work: () => Promise<unknown>, msg?: string, undo?: () => Promise<unknown>) => Promise<void>;
   // a new product, filled in on the sheet's empty first row
   onCreate: (d: NewRow) => Promise<void>;
   // asks before deleting; the page holds the confirm
@@ -103,7 +104,7 @@ export default function ProductTable({
               const n = needsOf(p);
               const photo = p.images[0]?.url ?? photosFor(p.slug)[0];
               const one = p.variants.length === 1 ? p.variants[0] : null;
-              const save = (work: () => Promise<unknown>, msg?: string) => onSave(p.id, work, msg);
+              const save = (work: () => Promise<unknown>, msg?: string, undo?: () => Promise<unknown>) => onSave(p.id, work, msg, undo);
               const expanded = !one && open.has(p.id);
               return (
                 <Fragment key={p.id}>
@@ -177,7 +178,7 @@ export default function ProductTable({
                       </span>
                     </td>
                     <td className="c-shop">
-                      <StatusPick value={p.status} label={p.name} onPick={(st) => save(() => api.setProductStatus(p, st), `${p.name}: ${STATUS_LABEL[st]}`)} />
+                      <StatusPick value={p.status} label={p.name} onPick={(st) => save(() => api.setProductStatus(p, st), `${p.name}: ${STATUS_LABEL[st]}`, () => api.setProductStatus({ ...p, status: st }, p.status))} />
                     </td>
                     <td className="c-open">
                       {onDelete && (

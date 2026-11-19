@@ -119,7 +119,6 @@ function ProductsAdmin() {
     setLoading(false);
   }
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the catalogue, read once on arrival
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -394,12 +393,12 @@ function ProductsAdmin() {
             onDelete={mayDelete ? (p) => setDeleting([p]) : undefined}
             category={cat}
             sold={sold}
-            onSave={async (id, work, msg) => {
+            onSave={async function onSave(id, work, msg, undo) {
               try {
                 await work();
                 const fresh = await api.getProduct(id);
                 if (fresh) replace(fresh);
-                toast(msg ?? `Saved · ${fresh?.name ?? "product"}`);
+                toast(msg ?? `Saved · ${fresh?.name ?? "product"}`, undo ? { undo: () => void onSave(id, undo, `Undone · ${fresh?.name ?? "product"}`, undefined) } : {});
               } catch (e) {
                 setErr(errText(e));
       toastError(e);
