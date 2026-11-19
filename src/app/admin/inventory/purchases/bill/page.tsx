@@ -44,7 +44,7 @@ function Bill() {
     setBusy(true);
     try {
       await voidReceipt(id);
-      toast("Bill cancelled, stock reversed.");
+      toast("Bill voided, stock reversed.");
       setAsking(false);
       await load();
     } catch (x) {
@@ -197,8 +197,8 @@ function Bill() {
 
         {!void_ &&
           (asking ? (
-            <div className="sti-confirm" role="alertdialog" aria-label="Cancel bill">
-              <p className="sti-voidnote">Cancel this bill? Its stock will be reversed.</p>
+            <div className="sti-confirm" role="alertdialog" aria-label="Void bill">
+              <p className="sti-voidnote">Void this bill? Its stock will be reversed.</p>
               <p className="adm-small">The {items} item{items === 1 ? "" : "s"} on it are taken back out of stock, and its GST stops counting. The bill stays here, marked as voided.</p>
               <div className="adm-actions">
                 <button type="button" className="adm-btn bad" disabled={busy} onClick={doVoid}>
@@ -212,7 +212,7 @@ function Bill() {
           ) : (
             <div className="adm-actions">
               <button type="button" className="adm-btn bad" onClick={() => setAsking(true)}>
-                Cancel bill
+                Void bill
               </button>
             </div>
           ))}

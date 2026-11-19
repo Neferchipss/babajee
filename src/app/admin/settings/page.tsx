@@ -229,7 +229,7 @@ export default function SettingsPage() {
       {/* who can use the admin, and everything they changed (phones: the sidebar has them) */}
       <div className="adm-chips adm-only-narrow" style={{ marginBottom: 16 }}>
         <Link href="/admin/settings/team" className="adm-chip">
-          Admins →
+          Team and roles →
         </Link>
         <Link href="/admin/settings/activity" className="adm-chip">
           Activity log →

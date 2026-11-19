@@ -9,7 +9,7 @@ import { mainPrice } from "./ProductBasics";
 
 // The last stock changes for this product's options: sales, cancelled orders put
 // back, refunds restocked, and counts edited by hand.
-export const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund reversed", manual: "Manual edit", stock_in: "Purchase", void: "Bill cancelled", correction: "Stock adjustment" } as const;
+export const REASON = { sale: "Sold", cancel: "Order cancelled", refund: "Refund restock", return: "Returned", edit: "Order edited", undo: "Refund reversed", manual: "Manual edit", stock_in: "Purchase", void: "Bill voided", correction: "Stock adjustment" } as const;
 export type Move = Awaited<ReturnType<typeof import("@/lib/orders-db").stockHistory>>[number];
 export function StockHistory({ variants }: { variants: AdminVariant[] }) {
   const [moves, setMoves] = useState<Move[] | null>(null);

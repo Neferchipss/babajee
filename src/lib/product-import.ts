@@ -50,7 +50,7 @@ export const FIELD_LABELS: Record<ImportField, string> = {
   gst_rate: "GST %",
   purchase: "Buying price",
   weight_g: "Weight (g)",
-  tags: "Search tags",
+  tags: "Search keywords",
 };
 
 const ALIASES: Record<ImportField, string[]> = {
@@ -68,7 +68,7 @@ const ALIASES: Record<ImportField, string[]> = {
   gst_rate: ["gst", "gst %", "gst rate", "tax", "tax rate", "gst%"],
   purchase: ["purchase", "purchase price", "buying price", "cost", "cost price", "landing price", "cp"],
   weight_g: ["weight", "weight g", "weight (g)", "grams", "weight in grams"],
-  tags: ["tags", "keywords", "search tags"],
+  tags: ["tags", "keywords", "search tags", "search keywords"],
 };
 
 const norm = (s: string) =>
@@ -376,4 +376,4 @@ export function planSummary(p: ImportPlan): string {
 }
 
 // a sheet to start from, with every column the import reads
-export const TEMPLATE_HEADER = ["Product", "Category", "Option", "Selling price", "Was price", "Stock", "SKU", "Barcode", "Brand", "HSN", "GST %", "Buying price", "Weight (g)", "Tags", "Description"];
+export const TEMPLATE_HEADER = ["Product", "Category", "Option", "Selling price", "Was price", "Stock", "SKU", "Barcode", "Brand", "HSN", "GST %", "Buying price", "Weight (g)", "Search keywords", "Description"];

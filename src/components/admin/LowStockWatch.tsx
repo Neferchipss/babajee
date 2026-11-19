@@ -47,7 +47,7 @@ export default function LowStockWatch({ onCount }: { onCount: (n: number) => voi
       if (!before) return; // first time in this browser: nothing is "new"
       const fresh = list.filter((i) => !before.has(key(i)));
       if (!fresh.length) return;
-      const title = fresh.length === 1 ? (fresh[0].out ? "Out of stock" : "Running low") : `${fresh.length} options running low`;
+      const title = fresh.length === 1 ? (fresh[0].out ? "Out of stock" : "Low stock") : `${fresh.length} options low on stock`;
       const body = fresh.slice(0, 4).map(line).join("\n") + (fresh.length > 4 ? `\n+${fresh.length - 4} more` : "");
       toast(`${title}: ${fresh.slice(0, 2).map(line).join("; ")}${fresh.length > 2 ? "…" : ""}`);
       try {

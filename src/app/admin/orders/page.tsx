@@ -217,11 +217,11 @@ function Orders() {
         <button type="button" className="adm-btn" disabled={!shown.length} onClick={() => setExporting(true)}>
           Export
         </button>
-        <Link href="/admin/orders/new" className="adm-btn pri ord-new" aria-label="Create order">
+        <Link href="/admin/orders/new" className="adm-btn pri ord-new" aria-label="New order">
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M10 4v12M4 10h12" />
           </svg>
-          <span>Create order</span>
+          <span>New order</span>
         </Link>
       </div>
 

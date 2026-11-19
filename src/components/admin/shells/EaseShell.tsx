@@ -17,7 +17,7 @@ const JOBS: { label: string; href: string; count?: Page["count"]; about: string 
   { label: "Orders to pack", href: "/admin/orders?tab=paid", count: "to_pack", about: "Paid and ready to pack" },
   { label: "Ready to send", href: "/admin/orders?tab=packed", count: "to_ship", about: "Packed, waiting for the courier" },
   { label: "Customer requests", href: "/admin/orders?tab=requests", count: "requests", about: "Cancellations and returns to answer" },
-  { label: "Running low", href: "/admin/inventory/stock?show=low", count: "low_stock", about: "Products to reorder" },
+  { label: "Low stock", href: "/admin/inventory/stock?show=low", count: "low_stock", about: "Products to reorder" },
   { label: "Add a product", href: "/admin/products/new", about: "Put something new on the shop" },
 ];
 const BOTTOM = ["/admin", "/admin/orders", "/admin/products", "/admin/customers"];
