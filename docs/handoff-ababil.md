@@ -2,25 +2,25 @@
 
 For the Claude session reviewing or merging this branch. `ababil` is 19 commits ahead of `origin/main` (first: `7dd5c11`) and 0 behind; it merges as a fast-forward. Read the commit messages: each one lists what it changed.
 
-## Before merging: four migrations, not applied anywhere live
+## Migrations
+
+0077 to 0080 are applied live. Still to do from that session: run Catalogue › Categories › "Fill from product names" on each type.
+
+**Pending, not applied anywhere live:**
 
 | Migration | What it does | Test |
 |---|---|---|
-| `0077_catalog_staff.sql` | Storefront/catalogue staff (`staff_can('catalog')`) get box sizes/presets, read on costs, stock movements, suppliers and bills; ~15 stock/purchase RPCs switch from `is_admin()` to `staff_can('catalog')` (DO block rewrites their bodies via `pg_get_functiondef`). Adds `profiles.admin_design` (current/shopify/ease/studio) with `grant update (admin_design)`. | `supabase/tests/0077_catalog_staff.test.sql` |
-| `0078_stock_counting.sql` | `admin_set_counting(variant, on, note)`: start/stop counting stock per option; keeps the number; refuses boxes and bundles; logs a `stock_movements` line. | `0078_stock_counting.test.sql` |
-| `0079_settings_screens.sql` | `store_settings.couriers text[]` (default list, max 20, no empty names); `admin_set_hidden(profile, bool)` for the 0046 hidden flag, `staff_can('team')` only. | `0079_settings_screens.test.sql` |
-| `0080_one_customer.sql` | `admin_customer(p_id)`: one row of `admin_customers()` (same columns and rules). | `0080_one_customer.test.sql` |
+| `0081_delivery_rules.sql` | `store_settings.fail_reasons text[]` (1 to 12, no empty) and `late_days int` (1 to 60, default 7). Settings › Delivery edits them; the order page's failed-delivery reasons and the late-deliveries report read them. | `0081_delivery_rules.test.sql` |
+| `0082_look_staff_read.sql` | Front-end staff (`staff_can('look')`) can read every collection, collection item and category, hidden ones included, for the homepage pickers. Read only. | `0082_look_staff_read.test.sql` |
+| `0083_one_low_stock_rule.sql` | `admin_home_counts()` counts out-of-stock and low-stock options only on active products, the same rule as `admin_low_stock()` and Inventory › Stock. | `0083_one_low_stock_rule.test.sql` |
 
-- Each test passes with `scripts/test-sql.sh <migration> <test>`: one transaction, always rolled back, and `[]` means pass. Each test also fails when run against an empty migration (negative control).
-- `supabase/tests/0072_staff_roles.test.sql` line 59 was changed. The client decided the storefront role sees costs, so that line no longer asserts they can't.
-- The client wants these applied together with you, not by this branch. After applying them, run Catalogue › Categories › "Fill from product names" for each type to create sub-categories from the live product names.
+- Each test passes with `scripts/test-sql.sh <migration> <test>` (rolled back, `[]` = pass) and fails without its migration.
+- **Before they're applied:** the code reads 0081's columns separately and falls back to its defaults (Settings shows a "needs 0081" note); without 0082, front-end pickers simply don't list hidden shelves; without 0083, Home's out-of-stock count still includes drafts.
 
-**The UI is safe before the migrations are applied:**
-- the courier list (0079) reads and saves separately and shows a "needs 0079" note when the column is missing;
-- `getCustomer` (0080) falls back to `listCustomers()` when it gets PGRST202 or 42883;
-- `admin_design` (0077) falls back to localStorage.
-
-Screens that call 0078's RPC or 0079's `admin_set_hidden` show the database error until those migrations are applied.
+**Not removed, needs a decision:**
+- `products.subcategory` (the old text label) is still read by the shop's shelves and product cards.
+- `products.product_type` is still read by the admin.
+- `admin_purchase_gst` is unused.
 
 ## What changed (by area)
 
@@ -68,8 +68,23 @@ Screens that call 0078's RPC or 0079's `admin_set_hidden` show the database erro
 - Before each commit: `tsc --noEmit` (delete `.next/types` if it reports stale errors), eslint, `npm test`, and a postcss parse of changed CSS. All pass on the branch head, with 92 tests.
 - User-facing text is plain and short. Commit messages say what changed for the shop.
 
+## Since the merge
+
+- Inventory has two new pages: Suppliers and Stock history.
+- Settings changes:
+  - each topic saves on its own;
+  - the store account sees GST and Delivery read only;
+  - Delivery problems (0081).
+- Switches that save at once get an Undo on their notice for 5 seconds.
+- Wording matches the plan: Void bill, New order, Low stock, Search keywords.
+- Analytics Overview no longer repeats Traffic.
+- Role check run against the database, in a rolled-back transaction: every page's reads and writes match its role.
+- Fixed: page access ignores `#`/`?`. Before this, Profit and GST showed for every role.
+- Shop buttons, fields and links take their colours from the design tokens, with one `.link` class.
+
 ## Not done
 
-- One styling approach for shop buttons and fields: about 15 shop files mix Tailwind utilities with plain CSS. This needs its own pass with before/after screenshots.
+- Shop layout still uses Tailwind utilities alongside plain CSS. Buttons, fields and links are now one style; the layout utilities read the same tokens and were left.
+- "Email sent / not sent" on an order: nothing records it yet (notifications are off).
 - The side panel's Pricing section can still set a buying price on options whose stock isn't counted. Whether to make it read-only is the client's call.
 - Product option weights/sizes, box sizes and "what's in the set" depend on data entered in the admin. There are no box options live yet, so "₹x each" hasn't been seen with real data.
