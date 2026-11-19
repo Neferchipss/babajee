@@ -40,11 +40,18 @@ function menus(): Promise<MenuLink[]> {
 export function Announcement() {
   const [a, setA] = useState<{ text: string; link: string } | null>(null);
   useEffect(() => {
-    // the look (announcement and the shop design), read once per visit
+    // the look (announcement and the shop design): the tab's last copy at
+    // once, then the live one on every full page load, so a design switched in
+    // Admin > Storefront shows on whichever page the shop is opened on
     const had = cached<{ text: string; link: string; design?: string }>(LOOK_KEY);
     let live = true;
-    (had?.design ? Promise.resolve(had) : getLook().then((l) => ({ text: l.announcement, link: l.announcement_link, design: l.design }))).then((x) => {
+    if (had) {
+      setA(had);
+      applyShopDesign(had.design);
+    }
+    getLook().then((l) => {
       if (!live) return;
+      const x = { text: l.announcement, link: l.announcement_link, design: l.design };
       keep(LOOK_KEY, x);
       setA(x);
       applyShopDesign(x.design);
