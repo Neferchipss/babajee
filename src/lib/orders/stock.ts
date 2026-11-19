@@ -12,24 +12,30 @@ export type StockMove = {
   order_id: string | null;
   created_at: string;
   product_name: string;
+  product_id: string | null;
   label: string;
   order_number: string | null;
 };
-export async function stockHistory(variantIds?: string[]): Promise<StockMove[]> {
+// The stock changes, newest first: for some options (a product's history), or
+// the whole shop's (Inventory › Stock history), a page at a time (before: the
+// oldest created_at already shown).
+export async function stockHistory(variantIds?: string[], opts: { limit?: number; before?: string } = {}): Promise<StockMove[]> {
   let q = (await db())
     .from("stock_movements")
-    .select("id, variant_id, delta, qty_after, reason, order_id, receipt_id, note, created_at, product_variants(label, products(name)), orders(order_number)")
+    .select("id, variant_id, delta, qty_after, reason, order_id, receipt_id, note, created_at, product_variants(label, product_id, products(name)), orders(order_number)")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(opts.limit ?? 200);
   if (variantIds) q = q.in("variant_id", variantIds);
+  if (opts.before) q = q.lt("created_at", opts.before);
   const { data, error } = await q;
   if (error) throw error;
-  type Row = Omit<StockMove, "product_name" | "label" | "order_number"> & {
-    product_variants: { label: string; products: { name: string } | null } | null;
+  type Row = Omit<StockMove, "product_name" | "label" | "order_number" | "product_id"> & {
+    product_variants: { label: string; product_id: string; products: { name: string } | null } | null;
     orders: { order_number: string } | null;
   };
   return ((data ?? []) as unknown as Row[]).map(({ product_variants, orders, ...m }) => ({
     ...m,
+    product_id: product_variants?.product_id ?? null,
     product_name: product_variants?.products?.name ?? "Removed product",
     label: product_variants?.label ?? "",
     order_number: orders?.order_number ?? null,

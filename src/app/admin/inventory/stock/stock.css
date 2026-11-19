@@ -18,3 +18,7 @@
 .prd-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .prd-linkbtn { background: none; border: 0; padding: 0; color: var(--adm-gold); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .inv-manage .stk > h3 { display: none; }
+/* Stock history */
+.inv-history { overflow-x: auto; }
+.inv-history .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.inv-history td small { white-space: nowrap; }

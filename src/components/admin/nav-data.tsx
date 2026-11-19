@@ -62,6 +62,8 @@ const ALL_SECTIONS: Section[] = [
     pages: [
       { label: "Stock", href: "/admin/inventory/stock" },
       { label: "Purchase bills", href: "/admin/inventory/purchases" },
+      { label: "Suppliers", href: "/admin/inventory/suppliers" },
+      { label: "Stock history", href: "/admin/inventory/history" },
     ],
   },
   {
