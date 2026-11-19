@@ -239,3 +239,20 @@
     animation: none !important;
   }
 }
+
+/* drifting through the lost page's sky: pieces of the beach and garden art */
+.lost::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    url("../assets/art/jellyfish.webp") left 6% top 8% / clamp(70px, 12vw, 150px) auto no-repeat,
+    url("../assets/art/planet.webp") right 7% top 10% / clamp(70px, 11vw, 140px) auto no-repeat,
+    url("../assets/art/comet.webp") right 20% bottom 14% / clamp(60px, 9vw, 120px) auto no-repeat,
+    url("../assets/art/butterfly.webp") left 10% bottom 12% / clamp(60px, 9vw, 120px) auto no-repeat,
+    url("../assets/art/sparkle-2.webp") left 28% top 18% / 22px auto no-repeat,
+    url("../assets/art/sparkle-6.webp") right 30% top 26% / 18px auto no-repeat;
+  opacity: 0.9;
+}

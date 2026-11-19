@@ -632,3 +632,23 @@ html:root #site[data-scope] .cv-recs .cp-grid::-webkit-scrollbar {
 .cv-pin-bad {
   color: var(--color-red-soft, #d33);
 }
+
+/* the empty jar's company: pieces of the garden and beach art (brand/art) */
+.cv-empty {
+  position: relative;
+  isolation: isolate;
+}
+.cv-empty::before {
+  content: "";
+  position: absolute;
+  inset: 0 6% 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    url("../assets/art/moon.webp") left 4% top 18px / 58px auto no-repeat,
+    url("../assets/art/sparkle-1.webp") left 22% top 8px / 18px auto no-repeat,
+    url("../assets/art/sparkle-4.webp") right 24% top 30px / 14px auto no-repeat,
+    url("../assets/art/crystals-2.webp") right 3% top 14px / 64px auto no-repeat,
+    url("../assets/art/snail.webp") left 0 bottom 2px / 52px auto no-repeat,
+    url("../assets/art/fern-2.webp") right 0 bottom 0 / 46px auto no-repeat;
+}

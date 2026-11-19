@@ -300,34 +300,41 @@ html[data-mode="dark"] #site .ccard[data-v] {
 }
 
 /* ------------------------------------------------------------ the art */
-/* The card's illustration, drawn for this layout: it frames the words and
-   the products and never runs behind them. A cut-out on transparency, so the
-   same art sits on every look's own card colour (Light and Dark).
-   card-bg-1 for now on every card; the seven looks get one each. */
+/* The card's illustration: pieces of the two hero artworks (cosmic beach,
+   cosmic garden; brand/art) composed as a frame around the card's own parts:
+   flying things in a band above the name, a sky piece rising from behind the
+   cloud's top-right, a layered scene (a sea, a flower bed) in the gap between
+   the button and the cloud, and a low strip under the button. Seven themes,
+   one per variant (brand/art/tools/card_scenes.py). Phones: one image, the
+   card being 3:1. Wide screens: the left and right halves as two layers, so
+   it holds at any width. */
 #site .ccard[data-v] {
-  background-image: url("../assets/themes/card-bg-1.webp");
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   background-color: var(--ccard-bg);
 }
-/* wide screens: the same art re-composed for the long strip (not
-   stretched): the moon and its wind ribbon along the top past the title,
-   the sea and boats low in the open stretch before the products, and the
-   sunrise in the top-right corner curling down the right edge */
+#site .ccard[data-v="0"] { background-image: url("../assets/art/cards/card-0.webp"); }
+#site .ccard[data-v="1"] { background-image: url("../assets/art/cards/card-1.webp"); }
+#site .ccard[data-v="2"] { background-image: url("../assets/art/cards/card-2.webp"); }
+#site .ccard[data-v="3"] { background-image: url("../assets/art/cards/card-3.webp"); }
+#site .ccard[data-v="4"] { background-image: url("../assets/art/cards/card-4.webp"); }
+#site .ccard[data-v="5"] { background-image: url("../assets/art/cards/card-5.webp"); }
+#site .ccard[data-v="6"] { background-image: url("../assets/art/cards/card-6.webp"); }
 @media (min-width: 901px) {
   #site .ccard[data-v] {
-    background-image:
-      url("../assets/themes/card-bg-1-sun.webp"),
-      url("../assets/themes/card-bg-1-moon.webp"),
-      url("../assets/themes/card-bg-1-waves.webp");
     background-position:
-      right 6px top 4px,
-      left 300px top 6px,
-      left 340px bottom -6px;
+      right top,
+      left bottom;
     background-size:
-      auto 92%,
-      auto 34%,
-      auto 46%;
+      auto 100%,
+      auto 100%;
   }
+  #site .ccard[data-v="0"] { background-image: url("../assets/art/cards/card-0-r.webp"), url("../assets/art/cards/card-0-m.webp"); }
+  #site .ccard[data-v="1"] { background-image: url("../assets/art/cards/card-1-r.webp"), url("../assets/art/cards/card-1-m.webp"); }
+  #site .ccard[data-v="2"] { background-image: url("../assets/art/cards/card-2-r.webp"), url("../assets/art/cards/card-2-m.webp"); }
+  #site .ccard[data-v="3"] { background-image: url("../assets/art/cards/card-3-r.webp"), url("../assets/art/cards/card-3-m.webp"); }
+  #site .ccard[data-v="4"] { background-image: url("../assets/art/cards/card-4-r.webp"), url("../assets/art/cards/card-4-m.webp"); }
+  #site .ccard[data-v="5"] { background-image: url("../assets/art/cards/card-5-r.webp"), url("../assets/art/cards/card-5-m.webp"); }
+  #site .ccard[data-v="6"] { background-image: url("../assets/art/cards/card-6-r.webp"), url("../assets/art/cards/card-6-m.webp"); }
 }

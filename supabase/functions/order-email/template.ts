@@ -92,11 +92,24 @@ function card(heading: string, inner: string) {
   )}</td></tr>`;
 }
 
+// the header card: a band of the beach or garden art along its top, then the
+// message and its own small piece of art (brand/email: band-*.png, art-*.png,
+// cut from the two hero artworks)
+const BAND: Record<Kind, "beach" | "garden"> = {
+  received: "garden",
+  confirmed: "garden",
+  shipped: "beach",
+  delivered: "beach",
+  return: "beach",
+  refund: "beach",
+  cancelled: "garden",
+  "new-order": "garden",
+};
 function hero(cfg: Cfg, kind: Kind, kicker: string, title: string) {
   const t = TONE[kind];
   return `<tr><td style="padding:0 0 14px">${T(
-    `<tr><td bgcolor="${C.card}" style="background:${C.card};padding:22px 20px">${T(
-      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.text}">${esc(title)}</div></td><td width="96" align="right" valign="middle"><div style="width:88px;height:88px;border-radius:44px;background:${C.surface};text-align:center"><img src="${cfg.assets}/${kind}.png" width="52" height="52" alt="" style="display:inline-block;width:52px;height:52px;margin-top:18px;border:0"></div></td></tr>`,
+    `<tr><td bgcolor="${C.card}" style="background:${C.card};padding:0;line-height:0"><img src="${cfg.assets}/band-${BAND[kind]}.png" width="560" alt="" style="display:block;width:100%;max-width:560px;height:auto;border:0"></td></tr><tr><td bgcolor="${C.card}" style="background:${C.card};padding:6px 20px 22px">${T(
+      `<tr><td valign="middle"><div style="font-size:12px;font-weight:700;letter-spacing:2px;color:${t.accent};text-transform:uppercase;margin:0 0 8px">${esc(kicker)}</div><div style="font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.01em;color:${C.text}">${esc(title)}</div></td><td width="104" align="right" valign="middle"><img src="${cfg.assets}/art-${kind}.png" width="96" height="96" alt="" style="display:block;width:96px;height:96px;border:0"></td></tr>`,
     )}</td></tr>`,
     `style="border-radius:16px;overflow:hidden;border:1px solid ${C.line}"`,
   )}</td></tr>`;
