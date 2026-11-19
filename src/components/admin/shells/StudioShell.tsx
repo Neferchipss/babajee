@@ -17,7 +17,7 @@ const FOLD_KEY = "bj-studio-fold";
 
 export default function StudioShell({ children }: { children: React.ReactNode }) {
   const nav = useAdminNav();
-  const { sections, here, page, sectionOn, pageOn, n, sectionCount, tap, money, setLow } = nav;
+  const { sections, here, page, sectionOn, pageOn, n, sectionCount, tap, setLow, stockWatch } = nav;
   // the shell only draws in the browser (after sign-in), so the saved fold can be read at once
   const [fold, setFold] = useState(() => {
     try {
@@ -137,7 +137,7 @@ export default function StudioShell({ children }: { children: React.ReactNode })
       </div>
 
       {cmd && <Command onClose={() => setCmd(false)} nav={nav} />}
-      {money && <LowStockWatch onCount={setLow} />}
+      {stockWatch && <LowStockWatch onCount={setLow} />}
     </div>
   );
 }

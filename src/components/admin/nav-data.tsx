@@ -164,5 +164,7 @@ export function useAdminNav() {
   const here = sections.find(sectionOn);
   // the page open now, by name (for breadcrumbs and titles)
   const page = here?.pages?.find((p) => pageOn(p.href)) ?? here?.pages?.find((p) => p.href.split("?")[0] === path);
-  return { path, params, sections, here, page, pageOn, sectionOn, n, sectionCount, tap, money, setLow, role };
+  // the low-stock alert, for everyone who looks after stock
+  const stockWatch = can(role, "catalog");
+  return { path, params, sections, here, page, pageOn, sectionOn, n, sectionCount, tap, money, stockWatch, setLow, role };
 }

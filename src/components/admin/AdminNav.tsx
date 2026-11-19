@@ -10,7 +10,7 @@ import { I, useAdminNav } from "./nav-data";
 // holds, with live counts; on a phone the sections as a strip, and under it
 // the open section's pages as a row of chips with the same counts.
 export default function AdminNav() {
-  const { path, params, sections: SECTIONS, pageOn, sectionOn, n, sectionCount, tap, money, setLow } = useAdminNav();
+  const { path, params, sections: SECTIONS, pageOn, sectionOn, n, sectionCount, tap, setLow, stockWatch } = useAdminNav();
   // phone: the open section's pages, the current one scrolled into view
   const here = SECTIONS.find(sectionOn);
   const sub = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ export default function AdminNav() {
         <span className="adm-ico">{I("M3.5 3.5h13v13h-13zM3.5 8h13M8 8v8.5")}</span>
         Admin design
       </Link>
-      {money && <LowStockWatch onCount={setLow} />}
+      {stockWatch && <LowStockWatch onCount={setLow} />}
           </nav>
     {here?.pages && (
       <div className="adm-subnav" ref={sub} aria-label={`${here.label} pages`}>

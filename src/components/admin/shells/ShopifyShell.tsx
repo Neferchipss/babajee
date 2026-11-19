@@ -12,7 +12,7 @@ import { I, useAdminNav } from "../nav-data";
 // to show its pages, and the page itself in white cards on a soft grey,
 // centred. On a phone the menu slides in from the left.
 export default function ShopifyShell({ children }: { children: React.ReactNode }) {
-  const { path, sections, sectionOn, pageOn, n, sectionCount, tap, money, setLow } = useAdminNav();
+  const { path, sections, sectionOn, pageOn, n, sectionCount, tap, setLow, stockWatch } = useAdminNav();
   // open on this page only: moving to another page closes it
   const [openAt, setOpenAt] = useState<string | null>(null);
   const open = openAt === path;
@@ -80,7 +80,7 @@ export default function ShopifyShell({ children }: { children: React.ReactNode }
             <span className="shp-lbl">Admin design</span>
           </Link>
         </div>
-        {money && <LowStockWatch onCount={setLow} />}
+        {stockWatch && <LowStockWatch onCount={setLow} />}
       </nav>
 
       <main className="shp-main">

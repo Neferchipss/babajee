@@ -23,7 +23,7 @@ const JOBS: { label: string; href: string; count?: Page["count"]; about: string 
 const BOTTOM = ["/admin", "/admin/orders", "/admin/products", "/admin/customers"];
 
 export default function EaseShell({ children }: { children: React.ReactNode }) {
-  const { path, sections, here, sectionOn, pageOn, n, sectionCount, tap, money, setLow, role } = useAdminNav();
+  const { path, sections, here, sectionOn, pageOn, n, sectionCount, tap, money, setLow, stockWatch, role } = useAdminNav();
   const [moreAt, setMoreAt] = useState<string | null>(null);
   const more = moreAt === path;
   const counts = (key?: Page["count"]) => (key ? n({ label: "", href: "", count: key }) : 0);
@@ -130,7 +130,7 @@ export default function EaseShell({ children }: { children: React.ReactNode }) {
           <Link href="/shop">View the shop</Link>
         </div>
       )}
-      {money && <LowStockWatch onCount={setLow} />}
+      {stockWatch && <LowStockWatch onCount={setLow} />}
     </div>
   );
 }

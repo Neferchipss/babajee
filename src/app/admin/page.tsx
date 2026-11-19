@@ -18,7 +18,7 @@ export default function AdminHomeByRole() {
 
 function StaffHome({ role }: { role: StaffRole | null }) {
   const links: [string, string, string][] = [
-    ...(can(role, "catalog") ? ([["/admin/products", "Products", "Names, photos, descriptions, options, tags"], ["/admin/products/collections", "Collections", "Hand-picked or automatic shelves"], ["/admin/products/reviews", "Reviews", "Approve or hide"]] as [string, string, string][]) : []),
+    ...(can(role, "catalog") ? ([["/admin/products", "Products", "Names, photos, descriptions, options, tags"], ["/admin/products/collections", "Collections", "Hand-picked or automatic shelves"], ["/admin/products/reviews", "Reviews", "Approve or hide"], ["/admin/inventory/stock", "Stock", "Counts, low stock, buying prices, purchase bills and suppliers"]] as [string, string, string][]) : []),
     ...(can(role, "look") ? ([["/admin/storefront", "Storefront", "Banners, homepage, menus and the shop's design"]] as [string, string, string][]) : []),
     ...(can(role, "content") ? ([["/admin/storefront/pages", "Pages and blog", "About, policies, posts, FAQs and search listings"]] as [string, string, string][]) : []),
   ];
