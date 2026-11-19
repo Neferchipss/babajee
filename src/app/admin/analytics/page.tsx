@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useContext, useEffect, useState } from "react";
-import { Bars, CompareOff, Delta, Funnel, LineChart, money, Sparkline } from "@/components/admin/ui";
+import { Bars, CompareOff, Delta, LineChart, money, Sparkline } from "@/components/admin/ui";
 import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/admin/RangePicker";
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
 import { itc, unpaidBills, type ItcMonth, type UnpaidBill } from "@/lib/stock-in/db";
@@ -369,44 +369,13 @@ export default function AnalyticsPage() {
             </section>
           )}
 
-          <SectionTitle>Visitors</SectionTitle>
-          <div className="adm-pair">
-            <section className="adm-card">
-              <h2>Conversion rate</h2>
-              <Funnel
-                steps={[
-                  { name: "Visited", value: a.sessions },
-                  { name: "Added to cart", value: a.cart_sessions },
-                  { name: "Reached checkout", value: a.checkout_sessions },
-                  { name: "Ordered", value: a.orders },
-                ]}
-              />
-            </section>
-            <section className="adm-card">
-              <div className="anx-card-head">
-                <h2>Visitors over time</h2>
-                <Legend label={label} />
-              </div>
-              <LineChart height={230} label="Visitors per day" labels={days.map(dayLabel)} cur={a.daily_sessions.map((d) => d.sessions)} prev={b.daily_sessions.map((d) => d.sessions)} fmt={(n) => count(Math.round(n))} />
-            </section>
-          </div>
-          <div className="anx-three">
-            <section className="adm-card">
-              <h2>Where visitors came from</h2>
-              <Bars rows={a.referrers.map((p) => ({ name: p.name, value: p.sessions }))} fmt={count} />
-            </section>
-            <section className="adm-card">
-              <h2>Most viewed pages</h2>
-              <Bars rows={a.pages.map((p) => ({ name: p.name, value: p.views }))} fmt={count} />
-            </section>
-            <section className="adm-card">
-              <h2>Visitors by device</h2>
-              <Bars rows={a.devices.map((p) => ({ name: p.name[0].toUpperCase() + p.name.slice(1), value: p.sessions }))} fmt={count} />
-            </section>
-          </div>
-          <p className="adm-muted adm-small">
-            Where visitors and customers come from, when they visit and what they browse: <Link href="/admin/analytics/traffic">Traffic</Link>.
-          </p>
+          {/* visits, sources, devices, pages and the conversion funnel are on Traffic */}
+          <section className="adm-card anx-to-traffic">
+            <h2>Visitors</h2>
+            <p className="adm-muted adm-small" style={{ margin: 0 }}>
+              {count(a.sessions)} visits in these dates. Where they came from, what they looked at, the devices and how many went on to order: <Link href="/admin/analytics/traffic">Traffic</Link>.
+            </p>
+          </section>
         </div>
       )}
     </div>
