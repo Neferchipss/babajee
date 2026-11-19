@@ -106,7 +106,7 @@ export default function ResetForm() {
         {busy ? "Sending" : "Send reset link"}
       </button>
       <p className="text-sm text-muted">
-        <Link href="/account/login" className="font-medium text-paper underline underline-offset-4">
+        <Link href="/account/login" className="link link-strong">
           Back to log in
         </Link>
       </p>

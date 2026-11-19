@@ -165,7 +165,7 @@ export default function AddressForm({
               <label
                 key={l}
                 className={`flex min-h-11 cursor-pointer items-center rounded-[var(--radius-round)] border px-4 text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-rasta-gold ${
-                  a.label === l ? "border-rasta-gold bg-rasta-gold text-ink" : "border-[#3a3a3a] hover:border-paper"
+                  a.label === l ? "border-rasta-gold bg-rasta-gold text-ink" : "border-line hover:border-paper"
                 }`}
               >
                 <input type="radio" name="label" value={l} className="sr-only" checked={a.label === l} onChange={() => set("label", l)} />

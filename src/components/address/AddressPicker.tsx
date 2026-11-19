@@ -56,7 +56,7 @@ export default function AddressPicker() {
       <>
         {status === "out" && (
           <p className="mb-5 text-sm text-muted">
-            <Link href="/account/login" className="font-medium text-paper underline underline-offset-4">
+            <Link href="/account/login" className="link link-strong">
               Log in
             </Link>{" "}
             to save this address for next time.
@@ -114,7 +114,7 @@ export default function AddressPicker() {
               {picked.label} <span className="font-normal text-muted">· {picked.recipient_name}</span>
             </span>
             {saved.length + (oneOff ? 1 : 0) > 1 && (
-              <button type="button" className="shrink-0 text-sm font-semibold text-rasta-gold underline underline-offset-4" aria-expanded={false} onClick={() => setListOpen(true)}>
+              <button type="button" className="link link-accent shrink-0 text-sm font-semibold" aria-expanded={false} onClick={() => setListOpen(true)}>
                 Change · {saved.length + (oneOff ? 1 : 0)} saved
               </button>
             )}
@@ -166,14 +166,14 @@ export default function AddressPicker() {
       ) : (
         <div className="mt-4 flex flex-wrap gap-x-6 text-sm">
           {listOpen && (
-            <button type="button" className="min-h-11 text-muted underline underline-offset-4 hover:text-paper" onClick={() => setListOpen(false)}>
+            <button type="button" className="link link-muted min-h-11" onClick={() => setListOpen(false)}>
               Keep this one
             </button>
           )}
-          <button type="button" className="min-h-11 underline underline-offset-4 hover:text-paper" onClick={() => setAdding(true)}>
+          <button type="button" className="link min-h-11" onClick={() => setAdding(true)}>
             Deliver somewhere else
           </button>
-          <Link href="/account" className="flex min-h-11 items-center text-muted underline underline-offset-4 hover:text-paper">
+          <Link href="/account" className="link link-muted flex min-h-11 items-center">
             Manage addresses
           </Link>
         </div>

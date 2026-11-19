@@ -83,7 +83,7 @@ export default function AddressBook() {
       {failed && (
         <p role="alert" className="mb-4 text-sm text-red-soft">
           We could not load your addresses.{" "}
-          <button type="button" className="underline underline-offset-4" onClick={load}>
+          <button type="button" className="link" onClick={load}>
             Try again
           </button>
         </p>
@@ -139,7 +139,7 @@ export default function AddressBook() {
                 <div className="mt-3 flex flex-wrap gap-x-5 text-sm">
                   <button
                     type="button"
-                    className="min-h-11 underline underline-offset-4 hover:text-paper"
+                    className="link min-h-11"
                     onClick={() => setEditing(a.id)}
                     disabled={!!busy}
                   >
@@ -148,7 +148,7 @@ export default function AddressBook() {
                   {!a.is_default && (
                     <button
                       type="button"
-                      className="min-h-11 underline underline-offset-4 hover:text-paper"
+                      className="link min-h-11"
                       onClick={() => act(a.id, () => makeDefault(a.id))}
                       disabled={!!busy}
                     >
@@ -158,7 +158,7 @@ export default function AddressBook() {
                   {billing !== a.id && list.length > 1 && (
                     <button
                       type="button"
-                      className="min-h-11 underline underline-offset-4 hover:text-paper"
+                      className="link min-h-11"
                       onClick={() => act(a.id, () => makeBillingDefault(a.id))}
                       disabled={!!busy}
                       title="Bills and GST invoices go to this address; deliveries still go to your default"
@@ -168,7 +168,7 @@ export default function AddressBook() {
                   )}
                   <button
                     type="button"
-                    className="min-h-11 text-muted underline underline-offset-4 hover:text-red-soft"
+                    className="link link-muted min-h-11 hover:text-red-soft"
                     onClick={() => {
                       if (!window.confirm("Remove this address?")) return;
                       const heir = a.is_default ? list.find((o) => o.id !== a.id) : undefined;

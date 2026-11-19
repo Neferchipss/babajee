@@ -127,12 +127,12 @@ export default function CheckoutForm() {
 
       {blocked && (
         <p role="alert" className="text-red-soft">
-          This account can&apos;t place orders right now. Please <Link href="/contact" className="underline">contact us</Link>.
+          This account can&apos;t place orders right now. Please <Link href="/contact" className="link">contact us</Link>.
         </p>
       )}
       {stock.blocked && !err ? (
         <p role="alert" className="text-red-soft">
-          {stock.blocked} <Link href="/cart" className="underline">Go to your cart</Link>
+          {stock.blocked} <Link href="/cart" className="link">Go to your cart</Link>
         </p>
       ) : null}
       {err && (

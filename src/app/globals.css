@@ -134,8 +134,10 @@ html {
     background: var(--color-rasta-gold);
     color: var(--color-ink);
   }
+  /* every colour from the design's tokens, so buttons and fields follow
+     the shop design and light or dark */
   .btn-primary:hover {
-    background: #fff45a;
+    background: color-mix(in srgb, var(--color-rasta-gold) 85%, var(--color-paper));
   }
   .btn-primary:active {
     opacity: 0.88;
@@ -144,7 +146,7 @@ html {
     outline-color: var(--color-paper);
   }
   .btn-ghost {
-    border-color: #3a3a3a;
+    border-color: var(--color-line);
     color: var(--color-paper);
   }
   .btn-ghost:hover {
@@ -154,7 +156,7 @@ html {
   .field {
     width: 100%;
     background: var(--color-iron);
-    border: 1px solid #333;
+    border: 1px solid var(--color-line);
     border-radius: var(--radius);
     padding: 0.8rem 1rem;
     color: var(--color-paper);
@@ -166,14 +168,33 @@ html {
   .field:focus {
     outline: none;
     border-color: var(--color-rasta-gold);
-    box-shadow: 0 0 0 3px rgb(253 238 3 / 0.14);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-rasta-gold) 22%, transparent);
   }
   .field[aria-invalid="true"] {
     border-color: var(--color-red-soft);
   }
   select.field {
-    color-scheme: dark;
     min-height: 2.9rem;
+  }
+
+  /* text links in the shop's forms and pages: one look */
+  .link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .link:hover {
+    color: var(--color-paper);
+  }
+  .link-strong {
+    font-weight: 500;
+    color: var(--color-paper);
+  }
+  .link-muted {
+    color: var(--color-muted);
+  }
+  .link-accent {
+    color: var(--color-rasta-gold);
   }
 
   /* Category tile. The accent bar is the tri-colour stripe from the header,

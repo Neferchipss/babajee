@@ -369,7 +369,7 @@ export function CheckoutItems() {
       {cart.length === 0 ? (
         <p className="mt-4 text-sm text-muted">
           Nothing in the jar yet.{" "}
-          <SceneLink href="/shop" className="underline underline-offset-4">
+          <SceneLink href="/shop" className="link">
             Go to the shop
           </SceneLink>
         </p>

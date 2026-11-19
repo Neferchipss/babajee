@@ -61,7 +61,7 @@ export default function AccountPanel() {
         </div>
         <p className="mt-10 text-muted">
           Already ordered?{" "}
-          <Link href="/orders" className="font-medium text-paper underline underline-offset-4">
+          <Link href="/orders" className="link link-strong">
             See your orders
           </Link>
         </p>
@@ -166,15 +166,15 @@ export default function AccountPanel() {
       <AddressBook />
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line pt-6 text-sm">
-        <Link href="/orders" className="font-medium text-paper underline underline-offset-4">
+        <Link href="/orders" className="link link-strong">
           Your orders
         </Link>
         {profile?.role === "admin" && (
-          <Link href="/admin" className="font-medium text-paper underline underline-offset-4">
+          <Link href="/admin" className="link link-strong">
             Admin
           </Link>
         )}
-        <button type="button" onClick={signOut} className="text-muted underline underline-offset-4 hover:text-paper">
+        <button type="button" onClick={signOut} className="link link-muted">
           Log out
         </button>
       </div>
