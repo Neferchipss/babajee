@@ -6,12 +6,15 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
 import { bill, costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
-import { errText, getCouriers, getSettings, saveCouriers, saveSettings } from "@/lib/orders-db";
+import { errText, getCouriers, getSettings, saveCouriers, saveSettings, type StoreSettings } from "@/lib/orders-db";
+import { can, useStaff } from "@/lib/staff";
 import { downloadAllData } from "@/lib/export-all";
 
 // Store rules the owner can change without a code change, one topic at a
 // time (?t=): business details, payments and bank, delivery and couriers,
-// GST, orders and returns, stock, data. One Save covers every topic.
+// GST, orders and returns, stock, data. Each topic saves on its own (a dot
+// marks a topic with unsaved changes). Owners and admins change them; the
+// store account sees GST and Delivery, read only.
 const TOPICS = [
   ["business", "Business details"],
   ["payments", "Payments and bank"],
@@ -23,11 +26,20 @@ const TOPICS = [
 ] as const;
 type Topic = (typeof TOPICS)[number][0];
 
+const VIEW_ONLY: Topic[] = ["gst", "delivery"];
+type Saved = Partial<Record<Topic, string>>;
+
 export default function SettingsPage() {
-  const [topic, setTopicState] = useState<Topic>(() => {
+  // owners and admins change settings (useStaff treats a database without
+  // staff roles as an owner); until the role is known, nothing is editable
+  const me = useStaff().me;
+  const editable = !!me && can(me.role, "settings");
+  const topics = TOPICS.filter(([id]) => editable || VIEW_ONLY.includes(id));
+  const [asked, setTopicState] = useState<Topic>(() => {
     const t = new URLSearchParams(window.location.search).get("t");
     return (TOPICS.find(([id]) => id === t)?.[0] ?? "business") as Topic;
   });
+  const topic: Topic = topics.some(([id]) => id === asked) ? asked : topics[0][0];
   const setTopic = (t: Topic) => {
     setTopicState(t);
     const u = new URLSearchParams(window.location.search);
@@ -53,6 +65,48 @@ export default function SettingsPage() {
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  // each topic's fields as they are on screen, and as last saved
+  const raw: Record<Topic, unknown> = {
+    business: store,
+    payments: { methods, unpaidHours, bank },
+    delivery: { ship, free },
+    gst: { rate, inclusive, credit, cess, home },
+    orders: { returnDays, abandonHours, expireDays },
+    stock: { lowAt },
+    data: null,
+  };
+  const [saved, setSaved] = useState<Saved>({});
+  const dirtyOf = (t: Topic) => loaded && t !== "data" && saved[t] !== undefined && JSON.stringify(raw[t]) !== saved[t];
+  const snapshot = () => setSaved(Object.fromEntries(TOPICS.map(([id]) => [id, JSON.stringify(raw[id])])) as Saved);
+  // put a topic back as it was last saved
+  function discard(t: Topic) {
+    const v = JSON.parse(saved[t] ?? "null");
+    if (!v) return;
+    if (t === "business") setStore(v);
+    if (t === "payments") {
+      setMethods(v.methods);
+      setUnpaidHours(v.unpaidHours);
+      setBank(v.bank);
+    }
+    if (t === "delivery") {
+      setShip(v.ship);
+      setFree(v.free);
+    }
+    if (t === "gst") {
+      setRate(v.rate);
+      setInclusive(v.inclusive);
+      setCredit(v.credit);
+      setCess(v.cess);
+      setHome(v.home);
+    }
+    if (t === "orders") {
+      setReturnDays(v.returnDays);
+      setAbandonHours(v.abandonHours);
+      setExpireDays(v.expireDays);
+    }
+    if (t === "stock") setLowAt(v.lowAt);
+    setErr("");
+  }
 
   useEffect(() => {
     getSettings()
@@ -85,83 +139,64 @@ export default function SettingsPage() {
       })
       .catch((e) => setErr(errText(e)));
   }, []);
+  // what came from the database is the saved state of every topic
+  const [snapped, setSnapped] = useState(false);
+  if (loaded && !snapped) {
+    setSnapped(true);
+    snapshot();
+  }
+
+  // this topic's fields, checked, as the database takes them
+  function patchOf(t: Topic): { patch?: Partial<StoreSettings>; problem?: string } {
+    if (t === "business") {
+      const gstin = store.gstin.trim().toUpperCase();
+      if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) return { problem: "That GSTIN doesn't look right: it's 15 characters, like 27ABCDE1234F1Z5." };
+      const prefix = store.invoice_prefix.trim().toUpperCase();
+      if (!/^[A-Z0-9]{1,5}$/.test(prefix)) return { problem: "The invoice prefix is 1 to 5 letters or numbers, like BJ." };
+      return { patch: { ...store, store_name: store.store_name.trim() || "Babajee", gstin, invoice_prefix: prefix } };
+    }
+    if (t === "payments") {
+      const hold = Math.round(Number(unpaidHours) || 0);
+      if (hold < 0 || hold > 720) return { problem: "Unpaid orders can be held for 0 to 720 hours (30 days)." };
+      const payMethods = [...new Set(methods.split(",").map((m) => m.trim()).filter(Boolean))];
+      if (!payMethods.length || payMethods.some((m) => m.length > 40) || payMethods.length > 8) return { problem: "List 1 to 8 payment methods, separated by commas, each up to 40 characters." };
+      const ifsc = bank.bank_ifsc.trim().toUpperCase();
+      if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return { problem: "That IFSC doesn't look right: 11 characters, like HDFC0001234." };
+      const upi = bank.bank_upi_id.trim();
+      if (upi && !/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(upi)) return { problem: "That UPI ID doesn't look right: like babajee@okhdfcbank." };
+      return { patch: { unpaid_hours: hold, payment_methods: payMethods, bank_account_name: bank.bank_account_name.trim(), bank_account_number: bank.bank_account_number.replace(/\s/g, ""), bank_ifsc: ifsc, bank_upi_id: upi } };
+    }
+    if (t === "delivery") return { patch: { shipping: Number(ship) || 0, free_shipping_over: free.trim() === "" ? null : Number(free) } };
+    if (t === "gst") {
+      const r = Number(rate);
+      if (!(r >= 0 && r <= 40)) return { problem: "GST rate must be between 0 and 40%." };
+      return { patch: { gst_rate: r, gst_inclusive: inclusive, gst_input_credit: credit, cess_enabled: cess, store_state: home } };
+    }
+    if (t === "orders") {
+      const days = Math.round(Number(returnDays) || 0);
+      if (days < 0 || days > 90) return { problem: "Returns can be open for 0 to 90 days." };
+      const abandon = Math.round(Number(abandonHours) || 0);
+      const expire = Math.round(Number(expireDays) || 0);
+      if (abandon < 1 || abandon > 720 || expire < 0 || expire > 365) return { problem: "A cart is abandoned after 1 to 720 hours, and cleared after 0 (never) to 365 days." };
+      return { patch: { return_days: days, cart_abandon_hours: abandon, cart_expire_days: expire } };
+    }
+    if (t === "stock") return { patch: { low_stock_at: Math.min(10000, Math.round(Number(lowAt) || 0)) } };
+    return {};
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
     setMsg("");
-    const days = Math.round(Number(returnDays) || 0);
-    if (days < 0 || days > 90) {
-      setErr("Returns can be open for 0 to 90 days.");
-      return;
-    }
-    const hold = Math.round(Number(unpaidHours) || 0);
-    if (hold < 0 || hold > 720) {
-      setErr("Unpaid orders can be held for 0 to 720 hours (30 days).");
-      return;
-    }
-    const abandon = Math.round(Number(abandonHours) || 0);
-    const expire = Math.round(Number(expireDays) || 0);
-    if (abandon < 1 || abandon > 720 || expire < 0 || expire > 365) {
-      setErr("A cart is abandoned after 1 to 720 hours, and cleared after 0 (never) to 365 days.");
-      return;
-    }
-    const payMethods = [...new Set(methods.split(",").map((m) => m.trim()).filter(Boolean))];
-    if (!payMethods.length || payMethods.some((m) => m.length > 40) || payMethods.length > 8) {
-      setErr("List 1 to 8 payment methods, separated by commas, each up to 40 characters.");
-      return;
-    }
-    const gstin = store.gstin.trim().toUpperCase();
-    if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
-      setErr("That GSTIN doesn't look right: it's 15 characters, like 27ABCDE1234F1Z5.");
-      return;
-    }
-    const prefix = store.invoice_prefix.trim().toUpperCase();
-    if (!/^[A-Z0-9]{1,5}$/.test(prefix)) {
-      setErr("The invoice prefix is 1 to 5 letters or numbers, like BJ.");
-      return;
-    }
-    const ifsc = bank.bank_ifsc.trim().toUpperCase();
-    if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
-      setErr("That IFSC doesn't look right: 11 characters, like HDFC0001234.");
-      return;
-    }
-    const upi = bank.bank_upi_id.trim();
-    if (upi && !/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(upi)) {
-      setErr("That UPI ID doesn't look right: like babajee@okhdfcbank.");
-      return;
-    }
-    const r = Number(rate);
-    if (!(r >= 0 && r <= 40)) {
-      setErr("GST rate must be between 0 and 40%.");
-      return;
-    }
+    const { patch, problem } = patchOf(topic);
+    if (problem) return setErr(problem);
+    if (!patch) return;
     try {
-      await saveSettings({
-        shipping: Number(ship) || 0,
-        free_shipping_over: free.trim() === "" ? null : Number(free),
-        gst_rate: r,
-        gst_inclusive: inclusive,
-        gst_input_credit: credit,
-        cess_enabled: cess,
-        cart_abandon_hours: abandon,
-        cart_expire_days: expire,
-        store_state: home,
-        return_days: days,
-        unpaid_hours: hold,
-        payment_methods: payMethods,
-        low_stock_at: Math.min(10000, Math.round(Number(lowAt) || 0)),
-        ...store,
-        store_name: store.store_name.trim() || "Babajee",
-        gstin,
-        invoice_prefix: prefix,
-        bank_account_name: bank.bank_account_name.trim(),
-        bank_account_number: bank.bank_account_number.replace(/\s/g, ""),
-        bank_ifsc: ifsc,
-        bank_upi_id: upi,
-      });
-      setMsg("Saved. New orders use these from now on.");
-      toast("Settings saved");
+      await saveSettings(patch);
+      setSaved((v) => ({ ...v, [topic]: JSON.stringify(raw[topic]) }));
+      const label = TOPICS.find(([id]) => id === topic)![1];
+      setMsg(`${label} saved. New orders use them from now on.`);
+      toast(`${label} saved`);
     } catch (x) {
       setErr(errText(x));
       toastError(x);
@@ -181,12 +216,13 @@ export default function SettingsPage() {
 
       <header className="adm-pagehead">
         <h1>Store settings</h1>
-        <p>Pick a topic, change what you need, then Save at the bottom of the screen. Save keeps changes made on every topic.</p>
+        <p>{editable ? "Pick a topic, change what you need, then Save at the bottom of the screen. Each topic saves on its own." : "GST and delivery, as set by the owner. Read only: owners and admins change them."}</p>
       </header>
       <div className="adm-chips" role="tablist" aria-label="Settings topics" style={{ marginBottom: 16 }}>
-        {TOPICS.map(([id, label]) => (
+        {topics.map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={topic === id} className={`adm-chip ${topic === id ? "is-on" : ""}`} onClick={() => setTopic(id)}>
             {label}
+            {dirtyOf(id) && <span className="set-dirty" aria-label="unsaved changes" />}
           </button>
         ))}
       </div>
@@ -201,6 +237,7 @@ export default function SettingsPage() {
       </div>
 
       <form className="adm-stack" style={{ maxWidth: 560 }} onSubmit={save} hidden={topic === "data"}>
+        <fieldset className="set-fields" disabled={!editable}>
         {topic === "business" && (
         <section className="adm-card" style={{ display: "grid", gap: 16 }}>
             <h2 id="set-store" style={{ margin: 0, scrollMarginTop: 140 }}>Business details (for invoices)</h2>
@@ -439,23 +476,39 @@ export default function SettingsPage() {
           </section>
         )}
 
-        {/* always in reach at the bottom of the screen */}
-        <div className="adm-actions set-save">
-          <button className="adm-btn pri" disabled={!loaded}>
-            Save settings
-          </button>
-          {msg && <span className="adm-muted adm-small" style={{ alignSelf: "center" }}>{msg}</span>}
-        </div>
+        </fieldset>
+        {/* always in reach at the bottom of the screen, for this topic */}
+        {editable && (dirtyOf(topic) || msg) && (
+          <div className="adm-actions set-save">
+            {dirtyOf(topic) ? (
+              <>
+                <span className="adm-small" style={{ alignSelf: "center" }}>
+                  Unsaved changes
+                </span>
+                <button type="button" className="adm-btn" onClick={() => discard(topic)}>
+                  Discard
+                </button>
+                <button className="adm-btn pri" disabled={!loaded}>
+                  Save {TOPICS.find(([id]) => id === topic)![1].toLowerCase()}
+                </button>
+              </>
+            ) : (
+              <span className="adm-muted adm-small" style={{ alignSelf: "center" }}>
+                {msg}
+              </span>
+            )}
+          </div>
+        )}
       </form>
 
-      {topic === "delivery" && <Couriers />}
+      {topic === "delivery" && <Couriers editable={editable} />}
       {topic === "data" && <DataExport />}
     </div>
   );
 }
 
 // the couriers offered when an order is shipped (0079), saved on their own
-function Couriers() {
+function Couriers({ editable }: { editable: boolean }) {
   const [list, setList] = useState<string[] | null | undefined>(undefined);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -491,10 +544,10 @@ function Couriers() {
         <>
           <label className="adm-label">
             The couriers you use, separated by commas
-            <input className="adm-input" value={text} disabled={list === undefined} onChange={(e) => setText(e.target.value)} placeholder="Delhivery, DTDC, Blue Dart, India Post" />
+            <input className="adm-input" value={text} disabled={list === undefined || !editable} onChange={(e) => setText(e.target.value)} placeholder="Delhivery, DTDC, Blue Dart, India Post" />
             <span className="adm-muted adm-small">Offered when an order is marked shipped. Any other name can still be typed there.</span>
           </label>
-          {list && next.join(",") !== list.join(",") && (
+          {editable && list && next.join(",") !== list.join(",") && (
             <button type="button" className="adm-btn pri" style={{ justifySelf: "start" }} disabled={busy} onClick={go}>
               {busy ? "Saving" : "Save couriers"}
             </button>

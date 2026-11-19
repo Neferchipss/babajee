@@ -8,7 +8,7 @@ import { useAuth } from "./auth";
 import { getSupabase } from "./supabase";
 
 export type StaffRole = "owner" | "admin" | "accounts" | "storefront" | "frontend";
-export type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "team" | "export" | "delete";
+export type Area = "staff" | "money" | "catalog" | "content" | "look" | "settings" | "settings_view" | "team" | "export" | "delete";
 
 export const ROLES: { id: StaffRole; label: string; about: string }[] = [
   { id: "owner", label: "Owner", about: "Everything, including the team and who is an owner or admin." },
@@ -26,6 +26,8 @@ const CAN: Record<Area, StaffRole[]> = {
   content: ["owner", "admin", "storefront"],
   look: ["owner", "admin", "storefront", "frontend"],
   settings: ["owner", "admin"],
+  // the store account sees GST and Delivery, read only
+  settings_view: ["owner", "admin", "accounts"],
   team: ["owner", "admin"],
   export: ["owner", "admin"],
   delete: ["owner", "admin"],
@@ -46,7 +48,7 @@ const PAGES: [string, Area][] = [
   ["/admin/settings/team", "staff"],
   ["/admin/settings/design", "staff"],
   ["/admin/settings/activity", "money"],
-  ["/admin/settings", "settings"],
+  ["/admin/settings", "settings_view"],
   ["/admin", "staff"],
 ];
 function areaOf(path: string): Area {

@@ -777,7 +777,7 @@ textarea.adm-input {
   accent-color: var(--adm-gold);
 }
 
-.adm-switch {
+input.adm-switch {
   width: 40px;
   height: 24px;
   accent-color: var(--adm-gold);
@@ -4073,3 +4073,6 @@ body:has(.adm-frame) .ftr {
 .sup-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .sup-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sup-note { width: 100%; margin-top: 4px; }
+/* settings: a topic with unsaved changes, and the fields as one block */
+.set-dirty { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--color-rasta-gold, #d3ab70); vertical-align: middle; }
+.set-fields { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }

@@ -147,7 +147,7 @@ export async function lowStock(): Promise<LowItem[]> {
   if (error) throw error;
   return (data ?? []) as LowItem[];
 }
-export async function saveSettings(s: StoreSettings) {
+export async function saveSettings(s: Partial<StoreSettings>) {
   const { error } = await (await db()).from("store_settings").update(s).eq("id", 1);
   if (error) throw error;
 }
