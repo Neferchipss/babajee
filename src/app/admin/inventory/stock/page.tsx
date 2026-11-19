@@ -96,8 +96,11 @@ function Stock() {
     [products],
   );
   const lowAt = (r: Row) => r.p.low_stock_at ?? shopLow;
-  const isLow = (r: Row) => r.v.track_stock && r.v.stock_qty > 0 && r.v.stock_qty <= lowAt(r);
-  const isOut = (r: Row) => r.v.track_stock && r.v.stock_qty <= 0;
+  // the same rule as Home and the low-stock alert (0083): a counted, shown
+  // option of an active product
+  const watched = (r: Row) => r.v.track_stock && r.v.is_visible && r.p.status === "published";
+  const isLow = (r: Row) => watched(r) && r.v.stock_qty > 0 && r.v.stock_qty <= lowAt(r);
+  const isOut = (r: Row) => watched(r) && r.v.stock_qty <= 0;
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const shown = rows.filter(
     (r) =>
