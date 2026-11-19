@@ -52,7 +52,8 @@ const PAGES: [string, Area][] = [
   ["/admin", "staff"],
 ];
 function areaOf(path: string): Area {
-  const p = path.replace(/\/$/, "") || "/";
+  // the page itself: a link's #section or ?filter doesn't change whose page it is
+  const p = path.split(/[?#]/)[0].replace(/\/$/, "") || "/";
   const hit = PAGES.filter(([pre]) => p === pre || p.startsWith(`${pre}/`)).sort((a, b) => b[0].length - a[0].length)[0];
   return hit ? hit[1] : "settings";
 }
