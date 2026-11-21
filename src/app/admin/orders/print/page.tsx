@@ -356,6 +356,31 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
         </div>
         {inv.refunded > 0 && <p className="inv-refund">{inr(inv.refunded)} of this was refunded later; see the credit note or the order&apos;s refunds.</p>}
 
+        {/* how to pay the shop, and its terms (Settings › Payments and bank, Business details) */}
+        {(shop.bank_account_number || shop.bank_upi_id || shop.invoice_note) && (
+          <div className="inv-row inv-terms">
+            {(shop.bank_account_number || shop.bank_upi_id) && (
+              <div>
+                <span className="prt-label">Bank details</span>
+                {shop.bank_account_name && <div>{shop.bank_account_name}</div>}
+                {shop.bank_account_number && (
+                  <div>
+                    A/c {shop.bank_account_number}
+                    {shop.bank_ifsc ? ` · IFSC ${shop.bank_ifsc}` : ""}
+                  </div>
+                )}
+                {shop.bank_upi_id && <div>UPI {shop.bank_upi_id}</div>}
+              </div>
+            )}
+            {shop.invoice_note && (
+              <div>
+                <span className="prt-label">Terms and conditions</span>
+                <div className="inv-terms-text">{shop.invoice_note}</div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="inv-row inv-sign">
           <div>
             <span className="prt-label">Declaration</span>
@@ -369,7 +394,6 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
       </div>
 
       <footer className="inv-foot">
-        {shop.invoice_note && <p>{shop.invoice_note}</p>}
         <p className="prt-small">This is a computer-generated invoice.</p>
       </footer>
     </article>

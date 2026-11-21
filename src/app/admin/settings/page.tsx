@@ -285,9 +285,10 @@ export default function SettingsPage() {
                 <input className="adm-input" value={store.invoice_prefix} disabled={!loaded} maxLength={5} onChange={(e) => setStore({ ...store, invoice_prefix: e.target.value.toUpperCase() })} />
                 <span className="adm-muted adm-small">Numbers run {store.invoice_prefix || "BJ"}/26-27/0001, 0002… and start again each April.</span>
               </label>
-              <label className="adm-label">
-                Line at the bottom
-                <input className="adm-input" value={store.invoice_note} disabled={!loaded} onChange={(e) => setStore({ ...store, invoice_note: e.target.value })} />
+              <label className="adm-label" style={{ gridColumn: "1 / -1" }}>
+                Terms and conditions
+                <textarea className="adm-input" rows={3} value={store.invoice_note} disabled={!loaded} placeholder="Your terms, one per line" onChange={(e) => setStore({ ...store, invoice_note: e.target.value })} />
+                <span className="adm-muted adm-small">Printed on every invoice, beside the bank details from Payments and bank.</span>
               </label>
             </div>
           </section>

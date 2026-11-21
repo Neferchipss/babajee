@@ -322,6 +322,19 @@
   font-size: 10.5px;
   color: #6b675f;
 }
+/* bank details and terms, above the declaration */
+.inv-terms {
+  /* the same split as the declaration below, so the lines meet */
+  grid-template-columns: 1.35fr 1fr;
+  font-size: 10.5px;
+  color: #3d3a35;
+}
+.inv-terms > div:only-child {
+  grid-column: 1 / -1;
+}
+.inv-terms-text {
+  white-space: pre-line;
+}
 .inv-sign {
   grid-template-columns: 1.35fr 1fr;
   border-bottom: 0;
