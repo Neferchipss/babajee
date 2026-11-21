@@ -513,6 +513,43 @@ textarea.adm-input {
   opacity: 0.45;
 }
 
+/* customer profile: each order row with a one-click Invoice link */
+.cus-orders {
+  display: grid;
+  gap: 2px;
+}
+.cus-order {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--adm-line);
+}
+.cus-order:last-child {
+  border-bottom: 0;
+}
+.cus-order-main {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.cus-order-main strong {
+  font-variant-numeric: tabular-nums;
+}
+.cus-order-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: none;
+  flex-wrap: wrap;
+}
+.cus-doc {
+  white-space: nowrap;
+}
+
 /* ---------- timeline ---------- */
 .adm-tl {
   display: grid;

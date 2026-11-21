@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { errText } from "@/lib/orders-db";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AdminCategoryBar from "@/components/admin/AdminCategoryBar";
 import ProductTable, { type NewRow } from "@/components/admin/ProductTable";
@@ -64,7 +64,6 @@ export default function ProductsAdminPage() {
 function ProductsAdmin() {
   const params = useSearchParams();
   const api = adminApi();
-  const router = useRouter();
   // deleting a product: owners and admins only (the database refuses others)
   const mayDelete = can(useStaff().me?.role ?? null, "delete");
   const [categories, setCategories] = useState<AdminCategory[]>([]);
@@ -178,16 +177,6 @@ function ProductsAdmin() {
 
   function replace(p: AdminProduct) {
     setRows((rs) => rs.map((r) => (r.id === p.id ? p : r)));
-  }
-
-  async function quickAdd(name: string, categoryId: string) {
-    let slug = slugify(name);
-    for (let n = 2; rows.some((r) => r.slug === slug); n++) slug = `${slugify(name)}-${n}`;
-    const id = await api.createProduct({ category_id: categoryId, slug, name, description: "" });
-    // every new product starts as a draft, and opens on its full page
-    await api.updateProduct(id, { status: "draft" });
-    toast(`${name} added as a draft`);
-    router.push(`/admin/products/edit?id=${id}${isAdminDemo() ? "&demo=1" : ""}`);
   }
 
   // a product made on the sheet's empty row, with what was typed into it
@@ -409,7 +398,7 @@ function ProductsAdmin() {
         <ul className="ap-grid">
           {!selecting && (
             <li>
-              <QuickAdd categories={categories} cat={cat} onAdd={quickAdd} />
+              <QuickAdd categories={categories} cat={cat} />
             </li>
           )}
           {shown.map((p) => (
@@ -579,69 +568,21 @@ function Card({
   );
 }
 
-function QuickAdd({ categories, cat, onAdd }: { categories: AdminCategory[]; cat: string; onAdd: (name: string, categoryId: string) => Promise<void> }) {
-  const [on, setOn] = useState(false);
-  const [name, setName] = useState("");
-  const [into, setInto] = useState(cat);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const target = cat || into || categories[0]?.id || "";
-
-  if (!on)
-    return (
-      <button type="button" className="apc apc--add" onClick={() => setOn(true)}>
-        <span className="apc-img">
-          <b aria-hidden="true">+</b>
-        </span>
-        <span className="apc-name">Add a product</span>
-        <span className="apc-meta">{cat ? `to ${categories.find((c) => c.id === cat)?.name ?? "this category"}` : "Name it, then add photos"}</span>
-      </button>
-    );
-
+// The "Add a product" card: opens the add-product page straight away (name,
+// type, price, then the full product page), carrying the open category.
+function QuickAdd({ categories, cat }: { categories: AdminCategory[]; cat: string }) {
+  const params = new URLSearchParams();
+  if (cat) params.set("category", cat);
+  if (isAdminDemo()) params.set("demo", "1");
+  const href = `/admin/products/new${params.toString() ? `?${params}` : ""}`;
   return (
-    <form
-      className="apc apc--add is-on"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!name.trim() || !target) return;
-        setBusy(true);
-        setErr("");
-        try {
-          await onAdd(name.trim(), target);
-          setName("");
-          setOn(false);
-        } catch (x) {
-          setErr(x instanceof Error ? x.message : String(x));
-        }
-        setBusy(false);
-      }}
-    >
-      <label className="ape-field">
-        <span>New product</span>
-        <input autoFocus placeholder="Its name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setOn(false)} />
-      </label>
-      {!cat && (
-        <label className="ape-field">
-          <span>Category</span>
-          <select value={target} onChange={(e) => setInto(e.target.value)}>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {err && <p className="ap-err">{err}</p>}
-      <div className="apc-add-actions">
-        <button type="submit" className="ap-primary" disabled={busy || !name.trim()}>
-          {busy ? "Adding" : "Add and open"}
-        </button>
-        <button type="button" className="ap-link" onClick={() => setOn(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+    <Link className="apc apc--add" href={href}>
+      <span className="apc-img">
+        <b aria-hidden="true">+</b>
+      </span>
+      <span className="apc-name">Add a product</span>
+      <span className="apc-meta">{cat ? `to ${categories.find((c) => c.id === cat)?.name ?? "this category"}` : "Name it, then add photos"}</span>
+    </Link>
   );
 }
 

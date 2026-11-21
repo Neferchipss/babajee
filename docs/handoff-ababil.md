@@ -43,6 +43,18 @@ All of these ran on the live database without changing anything, except the two 
 - All options switched on for Ring Joint Holder, Raw Drawstring Bag, Hemper Cones and Babajee Doob Tube (they had none on).
 - Test products archived: blah blah, naya maal, pper box, rolling ppr of babajee.
 
+## Taken live by us (client approved), merged to main
+
+- **Customer profile:** each order has a one-click **Invoice** link, and a **Credit note** link when it has refunds. Both open the print page.
+- **Products page:** the "Add a product" card opens `/admin/products/new` directly, carrying the open category. The old inline name form and `quickAdd` are gone.
+- **Categories:** the toggle "Sold in boxes" is now labelled **"Comes in boxes"**. Boxes are how stock is bought and counted; selling a whole box stays optional per box (its switch on the product page).
+- **Live data:** Rolling Paper switched to boxes.
+  - 63 of its products got their box size from the stock sheet (mostly 50 and 24) in `product_box_sizes`.
+  - Each loose option got a hidden box option (`unit_variant_id`, `pack_of`, priced at piece price × pieces, `is_visible` false).
+  - 5 products have no size on the sheet and stay loose: 2 test products and the 2 pre-rolled cones, plus babajee 100's.
+  - Boxes can now be added on Inventory › Stock (Add or adjust › Box of N › Add stock) or on purchase bills (Box of N line).
+- **Sign-in emails don't reach staff.** Auth email goes through Resend's test sender (`onboarding@resend.dev`), which only delivers to the Resend account owner, so password-reset and sign-up emails never arrive for anyone else. Verify a sending domain in Resend and set the SMTP sender to it.
+
 ## What changed (by area)
 
 - **Admin menu** (`components/admin/nav-data.tsx`): Home, Orders, Catalogue, Inventory, Customers, Finance, Storefront, Analytics, Settings. Page access goes through `lib/staff.ts` (PAGES → area).

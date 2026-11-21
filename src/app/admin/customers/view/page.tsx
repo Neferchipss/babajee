@@ -154,18 +154,31 @@ function CustomerView() {
             {!d?.orders.length ? (
               <p className="adm-muted adm-small">No orders yet.</p>
             ) : (
-              <div className="adm-tasks">
+              <div className="cus-orders">
                 {d.orders.map((o) => (
-                  <Link key={o.id} href={`/admin/orders/view?id=${o.id}`} className="adm-task">
-                    <span>
+                  <div key={o.id} className="cus-order">
+                    <Link href={`/admin/orders/view?id=${o.id}`} className="cus-order-main">
                       <strong>{o.order_number}</strong>
                       <br />
                       <small className="adm-muted">
                         {when(o.created_at)} · {money(o.total)}
                       </small>
+                    </Link>
+                    <span className="cus-order-end">
+                      <StatusPill status={o.status} />
+                      {/* straight to the printable invoice (paid orders only; opening it issues the number) */}
+                      {o.paid_total != null && o.status !== "cancelled" && (
+                        <Link className="adm-link cus-doc" href={`/admin/orders/print?ids=${o.id}&doc=invoice`} target="_blank">
+                          Invoice
+                        </Link>
+                      )}
+                      {o.invoice_number && (o.order_refunds ?? []).length > 0 && (
+                        <Link className="adm-link cus-doc" href={`/admin/orders/print?ids=${o.id}&doc=cn`} target="_blank">
+                          Credit note
+                        </Link>
+                      )}
                     </span>
-                    <StatusPill status={o.status} />
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

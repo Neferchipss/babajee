@@ -207,7 +207,7 @@ function TypeEditor({ api, cat, products, onChanged, onDeleted }: { api: Api; ca
         </div>
         <div className="cat-toggles">
           <Toggle on={draft.is_visible} label="On the shop" hint={draft.is_visible ? "Shoppers see this type and its products" : "Hidden: its shelf isn't shown"} onChange={(v) => set({ is_visible: v })} />
-          <Toggle on={draft.sold_in_boxes} label="Sold in boxes" hint="Its products can have box sizes (Box of 24, Box of 50)" onChange={(v) => set({ sold_in_boxes: v })} />
+          <Toggle on={draft.sold_in_boxes} label="Comes in boxes" hint="Bought and stocked in boxes (Box of 24, Box of 50), sold as pieces. Selling a whole box is optional, per product" onChange={(v) => set({ sold_in_boxes: v })} />
         </div>
         <p className="adm-muted adm-small cat-addr">On the shop at /shop/{cat.slug}/</p>
         <SaveBar dirty={dirty} busy={busy} onSave={save} onDiscard={reset} />
