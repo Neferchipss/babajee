@@ -92,6 +92,9 @@ declare
   c uuid;
   sid uuid;
 begin
+  -- the one-time move from labels; dropped in 0076 once it had run, so
+  -- this part only checks a database from before then
+  if to_regprocedure('public.subcategories_from_labels()') is null then return; end if;
   select id into c from public.categories where slug = 'zz-test-0060-bongs';
   perform public.subcategories_from_labels();
   perform public.subcategories_from_labels();

@@ -141,7 +141,8 @@ begin
 
   -- existing_count_and_price: counted stock 20, hand-typed price 80, first bill 10 @ 120 -> 93.33
   update public.product_variants set stock_qty = 20, track_stock = true where id = v9;
-  insert into public.variant_costs (variant_id, cost, purchase) values (v9, 0, 80);
+  -- a hand-typed price is a starting point for the average since 0057
+  perform public.admin_set_purchase(v9, 80, 18, 'Hand-typed price');
   perform public.admin_post_receipt('bill', s1, 'E-1', current_date, '',
     jsonb_build_array(jsonb_build_object('variant_id', v9, 'qty', 10, 'unit_price', 120, 'gst_rate', 18)));
   if not ((select purchase from public.variant_costs where variant_id = v9) = 93.33) then raise exception 'FAIL: existing_count_and_price'; end if;
@@ -170,9 +171,9 @@ begin
   -- void replay with a sale in between: voiding the S-1 bill leaves the opening only
   perform public.admin_void_receipt((select id from public.stock_receipts where bill_no = 'S-1' and status = 'posted'));
   if not ((select purchase from public.variant_costs where variant_id = v8) = 100.00) then raise exception 'FAIL: void_recomputes replay'; end if;
-  -- no receipt left: the typed price stays (v9 had none before E-1)
+  -- no receipt left: back to the hand-typed starting point (0057)
   perform public.admin_void_receipt((select id from public.stock_receipts where bill_no = 'E-1' and status = 'posted'));
-  if not ((select purchase from public.variant_costs where variant_id = v9) = 93.33) then raise exception 'FAIL: void_recomputes no receipts left'; end if;
+  if not ((select purchase from public.variant_costs where variant_id = v9) = 80.00) then raise exception 'FAIL: void_recomputes no receipts left'; end if;
 
   -- void_after_sale_goes_negative
   r_d := public.admin_post_receipt('bill', s1, 'D-1', current_date, '',
@@ -211,7 +212,9 @@ begin
 
   -- out_of_stock_counts_below_zero (v5 sits at -3, tracked)
   if not ((public.admin_home_counts() ->> 'out_of_stock')::int
-          = (select count(*) from public.product_variants where track_stock and is_visible and stock_qty <= 0)
+          -- the rule since 0083: counted, shown, loose options of active products
+          = (select count(*) from public.product_variants v join public.products p on p.id = v.product_id
+              where v.track_stock and v.is_visible and v.unit_variant_id is null and p.status = 'published' and v.stock_qty <= 0)
           and (select stock_qty from public.product_variants where id = v5) < 0)
   then raise exception 'FAIL: out_of_stock_counts_below_zero'; end if;
   if not (pg_get_functiondef('public.place_order(jsonb, jsonb, text)'::regprocedure) like '%if v.stock_qty <= 0 then%') then raise exception 'FAIL: checkout_out_of_stock_below_zero'; end if;

@@ -16,6 +16,33 @@ For the Claude session working on this project. Everything on `ababil` is merged
   - `products.product_type` is still read by the admin.
   - `admin_purchase_gst` is unused.
 
+## Live backend check (read-only or rolled back)
+
+All of these ran on the live database without changing anything, except the two client-approved fixes at the end.
+
+- **Database tests:** 31 of the 32 files in `supabase/tests` pass against live as it is.
+  - 0050 and 0063 were updated to current behaviour: the 0057 price starting points, the 0083 low-stock rule, and the function dropped in 0076.
+  - 0057 fails on live data only. "Fanta Cola Can · Default", a draft test product, has a buying price with no `purchase_corrections` starting point.
+- **Order and bill lifecycle:** 18 of 18 steps pass, rolled back. The steps: phone order with a box, paid, invoice issued, packed, shipped, failed, sent again, delivered, return with credit note, bill, void.
+  - The invoice and credit-note triggers are `deferrable initially deferred`, so a rolled-back test must run `set constraints all immediate` to see them fire.
+  - The test overrides the `order_number` default inside the transaction so it doesn't use up a BJ number.
+- **Security:** an anonymous visitor is refused every private table (25) and admin function (5). All 52 public tables have RLS on.
+  - `store_settings` is readable by anyone, including the bank fields (by design since 0005, for paying customers) and internal settings.
+- **Data health:**
+  - Clean: no invoice gaps, every paid order invoiced, totals add up, no negative stock, no duplicate SKUs, box stock in step.
+- **Scheduled jobs:** all 4 are on and succeeding, with no failures in 7 days.
+
+**For you, from the client:**
+- **Order numbers:** `order_number_seq` is at 1719 and the last real order is BJ-1555. Tests used up the numbers in between, because a sequence isn't rolled back. The client says you'll reset it.
+- **Orders:** all 538 orders are test orders (534 flagged `is_test`). The client confirms none are real.
+- **HSN:** 68 active products have none, so their invoice lines print without one and the GST returns warn. Fill per type in Finance › GST & HSN.
+- **Prices:** 509 of 520 shown options are unpriced.
+
+**Changed on live with the client's approval:**
+- The sub-category fill above.
+- All options switched on for Ring Joint Holder, Raw Drawstring Bag, Hemper Cones and Babajee Doob Tube (they had none on).
+- Test products archived: blah blah, naya maal, pper box, rolling ppr of babajee.
+
 ## What changed (by area)
 
 - **Admin menu** (`components/admin/nav-data.tsx`): Home, Orders, Catalogue, Inventory, Customers, Finance, Storefront, Analytics, Settings. Page access goes through `lib/staff.ts` (PAGES → area).
