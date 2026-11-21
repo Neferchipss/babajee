@@ -1,33 +1,20 @@
 # Handoff: branch `ababil` (admin UI redesign + shop designs)
 
-For the Claude session reviewing or merging this branch. Since the last merge, `ababil` is 12 commits ahead of `origin/main` (first: `bdd27f1`) and 0 behind, so it merges as a fast-forward. Each commit message lists what it changed.
+For the Claude session working on this project. Everything on `ababil` is merged into `main`, and the two match except for this note. Each commit message lists what it changed.
 
-## Please check first
+## Status
 
-1. **Review migrations 0081, 0082 and 0083** (below) and their tests before applying them to live. Each passes with `scripts/test-sql.sh <migration> <test>` and fails without its migration. None has been applied anywhere live.
-2. **Apply them in order:** 0081, 0082, 0083. None depends on another.
-3. **Run "Fill from product names"** on live data once (Catalogue › Categories, for each type). This is still left over from the 0077–0080 session.
-4. **Decide on the old columns** listed below before anything removes them.
-
-## Migrations
-
-0077 to 0080 are applied live. Still to do from that session: run Catalogue › Categories › "Fill from product names" on each type.
-
-**Pending, not applied anywhere live:**
-
-| Migration | What it does | Test |
-|---|---|---|
-| `0081_delivery_rules.sql` | `store_settings.fail_reasons text[]` (1 to 12, no empty) and `late_days int` (1 to 60, default 7). Settings › Delivery edits them; the order page's failed-delivery reasons and the late-deliveries report read them. | `0081_delivery_rules.test.sql` |
-| `0082_look_staff_read.sql` | Front-end staff (`staff_can('look')`) can read every collection, collection item and category, hidden ones included, for the homepage pickers. Read only. | `0082_look_staff_read.test.sql` |
-| `0083_one_low_stock_rule.sql` | `admin_home_counts()` counts out-of-stock and low-stock options only on active products, the same rule as `admin_low_stock()` and Inventory › Stock. | `0083_one_low_stock_rule.test.sql` |
-
-- Each test passes with `scripts/test-sql.sh <migration> <test>` (rolled back, `[]` = pass) and fails without its migration.
-- **Before they're applied:** the code reads 0081's columns separately and falls back to its defaults (Settings shows a "needs 0081" note); without 0082, front-end pickers simply don't list hidden shelves; without 0083, Home's out-of-stock count still includes drafts.
-
-**Not removed, needs a decision:**
-- `products.subcategory` (the old text label) is still read by the shop's shelves and product cards.
-- `products.product_type` is still read by the admin.
-- `admin_purchase_gst` is unused.
+- **All migrations up to 0083 are applied live.**
+- **The sub-category fill has been run on live data:**
+  - 21 groups and 70 new sub-categories, across 8 types (papers, trays, storage, bongs, bong accessories, grinders, pipes, ashtrays);
+  - 268 products tagged.
+  - Before writing, 4 wrong matches were left out.
+  - The other 12 types have no rules yet.
+  - The hand-made "glass bong" sub-category (1 product) is still there, next to the new "Glass".
+- **Still to decide: old columns.**
+  - `products.subcategory`, the old text label, is still read by the shop's shelves and product cards.
+  - `products.product_type` is still read by the admin.
+  - `admin_purchase_gst` is unused.
 
 ## What changed (by area)
 
