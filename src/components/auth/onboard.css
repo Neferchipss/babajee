@@ -1068,8 +1068,10 @@ html[data-mode="light"] .onb {
 .onb.is-modal .onb-card {
   z-index: auto;
 }
-/* the piece a little smaller, pinned to the window's bottom-left corner,
-   the night sky filling above and around it */
+/* the piece pinned to the window's bottom-left corner and exactly as wide
+   as the space left of the form card (window padding 8px + the 1.45fr
+   column + the 8px gap), so its right edge lines up with the card's; the
+   night sky fills above it */
 .onb.is-modal {
-  background-size: auto 72%;
+  background-size: calc(16px + (100% - 24px) * 1.45 / 2.45) auto;
 }
