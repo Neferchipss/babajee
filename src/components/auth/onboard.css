@@ -953,3 +953,33 @@ html[data-mode="light"] .onb {
 .onb-hero-logo {
   filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.5));
 }
+
+/* ---------------------------------------------------------------- two cards */
+/* Like Zepto's: the window itself is the gold, the brand side sits straight
+   on it with the art running off the window's bottom-left edges, and the
+   form is its own card floating on the right. */
+.onb.is-modal {
+  overflow: hidden;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--onb-gold) 88%, #fff) 0%, var(--onb-gold) 50%, color-mix(in srgb, var(--onb-gold) 75%, #000) 100%);
+}
+.onb.is-modal .onb-brand {
+  margin: -8px 0 -8px -8px;
+  padding: 32px 20px 24px 32px;
+  overflow: visible;
+  border-radius: 0;
+  background: none;
+}
+.onb.is-modal .onb-art {
+  margin: -8px -48px -24px -32px;
+}
+.onb.is-modal .onb-card {
+  position: relative;
+  z-index: 1;
+  border-radius: 18px;
+  background: var(--color-iron, #121213);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+.onb.is-modal .onb-close {
+  top: 20px;
+  right: 20px;
+}
