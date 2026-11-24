@@ -983,3 +983,15 @@ html[data-mode="light"] .onb {
   top: 20px;
   right: 20px;
 }
+
+/* the art fills the window's whole bottom half on the brand side: taller,
+   scaled up from the bottom so its dense part (shore, flowers) does the
+   filling, with only a short fade at the top */
+.onb.is-modal .onb-art {
+  flex: 1 0 252px;
+  min-height: 252px;
+  background-size: 128% auto;
+  background-position: 30% bottom;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%);
+  mask-image: linear-gradient(180deg, transparent, #000 12%);
+}
