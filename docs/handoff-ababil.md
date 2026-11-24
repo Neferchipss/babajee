@@ -88,6 +88,13 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 - Role check run against the database, in a rolled-back transaction: every page's reads and writes match its role.
 - Fixed: page access ignores `#`/`?`. Before this, Profit and GST showed for every role.
 - Shop buttons, fields and links take their colours from the design tokens, with one `.link` class.
+- Homepage is always the painted walk-in (scrub scene), whatever storefront design is picked; HomeSwitch removed.
+- Login window: hero art (beach or garden) picked at random on each opening, replacing the placeholders.
+- Login window: redesigned as logo over the full artwork on the left and the form card on the right, 960 × 440, no pitch text.
+- Login window: art runs to the window's left, top and bottom edges, pinned bottom-left, its right edge lined up with the form card.
+- Login window: the art showing around the form card is blurred; the logo has no black tile behind it.
+- Login on phones: art fills the whole header edge to edge, logo straight on it.
+- Shop colours (replacing the storefront designs): design approved for writing up in `docs/superpowers/specs/2026-11-24-shop-colours-design.md`, not built yet.
 
 ## Not done
 
