@@ -111,3 +111,17 @@
     justify-content: space-between;
   }
 }
+
+/* very wide windows (or zoomed out, down to 25%): the footer keeps the
+   width the pages were drawn for, centred, like the shelf and the bar */
+#site .ftr-inner,
+#site .ftr-bottom {
+  max-width: 1680px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+@media (min-width: 1712px) {
+  #site .ftr-bottom {
+    padding-inline: var(--ftr-x);
+  }
+}

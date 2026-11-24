@@ -11,9 +11,11 @@
        window's height; on the right the bar (search, Cart, Profile) over
        the products. Only the products scroll. */
     & .cp {
-      /* the left panel hugs the window's left edge; the products take the rest */
-      max-width: none;
-      margin: 0;
+      /* the left panel hugs the left edge and the products take the rest, up
+         to the width the shelf was drawn for; on wider windows (or zoomed
+         out, down to 25%) the shelf stays that size, centred */
+      max-width: 1680px;
+      margin: 0 auto;
       padding-left: 24px;
       padding-right: 40px;
       grid-template-columns: 280px minmax(0, 1fr);
@@ -68,6 +70,19 @@
     & .sb-logo {
       top: 22px;
       margin-left: 10px;
+      /* not the 1760px-and-up placement in the window's margin
+         (baba-poster.css): here the logo has its own spot over the list */
+      right: auto;
+      display: block;
+      width: auto;
+      height: auto;
+    }
+    /* Cart / Profile stay in the bar's row, inside its rounded box, at any
+       width (the 1760px rule would move them into the window's margin) */
+    & .sb-me {
+      position: static;
+      width: auto;
+      height: auto;
     }
     & .sb-logo img {
       width: 132px;
