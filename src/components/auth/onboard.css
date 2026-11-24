@@ -880,3 +880,51 @@ html[data-mode="light"] .onb {
     padding-top: calc(env(safe-area-inset-top) + 18px);
   }
 }
+
+/* ---------------------------------------------------------------- window size */
+/* The window at the size of a sign-in prompt, not a page (Zepto's is about
+   760 x 505): everything in it scaled down together. */
+.onb-dialog {
+  width: min(780px, calc(100vw - 48px));
+}
+.onb.is-modal {
+  min-height: 500px;
+  padding: 8px;
+  border-radius: 24px;
+}
+.onb.is-modal .onb-brand {
+  gap: 14px;
+  padding: 24px;
+  border-radius: 18px;
+}
+.onb.is-modal .onb-brand-logo {
+  width: 120px;
+  padding: 9px 12px;
+  border-radius: 13px;
+}
+.onb.is-modal .onb-pitch h2 {
+  margin-bottom: 12px;
+  font-size: 1.5rem;
+}
+.onb.is-modal .onb-pitch ul {
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.onb.is-modal .onb-pitch i {
+  width: 26px;
+  height: 26px;
+  font-size: 0.62rem;
+}
+.onb.is-modal .onb-art {
+  min-height: 200px;
+  margin: -8px -24px -24px;
+}
+.onb.is-modal .onb-card {
+  padding: 40px 28px 28px;
+}
+.onb.is-modal .onb-close {
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+}
