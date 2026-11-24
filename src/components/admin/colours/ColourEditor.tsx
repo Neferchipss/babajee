@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { adminApi } from "@/lib/admin-api";
 import { getLook, saveLook } from "@/lib/content";
-import { PREVIEW_TYPE, type PreviewMessage } from "@/lib/colours-preview";
+import { isReadyMessage, PREVIEW_TYPE, type PreviewMessage } from "@/lib/colours-preview";
 import { errText } from "@/lib/orders-db";
 import { PRESETS, SLOTS, type Mode } from "@/lib/shop-colours";
 import { can, useStaff } from "@/lib/staff";
@@ -67,6 +67,18 @@ export default function ColourEditor({ aronium = false }: { aronium?: boolean })
     frame.current?.contentWindow?.postMessage(msg, location.origin);
   };
   useEffect(send);
+  // the frame says when it is listening; answer with the palette
+  const sendRef = useRef(send);
+  useEffect(() => {
+    sendRef.current = send;
+  });
+  useEffect(() => {
+    const onReady = (e: MessageEvent) => {
+      if (e.source === frame.current?.contentWindow && isReadyMessage(e, location.origin)) sendRef.current();
+    };
+    window.addEventListener("message", onReady);
+    return () => window.removeEventListener("message", onReady);
+  }, []);
 
   if (!work) return <p className="adm-muted">Loading colours…</p>;
   const dirty = JSON.stringify(work) !== saved;

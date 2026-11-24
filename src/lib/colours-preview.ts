@@ -17,6 +17,13 @@ export function isPreviewMessage(e: { origin: string; data: unknown }, ownOrigin
   return d.colours === null || (typeof d.colours === "object" && d.colours !== undefined);
 }
 
+// the frame says it is listening (it starts after the page wakes up, later
+// than the frame's load event), and the editor answers with the palette
+export const READY_TYPE = "bj-colours-ready";
+export function isReadyMessage(e: { origin: string; data: unknown }, ownOrigin: string): boolean {
+  return e.origin === ownOrigin && (e.data as { type?: unknown } | null)?.type === READY_TYPE;
+}
+
 export const inColoursPreview = () => typeof document !== "undefined" && document.documentElement.dataset.preview === "colours";
 
 export function startColoursPreview(): () => void {
@@ -26,6 +33,7 @@ export function startColoursPreview(): () => void {
     document.documentElement.dataset.mode = e.data.mode;
   };
   window.addEventListener("message", on);
+  window.parent.postMessage({ type: READY_TYPE }, location.origin);
   return () => window.removeEventListener("message", on);
 }
 

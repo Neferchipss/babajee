@@ -19,3 +19,10 @@ test("rejects the wrong shape", () => {
   assert.equal(isPreviewMessage({ origin: "https://a.test", data: { ...msg, colours: "red" } }, "https://a.test"), false);
   assert.equal(isPreviewMessage({ origin: "https://a.test", data: null }, "https://a.test"), false);
 });
+
+test("the frame's ready signal is recognised only from the shop's own origin", async () => {
+  const { isReadyMessage, READY_TYPE } = await import("./colours-preview.ts");
+  assert.equal(isReadyMessage({ origin: "https://a.test", data: { type: READY_TYPE } }, "https://a.test"), true);
+  assert.equal(isReadyMessage({ origin: "https://evil.test", data: { type: READY_TYPE } }, "https://a.test"), false);
+  assert.equal(isReadyMessage({ origin: "https://a.test", data: { type: "bj-colours-preview" } }, "https://a.test"), false);
+});
