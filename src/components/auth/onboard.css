@@ -1049,17 +1049,22 @@ html[data-mode="light"] .onb {
 .onb.is-modal .onb-card {
   overflow: visible;
 }
+/* the art showing around the card (the strips above, below and to its
+   right) is blurred; its left edge stays sharp */
 .onb.is-modal .onb-card::before {
   content: "";
   position: absolute;
-  top: -8px;
-  bottom: -8px;
-  left: -44px;
-  width: 44px;
+  inset: -8px -8px -8px 0;
   z-index: -1;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000);
-  mask-image: linear-gradient(90deg, transparent, #000);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+/* the blur layer sits under the card, not inside it, so it blurs only the
+   art (the window isolates; the card makes no stacking context of its own) */
+.onb.is-modal {
+  isolation: isolate;
+}
+.onb.is-modal .onb-card {
+  z-index: auto;
 }
