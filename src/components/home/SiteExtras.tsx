@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLook, listRows, type MenuLink } from "@/lib/content";
 import { applyColours } from "@/lib/shop-colours-apply";
+import { inColoursPreview, startColoursPreview } from "@/lib/colours-preview";
 import type { ShopColours } from "@/lib/shop-colours";
 import "./site-extras.css";
 
@@ -46,19 +47,24 @@ export function Announcement() {
     // Admin > Storefront shows on whichever page the shop is opened on
     const had = cached<{ text: string; link: string; colours?: ShopColours | null }>(LOOK_KEY);
     let live = true;
+    // in the Colours preview, the editor's palette (sent by message) is the
+    // one shown, not the saved one
+    const preview = inColoursPreview();
+    const stopPreview = preview ? startColoursPreview() : () => {};
     if (had) {
       setA(had);
-      applyColours(had.colours ?? null);
+      if (!preview) applyColours(had.colours ?? null);
     }
     getLook().then((l) => {
       if (!live) return;
       const x = { text: l.announcement, link: l.announcement_link, colours: l.colours };
       keep(LOOK_KEY, x);
       setA(x);
-      applyColours(x.colours);
+      if (!preview) applyColours(x.colours);
     });
     return () => {
       live = false;
+      stopPreview();
     };
   }, []);
   if (!a?.text) return null;

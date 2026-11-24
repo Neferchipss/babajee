@@ -111,6 +111,8 @@ function counted(path: string) {
 type VisitKind = "view" | "cart" | "checkout" | "product" | "add" | "search" | "step";
 
 export function track(kind: VisitKind, path = location.pathname, label = "", value?: number) {
+  // the shop inside Storefront > Colours' preview is not a visit
+  if (document.documentElement.dataset.preview === "colours") return;
   if (!counted(path)) return;
   const id = session();
   if (!id) return;

@@ -12,6 +12,7 @@ import { AuthProvider } from "@/lib/auth";
 import { AGE_STORAGE_KEY } from "@/lib/config";
 import { modeBootScript } from "@/lib/mode-boot";
 import { coloursBootScript } from "@/lib/shop-colours-apply";
+import { previewBootScript } from "@/lib/colours-preview";
 import { DEFAULT_THEME, SHOWN_THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import "./globals.css";
 import "./themes/base.css";
@@ -67,6 +68,7 @@ var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
 if(${JSON.stringify(SHOWN_THEMES.map((x) => x.id))}.indexOf(t)>-1)document.documentElement.dataset.theme=t;
 ${modeBootScript}
 ${coloursBootScript}
+${previewBootScript}
 }catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
