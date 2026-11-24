@@ -68,3 +68,10 @@ test("both selectors stay out of the admin", () => {
   assert.equal(selectors.length, 2);
   for (const s of selectors) assert.match(s, /:not\(:has\(\.adm-frame\)\)$/, s);
 });
+
+test("the highlight part is named for what it colours (cart, add buttons, chosen filters)", () => {
+  const hot = SLOTS.find((s) => s.id === "hot")!;
+  assert.equal(hot.label, "Cart and highlights");
+  assert.match(hot.hint, /View cart/);
+  assert.match(hot.hint, /add buttons/);
+});

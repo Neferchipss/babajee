@@ -21,7 +21,7 @@ export const SLOTS: { id: Slot; label: string; hint: string }[] = [
   { id: "backdrop", label: "Product photo backdrop", hint: "Behind product photos" },
   { id: "accent", label: "Accent (buttons, links, highlights)", hint: "Main buttons, links, focus rings" },
   { id: "onAccent", label: "Text on accent", hint: "Words on the accent colour" },
-  { id: "hot", label: "Sale and alert", hint: "Sale tags, badges, warnings" },
+  { id: "hot", label: "Cart and highlights", hint: "View cart bar, add buttons, chosen filters, hearts, stars and badges" },
   { id: "green", label: "Green (in stock, success)", hint: "In stock, done, saved" },
   { id: "bar", label: "Header bar", hint: "The bar along the top, and the phone's browser bar" },
 ];

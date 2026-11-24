@@ -60,7 +60,7 @@ For each mode (light, dark):
 | Product photo backdrop | `--color-plate`, and the light-mode backdrop now hard-coded `#f0f2f5` in `modes.css` (made to use the variable) | |
 | Accent (buttons, links, highlights) | `--bb-maroon`, `--bb-rose`, `--color-rasta-gold`, `--plate-ink`, `--bbn-glow` (rgb) | `--bb-maroon-dk`: accent toward the text colour ~15% |
 | Text on accent | `--bb-on-accent`, `--color-ink` (it is the text on primary buttons, selection and the cart badge, not a background) | |
-| Sale and alert | `--bb-hot` | |
+| Cart and highlights (View cart bar, add buttons, chosen filters, hearts, stars, badges; was "Sale and alert") | `--bb-hot` | |
 | Green (in stock, success) | `--bb-green` | `--bb-green-dk`: toward black ~25% |
 | Header bar | new `--bb-bar` (rgb), used in place of `--bb-bg` where the top bars are painted: `.lb` and `.sb` in `shop-bar.css`, and the desktop bars in `baba-poster.css` (around lines 322 and 870). The category switch, store button, cart bar and frosted sheet panels keep `--bb-bg`. | defaults to page background |
 

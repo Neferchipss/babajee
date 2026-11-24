@@ -125,7 +125,7 @@ export default function ColourEditor({ aronium = false }: { aronium?: boolean })
             {PRESETS.map((p) => (
               <button key={p.id} type="button" className={`clr-preset ${work.preset === p.id ? "is-on" : ""}`} disabled={!may} onClick={() => setWork(pickPreset(p.id))} aria-pressed={work.preset === p.id}>
                 <span className="clr-chips" aria-hidden="true">
-                  {(["page", "panels", "accent", "text"] as const).map((s) => (
+                  {(["page", "panels", "accent", "hot", "text"] as const).map((s) => (
                     <i key={s} style={{ background: p[mode][s] }} />
                   ))}
                 </span>
