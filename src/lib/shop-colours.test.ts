@@ -89,3 +89,23 @@ test("Rasta: the logo's red, yellow and green, readable in both modes", () => {
     assert.ok(contrast(r[m].onAccent, r[m].accent) >= 3, `${m} on accent`);
   }
 });
+
+test("text on the header bar is whichever of text or page reads better on it", () => {
+  const r = PRESETS.find((p) => p.id === "rasta")!;
+  assert.equal(r.dark.bar, "#ffd400");
+  const css = paletteCss({ preset: "rasta", light: r.light, dark: r.dark });
+  const dark = css.slice(css.indexOf('data-mode="dark"'));
+  const light = css.slice(css.indexOf('data-mode="light"'), css.indexOf('data-mode="dark"'));
+  assert.match(dark, new RegExp(`--bb-on-bar: ${r.dark.page}`));
+  assert.match(light, new RegExp(`--bb-on-bar: ${r.light.text}`));
+});
+
+test("inside a coloured header bar, words take the bar's own text colour; the search box keeps the page's", () => {
+  const r = PRESETS.find((p) => p.id === "rasta")!;
+  const css = paletteCss({ preset: "rasta", light: r.light, dark: r.dark });
+  const dark = css.slice(css.indexOf('[data-mode="dark"]'));
+  assert.match(dark, /:is\(\.lb, \.sb-me\) \{[^}]*--color-paper: #0b0b0a/);
+  assert.match(dark, /@media \(max-width: 1023px\)[^@]*\.sb \{[^}]*--color-paper: #0b0b0a/);
+  assert.match(dark, /\.sb-search \{[^}]*--color-paper: #fff8e1[^}]*background: rgb\(11 11 10\)/);
+  assert.equal(paletteCss(null), "");
+});

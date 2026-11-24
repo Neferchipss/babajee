@@ -83,6 +83,12 @@
       position: static;
       width: auto;
       height: auto;
+      /* inside the coloured box: the words that read on it */
+      color: var(--bb-on-bar, var(--color-paper));
+    }
+    /* the rest of the bar (logo, where to) sits on the page's own colour */
+    & .sb {
+      color: var(--color-paper);
     }
     & .sb-logo img {
       width: 132px;

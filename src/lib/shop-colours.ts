@@ -43,7 +43,7 @@ export const PRESETS: { id: Exclude<PresetId, "custom">; name: string; light: Pa
     id: "rasta",
     name: "Rasta",
     light: { page: "#fffdf2", panels: "#ffffff", lines: "#ece4c4", text: "#14120c", secondary: "#5e5743", backdrop: "#f6f1dc", accent: "#0b7a34", onAccent: "#ffffff", hot: "#d71920", green: "#0b7a34", bar: "#ffd400" },
-    dark: { page: "#0b0b0a", panels: "#161512", lines: "#2c2a21", text: "#fff8e1", secondary: "#b9b29a", backdrop: "#161512", accent: "#ffd400", onAccent: "#0b0b0a", hot: "#ff3b30", green: "#22c55e", bar: "#0b0b0a" },
+    dark: { page: "#0b0b0a", panels: "#161512", lines: "#2c2a21", text: "#fff8e1", secondary: "#b9b29a", backdrop: "#161512", accent: "#ffd400", onAccent: "#0b0b0a", hot: "#ff3b30", green: "#22c55e", bar: "#ffd400" },
   },
   {
     id: "haveli",
@@ -119,6 +119,9 @@ export function themeBar(c: ShopColours | null, mode: Mode): string {
   return filled(c, mode).bar;
 }
 
+// the text or the page colour, whichever reads better on the header bar
+const onBarOf = (p: Palette) => (contrast(p.text, p.bar) >= contrast(p.page, p.bar) ? p.text : p.page);
+
 function modeBlock(p: Palette, mode: Mode): string {
   const vars: [string, string][] = [
     ["--color-char", p.page],
@@ -148,10 +151,24 @@ function modeBlock(p: Palette, mode: Mode): string {
     ["--bb-green", p.green],
     ["--bb-green-dk", mix(p.green, "#000000", 25)],
     ["--bb-bar", triplet(p.bar)],
+    // words and icons on the header bar: the text or the page colour,
+    // whichever reads better on it (a yellow bar in the dark gets dark words)
+    ["--bb-on-bar", onBarOf(p)],
     ["--bb-scrim", mode === "light" ? `rgb(${triplet(p.text)} / 0.36)` : `rgb(${triplet(p.page)} / 0.7)`],
   ];
   const body = vars.map(([k, v]) => `  ${k}: ${v};`).join("\n");
-  return `:root[data-mode="${mode}"]:not(:has(.adm-frame)),\nhtml[data-theme="baba-poster"][data-mode="${mode}"] #site[data-scope="shop"]:not(:has(.adm-frame)) {\n${body}\n}`;
+  const shop = `html[data-theme="baba-poster"][data-mode="${mode}"] #site[data-scope="shop"]:not(:has(.adm-frame))`;
+  // inside the header bar, the words follow the bar's own colour: the full
+  // bars (.lb; the shelf bar on phones) and Cart / Profile in the desktop
+  // shelf's rounded box. The search box keeps the page's colours, solid in
+  // the dark so it never turns muddy over a light bar.
+  const words = `--color-paper: ${onBarOf(p)}; --color-muted: ${mix(onBarOf(p), p.bar, 35)};`;
+  const bar = [
+    `${shop} :is(.lb, .sb-me) { ${words} }`,
+    `@media (max-width: 1023px) { ${shop} .sb { ${words} } }`,
+    `${shop} .sb-search { --color-paper: ${p.text}; --color-muted: ${p.secondary};${mode === "dark" ? ` background: rgb(${triplet(p.page)});` : ""} }`,
+  ].join("\n");
+  return `:root[data-mode="${mode}"]:not(:has(.adm-frame)),\n${shop} {\n${body}\n}\n${bar}`;
 }
 
 // the CSS for a saved palette: a block for each mode that differs from
