@@ -13,6 +13,8 @@ import SheetImport from "@/components/admin/stock/SheetImport";
 import { listReceipts, listSuppliers, postReceipt, saveSupplier, stockCatalogue, trackAllStock, uncounted, type ReceiptKind, type ReceiptRow, type Supplier } from "@/lib/stock-in/db";
 import type { Candidate } from "@/lib/stock-in/match";
 import "@/components/admin/stock/stockin.css";
+import AroniumPurchases from "@/components/admin/shells/AroniumPurchases";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // The same wording and check as Settings › Store, and the database checks too.
 const today = () => new Date().toLocaleDateString("en-CA");
@@ -24,6 +26,10 @@ type Draft = { kind: ReceiptKind; sheet?: boolean } | null;
 // the suppliers. Posting a bill adds its lines to stock and records the GST
 // paid on them.
 export default function StockInPage() {
+  return useAdminStyle() === "aronium" ? <AroniumPurchases /> : <StockInPageOriginal />;
+}
+
+function StockInPageOriginal() {
   const [draft, setDraft] = useState<Draft>(null);
   const [loaded, setLoaded] = useState<{ key: string; rows: ReceiptRow[] } | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[] | null>(null);

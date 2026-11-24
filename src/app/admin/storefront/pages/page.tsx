@@ -5,6 +5,8 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { deleteRow, listRows, reorder, saveRow, slugify, type Faq, type PageSeo, type SitePage } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
+import AroniumPages from "@/components/admin/shells/AroniumPages";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Storefront > Pages, blog and FAQs (0073): the shop's own pages (About,
 // policies...) and blog posts, its questions and answers, and the search
@@ -13,6 +15,10 @@ type Tab = "page" | "post" | "faqs" | "seo";
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function PagesPage() {
+  return useAdminStyle() === "aronium" ? <AroniumPages /> : <PagesPageOriginal />;
+}
+
+function PagesPageOriginal() {
   const [tab, setTab] = useState<Tab>("page");
   return (
     <div className="sfm">

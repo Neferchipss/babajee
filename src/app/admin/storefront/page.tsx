@@ -9,11 +9,17 @@ import { listCollections, type Collection } from "@/lib/collections";
 import { DESIGNS, deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
+import AroniumStorefront from "@/components/admin/shells/AroniumStorefront";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Storefront > Design and homepage: which design the shop shows (each can be
 // opened first to look at), the line along the top, and the homepage's
 // sections in order (0073).
 export default function StorefrontPage() {
+  return useAdminStyle() === "aronium" ? <AroniumStorefront /> : <StorefrontPageOriginal />;
+}
+
+function StorefrontPageOriginal() {
   const [look, setLook] = useState<Look | null>(null);
   const [sections, setSections] = useState<HomeSection[] | null>(null);
   const [cats, setCats] = useState<AdminCategory[]>([]);

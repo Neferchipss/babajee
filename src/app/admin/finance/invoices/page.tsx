@@ -6,6 +6,8 @@ import { RangePicker, useRange } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import type { CreditNoteRow } from "@/lib/credit-note";
 import "../finance.css";
+import AroniumInvoices from "@/components/admin/shells/AroniumInvoices";
+import { useAdminStyle } from "@/lib/admin-style";
 import { creditNotesIn, errText, getOrders, invoicedOrders, uninvoicedPaid, type Order } from "@/lib/orders-db";
 
 // Finance › Invoices and credit notes: every tax document dated in the range,
@@ -15,6 +17,10 @@ type Data = { ask: string; invoices: Order[]; notes: CreditNoteRow[]; noteOrders
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
 export default function InvoicesPage() {
+  return useAdminStyle() === "aronium" ? <AroniumInvoices /> : <InvoicesPageOriginal />;
+}
+
+function InvoicesPageOriginal() {
   const [range, setRange] = useRange("month");
   const [tab, setTab] = useState<"invoices" | "notes">("invoices");
   const ask = `${range.from}|${range.to}`;

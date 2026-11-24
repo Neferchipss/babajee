@@ -10,8 +10,8 @@ import { customerActivity, type ActivityEvent, type CustomerActivity as Activity
 // checkout, mixed with their orders and saves. Grouped by visit, each with
 // its device and where the visit came from. Recorded since migration 0036;
 // only while signed in (and the same visit's earlier steps).
-type Row = { at: string; text: string; visit?: string; strong?: boolean };
-type Visit = { key: string; at: string; device: string; referrer: string; rows: Row[] };
+export type ActivityRow = { at: string; text: string; visit?: string; strong?: boolean };
+export type ActivityVisit = { key: string; at: string; device: string; referrer: string; rows: ActivityRow[] };
 
 const SHOWN = 8; // visits shown before "Show all"
 
@@ -42,14 +42,14 @@ function describe(e: ActivityEvent, cats: Map<string, string>): string | null {
   return `Visited ${path}`;
 }
 
-const from = (ref: string) => (ref ? `from ${ref}` : "came directly");
-const deviceName = (d: string) => (d ? d[0].toUpperCase() + d.slice(1) : "");
+export const from = (ref: string) => (ref ? `from ${ref}` : "came directly");
+export const deviceName = (d: string) => (d ? d[0].toUpperCase() + d.slice(1) : "");
 
-export default function CustomerActivity({ id, orders, saved }: { id: string; orders: Order[]; saved: CustomerSaved[] }) {
+// the customer's activity and their visits, shared by both designs' panels
+export function useCustomerActivity(id: string, orders: Order[], saved: CustomerSaved[]) {
   const [data, setData] = useState<Activity | null>(null);
   const [failed, setFailed] = useState(false);
   const [cats, setCats] = useState<Map<string, string>>(new Map());
-  const [all, setAll] = useState(false);
 
   useEffect(() => {
     customerActivity(id).then(setData, () => setFailed(true));
@@ -61,9 +61,9 @@ export default function CustomerActivity({ id, orders, saved }: { id: string; or
 
   // events grouped into visits (newest first), with orders and saves placed
   // in the visit they happened in, or on their own when outside any visit
-  const visits = useMemo<Visit[]>(() => {
+  const visits = useMemo<ActivityVisit[]>(() => {
     if (!data) return [];
-    const byVisit = new Map<string, Visit>();
+    const byVisit = new Map<string, ActivityVisit>();
     for (const e of data.events) {
       const text = describe(e, cats);
       let v = byVisit.get(e.visit);
@@ -79,7 +79,7 @@ export default function CustomerActivity({ id, orders, saved }: { id: string; or
       v.rows.push({ at: e.at, text });
     }
     const list = [...byVisit.values()];
-    const extras: Row[] = [
+    const extras: ActivityRow[] = [
       ...orders.map((o) => ({ at: o.created_at, text: `Placed order ${o.order_number} · ${money(o.total)}`, strong: true })),
       ...saved.map((s) => ({ at: s.saved_at, text: `Saved ${s.name} for later` })),
     ];
@@ -101,6 +101,12 @@ export default function CustomerActivity({ id, orders, saved }: { id: string; or
     return list.filter((v) => v.rows.length).sort((a, b) => b.at.localeCompare(a.at));
   }, [data, cats, orders, saved]);
 
+  return { data, failed, visits };
+}
+
+export default function CustomerActivity({ id, orders, saved }: { id: string; orders: Order[]; saved: CustomerSaved[] }) {
+  const { data, failed, visits } = useCustomerActivity(id, orders, saved);
+  const [all, setAll] = useState(false);
   const shown = all ? visits : visits.slice(0, SHOWN);
 
   return (

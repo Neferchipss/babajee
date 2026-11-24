@@ -38,6 +38,7 @@ const ALL_SECTIONS: Section[] = [
       { label: "Cancelled & refunded", href: "/admin/orders?tab=closed" },
       { label: "Carts", href: "/admin/orders/carts" },
       { label: "New order", href: "/admin/orders/new" },
+      { label: "Counter sale (till)", href: "/admin/counter" },
     ],
   },
   {

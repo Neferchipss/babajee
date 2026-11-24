@@ -10,6 +10,8 @@ import { STATES } from "@/lib/addresses";
 import { bill, gstLabel } from "@/lib/gst";
 import { createOrder, customerAccount, customerAddresses,errText, getSettings, listCustomers, type Customer, type CustomerAddress, type StoreSettings } from "@/lib/orders-db";
 import { round2 as r2 } from "@/lib/currency";
+import AroniumNewSale from "@/components/admin/shells/AroniumNewSale";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // An order the shop takes itself: by phone, on WhatsApp, at the counter.
 // Pick (or type) the customer, add items, and it lands in Orders like any
@@ -20,6 +22,10 @@ const NO_ADDR: Addr = { line1: "", line2: "", landmark: "", city: "", state: "",
 
 
 export default function NewOrderPage() {
+  return useAdminStyle() === "aronium" ? <AroniumNewSale /> : <NewOrderPageOriginal />;
+}
+
+function NewOrderPageOriginal() {
   const router = useRouter();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [lines, setLines] = useState<Line[]>([]);

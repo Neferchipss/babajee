@@ -7,6 +7,8 @@ import { listCategories, listProducts, updateProduct, type AdminCategory, type A
 import { getSupabase } from "@/lib/supabase";
 import { GST_BRACKETS } from "@/lib/gst";
 import { errText, getSettings } from "@/lib/orders-db";
+import AroniumGstHsn from "@/components/admin/shells/AroniumGstHsn";
+import { useAdminStyle } from "@/lib/admin-style";
 import "./tax.css";
 
 // HSN codes and GST rates for the whole catalogue in one place: set them per
@@ -16,6 +18,10 @@ import "./tax.css";
 const HSN_OK = /^(\d{4}|\d{6}|\d{8})$/;
 
 export default function TaxPage() {
+  return useAdminStyle() === "aronium" ? <AroniumGstHsn /> : <TaxOriginal />;
+}
+
+function TaxOriginal() {
   const [cats, setCats] = useState<AdminCategory[]>([]);
   const [products, setProducts] = useState<AdminProduct[] | null>(null);
   const [shopRate, setShopRate] = useState(18);

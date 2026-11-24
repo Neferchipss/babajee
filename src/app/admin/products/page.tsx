@@ -16,6 +16,8 @@ import { formatPrice } from "@/lib/currency";
 import { photosFor } from "@/lib/product-photos";
 import { slugify } from "@/lib/slug";
 import { can, useStaff } from "@/lib/staff";
+import { useAdminStyle } from "@/lib/admin-style";
+import AroniumProducts from "@/components/admin/shells/AroniumProducts";
 
 type Need = "all" | "photo" | "price" | "hidden" | "archived" | "low" | "out";
 
@@ -53,12 +55,10 @@ const NEED_HEAD: Record<Need, { title: string; note: (c: NeedCounts) => string }
 // The catalogue as the shop shows it: a grid of cards, by category. Each card
 // says what the product still needs (a photo, a price, to be shown); open one
 // and its editor slides in beside the grid, to fill it in and step to the next.
+// The Aronium-style design shows it as Aronium's Products screen instead.
 export default function ProductsAdminPage() {
-  return (
-    <Suspense>
-      <ProductsAdmin />
-    </Suspense>
-  );
+  const style = useAdminStyle();
+  return <Suspense>{style === "aronium" ? <AroniumProducts /> : <ProductsAdmin />}</Suspense>;
 }
 
 function ProductsAdmin() {

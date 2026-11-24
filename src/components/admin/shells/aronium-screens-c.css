@@ -1,0 +1,432 @@
+/* Aronium-style screens, set C: Product groups, Import, Stock history,
+   Suppliers, a customer's card, Sign-ins, Activity log, Product taxes (HSN),
+   Tax returns and Admin design. Aronium's colours: ground #252525, panels
+   #333, blue #1ba1e2, hover #484e55, borders #595e57. */
+
+/* a padded area under the toolbar */
+.arc-pane {
+  padding: 6px 8px 16px;
+  color: #fff;
+}
+.arc-pane > p,
+.arc-note {
+  margin: 4px 0;
+  color: #c8c8c8;
+  font-size: 14px;
+}
+.arc .adm-input,
+.arc-pane .adm-input {
+  min-height: 30px;
+  padding: 3px 8px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+}
+.arc .adm-input:focus-visible,
+.arc-pane .adm-input:focus-visible {
+  outline: 1px solid #1ba1e2;
+  border-color: #1ba1e2;
+}
+.arc .adm-input[aria-invalid="true"] {
+  border-color: #c62828;
+}
+
+/* Aronium's flat buttons inside a screen ("+ Add card", "Delete") */
+.arc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid #555;
+  border-radius: 0;
+  background: #252525;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.arc-btn:hover:not(:disabled) {
+  background: #484e55;
+}
+.arc-btn:disabled {
+  color: #777;
+  cursor: default;
+}
+.arc-btn.is-pri {
+  background: #1ba1e2;
+  border-color: #1ba1e2;
+}
+.arc-btn.is-pri:hover:not(:disabled) {
+  background: #3bb3ec;
+}
+.arc-btn.is-bad {
+  border-color: #c62828;
+}
+.arc-btn input[type="file"] {
+  display: none;
+}
+
+/* a row: input(s) then buttons */
+.arc-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+.arc-inline .adm-input {
+  flex: 1 1 200px;
+  width: auto;
+}
+.arc-inline .adm-input.is-short {
+  flex: 0 1 140px;
+}
+
+/* labels left, fields right, as My company's form */
+.arc-form {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+  margin: 6px 0 14px;
+}
+.arc-form > label,
+.arc-form > .arc-row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.arc-form small {
+  grid-column: 2;
+  color: #a9a9a9;
+  font-size: 13px;
+}
+
+/* Aronium's numbered steps, blue circles */
+.arc-steps {
+  display: grid;
+  gap: 18px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: s;
+}
+.arc-steps > li {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding-left: 46px;
+  counter-increment: s;
+}
+.arc-steps > li::before {
+  content: counter(s);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1ba1e2;
+  color: #fff;
+}
+.arc-steps > li.is-wait {
+  opacity: 0.55;
+}
+.arc-steps b {
+  font-weight: 400;
+  font-size: 19px;
+}
+.arc-steps small {
+  color: #a9a9a9;
+}
+
+/* "Products count: 12"-style tallies across the bottom */
+.arc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 28px;
+  padding: 8px 10px;
+  border-top: 1px solid #333;
+  font-size: 15px;
+}
+.arc-foot b {
+  font-weight: 600;
+}
+
+/* changes in a grid: old struck, new bold */
+.arc-diff {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+.arc-diff s {
+  color: #9a9a9a;
+}
+.arc-pos {
+  color: #52d468;
+}
+.arc-neg {
+  color: #ff6b6b;
+}
+.arc-grey {
+  color: #9a9a9a;
+}
+.arc-grid {
+  max-height: none;
+}
+.arc .aro-grid a,
+.arc-pane a:not(.arc-btn):not(.art-btn) {
+  color: #5cc3f2;
+}
+
+/* the "Show older" row under a long grid */
+.arc-more {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* a red banner across the screen ("Many failed attempts") */
+.arc-alert {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 6px 0;
+  padding: 10px 12px;
+  background: #b9403b;
+  color: #fff;
+  font-size: 14px;
+}
+
+/* Customers: one customer's card, Aronium's editor opened full screen */
+.arc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 6px 0 2px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ar .arc-head h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+.arc-head span {
+  color: #a9a9a9;
+  font-size: 14px;
+}
+.arc-role {
+  padding: 1px 8px;
+  background: #1ba1e2;
+  color: #fff !important;
+  font-size: 12px !important;
+}
+.arc-role.is-test {
+  background: #6d6e70;
+}
+.arc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+.arc-stats > div {
+  padding: 8px 12px;
+  background: #333;
+}
+.arc-stats small {
+  display: block;
+  color: #a9a9a9;
+  font-size: 13px;
+}
+.arc-stats b {
+  font-size: 22px;
+  font-weight: 300;
+}
+.arc-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0 0 6px;
+  color: #c8c8c8;
+  font-size: 14px;
+}
+.arc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.arc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  background: #484e55;
+  font-size: 14px;
+}
+.arc-tag button {
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.arc-addr {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+}
+/* Product groups: the group editor as a pane beside the tree */
+.arc-groups .ars-body {
+  grid-template-columns: minmax(200px, 320px) minmax(0, 1fr);
+}
+.arc-sub-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #1ba1e2;
+  font-size: 15px;
+}
+.arc-sub-head b {
+  flex: 1;
+  font-weight: 400;
+}
+.arc-sub-head button {
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.arc-hidden td {
+  color: #9a9a9a;
+}
+
+/* Product taxes (HSN): the per-group row and the per-product cells */
+.arc-hsn {
+  width: 110px;
+}
+.arc-rate {
+  width: 150px;
+}
+.arc .aro-grid td .adm-input {
+  min-height: 26px;
+  padding: 1px 6px;
+}
+
+/* Admin design: one row per design, its drawing at the left */
+.arc-designs {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+.arc-design {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 10px;
+  background: #333;
+  border-left: 4px solid transparent;
+}
+.arc-design.is-on {
+  border-left-color: #1ba1e2;
+}
+.arc-design h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 300;
+}
+.arc-design p {
+  margin: 2px 0;
+  color: #c8c8c8;
+  font-size: 14px;
+}
+.arc-design ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: #c8c8c8;
+  font-size: 13px;
+}
+.arc-design .dsn-sk {
+  width: 200px;
+}
+.arc-design-btns {
+  display: grid;
+  gap: 4px;
+}
+.arc-inuse {
+  color: #52d468;
+  font-size: 14px;
+}
+
+@media (max-width: 999px) {
+  .arc-form > label,
+  .arc-form > .arc-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .arc-form small {
+    grid-column: 1;
+  }
+  .arc-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .arc-design {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* the theme sets headings through #site; Aronium's are light */
+#site .adm-frame[data-adm-style="aronium"] .ar :is(.arc-design h3, .ars-rep-head h2) {
+  font-family: inherit;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+/* a chip that is a link (back to the list) */
+.arc .ars-chiprow a.ars-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  text-decoration: none;
+}
+.arc-warn {
+  color: #f0b429;
+}
+.arc-pre {
+  white-space: pre-line;
+}
+/* Fill from product names: each suggested tag as a tick box */
+.arc-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.arc-picks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.arc-picks input {
+  accent-color: #1ba1e2;
+}

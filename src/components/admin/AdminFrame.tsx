@@ -6,14 +6,12 @@ import { useAuth } from "@/lib/auth";
 import AdminNav from "./AdminNav";
 import RequireAdmin, { RoleGate } from "./RequireAdmin";
 import { Toaster } from "./Toaster";
-import EaseShell from "./shells/EaseShell";
-import ShopifyShell from "./shells/ShopifyShell";
-import StudioShell from "./shells/StudioShell";
+import AroniumShell from "./shells/AroniumShell";
 import "./shells/shells.css";
 
 // The admin in the design this person picked (Settings > Admin design,
-// lib/admin-style.ts). Current keeps the shop's own header and the section
-// tree; the others bring their own frame, so the shop's header and footer
+// lib/admin-style.ts). Legacy keeps the shop's own header and the section
+// tree; Aronium-style brings its own frame, so the shop's header and footer
 // step aside while they're open.
 export default function AdminFrame({ children }: { children: React.ReactNode }) {
   const style = useAdminStyle();
@@ -49,7 +47,7 @@ export default function AdminFrame({ children }: { children: React.ReactNode }) 
       </div>
     );
 
-  const Shell = style === "shopify" ? ShopifyShell : style === "ease" ? EaseShell : StudioShell;
+  const Shell = AroniumShell;
   return (
     <div className="adm-frame adm-frame--shell" data-adm-style={style}>
       <RequireAdmin>

@@ -6,13 +6,18 @@ import { Delta, money, StatusPill, when } from "@/components/admin/ui";
 import { analytics, errText, homeCounts, listOrders, openFollowUps, type Analytics, type FollowUp, type HomeCounts, type Order } from "@/lib/orders-db";
 import { isoDay } from "@/lib/dates";
 import { can, roleLabel, useStaff, type StaffRole } from "@/lib/staff";
+import { useAdminStyle } from "@/lib/admin-style";
+import AroniumDashboard from "@/components/admin/shells/AroniumDashboard";
 
 // Admin home: today's numbers against yesterday, the work waiting on the
 // shop, and the latest orders.
 // the home for roles without orders and money (0072): where their work is
 export default function AdminHomeByRole() {
   const { me } = useStaff();
+  const style = useAdminStyle();
   if (me && !can(me.role, "money")) return <StaffHome role={me.role} />;
+  // the Aronium-style design opens on Aronium's own dashboard
+  if (style === "aronium") return <AroniumDashboard />;
   return <AdminHome />;
 }
 

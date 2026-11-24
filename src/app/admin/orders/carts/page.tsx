@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { money, when } from "@/components/admin/ui";
 import { toast, toastError } from "@/components/admin/Toaster";
+import AroniumCarts from "@/components/admin/shells/AroniumCarts";
+import { useAdminStyle } from "@/lib/admin-style";
 import { adminCarts, cartConversion, errText, getSettings, markCartReminded, type AdminCart, type CartConversion } from "@/lib/orders-db";
 
 // Signed-in customers' carts (guests' carts stay in their browser). Active:
@@ -32,6 +34,10 @@ function whatsapp(c: AdminCart) {
 type Tab = "abandoned" | "active";
 
 export default function CartsPage() {
+  return useAdminStyle() === "aronium" ? <AroniumCarts /> : <CartsPageOriginal />;
+}
+
+function CartsPageOriginal() {
   const [rows, setRows] = useState<AdminCart[] | null>(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<Tab>("abandoned");

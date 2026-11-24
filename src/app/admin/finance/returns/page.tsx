@@ -5,6 +5,8 @@ import { RangePicker, useRange } from "@/components/admin/RangePicker";
 import { errText } from "@/lib/orders-db";
 import { getReceipt, listReceipts } from "@/lib/stock-in/db";
 import { purchasesCsv } from "@/lib/stock-in/purchases-csv";
+import AroniumTaxReturns from "@/components/admin/shells/AroniumTaxReturns";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Finance › GST returns and Tally: everything handed to the CA for a month,
 // built from the invoices, credit notes and supplier bills (moved here from
@@ -18,6 +20,10 @@ function save(blob: Blob, name: string) {
 }
 
 export default function ReturnsPage() {
+  return useAdminStyle() === "aronium" ? <AroniumTaxReturns /> : <ReturnsOriginal />;
+}
+
+function ReturnsOriginal() {
   const [range, setRange] = useRange("month");
   const [making, setMaking] = useState<"" | "returns" | "registers" | "purchases">("");
   const [err, setErr] = useState("");

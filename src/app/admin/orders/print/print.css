@@ -1,14 +1,17 @@
-/* Invoices and packing slips: A4 sheets on a grey desk on screen, and only
-   the sheets when printed. Plain black on white, whatever the admin theme. */
+/* GST invoices and credit notes: A4 sheets on a dark desk on screen, as in
+   Aronium's print preview (a thin gold edge round each page), and only the
+   sheets when printed. Plain black on white in Arial, whatever the admin
+   theme, set out like Aronium's printed documents: a bold upper-case title,
+   boxed header rows, ruled boxes. Every GST field is as before. */
 .prt {
   position: fixed;
   inset: 0;
   z-index: 3000;
   overflow: auto;
-  background: #dcd9d3;
-  color: #1c1b19;
-  font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
-  font-size: 12.5px;
+  background: #252525;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
   line-height: 1.45;
   padding-bottom: 40px;
 }
@@ -23,10 +26,18 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px 14px;
-  padding: 12px max(16px, calc(50% - 105mm));
-  background: #1c1b19;
-  color: #f4f1ea;
-  font-size: 14px;
+  padding: 6px max(16px, calc(50% - 105mm));
+  background: #f0f0f0;
+  color: #000;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+.prt-bar[hidden] {
+  display: none;
+}
+/* inside Aronium's preview: the desk only */
+.prt.is-embed {
+  padding: 10px 0 20px;
 }
 .prt-back {
   text-decoration: none;
@@ -38,15 +49,19 @@
 .prt-btn {
   all: unset;
   cursor: pointer;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.25);
-  font-weight: 600;
+  padding: 4px 12px;
+  border: 1px solid #adadad;
+  background: #e1e1e1;
+  font-weight: 400;
+}
+.prt-btn:hover:not(:disabled) {
+  border-color: #0078d7;
+  background: #e5f1fb;
 }
 .prt-btn.is-pri {
-  background: #f4f1ea;
-  color: #1c1b19;
-  border-color: #f4f1ea;
+  background: #1ba1e2;
+  color: #fff;
+  border-color: #1ba1e2;
 }
 .prt-btn:disabled {
   opacity: 0.4;
@@ -54,16 +69,20 @@
 }
 .prt-note {
   width: min(210mm, calc(100% - 32px));
-  margin: 14px auto 0;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #fff8e6;
-  border: 1px solid #ecd9a8;
-  font-size: 13.5px;
+  margin: 12px auto 0;
+  padding: 8px 12px;
+  background: #1f3f53;
+  border: 1px solid #1ba1e2;
+  color: #fff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+.prt-note a {
+  color: #8fd3f4;
 }
 .prt-note.is-bad {
-  background: #fdeceb;
-  border-color: #f0b9b4;
+  background: #4a2323;
+  border-color: #c62828;
 }
 
 /* one sheet */
@@ -72,10 +91,10 @@
   box-sizing: border-box;
   width: 210mm;
   min-height: 297mm;
-  margin: 18px auto 0;
-  padding: 14mm 14mm 18mm;
+  margin: 14px auto 0;
+  padding: 12mm 12mm 16mm;
   background: #fff;
-  box-shadow: 0 2px 14px rgb(0 0 0 / 0.18);
+  border: 1px solid #f3b600;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -106,17 +125,17 @@
 
 .prt-label {
   display: block;
-  margin-bottom: 4px;
-  color: #6b675f;
+  margin-bottom: 3px;
+  color: #000;
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .prt-small {
   margin: 6px 0 0;
-  color: #6b675f;
+  color: #444;
   font-size: 10.5px;
   font-weight: 400;
 }
@@ -129,23 +148,22 @@
 .inv-title {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: space-between;
   position: relative;
 }
-.inv-title h2 {
+.prt .inv-title h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  color: #000;
 }
 .inv-title span {
-  position: absolute;
-  right: 0;
-  bottom: 2px;
   font-size: 10px;
-  font-style: italic;
-  color: #6b675f;
+  font-style: normal;
+  color: #000;
 }
 .prt-inv .prt-test {
   top: 6mm;
@@ -153,19 +171,19 @@
   left: 14mm;
 }
 .inv-box {
-  border: 1.2px solid #1c1b19;
+  border: 1px solid #000;
 }
 .inv-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid #1c1b19;
+  border-bottom: 1px solid #000;
 }
 .inv-row > * {
   padding: 9px 11px;
   min-width: 0;
 }
 .inv-row > * + * {
-  border-left: 1px solid #1c1b19;
+  border-left: 1px solid #000;
 }
 .inv-head {
   grid-template-columns: 1.35fr 1fr;
@@ -180,19 +198,22 @@
   height: auto;
   flex: none;
 }
-.inv-seller h1 {
+.prt .inv-seller h1 {
   margin: 0 0 3px;
-  font-size: 17px;
-  font-weight: 800;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #000;
 }
 .inv-seller div {
-  color: #3d3a35;
+  color: #000;
 }
 .inv-legal {
   font-weight: 600;
 }
 .inv-seller b {
-  color: #1c1b19;
+  color: #000;
   font-weight: 700;
 }
 .inv-meta {
@@ -203,7 +224,7 @@
   align-content: start;
 }
 .inv-meta dt {
-  color: #6b675f;
+  color: #000;
 }
 .inv-meta dd {
   margin: 0;
@@ -225,38 +246,41 @@
 }
 .inv-items th,
 .inv-items td {
-  padding: 6px 7px;
-  border-right: 1px solid #b9b4aa;
+  padding: 4px 6px;
+  border-right: 1px solid #c8c8c8;
   vertical-align: top;
 }
 .inv-items th:last-child,
 .inv-items td:last-child {
   border-right: 0;
 }
+/* Aronium's header row: white, boxed, bold, a heavier rule under it */
 .inv-items thead th {
-  background: #efece6;
-  border-bottom: 1px solid #1c1b19;
-  font-size: 9.5px;
+  background: #fff;
+  border-right: 1px solid #000;
+  border-bottom: 2px solid #000;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: left;
-  color: #3d3a35;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: center;
+  color: #000;
 }
 .inv-items tbody td {
-  border-bottom: 1px solid #e3dfd7;
+  border-bottom: 1px solid #e2e2e2;
 }
 .inv-items tbody tr:last-child td {
   border-bottom: 0;
 }
 .inv-items tfoot td {
-  border-top: 1px solid #1c1b19;
-  border-bottom: 1px solid #1c1b19;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  border-right-color: #000;
   font-weight: 700;
 }
 .inv-items small {
   display: block;
-  color: #77736b;
+  color: #555;
   font-size: 9.5px;
 }
 .inv-items .r,
@@ -285,12 +309,12 @@
 .inv-sum th,
 .inv-sum td {
   padding: 3px 6px;
-  border: 1px solid #b9b4aa;
+  border: 1px solid #000;
 }
 .inv-sum th {
-  background: #efece6;
+  background: #fff;
   font-weight: 700;
-  text-align: left;
+  text-align: center;
 }
 .inv-totals {
   display: grid;
@@ -300,7 +324,7 @@
   align-content: start;
 }
 .inv-totals dt {
-  color: #4a4741;
+  color: #000;
 }
 .inv-totals dd {
   margin: 0;
@@ -309,24 +333,24 @@
   font-variant-numeric: tabular-nums;
 }
 .inv-grand {
-  padding-top: 6px;
-  border-top: 1.2px solid #1c1b19;
-  color: #1c1b19 !important;
-  font-size: 14px;
-  font-weight: 800;
+  padding-top: 5px;
+  border-top: 1px solid #000;
+  color: #000 !important;
+  font-size: 13px;
+  font-weight: 700;
 }
 .inv-refund {
   margin: 0;
   padding: 6px 11px;
-  border-bottom: 1px solid #1c1b19;
+  border-bottom: 1px solid #000;
   font-size: 10.5px;
-  color: #6b675f;
+  color: #444;
 }
 .inv-sign {
   grid-template-columns: 1.35fr 1fr;
   border-bottom: 0;
   font-size: 10.5px;
-  color: #3d3a35;
+  color: #000;
 }
 .inv-signbox {
   display: flex;
@@ -335,19 +359,19 @@
   align-items: flex-end;
   min-height: 64px;
   font-weight: 700;
-  color: #1c1b19;
+  color: #000;
 }
 .inv-signline {
   padding-top: 4px;
-  border-top: 1px solid #1c1b19;
+  border-top: 1px solid #000;
   min-width: 150px;
   text-align: center;
-  font-weight: 500;
-  color: #4a4741;
+  font-weight: 400;
+  color: #000;
 }
 .inv-foot {
   text-align: center;
-  color: #4a4741;
+  color: #444;
 }
 .inv-foot p {
   margin: 0;
@@ -359,7 +383,7 @@
     size: A4;
     margin: 0;
   }
-  body > *:not(.prt) {
+  body > *:not(.prt):not(.prs-print):not(.rcp) {
     display: none !important;
   }
   html,
@@ -372,6 +396,9 @@
     background: #fff;
     padding: 0;
   }
+  .prt.is-embed {
+    padding: 0;
+  }
   .prt-bar,
   .prt-note {
     display: none !important;
@@ -380,6 +407,7 @@
     width: 210mm;
     min-height: 297mm;
     margin: 0;
+    border: 0;
     box-shadow: none;
     break-after: page;
   }

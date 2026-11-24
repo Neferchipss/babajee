@@ -1,0 +1,360 @@
+/* The Aronium-style Online shop screens and product-side lists (builder D):
+   Messages, Banners, Menus, Pages/blog/FAQs, Design and homepage,
+   Collections, Reviews, and the Web analytics pages in Aronium's clothes.
+   Everything is scoped to .ard4 (an ArScreen) so other designs never see it. */
+
+/* the tabs under a screen's toolbar (aronium-d-kit ArSubTabs), drawn like
+   the shell's own tab row: square, blue when on, on a blue rule */
+.ard4-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 6px 0 0;
+  border-bottom: 2px solid var(--ar-blue, #1ba1e2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ard4-tabs::-webkit-scrollbar {
+  display: none;
+}
+.ard4-tabs button {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ard4-tabs button:hover {
+  background: var(--ar-hover, #484e55);
+}
+.ard4-tabs button.is-on {
+  background: var(--ar-blue, #1ba1e2);
+}
+.ard4-tabs b {
+  min-width: 20px;
+  padding: 0 5px;
+  background: var(--ar-band, #333);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+.ard4-tabs button.is-on b {
+  background: #fff;
+  color: var(--ar-blue, #1ba1e2);
+}
+
+/* Periodic Reports ( dd-mm-yyyy - dd-mm-yyyy ) 📅 with its pop-down */
+.ard4-period {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0 4px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ard4-period h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.ard4-period-note {
+  color: #a9a9a9;
+  font-size: 13px;
+}
+.ard4-period-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #333;
+  border: 1px solid #595e57;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+.ard4-period-dates {
+  display: flex;
+  gap: 8px;
+}
+.ard4-period-dates label {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: #d0d0d0;
+}
+.ard4-period-dates .adm-input {
+  min-height: 30px;
+  border: 1px solid #595e57;
+  background: #252525;
+}
+.ard4-period-quick {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+.ard4-period-quick button {
+  padding: 6px 10px;
+  border: 0;
+  background: #252525;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ard4-period-quick button:hover {
+  background: #484e55;
+}
+.ard4-period-quick button.is-on {
+  background: #1ba1e2;
+}
+
+/* grid cells and the bits around a grid */
+.ard4-clip {
+  display: inline-block;
+  max-width: 36ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.ard4-yes {
+  color: #8dcc3f;
+}
+.ard4-no {
+  color: #9a9a9a;
+}
+.ard4-loading {
+  margin: 24px 0;
+  color: #a9a9a9;
+}
+.ard4-note {
+  margin: 0 0 6px;
+  color: #a9a9a9;
+  font-size: 13px;
+}
+.ard4 .art-sec .ard4-note {
+  margin: 0;
+}
+.ard4-btnrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ard4-stars {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+}
+
+/* the selected row read out under the grid (Messages, Reviews) */
+.ard4-pane {
+  flex: none;
+  max-height: 30vh;
+  overflow: auto;
+  padding: 0 4px 8px;
+  border-top: 1px solid #3c3c3c;
+}
+.ard4-text {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* slide-in panel extras */
+.ard4-preview {
+  min-height: 120px;
+  margin-bottom: 12px;
+}
+.ard4-kinds {
+  display: grid;
+  gap: 4px;
+}
+.ard4-kinds .adm-btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+.ard4-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  min-height: 32px;
+  align-items: center;
+}
+.ard4-radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+textarea.adm-input.ard4-body {
+  min-height: 280px;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 14px;
+}
+/* the rules editor (shared with the other designs) inside a dark panel */
+.ard4-rules .col-rules {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.ard4-rules .col-rules ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ard4-rules .col-rules li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Collections: the lists on top, the open one's products under it */
+.ard4 .aro-grid.ard4-top {
+  flex: none;
+  min-height: 120px;
+  max-height: 32vh;
+}
+.ard4-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ard4-find {
+  position: relative;
+  flex: 0 1 320px;
+}
+.ard4-find .adm-input {
+  width: 100%;
+  min-height: 30px;
+  background: #333;
+  border-color: #595e57;
+}
+.ard4-drop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #333;
+  border: 1px solid #595e57;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+.ard4-drop button {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ard4-drop button:hover,
+.ard4-drop button:focus-visible {
+  background: #484e55;
+}
+.ard4-drop small {
+  color: #a9a9a9;
+}
+
+/* Web analytics: the page's cards drawn as Aronium's dashboard draws its
+   own. The ground goes one shade lighter than a list screen (#333, as on
+   the dashboard) and every card becomes a flat #252525 panel with a light
+   heading; tables get the blue rule; the date chips are replaced by the
+   Periodic Reports line (ArPeriod) */
+.ard4-anx {
+  background: #333;
+}
+.ard4-anx-body {
+  display: grid;
+  gap: 6px;
+  padding-top: 4px;
+}
+.ard4-anx .anx-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.ard4-anx :is(.adm-card, .anx-hero, .anx-kpi, .anx-stat) {
+  background: #252525;
+  border: 1px solid #3c3c3c;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ard4-anx .adm-stack {
+  gap: 6px;
+}
+.ard4-anx :is(.adm-pair, .anx-top, .anx-three, .anx-kpis, .anx-strip, .live-stats, .live-grid) {
+  gap: 6px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ard4-anx :is(.adm-card h2, .anx-card-head h2, .live-h, .anx-section) {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #fff;
+}
+.ard4-anx .anx-lab {
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #e6e6e6;
+}
+#site .adm-frame[data-adm-style="aronium"] .ard4-anx .anx-big {
+  font-weight: 300;
+}
+.ard4-anx .adm-table th {
+  border-bottom: 2px solid var(--ar-blue, #1ba1e2);
+}
+.ard4-anx .live-stats .adm-card b {
+  font-weight: 300;
+  font-size: 34px;
+}
+.ard4-anx .anx-section::after {
+  background: #4a4a4a;
+}
+
+@media (max-width: 640px) {
+  .ard4-period-pop {
+    position: static;
+  }
+  .ard4-period-quick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ard4-clip {
+    max-width: 20ch;
+  }
+}
+@media print {
+  .ard4-anx .art-bar,
+  .ard4-period .ard-cal {
+    display: none;
+  }
+}

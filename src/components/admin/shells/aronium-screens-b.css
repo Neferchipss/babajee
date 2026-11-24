@@ -1,0 +1,956 @@
+/* The Aronium-style design's Stock, Reporting, Customers & suppliers, Users
+   & security and My company screens (AroniumStock, AroniumReports,
+   AroniumCustomers, AroniumUsers, AroniumCompany). Colours are Aronium's:
+   #252525 ground, #333 bands, #484e55 under the pointer, #1ba1e2 blue. */
+
+.ars-pad {
+  padding-inline: 8px;
+}
+
+/* Stock: tree | (switches, search, grid, totals) */
+.ars-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(180px, 380px) minmax(0, 1fr);
+  /* .arp-tree and .arp-list (shells.css) place themselves by these names */
+  grid-template-areas: "tree list";
+  gap: 6px;
+  min-height: 0;
+  margin-top: 4px;
+}
+.ars-switches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 8px;
+  border-bottom: 1px solid #333;
+}
+.ars-counts {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.ars-counts b {
+  min-width: 62px;
+  padding: 3px 10px;
+  color: #fff;
+  font-weight: 400;
+  text-align: center;
+}
+.ars-counts .is-neg {
+  background: #e81123;
+}
+.ars-counts .is-zero {
+  background: #2d7dd2;
+}
+.ars-counts .is-pos {
+  background: #2e9e4f;
+}
+.ars-neg {
+  color: #ef5350;
+}
+.ars-zero {
+  color: #8ab4f8;
+}
+.ars-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 40px;
+  padding: 10px 12px;
+  border-top: 1px solid #333;
+}
+.ars-foot h3 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 300;
+}
+.ars-foot p {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 2px 0;
+  font-size: 14px;
+}
+.ars-foot b {
+  font-weight: 600;
+}
+
+/* Reporting */
+.ars-chiprow {
+  display: flex;
+  gap: 2px;
+  padding-top: 8px;
+  border-bottom: 2px solid #1ba1e2;
+}
+.ars-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border: 0;
+  background: #1ba1e2;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.ars-chip[aria-pressed="false"] {
+  background: #333;
+}
+.ars-chip.is-on {
+  background: #333;
+  cursor: default;
+}
+.ars-rep-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 8px;
+  min-height: 0;
+}
+.ars-rep-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 4px;
+}
+.ars-rep-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+}
+.ars-rep-head h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 300;
+}
+.ars-rep-head small {
+  font-size: 18px;
+}
+.ars-rep-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(370px, 100%);
+  padding: 0 8px;
+  border: 1px solid #4a4a4a;
+  color: #a9a9a9;
+}
+.ars-rep-search input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+.ars-rep-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+}
+.ars-rep-group button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.ars-rep-group button:hover {
+  background: #484e55;
+}
+.ars-rep-group button.is-on {
+  background: #1ba1e2;
+}
+.ars-totals {
+  border-top: 2px solid #1ba1e2;
+}
+.ars-totals td {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ars-filter {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-left: 1px solid #333;
+}
+.ars-filter h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 300;
+}
+.ars-filter label {
+  display: grid;
+  gap: 2px;
+  font-size: 15px;
+}
+.ars-filter .adm-input {
+  background: #252525;
+  border: 1px solid #595e57;
+}
+.ars-filter-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #333;
+}
+.ars-filter-btns button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  border: 1px solid #333;
+  background: #252525;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.ars-filter-btns button:hover:not(:disabled) {
+  background: #484e55;
+}
+.ars-filter-btns button:disabled {
+  color: #777;
+  cursor: default;
+}
+
+/* Customers & suppliers: the search row */
+.ars-cs-search {
+  margin-top: 4px;
+}
+.ars-cs-search input {
+  flex: 0 1 560px;
+}
+
+/* a switch sitting in a toolbar, like "Show inactive users" */
+.ars-tool-switch {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+/* My company's inner tabs */
+.ars-innertabs {
+  display: flex;
+  gap: 2px;
+  padding-top: 8px;
+  border-bottom: 2px solid #1ba1e2;
+}
+.ars-innertabs button {
+  position: relative;
+  padding: 5px 16px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.ars-innertabs button:hover {
+  background: #484e55;
+}
+.ars-innertabs button.is-on {
+  background: #1ba1e2;
+}
+
+@media (max-width: 999px) {
+  .ars-body,
+  .ars-rep-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ars-body {
+    grid-template-areas: "tree" "list";
+  }
+  .ars-body .arp-tree {
+    max-height: 30vh;
+  }
+  .ars-filter {
+    border-left: 0;
+    border-top: 1px solid #333;
+  }
+  .ars-counts {
+    margin-left: 0;
+  }
+  .ars-foot {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+@media print {
+  .ars .art-bar,
+  .ars-filter,
+  .ars-chiprow {
+    display: none;
+  }
+}
+
+/* ---- headings: the shop theme sets heavy h1/h2 through #site, so these go
+   through #site too (as shells.css's "Aronium's type" block does) ---- */
+#site .adm-frame[data-adm-style="aronium"] .ar :is(.ars-rep-head h2, .ars-filter h2, .ars-foot h3, .arb-h, .arf .art-sec h2, .ars-rep-group .art-sec h2, .arb-fields .art-sec h2) {
+  font-family: inherit;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .ar :is(.arb-secbox h3, .ars-chip, .ars-innertabs a) {
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .ar .arv-page h1 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.arb-h {
+  margin: 8px 0 2px;
+  font-size: 24px;
+}
+
+/* ---- tabs inside a slide-in panel ---- */
+.arb-ptabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0 0 12px;
+  border-bottom: 2px solid #1ba1e2;
+}
+.arb-ptabs button {
+  position: relative;
+  padding: 5px 14px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.arb-ptabs button:hover {
+  background: #484e55;
+}
+.arb-ptabs button.is-on {
+  background: #1ba1e2;
+}
+.arb-ptabs button.is-on::after,
+.ars-innertabs a.is-on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-bottom: 0;
+  border-top-color: #1ba1e2;
+}
+.arb-fields {
+  display: grid;
+  gap: 10px;
+}
+.arb-fields .adm-input,
+.arf .adm-input {
+  background: #333;
+  border: 1px solid #595e57;
+  color: #fff;
+}
+.arb-fields .adm-input:disabled,
+.arf .adm-input:disabled {
+  color: #9a9a9a;
+  border-color: #444;
+}
+.adm-input.is-short {
+  max-width: 190px;
+}
+.adm-input.is-mid {
+  max-width: 375px;
+}
+.adm-input.is-required {
+  border-color: #e81123 !important;
+}
+.arb-toggles {
+  display: grid;
+  gap: 10px;
+  padding: 4px 0;
+}
+.arb-notkept {
+  color: #9a9a9a;
+  font-size: 12px;
+}
+.arb-bad {
+  color: #ef5350;
+  font-size: 12px;
+}
+.arb-ctl {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.arb-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.arb-inline .adm-input {
+  flex: 1 1 240px;
+  width: auto;
+}
+.arb-minibar {
+  padding-block: 10px;
+}
+.arb-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #1ba1e2;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.arb-list {
+  margin: 4px 0 10px;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid #1ba1e2;
+}
+.arb-list li {
+  padding: 7px 8px;
+  border-bottom: 1px solid #333;
+}
+
+/* the − n + stepper */
+.arb-step {
+  display: inline-flex;
+  align-items: center;
+}
+.arb-step button {
+  width: 32px;
+  height: 30px;
+  border: 1px solid #595e57;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.arb-step button:disabled {
+  color: #777;
+  cursor: default;
+}
+.arb-step input {
+  width: 56px;
+  height: 30px;
+  border: 1px solid #595e57;
+  border-inline: 0;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.arb-step input::-webkit-inner-spin-button {
+  display: none;
+}
+.arb-step input:disabled {
+  color: #c8c8c8;
+}
+.arb-step-after {
+  margin-left: 8px;
+}
+
+/* the blue (or red, or yellow) info box */
+.arb-info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border: 1px dotted #1ba1e2;
+  background: rgb(27 161 226 / 0.12);
+  font-size: 14px;
+}
+.arb-info.is-bad {
+  border: 1px solid #e57373;
+  background: #d9534f;
+  color: #fff;
+}
+.arb-info.is-warn {
+  border: 1px solid #f2c200;
+  background: rgb(242 194 0 / 0.1);
+}
+.arb-info-i {
+  flex: none;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+/* Security: Aronium's blue sections of steppers */
+.arb-sec {
+  padding-bottom: 24px;
+}
+.arb-secbox {
+  margin-top: 14px;
+  border: 1px solid #1ba1e2;
+}
+.arb-secbox h3 {
+  margin: 0;
+  padding: 6px 10px;
+  background: #1ba1e2;
+  font-size: 15px;
+}
+.arb-secrows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 32px;
+  padding: 10px;
+}
+.arb-secrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+.arb-q {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #1ba1e2;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  cursor: help;
+}
+
+/* Reset database: the numbered steps */
+.arb-steps {
+  display: grid;
+  gap: 14px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: s;
+}
+.arb-steps li {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding-left: 44px;
+  counter-increment: s;
+  opacity: 0.6;
+}
+.arb-steps li::before {
+  content: counter(s);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1ba1e2;
+  color: #fff;
+}
+.arb-steps small {
+  color: #a9a9a9;
+}
+
+/* Customers: the search field picker */
+.ars-field-pick {
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid #333;
+  background: #252525;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+}
+
+/* My company's tabs are links; Reset database greyed, Babajee's set apart */
+.ars-innertabs a {
+  position: relative;
+  padding: 5px 16px;
+  color: #fff;
+  font-size: 15px;
+  text-decoration: none;
+}
+.ars-innertabs a:hover {
+  background: #484e55;
+}
+.ars-innertabs a.is-on {
+  background: #1ba1e2;
+}
+.ars-innertabs a.is-off {
+  color: #8a8a8a;
+}
+.ars-innertabs a.is-ext {
+  margin-left: 18px;
+}
+.ars-innertabs {
+  flex-wrap: wrap;
+}
+.ars-company-strip {
+  min-height: 0 !important;
+  padding-bottom: 0;
+}
+.ars-shoppage {
+  padding-top: 14px;
+}
+
+/* Reporting: closable report tabs, filter extras */
+.ars-chip-x {
+  padding: 0;
+  gap: 0;
+  background: #333;
+}
+.ars-chip-x.is-on {
+  background: #1ba1e2;
+}
+.ars-chip-x button {
+  padding: 4px 8px 4px 14px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.ars-chip-x button + button {
+  padding: 4px 10px 4px 4px;
+  font-size: 17px;
+}
+.ars-chip.is-on {
+  background: #1ba1e2;
+}
+.ars-filter-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.ars-daterange {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid #4a4a4a;
+}
+.ars-daterange .adm-input {
+  min-width: 0;
+  flex: 1;
+}
+.ars-filter {
+  background: #333;
+}
+.ars-filter .adm-input:disabled {
+  color: #c8c8c8;
+}
+
+/* the report viewer: Aronium's print preview */
+.arv {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 70vh;
+  margin: 6px -6px -6px;
+  background: #5a5a5a;
+}
+.arv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  color: #222;
+  font-size: 13px;
+}
+.arv-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  background: none;
+  color: #222;
+  font: inherit;
+  cursor: pointer;
+}
+.arv-bar button:hover:not(:disabled) {
+  border-color: #b9d1ea;
+  background: #e5f1fb;
+}
+.arv-bar button:disabled {
+  color: #999;
+}
+.arv-save {
+  position: relative;
+}
+.arv-menu {
+  position: absolute;
+  z-index: 3;
+  top: 100%;
+  left: 0;
+  display: grid;
+  min-width: 140px;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  box-shadow: 2px 3px 8px rgb(0 0 0 / 0.25);
+}
+.arv-menu button {
+  justify-content: flex-start;
+}
+.arv-pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+}
+.arv-pages input {
+  width: 32px;
+  padding: 1px;
+  border: 1px solid #aaa;
+  text-align: center;
+  font: inherit;
+}
+.arv-stage {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 16px 56px;
+}
+.arv-page {
+  margin: 0 auto;
+  max-width: none;
+  min-height: 60vh;
+  padding: 3.5em 3em;
+  background: #fff;
+  color: #000;
+  border: 1px solid #c9a04a;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+  font-family: Arial, Helvetica, sans-serif;
+}
+.arv-page h1 {
+  margin: 0 0 1.2em;
+  font-size: 1.9em;
+}
+.arv-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 2em;
+  margin-bottom: 1.4em;
+}
+.arv-meta dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.2em 1.5em;
+  margin: 0;
+}
+.arv-meta dt,
+.arv-meta dd {
+  margin: 0;
+}
+.arv-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.arv-page th {
+  padding: 0.5em;
+  border: 1px solid #888;
+  border-bottom-width: 2px;
+  text-align: left;
+  font-weight: 700;
+}
+.arv-page td {
+  padding: 0.4em 0.5em;
+  border-bottom: 1px solid #ddd;
+}
+.arv-page tfoot td {
+  border-top: 2px solid #888;
+  border-bottom: 0;
+  font-weight: 700;
+}
+.arv-page .r {
+  text-align: right;
+}
+.arv-err {
+  color: #c62828;
+}
+.arv-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  color: #222;
+  font-size: 13px;
+}
+.arv-zoom button {
+  border: 0;
+  background: none;
+  color: #222;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.arv-zoom input {
+  width: 120px;
+}
+
+@media (max-width: 640px) {
+  .arb-secrows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .arv-meta {
+    flex-direction: column;
+  }
+  .arv-zoom input {
+    width: 70px;
+  }
+}
+@media print {
+  .arv-bar,
+  .arv-zoom {
+    display: none;
+  }
+  .arv,
+  .arv-stage {
+    background: #fff;
+    padding: 0;
+  }
+  .arv-page {
+    width: auto !important;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/* ---- Babajee's extras on the Aronium screens ---- */
+/* Customers: tags in the grid, the group list's "Your groups" head */
+.arb-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.arb-tags i {
+  padding: 0 6px;
+  background: #333;
+  font-size: 12px;
+  font-style: normal;
+}
+.aro-table tr.is-sel .arb-tags i {
+  background: rgb(0 0 0 / 0.25);
+}
+.arb-treehead {
+  margin: 12px 8px 2px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+  color: #8a8a8a;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-tree .arb-treeadd {
+  color: #1ba1e2;
+}
+/* the group builder slides in like Aronium's panels */
+.arb-slide {
+  position: fixed;
+  z-index: 55;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  right: 0;
+  bottom: 0;
+  width: min(720px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: #333;
+  color: #fff;
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.4);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.arb-slide > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 2px solid #1ba1e2;
+}
+.arb-slide > header h2 {
+  margin: 0;
+  font-size: 28px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ar .arb-slide > header h2 {
+  font-family: inherit;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+.arb-slide > header button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.arb-slide > header button:hover {
+  background: #484e55;
+}
+.arb-slide-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px 24px;
+}
+/* Stock: Counted / Not counted / Everything */
+.ars-seg {
+  display: inline-flex;
+  gap: 2px;
+}
+.ars-seg button {
+  padding: 3px 10px;
+  border: 0;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ars-seg button:hover {
+  background: #484e55;
+}
+.ars-seg button.is-on {
+  background: #1ba1e2;
+}
+.ars-low {
+  color: #ffb74d;
+}

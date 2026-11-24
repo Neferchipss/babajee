@@ -11,6 +11,8 @@ import type { AdminCategory, AdminProduct, BoxPreset, SubGroup, Subcategory } fr
 import { errText, getSettings } from "@/lib/orders-db";
 import { slugify } from "@/lib/slug";
 import { SUBCATEGORY_RULES } from "@/lib/subcategory-rules";
+import AroniumProductGroups from "@/components/admin/shells/AroniumProductGroups";
+import { useAdminStyle } from "@/lib/admin-style";
 import "@/components/admin/admin-products.css";
 import "./categories.css";
 
@@ -20,14 +22,11 @@ import "./categories.css";
 // these. Per type: its details, sub-categories in their groups (each with its
 // own search listing), boxes, and tax for its products.
 export default function CategoriesPage() {
-  return (
-    <Suspense>
-      <Categories />
-    </Suspense>
-  );
+  const style = useAdminStyle();
+  return <Suspense>{style === "aronium" ? <AroniumProductGroups /> : <CategoriesOriginal />}</Suspense>;
 }
 
-function Categories() {
+function CategoriesOriginal() {
   const api = adminApi();
   const router = useRouter();
   const params = useSearchParams();

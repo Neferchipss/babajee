@@ -5,6 +5,8 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { deleteRow, listRows, reorder, saveRow, type MenuLink } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
+import AroniumMenus from "@/components/admin/shells/AroniumMenus";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Storefront > Menus (0073): extra links in the shop's header and footer, in
 // order, beside the shop's own (Shop, categories, account).
@@ -14,6 +16,10 @@ const PLACES: ["header" | "footer", string, string][] = [
 ];
 
 export default function MenusPage() {
+  return useAdminStyle() === "aronium" ? <AroniumMenus /> : <MenusPageOriginal />;
+}
+
+function MenusPageOriginal() {
   const [list, setList] = useState<MenuLink[] | null>(null);
   const load = () => listRows("site_menus").then(setList);
   useEffect(() => {

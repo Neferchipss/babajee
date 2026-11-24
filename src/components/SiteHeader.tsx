@@ -70,6 +70,15 @@ export default function SiteHeader() {
         <div className="lb-search">
           <AdminSearch />
         </div>
+        {/* the documentation, opened at the article for this page */}
+        {pathname.startsWith("/admin/help") ? null : (
+          <Link href={`/admin/help?from=${encodeURIComponent(pathname)}`} className="lb-help" aria-label="Documentation: how to use this admin" title="Documentation">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M7.8 7.8a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.6M10 14.4h.01" />
+            </svg>
+          </Link>
+        )}
         <ProfileMenu cart={false} />
       </header>
     );

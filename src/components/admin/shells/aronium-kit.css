@@ -1,0 +1,65 @@
+/* The kit's own finish (aronium-kit.tsx), from Aronium's reference notes:
+   a right-click menu has a rule between groups only, never inside one; the
+   number stepper; a switch that can't be changed. */
+.art-menu li + li {
+  border-top: 0;
+}
+.art-menu button {
+  height: 38px;
+}
+.art-menu li.art-menu-sep {
+  height: 0;
+  margin: 0;
+  border-top: 1px solid #555 !important;
+}
+.art-switch.is-off {
+  cursor: default;
+  opacity: 0.55;
+}
+.art-switch.is-off button {
+  cursor: default;
+}
+.art-step {
+  display: inline-flex;
+  align-items: stretch;
+  height: 30px;
+}
+.art-step button {
+  width: 30px;
+  border: 1px solid #595e57;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.art-step button:hover:not(:disabled) {
+  background: #484e55;
+}
+.art-step button:disabled {
+  color: #777;
+  cursor: default;
+}
+.art-step input {
+  width: 64px;
+  border: 1px solid #595e57;
+  border-inline: 0;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.art-step input::-webkit-inner-spin-button,
+.art-step input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.art-step input:disabled {
+  color: #aaa;
+}
+.art-step-suf {
+  align-self: center;
+  margin-left: 6px;
+}

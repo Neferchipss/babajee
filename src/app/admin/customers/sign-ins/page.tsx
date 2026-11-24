@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { when } from "@/components/admin/ui";
 import { errText } from "@/lib/orders-db";
 import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
+import AroniumSignIns from "@/components/admin/shells/AroniumSignIns";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Every sign-in and failed attempt, newest first (kept 180 days). Failed
 // attempts on one email in a short time stand out: someone guessing a
@@ -15,6 +17,10 @@ const TABS = [
 ] as const;
 
 export default function SignInsPage() {
+  return useAdminStyle() === "aronium" ? <AroniumSignIns /> : <SignInsOriginal />;
+}
+
+function SignInsOriginal() {
   const [rows, setRows] = useState<LoginEvent[] | null>(null);
   const [loadedAt, setLoadedAt] = useState(0);
   const [err, setErr] = useState("");

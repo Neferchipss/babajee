@@ -6,6 +6,8 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { when } from "@/components/admin/ui";
 import { errText } from "@/lib/orders-db";
 import { getSupabase } from "@/lib/supabase";
+import AroniumMessages from "@/components/admin/shells/AroniumMessages";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Customers > Messages (0074): what people send from the Contact page. The
 // site sends nothing; reply by email or WhatsApp from here, then mark it.
@@ -14,6 +16,10 @@ const TOPIC: Record<string, string> = { order: "Order", product: "Product", deli
 type Tab = "open" | "replied" | "closed";
 
 export default function SupportPage() {
+  return useAdminStyle() === "aronium" ? <AroniumMessages /> : <SupportPageOriginal />;
+}
+
+function SupportPageOriginal() {
   const [rows, setRows] = useState<Msg[] | null>(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<Tab>("open");

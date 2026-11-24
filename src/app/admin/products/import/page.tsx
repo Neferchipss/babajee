@@ -6,9 +6,11 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { isAdminDemo, adminApi } from "@/lib/admin-api";
 import type { AdminCategory, AdminProduct } from "@/lib/admin-data";
 import { errText } from "@/lib/orders-db";
-import { FIELD_LABELS, planImport, planSummary, TEMPLATE_HEADER, type ImportField, type ImportPlan } from "@/lib/product-import";
+import { FIELD_LABELS, planImport, planSummary, type ImportField, type ImportPlan } from "@/lib/product-import";
+import { downloadTemplate, runImport } from "@/lib/product-import-run";
+import { useAdminStyle } from "@/lib/admin-style";
+import AroniumImport from "@/components/admin/shells/AroniumImport";
 import { readSheet } from "@/lib/stock-in/sheet";
-import { slugify } from "@/lib/slug";
 
 // Products > Import from a sheet: add products and update prices, stock,
 // codes, GST and more from an .xlsx or .csv, one row per option. The sheet is
@@ -16,6 +18,10 @@ import { slugify } from "@/lib/slug";
 // shown as a plan; nothing is written until "Apply" is pressed. New products
 // come in as drafts.
 export default function ImportPage() {
+  return useAdminStyle() === "aronium" ? <AroniumImport /> : <ImportOriginal />;
+}
+
+function ImportOriginal() {
   const api = adminApi();
   const [products, setProducts] = useState<AdminProduct[] | null>(null);
   const [cats, setCats] = useState<AdminCategory[]>([]);
@@ -45,92 +51,14 @@ export default function ImportPage() {
     }
   }
 
-  function template() {
-    const example = ["RAW Classic King Size", cats[0]?.name ?? "Rolling Papers", "", "120", "", "40", "RAW-KS", "", "RAW", "4813", "18", "85", "20", "raw, king size", ""];
-    const csv = "﻿" + [TEMPLATE_HEADER, example].map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(",")).join("\r\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "babajee-products-template.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
   async function apply() {
     if (!plan) return;
-    const demo = isAdminDemo();
-    const stockDb = demo ? null : await import("@/lib/stock-in/db");
-    const ordersDb = demo ? null : await import("@/lib/orders-db");
-    const steps: { what: string; run: () => Promise<void> }[] = [];
-    const stockAndCost = async (variantId: string, stock: number | null, purchase: number | null) => {
-      if (stock != null && stockDb) await stockDb.correctStock(variantId, stock, "Sheet import");
-      if (purchase != null && ordersDb) await ordersDb.correctPurchase(variantId, purchase, null, "Sheet import");
-    };
-
-    for (const u of plan.updates)
-      steps.push({
-        what: `${u.name}${u.option !== "Default" ? ` · ${u.option}` : ""} (row ${u.row})`,
-        run: async () => {
-          if (Object.keys(u.product).length) await api.updateProduct(u.productId, u.product);
-          if (Object.keys(u.variant).length) await api.upsertVariant(u.productId, { id: u.variantId, ...u.variant });
-          await stockAndCost(u.variantId, u.stock, u.purchase);
-        },
-      });
-    for (const o of plan.newOptions)
-      steps.push({
-        what: `${o.name} · ${o.option || "new option"} (row ${o.row})`,
-        run: async () => {
-          await api.upsertVariant(o.productId, { ...o.variant, label: o.variant.label || "Option" });
-          const fresh = await api.getProduct(o.productId);
-          const made = fresh?.variants.find((v) => v.label === (o.variant.label || "Option"));
-          if (made) await stockAndCost(made.id, o.stock, o.purchase);
-        },
-      });
-    for (const n of plan.newProducts)
-      steps.push({
-        what: `${n.name} (new, row${n.rows.length > 1 ? "s" : ""} ${n.rows.join(", ")})`,
-        run: async () => {
-          let id = "";
-          for (let k = 1; !id; k++) {
-            try {
-              id = await api.createProduct({ category_id: n.categoryId, slug: k === 1 ? slugify(n.name) : `${slugify(n.name)}-${k}`, name: n.name.trim(), description: n.product.description ?? "" });
-            } catch (x) {
-              if ((x as { code?: string }).code !== "23505" || k > 20) throw x;
-            }
-          }
-          await api.updateProduct(id, { status: "draft", ...n.product });
-          const made = await api.getProduct(id);
-          const first = made?.variants[0];
-          for (const [i, o] of n.options.entries()) {
-            if (i === 0 && first) {
-              await api.upsertVariant(id, { id: first.id, label: o.label, sort_order: 0, ...o.variant });
-              await stockAndCost(first.id, o.stock, o.purchase);
-            } else {
-              await api.upsertVariant(id, { label: o.label, sort_order: i, ...o.variant });
-              const again = await api.getProduct(id);
-              const v = again?.variants.find((x) => x.label === o.label);
-              if (v) await stockAndCost(v.id, o.stock, o.purchase);
-            }
-          }
-        },
-      });
-
-    setGoing({ done: 0, of: steps.length });
-    const failed: { what: string; why: string }[] = [];
-    let ok = 0;
-    for (const [i, s] of steps.entries()) {
-      try {
-        await s.run();
-        ok++;
-      } catch (e) {
-        failed.push({ what: s.what, why: errText(e) });
-      }
-      setGoing({ done: i + 1, of: steps.length });
-    }
+    const res = await runImport(api, plan, (done, of) => setGoing({ done, of }));
     setGoing(null);
-    setResult({ ok, failed });
+    setResult(res);
     setPlan(null);
-    if (failed.length) toastError(`${failed.length} row${failed.length === 1 ? "" : "s"} didn't go in: see the list`);
-    else toast(`Import done: ${ok} change${ok === 1 ? "" : "s"}`);
+    if (res.failed.length) toastError(`${res.failed.length} row${res.failed.length === 1 ? "" : "s"} didn't go in: see the list`);
+    else toast(`Import done: ${res.ok} change${res.ok === 1 ? "" : "s"}`);
     await load().catch(() => {});
   }
 
@@ -156,7 +84,7 @@ export default function ImportPage() {
           {products ? "Choose a sheet" : "Loading the shop…"}
           <input type="file" accept=".xlsx,.csv" disabled={!products || !!going} onChange={(e) => pick(e.target.files?.[0])} />
         </label>
-        <button type="button" className="adm-btn" onClick={template} disabled={!cats.length}>
+        <button type="button" className="adm-btn" onClick={() => downloadTemplate(cats)} disabled={!cats.length}>
           Download a template
         </button>
         <p className="adm-muted adm-small" style={{ margin: 0 }}>

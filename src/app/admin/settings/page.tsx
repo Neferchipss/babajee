@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { money } from "@/components/admin/ui";
 import { STATES } from "@/lib/addresses";
@@ -9,10 +9,14 @@ import { bill, costOf, GST_BRACKETS, unitProfit } from "@/lib/gst";
 import { errText, getCouriers, getDeliveryRules, getSettings, saveCouriers, saveDeliveryRules, saveSettings, type DeliveryRules, type StoreSettings } from "@/lib/orders-db";
 import { can, useStaff } from "@/lib/staff";
 import { downloadAllData } from "@/lib/export-all";
+import AroniumCompany from "@/components/admin/shells/AroniumCompany";
+import CounterSettings from "@/components/admin/counter/CounterSettings";
+import { useAdminStyle } from "@/lib/admin-style";
+import { useSearchParams } from "next/navigation";
 
 // Store rules the owner can change without a code change, one topic at a
 // time (?t=): business details, payments and bank, delivery and couriers,
-// GST, orders and returns, stock, data. Each topic saves on its own (a dot
+// GST, orders and returns, stock, the counter till, data. Each topic saves on its own (a dot
 // marks a topic with unsaved changes). Owners and admins change them; the
 // store account sees GST and Delivery, read only.
 const TOPICS = [
@@ -22,6 +26,7 @@ const TOPICS = [
   ["gst", "GST"],
   ["orders", "Orders, returns and carts"],
   ["stock", "Low stock"],
+  ["counter", "Counter (till)"],
   ["data", "Data export"],
 ] as const;
 type Topic = (typeof TOPICS)[number][0];
@@ -29,7 +34,7 @@ type Topic = (typeof TOPICS)[number][0];
 const VIEW_ONLY: Topic[] = ["gst", "delivery"];
 type Saved = Partial<Record<Topic, string>>;
 
-export default function SettingsPage() {
+function SettingsPageOriginal() {
   // owners and admins change settings (useStaff treats a database without
   // staff roles as an owner); until the role is known, nothing is editable
   const me = useStaff().me;
@@ -73,10 +78,12 @@ export default function SettingsPage() {
     gst: { rate, inclusive, credit, cess, home },
     orders: { returnDays, abandonHours, expireDays },
     stock: { lowAt },
+    // the till saves its own settings (CounterSettings)
+    counter: null,
     data: null,
   };
   const [saved, setSaved] = useState<Saved>({});
-  const dirtyOf = (t: Topic) => loaded && t !== "data" && saved[t] !== undefined && JSON.stringify(raw[t]) !== saved[t];
+  const dirtyOf = (t: Topic) => loaded && t !== "data" && t !== "counter" && saved[t] !== undefined && JSON.stringify(raw[t]) !== saved[t];
   const snapshot = () => setSaved(Object.fromEntries(TOPICS.map(([id]) => [id, JSON.stringify(raw[id])])) as Saved);
   // put a topic back as it was last saved
   function discard(t: Topic) {
@@ -503,6 +510,7 @@ export default function SettingsPage() {
 
       {topic === "delivery" && <Couriers editable={editable} />}
       {topic === "delivery" && <DeliveryRulesCard editable={editable} />}
+      {topic === "counter" && <CounterSettings editable={editable} />}
       {topic === "data" && <DataExport />}
     </div>
   );
@@ -671,4 +679,20 @@ function NotifyToggle() {
       Notify me in this browser
     </button>
   );
+}
+
+// The Aronium-style design shows Aronium's My company screen instead, and
+// this page under My company › Shop settings (?view=shop), below its tabs.
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsByStyle />
+    </Suspense>
+  );
+}
+function SettingsByStyle() {
+  const style = useAdminStyle();
+  const shop = useSearchParams().get("view") === "shop";
+  if (style !== "aronium") return <SettingsPageOriginal />;
+  return shop ? <AroniumCompany shopPage={<SettingsPageOriginal />} /> : <AroniumCompany />;
 }

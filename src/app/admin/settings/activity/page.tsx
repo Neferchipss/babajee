@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { when } from "@/components/admin/ui";
 import { errText } from "@/lib/orders-db";
 import { AREA_NAME, AREAS, auditLog, fieldName, listAdmins, showValue, type Admin, type AuditEntry } from "@/lib/team";
+import AroniumActivity from "@/components/admin/shells/AroniumActivity";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Every change an admin made, newest first, kept a year: who, when, what,
 // and for an edit each field from old to new. Recorded by the database, so
@@ -12,6 +14,10 @@ import { AREA_NAME, AREAS, auditLog, fieldName, listAdmins, showValue, type Admi
 const PAGE = 100;
 
 export default function ActivityPage() {
+  return useAdminStyle() === "aronium" ? <AroniumActivity /> : <ActivityOriginal />;
+}
+
+function ActivityOriginal() {
   const [rows, setRows] = useState<AuditEntry[] | null>(null);
   const [more, setMore] = useState(false);
   const [err, setErr] = useState("");

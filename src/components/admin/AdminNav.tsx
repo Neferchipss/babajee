@@ -60,6 +60,14 @@ export default function AdminNav() {
         <span className="adm-ico">{I("M3.5 3.5h13v13h-13zM3.5 8h13M8 8v8.5")}</span>
         Admin design
       </Link>
+      <Link
+        href={path.startsWith("/admin/help") ? "/admin/help" : `/admin/help?from=${encodeURIComponent(path)}`}
+        className="adm-sec-link adm-shop"
+        aria-current={path.startsWith("/admin/help") ? "page" : undefined}
+      >
+        <span className="adm-ico">{I("M5 2.5h7l3.5 3.5v11.5H5zM12 2.5V6h3.5M7.5 9.5h5M7.5 12.5h5M7.5 15.5h3")}</span>
+        Documentation
+      </Link>
       {stockWatch && <LowStockWatch onCount={setLow} />}
           </nav>
     {here?.pages && (

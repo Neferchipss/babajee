@@ -22,7 +22,7 @@ const PAGES: { title: string; href: string; words: string }[] = [
   { title: "Products", href: "/admin/products", words: "products catalogue categories" },
   { title: "Purchase bills", href: "/admin/inventory/purchases", words: "purchases bills suppliers stock in inventory buying opening stock" },
   { title: "GST & HSN", href: "/admin/finance/gst", words: "gst hsn tax rate finance" },
-  { title: "Admin design", href: "/admin/settings/design", words: "admin design look layout shopify ease studio" },
+  { title: "Admin design", href: "/admin/settings/design", words: "admin design theme look layout legacy aronium" },
   { title: "Add a product", href: "/admin/products/new", words: "new product add create" },
   { title: "Reviews", href: "/admin/products/reviews", words: "reviews ratings stars approve moderate feedback" },
   { title: "Collections", href: "/admin/products/collections", words: "collections staff picks gift ideas hand-picked lists featured" },

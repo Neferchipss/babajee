@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { AnalyticsTabs } from "@/components/admin/RangePicker";
 import { money } from "@/components/admin/ui";
 import { errText, liveView, type LiveSession, type LiveView } from "@/lib/orders-db";
+import ArAnalyticsScreen from "@/components/admin/shells/AroniumAnalytics";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Analytics > Live view (0069): who is on the shop right now, refreshed every
 // 15 seconds while the page is open and visible. Staff, admin pages and test
@@ -28,6 +30,16 @@ const from = (s: LiveSession) => {
 };
 
 export default function LivePage() {
+  return useAdminStyle() === "aronium" ? (
+    <ArAnalyticsScreen kind="live">
+      <LivePageOriginal ar />
+    </ArAnalyticsScreen>
+  ) : (
+    <LivePageOriginal />
+  );
+}
+
+function LivePageOriginal({ ar = false }: { ar?: boolean }) {
   const [data, setData] = useState<LiveView | null>(null);
   const [err, setErr] = useState("");
   const [minutes, setMinutes] = useState(5);
@@ -64,7 +76,7 @@ export default function LivePage() {
   return (
     <div className="anx">
       <h1 className="sr-only">Live view</h1>
-      <AnalyticsTabs on="live" />
+      {!ar && <AnalyticsTabs on="live" />}
       <div className="anx-bar live-bar">
         <span className="live-dot" aria-hidden /> <span className="adm-small">Live · refreshes every 15 seconds</span>
         <select className="adm-input" value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} aria-label="Counting visitors active in">
