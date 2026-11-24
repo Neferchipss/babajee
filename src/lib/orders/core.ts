@@ -65,6 +65,9 @@ export type Refund = {
 export type Order = {
   id: string;
   order_number: string;
+  // where it was sold: the website (and orders the shop takes for delivery),
+  // or the shop's counter till (0085); missing before 0085
+  channel?: "online" | "counter";
   profile_id: string | null;
   status: OrderStatus;
   // an open failed delivery (0039): when and why; cleared when sent again
