@@ -928,3 +928,28 @@ html[data-mode="light"] .onb {
   width: 34px;
   height: 34px;
 }
+
+/* ---------------------------------------------------------------- logo, no tile */
+/* The logo stands on its own: on the gold window panel the light-background
+   version (black outline); over the night-sky art (phones) and the dark
+   login page, the dark-background version. */
+.onb-brand-logo,
+.onb.is-modal .onb-brand-logo,
+.onb-hero-logo {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.onb.is-modal .onb-brand-logo {
+  width: 140px;
+}
+.onb.is-modal .onb-brand-logo .logo-light {
+  display: block !important;
+}
+.onb.is-modal .onb-brand-logo .logo-dark {
+  display: none !important;
+}
+.onb-hero-logo {
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.5));
+}
