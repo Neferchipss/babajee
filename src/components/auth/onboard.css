@@ -1032,3 +1032,34 @@ html[data-mode="light"] .onb {
 .onb.is-modal .onb-card {
   padding: 36px 28px 28px;
 }
+
+/* ---------------------------------------------------------------- art to the edges */
+/* The piece is the window's own ground: it runs to the window's left, top
+   and bottom edges (into its rounded corners) and on under the form card,
+   blurring slightly as it passes behind it. */
+.onb.is-modal {
+  background: var(--onb-art, none) left bottom / auto 100% no-repeat, var(--onb-sky);
+}
+.onb.is-modal .onb-brand {
+  margin: -8px 0 -8px -8px;
+  padding: 30px 24px 24px 32px;
+  border-radius: 0;
+  background: none;
+}
+.onb.is-modal .onb-card {
+  overflow: visible;
+}
+.onb.is-modal .onb-card::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  left: -44px;
+  width: 44px;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000);
+  mask-image: linear-gradient(90deg, transparent, #000);
+}
