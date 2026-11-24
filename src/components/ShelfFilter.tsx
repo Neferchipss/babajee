@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import type { CardProduct } from "./ProductCard";
 import "./shelf-filter.css";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import type { FacetRow } from "@/lib/shelf-facets";
+
+// the shelf's tag rows (Size, Paper, Extras…), shown as the panel's first
+// filters; the shelf applies them before these (shelf-facets.ts)
+export type Facets = { rows: FacetRow[]; count: number; onToggle: (slug: string) => void; onClear: () => void };
 
 // Sort & filter for a shelf: one button (next to the search), opening a
 // panel: a dropdown on a wide screen, a sheet from the bottom on a phone.
@@ -103,6 +108,7 @@ export default function ShelfFilter({
   onFilters,
   className,
   label,
+  facets,
 }: {
   // the shelf's products before these filters (after its search and chips)
   products: CardProduct[];
@@ -113,6 +119,7 @@ export default function ShelfFilter({
   className?: string;
   // show the words "Sort & filter" beside the icon
   label?: boolean;
+  facets?: Facets;
 }) {
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState<{ top: number; right: number } | null>(null);
@@ -133,7 +140,7 @@ export default function ShelfFilter({
     setOpen(true);
   };
 
-  const n = filterCount(filters);
+  const n = filterCount(filters) + (facets?.count ?? 0);
   const result = applyFilters(products, filters).length;
   const count = (skip: keyof Filters, test: (p: CardProduct) => boolean) => applyFilters(products, filters, skip).filter(test).length;
   const brands = [...new Set(products.map((p) => p.brand).filter((b): b is string => !!b))].sort((a, b) => a.localeCompare(b));
@@ -192,6 +199,12 @@ export default function ShelfFilter({
                   </div>
                 </section>
 
+                {facets?.rows.map((r) => (
+                  <section key={r.group || "-"}>
+                    <h3>{r.group || "Type"}</h3>
+                    <div className="sf-chips">{r.tags.map((t) => chip(t.on, t.name, t.n, () => facets.onToggle(t.slug), t.slug))}</div>
+                  </section>
+                ))}
                 <section>
                   <h3>Price</h3>
                   <div className="sf-chips">
@@ -229,7 +242,7 @@ export default function ShelfFilter({
               </div>
 
               <footer className="sf-foot">
-                <button type="button" className="sf-clear" disabled={!n && sort === "featured"} onClick={() => (onFilters(NO_FILTERS), onSort("featured"))}>
+                <button type="button" className="sf-clear" disabled={!n && sort === "featured"} onClick={() => (onFilters(NO_FILTERS), onSort("featured"), facets?.onClear())}>
                   Clear all
                 </button>
                 <button type="button" className="sf-go" onClick={() => setOpen(false)}>
@@ -245,9 +258,10 @@ export default function ShelfFilter({
 }
 
 // The filters that are on, above the products: each removes with a tap.
-export function ActiveFilters({ filters, onFilters, sort, onSort }: { filters: Filters; onFilters: (f: Filters) => void; sort: Sort; onSort: (s: Sort) => void }) {
+export function ActiveFilters({ filters, onFilters, sort, onSort, facets }: { filters: Filters; onFilters: (f: Filters) => void; sort: Sort; onSort: (s: Sort) => void; facets?: Facets }) {
   const chips = activeChips(filters);
-  if (!chips.length && sort === "featured") return null;
+  const tagsOn = (facets?.rows ?? []).flatMap((r) => r.tags.filter((t) => t.on));
+  if (!chips.length && !tagsOn.length && sort === "featured") return null;
   return (
     <div className="sf-active" role="group" aria-label="Sort and filters on">
       {sort !== "featured" && (
@@ -256,14 +270,20 @@ export function ActiveFilters({ filters, onFilters, sort, onSort }: { filters: F
           <span aria-hidden="true">×</span>
         </button>
       )}
+      {tagsOn.map((t) => (
+        <button key={`tag-${t.slug}`} type="button" onClick={() => facets?.onToggle(t.slug)} aria-label={`Remove ${t.name}`}>
+          {t.name}
+          <span aria-hidden="true">×</span>
+        </button>
+      ))}
       {chips.map(([text, without]) => (
         <button key={text} type="button" onClick={() => onFilters(without)} aria-label={`Remove ${text}`}>
           {text}
           <span aria-hidden="true">×</span>
         </button>
       ))}
-      {chips.length + (sort !== "featured" ? 1 : 0) > 1 && (
-        <button type="button" className="sf-active-clear" onClick={() => (onFilters(NO_FILTERS), onSort("featured"))}>
+      {chips.length + tagsOn.length + (sort !== "featured" ? 1 : 0) > 1 && (
+        <button type="button" className="sf-active-clear" onClick={() => (onFilters(NO_FILTERS), onSort("featured"), facets?.onClear())}>
           Clear all
         </button>
       )}
