@@ -177,12 +177,3 @@ html[data-mode="light"] .ps-card {
 :root[data-mode="light"] .logo-light.logo-light {
   display: inline-block;
 }
-
-/* light and dark: the logo stands on a tile of the page's own colour, so a
-   coloured header bar (Storefront > Colours) never sits behind its red,
-   yellow and green. Drawn as a spread shadow, so the logo doesn't move. */
-#site[data-scope="shop"]:not(:has(.adm-frame)) :is(.sb-logo, .lb-logo) {
-  border-radius: 6px;
-  background: var(--color-char);
-  box-shadow: 0 0 0 9px var(--color-char);
-}

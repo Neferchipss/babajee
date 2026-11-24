@@ -87,6 +87,20 @@
       min-width: 0;
       max-width: none;
     }
+    /* behind the logo, the page's own colour: from the screen's left edge to
+       just before where to, the bar's full height, so the logo stands on the
+       page and the header bar's colour (Storefront > Colours) starts at
+       where to */
+    & .sb::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: calc(100% + var(--sb-patch, 170px));
+      z-index: -1;
+      width: 100vmax;
+      background: var(--color-char);
+    }
     & .cp-side::-webkit-scrollbar {
       display: none;
     }
@@ -261,6 +275,10 @@
   html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb .dt {
     top: 30px;
     left: calc(-280px - 40px + 108px);
+  }
+  html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] .sb {
+    /* where to moved left with the smaller logo: the page patch ends before it */
+    --sb-patch: 218px;
   }
   html[data-theme="baba-poster"][data-desk="open"] #site[data-scope="shop"] :is(.sb-logo, .sb-logo img, .sb .dt) {
     transition:
