@@ -11,7 +11,6 @@ import SiteTracker from "@/components/SiteTracker";
 import { AuthProvider } from "@/lib/auth";
 import { AGE_STORAGE_KEY } from "@/lib/config";
 import { modeBootScript } from "@/lib/mode-boot";
-import { designBootScript } from "@/lib/shop-design";
 import { coloursBootScript } from "@/lib/shop-colours-apply";
 import { DEFAULT_THEME, SHOWN_THEMES, THEME_STORAGE_KEY } from "@/lib/themes";
 import "./globals.css";
@@ -21,7 +20,6 @@ import "./themes/baba.css";
 import "./themes/baba-night.css";
 import "./themes/baba-poster.css";
 import "./themes/modes.css";
-import "./themes/shop-designs.css";
 import "./themes/type.css";
 import "./themes/shelf-side.css";
 import "./themes/motion.css";
@@ -68,7 +66,6 @@ if(localStorage.getItem(${JSON.stringify(AGE_STORAGE_KEY)})==="1")document.docum
 var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
 if(${JSON.stringify(SHOWN_THEMES.map((x) => x.id))}.indexOf(t)>-1)document.documentElement.dataset.theme=t;
 ${modeBootScript}
-${designBootScript}
 ${coloursBootScript}
 }catch(e){}`;
 

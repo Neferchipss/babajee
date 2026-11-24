@@ -6,9 +6,9 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { adminApi } from "@/lib/admin-api";
 import type { AdminCategory } from "@/lib/admin-data";
 import { listCollections, type Collection } from "@/lib/collections";
-import { DESIGNS, deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
+import { deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
-import { ArEmpty, ArGrid, ArScreen, ArSection, ArSwitch, ArToolbar, menuOf, stdMenu, Tick, useArKeys, type ArCol } from "./aronium-kit";
+import { ArEmpty, ArGrid, ArScreen, ArSection, ArSwitch, ArToolbar, stdMenu, Tick, useArKeys, type ArCol } from "./aronium-kit";
 import { ArField, ArHelp, ArInfo, ArPanel } from "./aronium-help";
 import { ArConfirm, ArSubTabs } from "./aronium-d-kit";
 
@@ -20,7 +20,6 @@ import { ArConfirm, ArSubTabs } from "./aronium-d-kit";
 // kind), Edit in the slide-in panel, Move up / down, Show / Hide (at once,
 // with Undo), Delete (asked first).
 type Tab = "design" | "line" | "sections";
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const COUNTED = ["best_sellers", "new_arrivals", "collection", "category"];
 
 export default function AroniumStorefront() {
@@ -31,7 +30,6 @@ export default function AroniumStorefront() {
   const [cols, setCols] = useState<Collection[]>([]);
   const [err, setErr] = useState("");
   const [line, setLine] = useState({ announcement: "", announcement_link: "" });
-  const [selD, setSelD] = useState<string | null>(null);
   const [selS, setSelS] = useState<string | null>(null);
   const [edit, setEdit] = useState<HomeSection | null>(null);
   const [adding, setAdding] = useState(false);
@@ -62,18 +60,6 @@ export default function AroniumStorefront() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function pick(design: Look["design"]) {
-    if (!look) return;
-    const before = look;
-    setLook({ ...look, design });
-    try {
-      await saveLook({ design });
-      toast(`The shop now shows ${DESIGNS.find((d) => d.id === design)?.name}`);
-    } catch (e) {
-      setLook(before);
-      toastError(errText(e));
-    }
-  }
   async function saveLine() {
     const link = line.announcement_link.trim();
     if (link && !/^(https:\/\/|\/)/.test(link)) {
@@ -150,7 +136,6 @@ export default function AroniumStorefront() {
   };
   const si = list.findIndex((s) => s.id === selS);
   const pickedS = si >= 0 ? list[si] : null;
-  const pickedD = DESIGNS.find((d) => d.id === selD) ?? null;
 
   useArKeys({
     add: tab === "sections" ? () => setAdding(true) : undefined,
@@ -158,22 +143,6 @@ export default function AroniumStorefront() {
     edit: tab === "sections" && pickedS ? () => setEdit(pickedS) : undefined,
     refresh: loadAll,
   });
-
-  type D = (typeof DESIGNS)[number];
-  const designCols: ArCol<D>[] = [
-    { k: "name", label: "Design", render: (d) => d.name },
-    { k: "about", label: "About", render: (d) => <span className="ard4-clip">{d.about}</span> },
-    { k: "on", label: "On the shop", center: true, render: (d) => <Tick on={look?.design === d.id} /> },
-  ];
-  const lookAt = (d: D) => window.open(`${BASE}/?design=${d.id}`, "_blank", "noreferrer");
-  const designMenu = (d: D | null) =>
-    menuOf(
-      [
-        { label: "Use this", onClick: () => d && pick(d.id), disabled: !d || !look || look.design === d.id },
-        { label: "Look at it", onClick: () => d && lookAt(d), disabled: !d },
-      ],
-      [{ label: "Refresh", key: "F5", onClick: loadAll }],
-    );
 
   const secCols: ArCol<HomeSection>[] = [
     { k: "pos", label: "#", right: true, render: (s) => list.indexOf(s) + 1 },
@@ -204,8 +173,6 @@ export default function AroniumStorefront() {
     tab === "design"
       ? [
           { icon: "refresh", label: "Refresh", onClick: loadAll },
-          { icon: "paid", label: "Use this", disabled: !pickedD || !look || look.design === pickedD.id, onClick: () => pickedD && pick(pickedD.id) },
-          { icon: "open", label: "Look at it", disabled: !pickedD, onClick: () => pickedD && lookAt(pickedD) },
           { icon: "help", label: "Help", onClick: () => setHelp(true) },
         ]
       : tab === "line"
@@ -248,9 +215,7 @@ export default function AroniumStorefront() {
 
       {tab === "design" && (
         <>
-          <ArSection title="Designs" n={DESIGNS.length} />
-          <p className="ard4-note">How the shop looks. Look at any design on the shop first, then Use this to switch.</p>
-          <ArGrid cols={designCols} rows={[...DESIGNS]} keyOf={(d) => d.id} sel={selD} onSel={setSelD} onOpen={(d) => lookAt(d)} menu={designMenu} className="ars-grid" />
+          {/* Colours (the shop palette) goes here: Task 6 */}
         </>
       )}
 

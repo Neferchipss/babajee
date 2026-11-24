@@ -6,7 +6,7 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { adminApi } from "@/lib/admin-api";
 import type { AdminCategory } from "@/lib/admin-data";
 import { listCollections, type Collection } from "@/lib/collections";
-import { DESIGNS, deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
+import { deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
 import AroniumStorefront from "@/components/admin/shells/AroniumStorefront";
@@ -36,19 +36,6 @@ function StorefrontPageOriginal() {
     adminApi().listCategories().then(setCats, () => {});
     listCollections().then(setCols, () => {});
   }, []);
-
-  async function pick(design: Look["design"]) {
-    if (!look) return;
-    const before = look;
-    setLook({ ...look, design });
-    try {
-      await saveLook({ design });
-      toast(`The shop now shows ${DESIGNS.find((d) => d.id === design)?.name}`);
-    } catch (e) {
-      setLook(before);
-      toastError(errText(e));
-    }
-  }
 
   async function saveLine(e: React.FormEvent) {
     e.preventDefault();
@@ -134,31 +121,7 @@ function StorefrontPageOriginal() {
       </header>
       {err && <p className="adm-err">{err}</p>}
 
-      <section className="sfm-designs" aria-label="Designs">
-        {DESIGNS.map((d) => (
-          <article key={d.id} className={`adm-card sfm-design ${look?.design === d.id ? "is-on" : ""}`} data-design={d.id}>
-            <div className="sfm-swatch" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <h2>
-              {d.name}
-              {look?.design === d.id && <span className="adm-pill">On the shop</span>}
-            </h2>
-            <p className="adm-muted adm-small">{d.about}</p>
-            <div className="adm-actions">
-              <a className="adm-btn" href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/?design=${d.id}`} target="_blank" rel="noreferrer">
-                Look at it
-              </a>
-              <button type="button" className="adm-btn pri" disabled={!look || look.design === d.id} onClick={() => pick(d.id)}>
-                Use this
-              </button>
-            </div>
-          </article>
-        ))}
-      </section>
+      {/* Colours (the shop palette) goes here: Task 6 */}
 
       <form className="adm-card sfm-line" onSubmit={saveLine}>
         <h2>Announcement along the top</h2>

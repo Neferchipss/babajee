@@ -2,7 +2,7 @@
 
 // The shop's own content (migration 0073): banners, homepage sections,
 // pages and blog posts, FAQs, menus, search listings for built-in pages, and
-// which storefront design shows. Read by the shop (switched-on rows only) and
+// the shop's colours (0087). Read by the shop (switched-on rows only) and
 // written from Admin > Storefront. Every read falls back to nothing, so the
 // shop works the same on a database without 0073. With ?demo=1 on a
 // developer's machine the admin writes to memory instead.
@@ -14,14 +14,6 @@ import type { ShopColours } from "./shop-colours";
 // than imported, so the shop's pages don't carry the admin's code
 const isAdminDemo = () => process.env.NODE_ENV !== "production" && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
 
-export type Design = "current" | "shopfront" | "haveli" | "chai" | "courtyard";
-export const DESIGNS: { id: Design; name: string; about: string }[] = [
-  { id: "current", name: "Current", about: "The painted shop you walk into, as it is today." },
-  { id: "shopfront", name: "Shopfront", about: "The current colours as a full shop home: rotating banners, best sellers, new arrivals, categories, and Explore the shop for the painted walk-in." },
-  { id: "haveli", name: "Haveli", about: "Babajee red, turmeric and leaf green on warm cream, arches and soft paper: an old family home." },
-  { id: "chai", name: "Chai corner", about: "Warm turmeric and tea tones, rounded cushions of colour, slow and cosy like the shop counter on a long evening." },
-  { id: "courtyard", name: "Courtyard", about: "Leaf green and sunlight yellow with red pots: an open, airy courtyard to wander around." },
-];
 
 export type Tone = "gold" | "green" | "red" | "ink" | "paper";
 export type Banner = { id: string; title: string; subtitle: string; image_url: string; link_url: string; button_label: string; tone: Tone; position: number; starts_at: string | null; ends_at: string | null; is_visible: boolean };
@@ -45,7 +37,7 @@ export type SitePage = {
 export type Faq = { id: string; topic: string; question: string; answer: string; position: number; is_visible: boolean };
 export type MenuLink = { id: string; location: "header" | "footer"; label: string; href: string; position: number; is_visible: boolean };
 export type PageSeo = { path: string; title: string; description: string; image_url: string };
-export type Look = { design: Design; announcement: string; announcement_link: string; colours: ShopColours | null };
+export type Look = { announcement: string; announcement_link: string; colours: ShopColours | null };
 
 export const SECTION_KINDS: { kind: SectionKind; label: string; needsRef?: "collection" | "category" }[] = [
   { kind: "banners", label: "Rotating banners" },
@@ -57,7 +49,7 @@ export const SECTION_KINDS: { kind: SectionKind; label: string; needsRef?: "coll
   { kind: "text", label: "A few words" },
 ];
 
-const LOOK_DEFAULT: Look = { design: "current", announcement: "", announcement_link: "", colours: null };
+const LOOK_DEFAULT: Look = { announcement: "", announcement_link: "", colours: null };
 
 // ---------------------------------------------------------------- demo memory
 type Tables = { site_banners: Banner[]; home_sections: HomeSection[]; site_pages: SitePage[]; faqs: Faq[]; site_menus: MenuLink[]; page_seo: PageSeo[] };
@@ -164,8 +156,8 @@ export async function getLook(): Promise<Look> {
   const sb = await loadSupabase();
   if (!sb) return { ...LOOK_DEFAULT };
   // the shop's colours (0087) with the rest; without 0087, the rest alone
-  let res = await sb.from("site_look").select("design, announcement, announcement_link, colours").eq("id", 1).maybeSingle();
-  if (res.error) res = await sb.from("site_look").select("design, announcement, announcement_link").eq("id", 1).maybeSingle();
+  let res = await sb.from("site_look").select("announcement, announcement_link, colours").eq("id", 1).maybeSingle();
+  if (res.error) res = await sb.from("site_look").select("announcement, announcement_link").eq("id", 1).maybeSingle();
   if (res.error || !res.data) return { ...LOOK_DEFAULT };
   return { ...LOOK_DEFAULT, ...(res.data as Partial<Look>) };
 }
