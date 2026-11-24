@@ -995,3 +995,40 @@ html[data-mode="light"] .onb {
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%);
   mask-image: linear-gradient(180deg, transparent, #000 12%);
 }
+
+/* ---------------------------------------------------------------- window: logo + art | form */
+/* The window holds only two things: on the left the full hero piece on its
+   night sky with the logo over it, on the right the form. No pitch, no
+   spare space; the form sets the height, the art panel takes the width. */
+.onb-dialog {
+  width: min(960px, calc(100vw - 48px));
+}
+.onb.is-modal {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+.onb.is-modal .onb-brand {
+  margin: 0;
+  padding: 22px 24px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--onb-art, none) center bottom / cover no-repeat, var(--onb-sky);
+}
+.onb.is-modal .onb-pitch,
+.onb.is-modal .onb-art {
+  display: none;
+}
+.onb.is-modal .onb-brand-logo {
+  width: 150px;
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.5));
+}
+.onb.is-modal .onb-brand-logo .logo-light {
+  display: none !important;
+}
+.onb.is-modal .onb-brand-logo .logo-dark {
+  display: block !important;
+}
+.onb.is-modal .onb-card {
+  padding: 36px 28px 28px;
+}
