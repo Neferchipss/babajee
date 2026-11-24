@@ -824,3 +824,59 @@ html[data-mode="light"] .onb {
     text-wrap: balance;
   }
 }
+
+/* ---------------------------------------------------------------- hero art */
+/* One of the shop's two hero pieces (beach or garden, picked at random on
+   opening, Onboard.tsx), a cut-out on transparency, set on the night-sky
+   colour it was painted for and anchored bottom right where it is densest.
+   Until one is picked the box is that sky alone, so nothing flashes. */
+.onb {
+  --onb-sky: #1b1733;
+}
+.onb[data-art="beach"] {
+  --onb-art: url("../../assets/art/hero-beach.webp");
+  --onb-art-sm: url("../../assets/art/hero-beach-sm.webp");
+}
+.onb[data-art="garden"] {
+  --onb-art: url("../../assets/art/hero-garden.webp");
+  --onb-art-sm: url("../../assets/art/hero-garden-sm.webp");
+}
+.onb-hero-art {
+  border: 0;
+  background: var(--onb-art, none) right bottom / cover no-repeat, var(--onb-sky);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+/* wide screens: the piece fills the bottom of the brand panel and runs off
+   its edges (like Zepto's sign-in), under the pitch; its own top edge is a
+   straight cut, so it fades into the panel */
+.onb-brand {
+  justify-content: flex-start;
+}
+.onb-art,
+.onb.is-modal .onb-art {
+  order: 3;
+  flex: 1 1 auto;
+  min-height: 300px;
+  margin: -12px -32px -32px;
+  border: 0;
+  border-radius: 0;
+  background: var(--onb-art, none) center bottom / cover no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%);
+  mask-image: linear-gradient(180deg, transparent, #000 22%);
+}
+.onb-pitch {
+  order: 2;
+}
+@media (max-width: 820px) {
+  /* phones: the piece fills the whole header, edge to edge, with the logo
+     on it clear of the notch */
+  .onb.is-email .onb-hero-art {
+    inset: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background-image: var(--onb-art-sm, none);
+    background-position: center bottom;
+    justify-content: flex-start;
+    padding-top: calc(env(safe-area-inset-top) + 18px);
+  }
+}
