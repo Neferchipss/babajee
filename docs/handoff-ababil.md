@@ -4,7 +4,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 
 ## Please check first
 
-1. **Review migrations 0081, 0082 and 0083** (below) and their tests before applying them to live. Each passes with `scripts/test-sql.sh <migration> <test>` and fails without its migration. Applied to live on 24 Nov 2026, together with 0084 (admin designs: Legacy and Aronium-style only) and 0085 (counter sales: the till at /admin/counter, cash drawer, orders.channel).
+1. **Review migrations 0081, 0082 and 0083** (below) and their tests before applying them to live. Each passes with `scripts/test-sql.sh <migration> <test>` and fails without its migration. Applied to live on 24 Nov 2026, together with 0084 (admin designs: Legacy and Aronium-style only) and 0085 (counter sales: the till at /admin/counter, cash drawer, orders.channel). 0086 (till part two: refunds, sales on account, voids, cashier, till reports) and 0087 (site_look.colours, the shop palette) applied to live later on 24 Nov 2026; colours stay null (Legacy) until someone saves.
 2. **Apply them in order:** 0081, 0082, 0083. None depends on another.
 3. **Run "Fill from product names"** on live data once (Catalogue › Categories, for each type). This is still left over from the 0077–0080 session.
 4. **Decide on the old columns** listed below before anything removes them.
@@ -20,7 +20,6 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 | `0081_delivery_rules.sql` | `store_settings.fail_reasons text[]` (1 to 12, no empty) and `late_days int` (1 to 60, default 7). Settings › Delivery edits them; the order page's failed-delivery reasons and the late-deliveries report read them. | `0081_delivery_rules.test.sql` |
 | `0082_look_staff_read.sql` | Front-end staff (`staff_can('look')`) can read every collection, collection item and category, hidden ones included, for the homepage pickers. Read only. | `0082_look_staff_read.test.sql` |
 | `0083_one_low_stock_rule.sql` | `admin_home_counts()` counts out-of-stock and low-stock options only on active products, the same rule as `admin_low_stock()` and Inventory › Stock. | `0083_one_low_stock_rule.test.sql` |
-| `0087_shop_colours.sql` | `site_look.colours jsonb` (null = Legacy): the shop palette from Storefront › Colours, light and dark, checked by `shop_colours_ok()`. Not yet applied; the code falls back to Legacy without it. 0084 to 0086 are separate (see the top of this note). | `0087_shop_colours.test.sql` |
 
 - Each test passes with `scripts/test-sql.sh <migration> <test>` (rolled back, `[]` = pass) and fails without its migration.
 - **Before they're applied:** the code reads 0081's columns separately and falls back to its defaults (Settings shows a "needs 0081" note); without 0082, front-end pickers simply don't list hidden shelves; without 0083, Home's out-of-stock count still includes drafts.
@@ -95,7 +94,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 - Login window: art runs to the window's left, top and bottom edges, pinned bottom-left, its right edge lined up with the form card.
 - Login window: the art showing around the form card is blurred; the logo has no black tile behind it.
 - Login on phones: art fills the whole header edge to edge, logo straight on it.
-- Shop colours built: Storefront › Colours replaces the designs (11 parts, light and dark, presets Legacy/Haveli/Chai corner/Courtyard, live preview); needs 0087 on live to save. Spec and plan in `docs/superpowers/`.
+- Shop colours built: Storefront › Colours replaces the designs (11 parts, light and dark, presets Legacy/Haveli/Chai corner/Courtyard, live preview); 0087 applied to live. Spec and plan in `docs/superpowers/`.
 
 ## Not done
 
