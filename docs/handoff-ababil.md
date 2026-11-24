@@ -95,7 +95,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 - Login window: art runs to the window's left, top and bottom edges, pinned bottom-left, its right edge lined up with the form card.
 - Login window: the art showing around the form card is blurred; the logo has no black tile behind it.
 - Login on phones: art fills the whole header edge to edge, logo straight on it.
-- Shop colours (replacing the storefront designs): design written, awaiting approval, in `docs/superpowers/specs/2026-11-24-shop-colours-design.md`, not built yet.
+- Shop colours built: Storefront › Colours replaces the designs (11 parts, light and dark, presets Legacy/Haveli/Chai corner/Courtyard, live preview); needs 0087 on live to save. Spec and plan in `docs/superpowers/`.
 
 ## Not done
 
