@@ -39,6 +39,7 @@
     & .sb {
       /* the bar is level with where to, beside the logo */
       padding-top: 30px;
+      padding-inline: 12px;
       grid-template-columns: minmax(0, 1fr) auto;
       grid-template-areas:
         "search me"
@@ -100,7 +101,9 @@
       clip-path: inset(0 -100vmax);
     }
     & .sb::before {
-      inset: 18px -12px 0;
+      /* its edges line up with the category card below; the search and
+         Cart / Profile sit 12px inside it (the bar's side padding) */
+      inset: 18px 0 0;
       border-radius: 18px;
       box-shadow: none;
       clip-path: none;
