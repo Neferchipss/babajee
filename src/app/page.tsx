@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import HomeSwitch from "@/components/home/HomeSwitch";
-import { getHomeProducts, getIndexCategories, getShelfPicks, getSiteDesign, withPageSeo } from "@/lib/catalog-db";
+import PanoLanding from "@/components/PanoLanding";
+import { getIndexCategories, getShelfPicks, withPageSeo } from "@/lib/catalog-db";
 import { absUrl } from "@/lib/site";
 
 const META: Metadata = {
@@ -14,15 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return withPageSeo("/", META);
 }
 
-// The landing: in the design picked in Admin > Storefront. Current is the
-// street, then scrolling walks you in to the painted shop; the others are a
-// shop home with banners, best sellers and new arrivals (HomeSwitch).
+// The landing is always the painted walk-in: the street, then scrolling walks
+// you in to the shop, whichever design is picked in Admin > Storefront. The
+// design only recolours the site around it (Announcement in the layout).
 export default async function Home() {
   const categories = await getIndexCategories();
   const shelves = await getShelfPicks(categories.map((c) => c.slug));
-  // for the storefront designs' home (Admin > Storefront)
-  const products = await getHomeProducts(categories);
-  const design = await getSiteDesign();
   // for search engines: the shop itself, and its search box (Google can show
   // a search field under the result that lands on the shop's search page)
   const data = [
@@ -38,7 +35,7 @@ export default async function Home() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />
-      <HomeSwitch pano={{ shelves, categories: categories.map(({ slug, name, count }) => ({ slug, name, count })) }} products={products} built={design} />
+      <PanoLanding shelves={shelves} categories={categories.map(({ slug, name, count }) => ({ slug, name, count }))} />
     </>
   );
 }
