@@ -143,7 +143,7 @@ function modeBlock(p: Palette, mode: Mode): string {
     ["--bb-scrim", mode === "light" ? `rgb(${triplet(p.text)} / 0.36)` : `rgb(${triplet(p.page)} / 0.7)`],
   ];
   const body = vars.map(([k, v]) => `  ${k}: ${v};`).join("\n");
-  return `:root[data-mode="${mode}"]:not(:has(.adm-frame)),\nhtml[data-theme="baba-poster"][data-mode="${mode}"] #site[data-scope="shop"] {\n${body}\n}`;
+  return `:root[data-mode="${mode}"]:not(:has(.adm-frame)),\nhtml[data-theme="baba-poster"][data-mode="${mode}"] #site[data-scope="shop"]:not(:has(.adm-frame)) {\n${body}\n}`;
 }
 
 // the CSS for a saved palette: a block for each mode that differs from

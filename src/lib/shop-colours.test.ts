@@ -61,3 +61,10 @@ test("presets are complete, Legacy first", () => {
       for (const s of SLOTS) assert.match(p[m][s.id], /^#[0-9a-f]{6}$/, `${p.id} ${m} ${s.id}`);
   assert.equal(SLOTS.length, 11);
 });
+
+test("both selectors stay out of the admin", () => {
+  const css = paletteCss({ preset: "custom", light: { accent: "#c3141a" }, dark: { accent: "#c3141a" } });
+  const selectors = css.split("{")[0].split(",").map((s) => s.trim());
+  assert.equal(selectors.length, 2);
+  for (const s of selectors) assert.match(s, /:not\(:has\(\.adm-frame\)\)$/, s);
+});

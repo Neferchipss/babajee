@@ -9,6 +9,7 @@
 import { loadSupabase } from "./sb";
 import { slugify as slugifyAs } from "./slug";
 import type { ShopColours } from "./shop-colours";
+import { readLook } from "./look-read";
 
 // the admin's demo (?demo=1, never in a production build); kept here rather
 // than imported, so the shop's pages don't carry the admin's code
@@ -155,11 +156,9 @@ export async function getLook(): Promise<Look> {
   if (isAdminDemo()) return { ...memLook };
   const sb = await loadSupabase();
   if (!sb) return { ...LOOK_DEFAULT };
-  // the shop's colours (0087) with the rest; without 0087, the rest alone
-  let res = await sb.from("site_look").select("announcement, announcement_link, colours").eq("id", 1).maybeSingle();
-  if (res.error) res = await sb.from("site_look").select("announcement, announcement_link").eq("id", 1).maybeSingle();
-  if (res.error || !res.data) return { ...LOOK_DEFAULT };
-  return { ...LOOK_DEFAULT, ...(res.data as Partial<Look>) };
+  // the shop's colours (0087) with the rest; without 0087, the rest alone;
+  // any other failure throws (look-read.ts)
+  return readLook(async (cols) => (await sb.from("site_look").select(cols).eq("id", 1).maybeSingle()) as never);
 }
 
 export async function saveLook(patch: Partial<Look>) {

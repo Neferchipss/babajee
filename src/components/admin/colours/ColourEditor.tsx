@@ -30,15 +30,19 @@ export default function ColourEditor({ aronium = false }: { aronium?: boolean })
   ]);
   const [page, setPage] = useState("/");
   const [busy, setBusy] = useState(false);
+  const [loadErr, setLoadErr] = useState("");
   const frame = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     let live = true;
-    void revert(getLook).then((w) => {
-      if (!live) return;
-      setWork(w);
-      setSaved(JSON.stringify(w));
-    });
+    revert(getLook).then(
+      (w) => {
+        if (!live) return;
+        setWork(w);
+        setSaved(JSON.stringify(w));
+      },
+      (e) => live && setLoadErr(errText(e)),
+    );
     // a shelf and a product to look at, from the first category
     void (async () => {
       try {
@@ -80,7 +84,7 @@ export default function ColourEditor({ aronium = false }: { aronium?: boolean })
     return () => window.removeEventListener("message", onReady);
   }, []);
 
-  if (!work) return <p className="adm-muted">Loading colours…</p>;
+  if (!work) return loadErr ? <p className="adm-err">{`Couldn't read the shop's colours: ${loadErr}. Refresh to try again.`}</p> : <p className="adm-muted">Loading colours…</p>;
   const dirty = JSON.stringify(work) !== saved;
   const warn = warnings(work, mode);
 
@@ -98,10 +102,14 @@ export default function ColourEditor({ aronium = false }: { aronium?: boolean })
     }
   }
   async function undo() {
-    const w = await revert(getLook);
-    setWork(w);
-    setSaved(JSON.stringify(w));
-    toast("Back to the colours that are live");
+    try {
+      const w = await revert(getLook);
+      setWork(w);
+      setSaved(JSON.stringify(w));
+      toast("Back to the colours that are live");
+    } catch (e) {
+      toastError(errText(e));
+    }
   }
 
   const presetName = work.preset === "custom" ? "Custom" : (PRESETS.find((p) => p.id === work.preset)?.name ?? "Custom");

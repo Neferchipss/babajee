@@ -37,6 +37,7 @@ export function startColoursPreview(): () => void {
   return () => window.removeEventListener("message", on);
 }
 
-// before the first paint: framed with ?preview=colours, the page marks
-// itself as the preview and skips the age gate
-export const previewBootScript = `if(new URLSearchParams(location.search).get("preview")==="colours"&&window.self!==window.top){document.documentElement.dataset.preview="colours";document.documentElement.dataset.ageOk="1";}`;
+// before the first paint: framed with ?preview=colours by a page of the
+// shop's own (the admin), the page marks itself as the preview and skips the
+// age gate; framed by any other site, it is an ordinary page
+export const previewBootScript = `if(new URLSearchParams(location.search).get("preview")==="colours"&&window.self!==window.top&&(function(){try{return window.parent.location.origin===location.origin}catch(e){return false}})()){document.documentElement.dataset.preview="colours";document.documentElement.dataset.ageOk="1";}`;

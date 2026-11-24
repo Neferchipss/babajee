@@ -26,3 +26,22 @@ test("the frame's ready signal is recognised only from the shop's own origin", a
   assert.equal(isReadyMessage({ origin: "https://evil.test", data: { type: READY_TYPE } }, "https://a.test"), false);
   assert.equal(isReadyMessage({ origin: "https://a.test", data: { type: "bj-colours-preview" } }, "https://a.test"), false);
 });
+
+function runBoot(parentOrigin: string | "blocked") {
+  return import("./colours-preview.ts").then(({ previewBootScript }) => {
+    const dataset: Record<string, string> = {};
+    const top = {};
+    const parent = { get location() { if (parentOrigin === "blocked") throw new Error("cross-origin"); return { origin: parentOrigin }; } };
+    const window = { self: {}, top, parent };
+    const location = { search: "?preview=colours", origin: "https://a.test" };
+    new Function("window", "location", "document", previewBootScript)(window, location, { documentElement: { dataset } });
+    return dataset;
+  });
+}
+
+test("the preview boot only trusts a frame from the shop's own origin", async () => {
+  assert.equal((await runBoot("https://a.test")).preview, "colours");
+  const foreign = await runBoot("blocked");
+  assert.equal(foreign.preview, undefined);
+  assert.equal(foreign.ageOk, undefined);
+});

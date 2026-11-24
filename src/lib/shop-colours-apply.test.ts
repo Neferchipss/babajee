@@ -57,3 +57,25 @@ test("cachedBar reads the cached bar for a mode", () => {
   const { env: empty } = fakeEnv();
   assert.equal(cachedBar("dark", empty.store), null);
 });
+
+test("on an admin page nothing is applied, and any palette style is removed", () => {
+  const { env, store, state } = fakeEnv("light");
+  env.isAdmin = () => true;
+  state.css = "stale";
+  applyColours(custom, {}, env);
+  assert.equal(state.css, null);
+  assert.equal(state.bar, "");
+  assert.equal(store.has(COLOURS_KEY), false);
+});
+
+test("the boot script skips admin pages", async () => {
+  const { coloursBootScript } = await import("./shop-colours-apply.ts");
+  assert.match(coloursBootScript, /^if\(location\.pathname\.indexOf\("\/admin"\)<0\)/);
+});
+
+test("setThemeColour sets every theme-color tag (light and dark media)", async () => {
+  const { setThemeColour } = await import("./shop-colours-apply.ts");
+  const metas = [{ content: "#ffffff" }, { content: "#0c0a1c" }].map((m) => ({ ...m, setAttribute(_k: string, v: string) { this.content = v; } }));
+  setThemeColour("#2b1a12", { querySelectorAll: () => metas });
+  assert.deepEqual(metas.map((m) => m.content), ["#2b1a12", "#2b1a12"]);
+});

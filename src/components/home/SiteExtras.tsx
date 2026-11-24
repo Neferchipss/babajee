@@ -61,6 +61,8 @@ export function Announcement() {
       keep(LOOK_KEY, x);
       setA(x);
       if (!preview) applyColours(x.colours);
+    }, () => {
+      // couldn't read it: keep what the page shows and this browser's copy
     });
     return () => {
       live = false;

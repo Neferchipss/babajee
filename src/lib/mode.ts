@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { MODE_KEY } from "./mode-boot";
-import { cachedBar } from "./shop-colours-apply";
+import { cachedBar, setThemeColour } from "./shop-colours-apply";
 
 // Light or dark. "system" (the default) follows the phone or computer, and
 // keeps following it if it changes (sunset, say). The choice is kept in this
@@ -35,7 +35,7 @@ function applyMode() {
   root.dataset.modePref = pref;
   // the shop palette's header colour, when one is set (shop-colours-apply.ts)
   const bar = location.pathname.includes("/admin") ? null : cachedBar(mode);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bar ?? BAR[mode]);
+  setThemeColour(bar ?? BAR[mode]);
 }
 
 export function setModePref(pref: ModePref) {

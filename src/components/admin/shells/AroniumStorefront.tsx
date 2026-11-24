@@ -37,10 +37,13 @@ export default function AroniumStorefront() {
   const [help, setHelp] = useState(false);
 
   const loadLook = () =>
-    getLook().then((l) => {
-      setLook(l);
-      setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
-    });
+    getLook().then(
+      (l) => {
+        setLook(l);
+        setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
+      },
+      (e) => setErr(errText(e)),
+    );
   const reload = () =>
     listRows("home_sections").then(
       (l) => {

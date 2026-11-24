@@ -28,10 +28,13 @@ function StorefrontPageOriginal() {
   const [line, setLine] = useState({ announcement: "", announcement_link: "" });
 
   useEffect(() => {
-    getLook().then((l) => {
-      setLook(l);
-      setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
-    });
+    getLook().then(
+      (l) => {
+        setLook(l);
+        setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
+      },
+      (e) => setErr(errText(e)),
+    );
     listRows("home_sections").then(setSections, (e) => setErr(errText(e)));
     adminApi().listCategories().then(setCats, () => {});
     listCollections().then(setCols, () => {});

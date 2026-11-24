@@ -15,7 +15,15 @@ export type ApplyEnv = {
   store: Store;
   mode: () => Mode;
   setBar: (hex: string) => void;
+  // the admin keeps its own colours: nothing is applied there
+  isAdmin?: () => boolean;
 };
+
+// the browser's bar colour: every theme-color tag (the layout writes one for
+// a light device and one for a dark one; the one that matches is used)
+export function setThemeColour(hex: string, doc: { querySelectorAll: (s: string) => ArrayLike<{ setAttribute: (k: string, v: string) => void }> } = document) {
+  Array.from(doc.querySelectorAll('meta[name="theme-color"]')).forEach((m) => m.setAttribute("content", hex));
+}
 
 const browserEnv = (): ApplyEnv => ({
   setStyle: (css) => {
@@ -33,13 +41,15 @@ const browserEnv = (): ApplyEnv => ({
   },
   store: localStorage,
   mode: () => (document.documentElement.dataset.mode === "light" ? "light" : "dark"),
-  setBar: (hex) => {
-    if (location.pathname.includes("/admin")) return;
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", hex));
-  },
+  isAdmin: () => location.pathname.includes("/admin"),
+  setBar: (hex) => setThemeColour(hex),
 });
 
 export function applyColours(c: ShopColours | null, opts: { keep?: boolean } = {}, env: ApplyEnv = browserEnv()) {
+  if (env.isAdmin?.()) {
+    env.setStyle(null);
+    return;
+  }
   const css = paletteCss(c);
   env.setStyle(css || null);
   env.setBar(themeBar(c, env.mode()));
@@ -62,4 +72,4 @@ export function cachedBar(mode: Mode, store: Store = localStorage): string | nul
 
 // before the first paint: the last palette seen, and the bar to match
 // (runs after the mode boot script, so data-mode is already set)
-export const coloursBootScript = `var bc=JSON.parse(localStorage.getItem(${JSON.stringify(COLOURS_KEY)})||"null");if(bc&&bc.css){var bs=document.createElement("style");bs.id=${JSON.stringify(STYLE_ID)};bs.textContent=bc.css;document.head.appendChild(bs);var bb=bc.bar&&bc.bar[document.documentElement.dataset.mode];if(bb&&location.pathname.indexOf("/admin")<0)document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",bb)});}`;
+export const coloursBootScript = `if(location.pathname.indexOf("/admin")<0){var bc=JSON.parse(localStorage.getItem(${JSON.stringify(COLOURS_KEY)})||"null");if(bc&&bc.css){var bs=document.createElement("style");bs.id=${JSON.stringify(STYLE_ID)};bs.textContent=bc.css;document.head.appendChild(bs);var bb=bc.bar&&bc.bar[document.documentElement.dataset.mode];if(bb)document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",bb)});}}`;
