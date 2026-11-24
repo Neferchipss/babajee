@@ -4,7 +4,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 
 ## Please check first
 
-1. **Review migrations 0081, 0082 and 0083** (below) and their tests before applying them to live. Each passes with `scripts/test-sql.sh <migration> <test>` and fails without its migration. None has been applied anywhere live.
+1. **Review migrations 0081, 0082 and 0083** (below) and their tests before applying them to live. Each passes with `scripts/test-sql.sh <migration> <test>` and fails without its migration. Applied to live on 24 Nov 2026, together with 0084 (admin designs: Legacy and Aronium-style only) and 0085 (counter sales: the till at /admin/counter, cash drawer, orders.channel).
 2. **Apply them in order:** 0081, 0082, 0083. None depends on another.
 3. **Run "Fill from product names"** on live data once (Catalogue › Categories, for each type). This is still left over from the 0077–0080 session.
 4. **Decide on the old columns** listed below before anything removes them.
