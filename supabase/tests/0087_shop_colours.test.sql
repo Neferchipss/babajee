@@ -17,6 +17,10 @@ begin
   update public.site_look set colours = '{"preset":"custom","light":{"accent":"#c3141a"},"dark":{}}' where id = 1;
   if (select colours->'light'->>'accent' from public.site_look where id = 1) is distinct from '#c3141a' then raise exception 'FAIL: colours_partial_ok'; end if;
 
+  -- the Rasta preset
+  update public.site_look set colours = '{"preset":"rasta","light":{"bar":"#ffd400"},"dark":{"accent":"#ffd400"}}' where id = 1;
+  if (select colours->>'preset' from public.site_look where id = 1) is distinct from 'rasta' then raise exception 'FAIL: rasta_preset_ok'; end if;
+
   -- back to Legacy
   update public.site_look set colours = null where id = 1;
   if (select colours from public.site_look where id = 1) is not null then raise exception 'FAIL: colours_null_ok'; end if;

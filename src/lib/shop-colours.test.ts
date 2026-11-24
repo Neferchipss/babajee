@@ -55,7 +55,7 @@ test("themeBar: the header bar colour per mode", () => {
 
 test("presets are complete, Legacy first", () => {
   assert.equal(PRESETS[0].id, "legacy");
-  assert.deepEqual(PRESETS.map((p) => p.id), ["legacy", "haveli", "chai", "courtyard"]);
+  assert.deepEqual(PRESETS.map((p) => p.id), ["legacy", "rasta", "haveli", "chai", "courtyard"]);
   for (const p of PRESETS)
     for (const m of ["light", "dark"] as const)
       for (const s of SLOTS) assert.match(p[m][s.id], /^#[0-9a-f]{6}$/, `${p.id} ${m} ${s.id}`);
@@ -74,4 +74,18 @@ test("the highlight part is named for what it colours (cart, add buttons, chosen
   assert.equal(hot.label, "Cart and highlights");
   assert.match(hot.hint, /View cart/);
   assert.match(hot.hint, /add buttons/);
+});
+
+test("Rasta: the logo's red, yellow and green, readable in both modes", () => {
+  const r = PRESETS.find((p) => p.id === "rasta")!;
+  assert.equal(r.name, "Rasta");
+  assert.equal(r.dark.accent, "#ffd400");
+  assert.equal(r.dark.hot, "#ff3b30");
+  assert.equal(r.light.bar, "#ffd400");
+  for (const m of ["light", "dark"] as const) {
+    assert.ok(contrast(r[m].text, r[m].page) >= 4.5, `${m} text`);
+    assert.ok(contrast(r[m].text, r[m].panels) >= 4.5, `${m} text on panels`);
+    assert.ok(contrast(r[m].secondary, r[m].page) >= 4.5, `${m} secondary`);
+    assert.ok(contrast(r[m].onAccent, r[m].accent) >= 3, `${m} on accent`);
+  }
 });

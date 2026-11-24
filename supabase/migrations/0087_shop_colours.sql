@@ -1,7 +1,7 @@
 -- 0087: the shop's colours, set part by part in Admin > Storefront > Colours
 -- in place of the storefront designs. One palette for the whole shop, with a
 -- light and a dark version (visitors keep their light/dark switch):
---   { "preset": "legacy" | "haveli" | "chai" | "courtyard" | "custom",
+--   { "preset": "legacy" | "rasta" | "haveli" | "chai" | "courtyard" | "custom",
 --     "light": { <part>: "#rrggbb", ... }, "dark": { ... } }
 -- The parts are page, panels, lines, text, secondary, backdrop, accent,
 -- onAccent, hot, green and bar. A part left out takes the Legacy colour, and
@@ -16,7 +16,7 @@ immutable
 set search_path = ''
 as $$
   select jsonb_typeof(c) = 'object'
-    and (c ->> 'preset') in ('legacy', 'haveli', 'chai', 'courtyard', 'custom')
+    and (c ->> 'preset') in ('legacy', 'rasta', 'haveli', 'chai', 'courtyard', 'custom')
     and (select coalesce(bool_and(k in ('preset', 'light', 'dark')), true) from jsonb_object_keys(c) k)
     and coalesce(jsonb_typeof(c -> 'light'), 'object') = 'object'
     and coalesce(jsonb_typeof(c -> 'dark'), 'object') = 'object'

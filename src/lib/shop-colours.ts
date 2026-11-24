@@ -9,7 +9,7 @@
 export type Slot = "page" | "panels" | "lines" | "text" | "secondary" | "backdrop" | "accent" | "onAccent" | "hot" | "green" | "bar";
 export type Mode = "light" | "dark";
 export type Palette = Record<Slot, string>;
-export type PresetId = "legacy" | "haveli" | "chai" | "courtyard" | "custom";
+export type PresetId = "legacy" | "rasta" | "haveli" | "chai" | "courtyard" | "custom";
 export type ShopColours = { preset: PresetId; light: Partial<Palette>; dark: Partial<Palette> };
 
 export const SLOTS: { id: Slot; label: string; hint: string }[] = [
@@ -37,6 +37,14 @@ export const LEGACY: { light: Palette; dark: Palette } = {
 // (shop-designs.css), as palettes
 export const PRESETS: { id: Exclude<PresetId, "custom">; name: string; light: Palette; dark: Palette }[] = [
   { id: "legacy", name: "Legacy", ...LEGACY },
+  // the logo's own red, yellow and green, for the whole shop (picked on
+  // purpose: otherwise those colours stay in the logo)
+  {
+    id: "rasta",
+    name: "Rasta",
+    light: { page: "#fffdf2", panels: "#ffffff", lines: "#ece4c4", text: "#14120c", secondary: "#5e5743", backdrop: "#f6f1dc", accent: "#0b7a34", onAccent: "#ffffff", hot: "#d71920", green: "#0b7a34", bar: "#ffd400" },
+    dark: { page: "#0b0b0a", panels: "#161512", lines: "#2c2a21", text: "#fff8e1", secondary: "#b9b29a", backdrop: "#161512", accent: "#ffd400", onAccent: "#0b0b0a", hot: "#ff3b30", green: "#22c55e", bar: "#0b0b0a" },
+  },
   {
     id: "haveli",
     name: "Haveli",
