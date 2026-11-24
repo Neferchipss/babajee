@@ -1068,3 +1068,8 @@ html[data-mode="light"] .onb {
 .onb.is-modal .onb-card {
   z-index: auto;
 }
+/* the piece a little smaller, pinned to the window's bottom-left corner,
+   the night sky filling above and around it */
+.onb.is-modal {
+  background-size: auto 72%;
+}
