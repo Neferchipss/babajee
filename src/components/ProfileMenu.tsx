@@ -239,12 +239,6 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
         <header className="pp-head">
           <span className="pp-avatar" aria-hidden="true">
             <svg viewBox="0 0 64 64">
-              <defs>
-                <linearGradient id="pp-avatar-ink" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#a54ee0" />
-                  <stop offset="1" stopColor="#6a3fc0" />
-                </linearGradient>
-              </defs>
               <circle cx="32" cy="25" r="11" />
               <path d="M10 60c2-12 11-19 22-19s20 7 22 19z" />
             </svg>
