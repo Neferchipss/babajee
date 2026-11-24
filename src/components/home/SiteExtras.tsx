@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLook, listRows, type MenuLink } from "@/lib/content";
 import { applyShopDesign } from "@/lib/shop-design";
+import { applyColours } from "@/lib/shop-colours-apply";
+import type { ShopColours } from "@/lib/shop-colours";
 import "./site-extras.css";
 
 // From Admin > Storefront (0073): the announcement line along the top of
@@ -43,18 +45,20 @@ export function Announcement() {
     // the look (announcement and the shop design): the tab's last copy at
     // once, then the live one on every full page load, so a design switched in
     // Admin > Storefront shows on whichever page the shop is opened on
-    const had = cached<{ text: string; link: string; design?: string }>(LOOK_KEY);
+    const had = cached<{ text: string; link: string; design?: string; colours?: ShopColours | null }>(LOOK_KEY);
     let live = true;
     if (had) {
       setA(had);
       applyShopDesign(had.design);
+      applyColours(had.colours ?? null);
     }
     getLook().then((l) => {
       if (!live) return;
-      const x = { text: l.announcement, link: l.announcement_link, design: l.design };
+      const x = { text: l.announcement, link: l.announcement_link, design: l.design, colours: l.colours };
       keep(LOOK_KEY, x);
       setA(x);
       applyShopDesign(x.design);
+      applyColours(x.colours);
     });
     return () => {
       live = false;

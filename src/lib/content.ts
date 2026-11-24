@@ -8,6 +8,7 @@
 // developer's machine the admin writes to memory instead.
 import { loadSupabase } from "./sb";
 import { slugify as slugifyAs } from "./slug";
+import type { ShopColours } from "./shop-colours";
 
 // the admin's demo (?demo=1, never in a production build); kept here rather
 // than imported, so the shop's pages don't carry the admin's code
@@ -44,7 +45,7 @@ export type SitePage = {
 export type Faq = { id: string; topic: string; question: string; answer: string; position: number; is_visible: boolean };
 export type MenuLink = { id: string; location: "header" | "footer"; label: string; href: string; position: number; is_visible: boolean };
 export type PageSeo = { path: string; title: string; description: string; image_url: string };
-export type Look = { design: Design; announcement: string; announcement_link: string };
+export type Look = { design: Design; announcement: string; announcement_link: string; colours: ShopColours | null };
 
 export const SECTION_KINDS: { kind: SectionKind; label: string; needsRef?: "collection" | "category" }[] = [
   { kind: "banners", label: "Rotating banners" },
@@ -56,7 +57,7 @@ export const SECTION_KINDS: { kind: SectionKind; label: string; needsRef?: "coll
   { kind: "text", label: "A few words" },
 ];
 
-const LOOK_DEFAULT: Look = { design: "current", announcement: "", announcement_link: "" };
+const LOOK_DEFAULT: Look = { design: "current", announcement: "", announcement_link: "", colours: null };
 
 // ---------------------------------------------------------------- demo memory
 type Tables = { site_banners: Banner[]; home_sections: HomeSection[]; site_pages: SitePage[]; faqs: Faq[]; site_menus: MenuLink[]; page_seo: PageSeo[] };
@@ -162,9 +163,11 @@ export async function getLook(): Promise<Look> {
   if (isAdminDemo()) return { ...memLook };
   const sb = await loadSupabase();
   if (!sb) return { ...LOOK_DEFAULT };
-  const { data, error } = await sb.from("site_look").select("design, announcement, announcement_link").eq("id", 1).maybeSingle();
-  if (error || !data) return { ...LOOK_DEFAULT };
-  return data as Look;
+  // the shop's colours (0087) with the rest; without 0087, the rest alone
+  let res = await sb.from("site_look").select("design, announcement, announcement_link, colours").eq("id", 1).maybeSingle();
+  if (res.error) res = await sb.from("site_look").select("design, announcement, announcement_link").eq("id", 1).maybeSingle();
+  if (res.error || !res.data) return { ...LOOK_DEFAULT };
+  return { ...LOOK_DEFAULT, ...(res.data as Partial<Look>) };
 }
 
 export async function saveLook(patch: Partial<Look>) {

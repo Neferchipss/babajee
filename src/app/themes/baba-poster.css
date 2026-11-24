@@ -319,7 +319,7 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
       border: 0;
       border-bottom: 1.5px solid var(--color-line);
       border-radius: 0;
-      background: rgb(var(--bb-bg) / 0.96);
+      background: rgb(var(--bb-bar) / 0.96);
       box-shadow: none;
     }
     & .cp-hero-copy {
@@ -867,8 +867,8 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       position: absolute;
       inset: 0;
       z-index: -1;
-      background: rgb(var(--bb-bg));
-      box-shadow: 0 0 0 100vmax rgb(var(--bb-bg));
+      background: rgb(var(--bb-bar));
+      box-shadow: 0 0 0 100vmax rgb(var(--bb-bar));
       clip-path: inset(0 -100vmax);
     }
     & .sb-top {
