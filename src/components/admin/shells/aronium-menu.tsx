@@ -127,7 +127,7 @@ export const SHOP_MENU: ArEntry[] = [
     href: "/admin/storefront",
     icon: G.storefront,
     tabs: [
-      { label: "Design and homepage", href: "/admin/storefront" },
+      { label: "Colours and homepage", href: "/admin/storefront" },
       { label: "Banners", href: "/admin/storefront/banners" },
       { label: "Pages, blog and FAQs", href: "/admin/storefront/pages" },
       { label: "Menus", href: "/admin/storefront/menus" },

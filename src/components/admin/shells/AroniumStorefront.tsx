@@ -11,19 +11,19 @@ import { errText } from "@/lib/orders-db";
 import { ArEmpty, ArGrid, ArScreen, ArSection, ArSwitch, ArToolbar, stdMenu, Tick, useArKeys, type ArCol } from "./aronium-kit";
 import { ArField, ArHelp, ArInfo, ArPanel } from "./aronium-help";
 import { ArConfirm, ArSubTabs } from "./aronium-d-kit";
+import ColourEditor from "@/components/admin/colours/ColourEditor";
 
-// Storefront • Design and homepage, in Aronium's layout: three tabs under
-// the toolbar. Design lists the shop's designs (Look at it opens one on the
-// shop first; Use this switches the shop to it). Announcement is Aronium's
+// Storefront • Colours and homepage, in Aronium's layout: three tabs under
+// the toolbar. Colours sets the shop's colours (ColourEditor, 0087). Announcement is Aronium's
 // label-beside-field form for the line along the top. Homepage sections is
 // a grid of the homepage's sections top to bottom: New section (pick a
 // kind), Edit in the slide-in panel, Move up / down, Show / Hide (at once,
 // with Undo), Delete (asked first).
-type Tab = "design" | "line" | "sections";
+type Tab = "colours" | "line" | "sections";
 const COUNTED = ["best_sellers", "new_arrivals", "collection", "category"];
 
 export default function AroniumStorefront() {
-  const [tab, setTab] = useState<Tab>("design");
+  const [tab, setTab] = useState<Tab>("colours");
   const [look, setLook] = useState<Look | null>(null);
   const [sections, setSections] = useState<HomeSection[] | null>(null);
   const [cats, setCats] = useState<AdminCategory[]>([]);
@@ -170,7 +170,7 @@ export default function AroniumStorefront() {
   };
 
   const tools =
-    tab === "design"
+    tab === "colours"
       ? [
           { icon: "refresh", label: "Refresh", onClick: loadAll },
           { icon: "help", label: "Help", onClick: () => setHelp(true) },
@@ -202,20 +202,21 @@ export default function AroniumStorefront() {
     <ArScreen className="ard4">
       <ArToolbar tools={tools} />
       <ArSubTabs
-        label="Design and homepage"
+        label="Colours and homepage"
         on={tab}
         onPick={setTab}
         tabs={[
-          ["design", "Design"],
+          ["colours", "Colours"],
           ["line", "Announcement"],
           ["sections", "Homepage sections", list.length],
         ]}
       />
       {err && <p className="adm-err">{err}</p>}
 
-      {tab === "design" && (
+      {tab === "colours" && (
         <>
-          {/* Colours (the shop palette) goes here: Task 6 */}
+          <ArSection title="Colours" />
+          <ColourEditor aronium />
         </>
       )}
 
@@ -299,8 +300,8 @@ export default function AroniumStorefront() {
         <p>It comes off the homepage. What it showed (products, banners) is untouched.</p>
       </ArConfirm>
 
-      <ArHelp open={help} onClose={() => setHelp(false)} title="Design and homepage">
-        <p>Design: how the shop looks. Look at it opens a design on the shop without switching; Use this switches the shop.</p>
+      <ArHelp open={help} onClose={() => setHelp(false)} title="Colours and homepage">
+        <p>Colours: how the shop looks, light and dark. Pick a preset, change any part, look at it in the preview, then Save.</p>
         <p>Announcement: one short line along the top of every page. Leave it empty for none.</p>
         <p>Homepage sections: what the homepage shows, top to bottom, for every design except Current. Show and Hide save at once, with Undo; headings and words wait for Save in the editor.</p>
       </ArHelp>

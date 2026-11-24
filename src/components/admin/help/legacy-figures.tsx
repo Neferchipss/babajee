@@ -42,7 +42,7 @@ const TREE: { label: string; n?: string; pages: [string, string?][] }[] = [
   { label: "Inventory", n: "2", pages: [["Stock"], ["Purchase bills"], ["Suppliers"], ["Stock history"]] },
   { label: "Customers", pages: [["All customers"], ["Messages"], ["Sign-ins"]] },
   { label: "Finance", pages: [["GST & HSN"], ["Invoices and credit notes"], ["GST returns and Tally"], ["Profit and GST"]] },
-  { label: "Storefront", pages: [["Design and homepage"], ["Banners"], ["Pages, blog and FAQs"], ["Menus"]] },
+  { label: "Storefront", pages: [["Colours and homepage"], ["Banners"], ["Pages, blog and FAQs"], ["Menus"]] },
   { label: "Analytics", pages: [["Overview"], ["Traffic"], ["Live view"], ["Reports"]] },
   { label: "Settings", pages: [["Store"], ["Team and roles"], ["Admin design"], ["Activity log"]] },
 ];

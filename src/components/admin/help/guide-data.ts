@@ -704,13 +704,13 @@ export const GUIDE: Chapter[] = [
       },
       {
         id: "storefront",
-        title: "Storefront: design and homepage",
+        title: "Storefront: colours and homepage",
         paths: ["/admin/storefront"],
-        intro: "Online shop › Storefront › Design and homepage: three tabs under the toolbar.",
+        intro: "Online shop › Storefront › Colours and homepage: three tabs under the toolbar.",
         steps: [
           {
-            t: "**Design** lists the shop's designs: **Look at it** opens one on the shop first; **Use this** switches the shop to it.",
-            fig: { caption: "Design and homepage", bar: { title: "Storefront" }, side: side("Storefront"), tabs: ["*Design and homepage", "Banners", "Pages, blog and FAQs", "Menus"], strip: ["Design", "Announcement", "*Homepage sections#1"], tools: [{ icon: "refresh", label: "Refresh" }, { icon: "add", label: "New section#2" }, { icon: "edit", label: "Edit" }, { icon: "sort", label: "Move up" }, { icon: "sort", label: "Move down" }, { icon: "paid", label: "Hide" }, { icon: "del", label: "Delete" }], grid: { cols: ["#", "Section", "Shows", "Shown"], rows: [["1", "Banners", "", "✓"], ["2", "Products", "Best sellers", "✓"]], sel: 1 } },
+            t: "**Colours** sets the shop's colours, light and dark: pick a preset, change any part, check it in the preview, then **Save**. **Revert** goes back to what is live.",
+            fig: { caption: "Colours and homepage", bar: { title: "Storefront" }, side: side("Storefront"), tabs: ["*Colours and homepage", "Banners", "Pages, blog and FAQs", "Menus"], strip: ["Colours", "Announcement", "*Homepage sections#1"], tools: [{ icon: "refresh", label: "Refresh" }, { icon: "add", label: "New section#2" }, { icon: "edit", label: "Edit" }, { icon: "sort", label: "Move up" }, { icon: "sort", label: "Move down" }, { icon: "paid", label: "Hide" }, { icon: "del", label: "Delete" }], grid: { cols: ["#", "Section", "Shows", "Shown"], rows: [["1", "Banners", "", "✓"], ["2", "Products", "Best sellers", "✓"]], sel: 1 } },
           },
           { t: "**Announcement**: the line along the top of the shop, with an optional link; **Take down** removes it." },
           { t: "**Homepage sections**: the homepage top to bottom. **New section** (pick a kind), **Edit** in the slide-in panel, **Move up** / **Move down**, **Show** / **Hide** (at once, with Undo) and **Delete** (asked first)." },
@@ -1041,7 +1041,7 @@ export const GUIDE: Chapter[] = [
         steps: [
           { t: "**Storefront › Banners**: **New banner**, or select one and **Edit**; set its dates, then **Save**. **Move up** / **Move down** change the order." },
           { t: "**Storefront › Pages, blog and FAQs**: **New page**, **New post** or **New question**." },
-          { t: "**Storefront › Design and homepage**: the shop's look, the announcement, and the homepage sections." },
+          { t: "**Storefront › Colours and homepage**: the shop's look, the announcement, and the homepage sections." },
         ],
       },
     ],

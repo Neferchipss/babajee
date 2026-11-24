@@ -10,11 +10,11 @@ import { deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
 import AroniumStorefront from "@/components/admin/shells/AroniumStorefront";
+import ColourEditor from "@/components/admin/colours/ColourEditor";
 import { useAdminStyle } from "@/lib/admin-style";
 
-// Storefront > Design and homepage: which design the shop shows (each can be
-// opened first to look at), the line along the top, and the homepage's
-// sections in order (0073).
+// Storefront > Colours and homepage: the shop's colours (0087, ColourEditor),
+// the line along the top, and the homepage's sections in order (0073).
 export default function StorefrontPage() {
   return useAdminStyle() === "aronium" ? <AroniumStorefront /> : <StorefrontPageOriginal />;
 }
@@ -116,12 +116,16 @@ function StorefrontPageOriginal() {
   return (
     <div className="sfm">
       <header className="adm-pagehead">
-        <h1>Design and homepage</h1>
-        <p>Pick how the shop looks, then arrange what its homepage shows. Open any design first to look around before switching.</p>
+        <h1>Colours and homepage</h1>
+        <p>Set the shop&apos;s colours, the line along its top, and what its homepage shows.</p>
       </header>
       {err && <p className="adm-err">{err}</p>}
 
-      {/* Colours (the shop palette) goes here: Task 6 */}
+      <section className="adm-card sfm-colours">
+        <h2>Colours</h2>
+        <p className="adm-muted adm-small">How the shop looks, light and dark. Pick a preset, change any part, look at it in the preview, then Save.</p>
+        <ColourEditor />
+      </section>
 
       <form className="adm-card sfm-line" onSubmit={saveLine}>
         <h2>Announcement along the top</h2>

@@ -1,0 +1,166 @@
+/* Admin > Storefront > Colours (ColourEditor.tsx): the parts on the left,
+   the live preview of the shop on the right; stacked below 900px. Admin
+   tokens only, so it sits in either admin design. */
+.clr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .clr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.clr-edit {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.clr h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+.clr-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.clr-preset {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.clr-preset.is-on {
+  outline: 2px solid var(--adm-gold);
+}
+.clr-chips {
+  display: flex;
+  width: 96px;
+  height: 22px;
+  overflow: hidden;
+  border: 1px solid var(--adm-line);
+  border-radius: 6px;
+}
+.clr-chips i {
+  flex: 1;
+}
+.clr-chips i:first-child {
+  flex: 2;
+}
+.clr-modes {
+  display: inline-flex;
+  width: max-content;
+  overflow: hidden;
+  border: 1px solid var(--adm-line);
+  border-radius: 8px;
+}
+.clr-modes button {
+  padding: 6px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.clr-modes button.is-on {
+  background: var(--adm-gold);
+  color: #14110b;
+}
+.clr-slots {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--adm-line);
+}
+.clr-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px 96px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--adm-line);
+}
+.clr-slot-name {
+  display: grid;
+  min-width: 0;
+}
+.clr-slot-name label {
+  font-weight: 600;
+}
+.clr-slot input[type="color"] {
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--adm-line);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+.clr-hex {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  text-transform: lowercase;
+}
+.clr-hex.is-bad {
+  border-color: #d4231f;
+}
+.clr-warn {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #d4a020 60%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #d4a020 12%, transparent);
+  font-size: 0.85rem;
+}
+.clr-warn ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.clr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.clr-preview {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.clr-preview-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.clr-preview-bar select {
+  width: auto;
+  max-width: 100%;
+}
+.clr-preview iframe {
+  width: 100%;
+  height: min(72vh, 760px);
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  background: #000;
+}
+/* Aronium-style: square corners, like the rest of that design */
+.clr--ar .clr-preset,
+.clr--ar .clr-chips,
+.clr--ar .clr-modes,
+.clr--ar .clr-slot input[type="color"],
+.clr--ar .clr-warn,
+.clr--ar .clr-preview iframe {
+  border-radius: 0;
+}

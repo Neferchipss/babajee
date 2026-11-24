@@ -517,10 +517,10 @@ export const LEGACY: LChapter[] = [
     sections: [
       {
         id: "l-design",
-        title: "Design and homepage",
-        lead: "How the shop looks, the line along its top, and what the homepage shows.",
+        title: "Colours and homepage",
+        lead: "The shop's colours, the line along its top, and what the homepage shows.",
         paths: ["/admin/storefront"],
-        blocks: [{ controls: [["Designs", "**Look at it** opens the shop in a design; **Use this** switches it. The one live says **On the shop**."], ["Announcement along the top", "One short line on every page, with an optional link; **Save**."], ["Homepage sections", "Add, reorder, show or hide sections; **Undo** after a change."]] }],
+        blocks: [{ controls: [["Colours", "Sets the shop's colours, light and dark: pick a preset, change any part, check it in the preview, then **Save**. **Revert** goes back to what is live."], ["Announcement along the top", "One short line on every page, with an optional link; **Save**."], ["Homepage sections", "Add, reorder, show or hide sections; **Undo** after a change."]] }],
       },
       {
         id: "l-banners",
