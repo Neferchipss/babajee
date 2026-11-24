@@ -94,7 +94,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 - Login window: art runs to the window's left, top and bottom edges, pinned bottom-left, its right edge lined up with the form card.
 - Login window: the art showing around the form card is blurred; the logo has no black tile behind it.
 - Login on phones: art fills the whole header edge to edge, logo straight on it.
-- Shop colours (replacing the storefront designs): design approved for writing up in `docs/superpowers/specs/2026-11-24-shop-colours-design.md`, not built yet.
+- Shop colours (replacing the storefront designs): design written, awaiting approval, in `docs/superpowers/specs/2026-11-24-shop-colours-design.md`, not built yet.
 
 ## Not done
 
