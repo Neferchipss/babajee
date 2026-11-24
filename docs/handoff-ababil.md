@@ -20,6 +20,7 @@ For the Claude session reviewing or merging this branch. Since the last merge, `
 | `0081_delivery_rules.sql` | `store_settings.fail_reasons text[]` (1 to 12, no empty) and `late_days int` (1 to 60, default 7). Settings › Delivery edits them; the order page's failed-delivery reasons and the late-deliveries report read them. | `0081_delivery_rules.test.sql` |
 | `0082_look_staff_read.sql` | Front-end staff (`staff_can('look')`) can read every collection, collection item and category, hidden ones included, for the homepage pickers. Read only. | `0082_look_staff_read.test.sql` |
 | `0083_one_low_stock_rule.sql` | `admin_home_counts()` counts out-of-stock and low-stock options only on active products, the same rule as `admin_low_stock()` and Inventory › Stock. | `0083_one_low_stock_rule.test.sql` |
+| `0087_shop_colours.sql` | `site_look.colours jsonb` (null = Legacy): the shop palette from Storefront › Colours, light and dark, checked by `shop_colours_ok()`. Not yet applied; the code falls back to Legacy without it. 0084 to 0086 are separate (see the top of this note). | `0087_shop_colours.test.sql` |
 
 - Each test passes with `scripts/test-sql.sh <migration> <test>` (rolled back, `[]` = pass) and fails without its migration.
 - **Before they're applied:** the code reads 0081's columns separately and falls back to its defaults (Settings shows a "needs 0081" note); without 0082, front-end pickers simply don't list hidden shelves; without 0083, Home's out-of-stock count still includes drafts.
