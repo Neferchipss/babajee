@@ -81,8 +81,11 @@
     & .sb .dt {
       top: 30px;
       left: calc(-280px - 40px + 156px);
-      /* it may run into the gap before the search bar */
+      /* it may run into the gap before the search bar, no further: the bar's
+         own min-width (baba-poster.css) would push it under the search box */
       width: calc(280px + 40px - 156px - 6px);
+      min-width: 0;
+      max-width: none;
     }
     & .cp-side::-webkit-scrollbar {
       display: none;

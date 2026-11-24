@@ -857,7 +857,9 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       column-gap: 28px;
       position: relative;
       isolation: isolate;
-      padding: 14px 0 0;
+      /* room below the search box too, so the bar's colour (Storefront >
+         Colours) frames it instead of ending at its edge */
+      padding: 14px 0 12px;
       background: none;
     }
     /* the bar's colour, behind it and out to the window's edges (on its own
@@ -882,6 +884,13 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] :is(.cp, .cv-recs) {
       grid-area: where;
       min-width: 190px;
       max-width: 260px;
+      /* a long address ends in "…" (its own ellipsis rules, shop-bar.css)
+         and keeps its arrow, never running under the search box: the
+         button's one column may shrink below its content */
+      & .sb-where {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
     & .sb-search {
       grid-area: search;
