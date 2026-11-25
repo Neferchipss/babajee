@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
-import pano from "@/assets/shop/pano-daydream.webp";
-import panoDusk from "@/assets/shop/pano-dusk.webp";
+import pano from "@/assets/shop/pano-day.webp";
+import panoDusk from "@/assets/shop/pano-night.webp";
 import Logo from "./Logo";
 import { clearShopNote, peekShopNote, SHOP_NOTE_EVENT, TO_STREET } from "./scene-note";
-import front from "@/assets/shop/front-daydream.webp";
+import front from "@/assets/shop/front-day.webp";
 import frontTall from "@/assets/shop/front-daydream-tall.webp";
 import frontDusk from "@/assets/shop/front-dusk.webp";
 import frontDuskTall from "@/assets/shop/front-dusk-tall.webp";

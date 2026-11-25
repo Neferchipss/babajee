@@ -77,7 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${body.variable} ${mono.variable} ${themeFontVars}`}
       data-theme={DEFAULT_THEME}
-      data-mode="dark"
+      data-mode="light"
       suppressHydrationWarning
     >
       <head>
