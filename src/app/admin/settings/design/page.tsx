@@ -1,19 +1,21 @@
 "use client";
 
 import { ADMIN_STYLES, setAdminStyle, useAdminStyle, type AdminStyle } from "@/lib/admin-style";
+import AroniumDesigns from "@/components/admin/shells/AroniumDesigns";
 import "./design.css";
 
-// Settings > Admin design: the four ways the admin can look and work, each
+// Settings > Admin design: the two ways the admin can look and work, each
 // with a small drawing of its layout. Each person picks their own; it's kept
 // in this browser and changes at once (nothing else changes: same pages,
 // same data, same rights).
 export default function DesignPage() {
   const style = useAdminStyle();
+  if (style === "aronium") return <AroniumDesigns sketch={(id) => <Sketch id={id} />} />;
   return (
     <div className="dsn">
       <header className="adm-pagehead">
         <h1>Admin design</h1>
-        <p>Four ways the admin can look and work. Pick one and the admin switches at once. Every page, button and permission is the same in all four; only the layout and look change. Your pick is saved on your account, so it follows you to any device.</p>
+        <p>Two ways the admin can look and work. Pick one and the admin switches at once. Every page, button and permission is the same in both; only the layout and look change. Your pick is saved on your account, so it follows you to any device.</p>
       </header>
       <div className="dsn-grid">
         {ADMIN_STYLES.map((d) => (
@@ -61,43 +63,19 @@ function Sketch({ id }: { id: AdminStyle }) {
           </i>
         </>
       )}
-      {id === "shopify" && (
+      {id === "aronium" && (
         <>
-          <i className="top" />
+          <i className="bar" />
           <i className="side" />
-          <i className="page">
-            <b />
-            <b />
-            <b />
-          </i>
-        </>
-      )}
-      {id === "ease" && (
-        <>
-          <i className="top" />
           <i className="tabs">
             <s />
             <s />
             <s />
-            <s />
           </i>
           <i className="page">
             <b />
             <b />
-            <b />
           </i>
-        </>
-      )}
-      {id === "studio" && (
-        <>
-          <i className="rail" />
-          <i className="panel" />
-          <i className="crumbs" />
-          <i className="page">
-            <b />
-            <b />
-          </i>
-          <i className="cmd" />
         </>
       )}
     </div>

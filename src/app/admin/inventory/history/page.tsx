@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { REASON } from "@/components/admin/editor/Details";
 import { errText, stockHistory, type StockMove } from "@/lib/orders-db";
 import { billNumbers } from "@/lib/stock-in/db";
+import AroniumStockHistory from "@/components/admin/shells/AroniumStockHistory";
+import { useAdminStyle } from "@/lib/admin-style";
 import "../stock/stock.css";
 
 // Inventory › Stock history: every change to stock in the shop, newest first:
@@ -20,6 +22,10 @@ const KIND: Record<Kind, { label: string; reasons: StockMove["reason"][] | null 
 };
 
 export default function StockHistoryPage() {
+  return useAdminStyle() === "aronium" ? <AroniumStockHistory /> : <StockHistoryOriginal />;
+}
+
+function StockHistoryOriginal() {
   const [moves, setMoves] = useState<StockMove[] | null>(null);
   const [bills, setBills] = useState<Map<string, string>>(new Map());
   const [more, setMore] = useState(true);

@@ -14,6 +14,8 @@ import { formatPrice } from "@/lib/currency";
 import { errText, type Purchase } from "@/lib/orders-db";
 import "@/components/admin/admin-products.css";
 import "./stock.css";
+import AroniumStock from "@/components/admin/shells/AroniumStock";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Inventory > Stock (UI redesign, stage 3): the one place stock and buying
 // prices change. Every option, its count (boxes shown as full boxes + loose
@@ -23,12 +25,10 @@ import "./stock.css";
 type Filter = "counted" | "low" | "out" | "uncounted" | "all";
 type Row = { p: AdminProduct; v: AdminVariant; boxes: AdminVariant[] };
 
+// The Aronium-style design shows Aronium's Stock screen instead.
 export default function StockPage() {
-  return (
-    <Suspense>
-      <Stock />
-    </Suspense>
-  );
+  const style = useAdminStyle();
+  return <Suspense>{style === "aronium" ? <AroniumStock /> : <Stock />}</Suspense>;
 }
 
 function Stock() {

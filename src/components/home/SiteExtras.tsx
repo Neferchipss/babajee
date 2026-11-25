@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getLook, listRows, type MenuLink } from "@/lib/content";
-import { applyShopDesign } from "@/lib/shop-design";
+import { applyColours } from "@/lib/shop-colours-apply";
+import { inColoursPreview, startColoursPreview } from "@/lib/colours-preview";
+import type { ShopColours } from "@/lib/shop-colours";
 import "./site-extras.css";
 
 // From Admin > Storefront (0073): the announcement line along the top of
@@ -40,24 +42,31 @@ function menus(): Promise<MenuLink[]> {
 export function Announcement() {
   const [a, setA] = useState<{ text: string; link: string } | null>(null);
   useEffect(() => {
-    // the look (announcement and the shop design): the tab's last copy at
+    // the look (announcement and the shop's colours): the tab's last copy at
     // once, then the live one on every full page load, so a design switched in
     // Admin > Storefront shows on whichever page the shop is opened on
-    const had = cached<{ text: string; link: string; design?: string }>(LOOK_KEY);
+    const had = cached<{ text: string; link: string; colours?: ShopColours | null }>(LOOK_KEY);
     let live = true;
+    // in the Colours preview, the editor's palette (sent by message) is the
+    // one shown, not the saved one
+    const preview = inColoursPreview();
+    const stopPreview = preview ? startColoursPreview() : () => {};
     if (had) {
       setA(had);
-      applyShopDesign(had.design);
+      if (!preview) applyColours(had.colours ?? null);
     }
     getLook().then((l) => {
       if (!live) return;
-      const x = { text: l.announcement, link: l.announcement_link, design: l.design };
+      const x = { text: l.announcement, link: l.announcement_link, colours: l.colours };
       keep(LOOK_KEY, x);
       setA(x);
-      applyShopDesign(x.design);
+      if (!preview) applyColours(x.colours);
+    }, () => {
+      // couldn't read it: keep what the page shows and this browser's copy
     });
     return () => {
       live = false;
+      stopPreview();
     };
   }, []);
   if (!a?.text) return null;

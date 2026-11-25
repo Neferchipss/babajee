@@ -1,0 +1,1270 @@
+/* The Aronium-style design's own screens that Babajee had no page for:
+   Payment types, Countries, Tax rates, Promotions, Price lists
+   (components/admin/shells/Aronium*.tsx), and their windows. The grid,
+   toolbar, menu and empty state come from shells.css. */
+
+/* Aronium's windows: a light title, label on the left, field on the right,
+   OK and Cancel at the bottom right */
+#site .adm-frame[data-adm-style="aronium"] .ara-dlg,
+.ara-dlg {
+  display: grid;
+  gap: 10px;
+  min-width: min(520px, 86vw);
+  color: #fff;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-dlg h2 {
+  margin: 0 0 6px;
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+.ara-field {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  font-size: 15px;
+}
+.ara-field > span:first-child {
+  padding-top: 6px;
+}
+.ara-ctl {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ara-ctl small {
+  color: #a9a9a9;
+  font-size: 12px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-dlg .adm-input {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-dlg .adm-input:read-only:not(select) {
+  border-color: #333;
+  color: #c8c8c8;
+}
+.ara-dlg .is-num {
+  max-width: 190px;
+  text-align: right;
+}
+.ara-help {
+  margin: 0;
+  color: #d0d0d0;
+  font-size: 14px;
+  display: grid;
+  gap: 8px;
+}
+.ara-help p {
+  margin: 0;
+}
+.ara-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-btns .adm-btn {
+  min-width: 140px;
+  min-height: 48px;
+}
+#site .adm-frame[data-adm-style="aronium"] .adm-dialog:has(.ara-dlg) {
+  border: 0;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+  padding: 24px 28px;
+}
+
+/* Countries: the one-country grid stays short, the states fill the rest */
+.ara-short {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Price lists: price lists and product groups on the left, the grid on the right */
+.ara-pl-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+  margin-top: 4px;
+}
+.ara-pl-side {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+}
+.ara-pl-box {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 6px 8px;
+  border: 1px solid #333;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-pl-box h3 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ara-pl-box > p {
+  margin: 0 0 6px;
+  color: #a9a9a9;
+  font-size: 12px;
+}
+.ara-pl-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  background: #1ba1e2;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+}
+.ara-pl-tree {
+  flex: 1;
+  max-height: none;
+  padding: 0;
+  background: none;
+}
+.ara-pl-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #333;
+}
+
+@media (max-width: 999px) {
+  .ara-pl-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ara-pl-groups {
+    max-height: 30vh;
+  }
+}
+@media (max-width: 640px) {
+  .ara-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .ara-field > span:first-child {
+    padding-top: 0;
+  }
+  #site .adm-frame[data-adm-style="aronium"] .ara-btns .adm-btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* the slide-in Add / Edit panel (aronium-help ArPanel), Aronium's */
+.ara-panel {
+  position: fixed;
+  z-index: 55;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  right: 0;
+  bottom: 0;
+  width: min(875px, 100vw);
+  display: flex;
+  flex-direction: column;
+  padding: 0 max(20px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) 24px;
+  background: #333333;
+  color: #fff;
+  animation: ara-in 0.18s ease-out;
+}
+@keyframes ara-in {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ara-panel {
+    animation: none;
+  }
+}
+.ara-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 14px;
+  border-bottom: 2px solid #1ba1e2;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-panel h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+.ara-panel-x {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.ara-panel-x:hover {
+  background: #484e55;
+}
+.ara-panel-body {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  padding: 16px 0;
+}
+.ara-panel .ara-field {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  max-width: 625px;
+}
+.ara-panel .ara-field > span:first-child {
+  padding-top: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-panel .adm-input {
+  min-height: 30px;
+  padding: 3px 8px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+}
+.ara-panel .is-num {
+  max-width: 190px;
+  text-align: right;
+}
+.ara-panel > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 10px 0 12px;
+}
+.ara-panel-btn {
+  min-width: 150px;
+  height: 50px;
+  border: 1px solid #555;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+.ara-panel-btn:hover:not(:disabled) {
+  background: #484e55;
+}
+.ara-panel-btn:disabled {
+  color: #8a8a8a;
+  cursor: default;
+}
+.ara-panel-btn.is-danger {
+  background: #c62828;
+  border-color: #c62828;
+}
+.ara-panel-btn.is-danger:hover {
+  background: #d84343;
+}
+/* Aronium's panel widths (from x on a 1920 screen) */
+.ara-panel.is-narrow {
+  width: min(500px, 100vw);
+}
+.ara-panel.is-mid {
+  width: min(620px, 100vw);
+}
+.ara-panel.is-wide {
+  width: min(875px, 100vw);
+}
+/* tabs under the panel title */
+.ara-ptabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 10px;
+  border-bottom: 2px solid #1ba1e2;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ara-ptabs button {
+  position: relative;
+  flex: none;
+  padding: 6px 16px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.ara-ptabs button:hover {
+  background: #484e55;
+}
+.ara-ptabs button.is-on {
+  background: #1ba1e2;
+}
+.ara-ptabs button.is-on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-bottom: 0;
+  border-top-color: #1ba1e2;
+}
+.ara-panel > header {
+  border-bottom: 0;
+}
+.ara-panel:not(:has(.ara-ptabs)) > header {
+  border-bottom: 2px solid #1ba1e2;
+}
+/* field widths: Aronium's short (code), mid (tax number), wide (name) */
+#site .adm-frame[data-adm-style="aronium"] .ara-panel .ara-field.is-short .adm-input {
+  max-width: 125px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-panel .ara-field.is-mid .adm-input {
+  max-width: 375px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-field.is-invalid .adm-input {
+  border-color: #e53935;
+}
+/* a section title inside a panel: "General info" */
+#site .adm-frame[data-adm-style="aronium"] .ara-panel h3 {
+  margin: 4px 0 0;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ara-rule {
+  height: 1px;
+  margin: 4px 0;
+  background: #4a4a4a;
+  max-width: 625px;
+}
+.ara-toggles {
+  display: grid;
+  gap: 20px;
+}
+/* Aronium's note boxes: blue info, red warning */
+.ara-info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 625px;
+}
+.ara-info.is-info {
+  border: 1px dotted #1ba1e2;
+  color: #fff;
+  background: rgb(27 161 226 / 0.12);
+}
+.ara-info.is-info svg {
+  color: #1ba1e2;
+  flex: none;
+}
+.ara-info.is-warn {
+  background: #d9534f;
+  color: #fff;
+  border: 1px solid #e57c78;
+}
+.ara-info.is-warn svg {
+  flex: none;
+}
+.ara-info a {
+  color: inherit;
+  text-decoration: underline;
+}
+/* Payment types' Icon tab: a grid of square icon tiles */
+.ara-icons {
+  display: grid;
+  grid-template-columns: repeat(6, 64px);
+  gap: 8px;
+}
+.ara-icons button {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid #555;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+}
+.ara-icons button.is-on {
+  background: #1ba1e2;
+  border-color: #1ba1e2;
+}
+.ara-icons button:disabled {
+  cursor: default;
+}
+.ara-note {
+  margin: 0;
+  color: #a9a9a9;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Promotions' full-screen editor: it covers the whole admin, menu included */
+.arpe {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 0px) max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+  background: #252525;
+  color: #fff;
+  font-family: "Segoe UI", "Segoe UI Variable Text", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+.arpe-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  flex: none;
+  border-bottom: 1px solid #333;
+}
+#site .arpe-bar h1 {
+  flex: 1;
+  margin: 0;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arpe-ico {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.arpe-ico:hover {
+  background: #484e55;
+}
+.arpe-head {
+  display: grid;
+  gap: 12px;
+  padding: 14px 8px;
+  flex: none;
+}
+.arpe-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+}
+#site .arpe .adm-input {
+  min-height: 30px;
+  padding: 3px 8px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+}
+#site .arpe .adm-input:disabled {
+  color: #999;
+}
+.arpe-name {
+  width: min(390px, 100%);
+}
+.arpe-when {
+  display: grid;
+  gap: 4px;
+}
+.arpe-dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.arpe-dt .adm-input:first-child {
+  width: 150px;
+}
+.arpe-dt select {
+  width: 58px;
+}
+.arpe-days label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c8c8c8;
+}
+.arpe-days input {
+  accent-color: #1ba1e2;
+}
+.arpe-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 370px) 44px minmax(0, 1fr);
+  gap: 6px;
+  padding: 0 0 6px;
+}
+.arpe-pick {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #252525;
+  border: 1px solid #333;
+}
+.arpe-tree {
+  flex: none;
+  max-height: 34%;
+  overflow: auto;
+}
+.arpe-choices {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  border-top: 1px solid #333;
+}
+.arpe-choices label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.arpe-choices label:hover {
+  background: #484e55;
+}
+.arpe-choices span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arpe-choices small {
+  color: #a9a9a9;
+}
+.arpe-choices input {
+  accent-color: #1ba1e2;
+}
+.arpe-hint {
+  padding: 16px 10px;
+  color: #9a9a9a;
+}
+.arpe-add {
+  align-self: center;
+  height: 44px;
+  border: 1px solid #555;
+  background: #333;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.arpe-add:hover:not(:disabled) {
+  background: #484e55;
+}
+.arpe-add:disabled {
+  color: #777;
+  cursor: default;
+}
+.arpe-items {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #333;
+}
+.arpe-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 160px;
+}
+#site .arpe .arpe-mrp {
+  width: 130px;
+  text-align: right;
+}
+#site .arpe .arpe-mrp.is-bad {
+  border-color: #e53935;
+}
+.arpe-x {
+  border: 0;
+  background: none;
+  color: #ef5350;
+  font-size: 15px;
+  cursor: pointer;
+}
+.arpe-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 8px 0 10px;
+  flex: none;
+}
+@media (max-width: 860px) {
+  .arpe {
+    overflow: auto;
+  }
+  .arpe-body {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+  .arpe-pick {
+    max-height: 50vh;
+  }
+  .arpe-add {
+    justify-self: stretch;
+  }
+}
+
+/* Price lists' Edit prices: Aronium's separate two-step window */
+#site .adm-frame[data-adm-style="aronium"] .adm-dialog:has(.ara-wiz) {
+  width: min(920px, 94vw);
+  padding: 0;
+  border: 1px solid #555;
+}
+.ara-wiz {
+  gap: 12px;
+  padding: 0 28px 20px;
+}
+.ara-wiz-title {
+  margin: 0 -28px 6px;
+  padding: 8px 14px;
+  background: #252525;
+  border-bottom: 1px solid #555;
+  font-size: 13px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-wiz h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.ara-wiz-sec {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid #4a4a4a;
+}
+.ara-wiz-sec legend {
+  padding-right: 8px;
+  font-size: 19px;
+  font-weight: 300;
+}
+.ara-wiz-sec b {
+  font-weight: 600;
+}
+.ara-wiz-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+.ara-wiz-line label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ara-wiz input[type="radio"],
+.ara-wiz input[type="checkbox"] {
+  accent-color: #1ba1e2;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-wiz-select {
+  width: 220px;
+}
+.ara-wiz-list {
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid #4a4a4a;
+}
+.ara-wiz-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+#site .adm-frame[data-adm-style="aronium"] .ara-wiz-btns .adm-btn {
+  min-width: 130px;
+  min-height: 38px;
+}
+
+/* Orders: the last contact logged on an unpaid order, under its status */
+.aro-last {
+  display: block;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #a9a9a9;
+  font-size: 12px;
+}
+.aro-table tr.is-sel .aro-last {
+  color: #e8f6fd;
+}
+
+/* Products: Babajee's Show box in the search row */
+.arp-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-left: 1px solid #333;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.arp-show select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+}
+.arp-show select:focus-visible {
+  outline: 1px solid #1ba1e2;
+  border-color: #1ba1e2;
+}
+.arp-selcount {
+  color: #1ba1e2;
+}
+.arp-grid .aro-tick input {
+  accent-color: #1ba1e2;
+}
+/* Products: the spreadsheet view (ProductTable) in Aronium's grid clothes */
+.arp-table {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #252525;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table :where(*) {
+  border-radius: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table table {
+  font-size: 14px;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #252525;
+  color: #fff;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom: 2px solid #1ba1e2;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table td {
+  border-color: #333;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table :is(input, select):not([type="checkbox"]) {
+  background: transparent;
+  color: #fff;
+  border-radius: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .arp-table :is(input, select):not([type="checkbox"]):focus {
+  background: #333;
+  outline: 1px solid #1ba1e2;
+}
+@media (max-width: 999px) {
+  .arp-show span {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- product editor (AroniumProductEditor)
+   Aronium's slide-in, measured on a 1920 screen: panel 687 wide, fields
+   inset 25; Code / Cost 125, Reorder point 100, Name / Group 375, Supplier
+   437, Barcode and Description the full width. */
+.ara-panel.arpx {
+  width: min(687px, 100vw);
+  z-index: 60;
+}
+.arpx > header {
+  gap: 12px;
+}
+.arpx > header h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arpx-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.arpx-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #cfcfcf;
+}
+.arpx-nav button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.arpx-nav button:hover:not(:disabled) {
+  background: #484e55;
+}
+.arpx-nav button:disabled {
+  color: #666;
+  cursor: default;
+}
+.arpx-full {
+  color: #1ba1e2;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.arpx-full:hover {
+  text-decoration: underline;
+}
+/* Aronium's five on the first line; Babajee's extensions wrap after them, dimmer until picked */
+.arpx-tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.arpx-tabs button.is-ext:not(.is-on) {
+  color: #bdbdbd;
+}
+.arpx-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.arpx-tab > * {
+  min-width: 0;
+}
+.arpx-embed table {
+  max-width: 100%;
+}
+.arpx-fill {
+  min-height: 100%;
+  grid-template-rows: auto auto 1fr;
+}
+.arpx-wait {
+  color: #a9a9a9;
+}
+/* a label above its field */
+.arpx-fld {
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+  min-width: 0;
+}
+.arpx-fld > small,
+.arpx-tab > small,
+.arpx-note {
+  color: #a9a9a9;
+  font-size: 12px;
+}
+.arpx-ctl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx .adm-input,
+#site .adm-frame[data-adm-style="aronium"] .arpx-tax .adm-input {
+  min-width: 0;
+  min-height: 30px;
+  padding: 3px 6px;
+  border: 1px solid #595e57;
+  border-radius: 0;
+  background: #333;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx .adm-input:focus,
+#site .adm-frame[data-adm-style="aronium"] .arpx-tax .adm-input:focus {
+  outline: none;
+  border-color: #1ba1e2;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx .adm-input:disabled {
+  border-color: #474a46;
+  background: #3a3a3a;
+  color: #8a8a8a;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx .is-invalid .adm-input {
+  border-color: #e53935;
+}
+.arpx .adm-input.is-num {
+  text-align: right;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld .arpx-ctl > .adm-input,
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld .arpx-ctl > .arpx-row {
+  flex: none;
+  width: 100%;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld.is-short .arpx-ctl > .adm-input {
+  width: 125px;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld.is-qty .arpx-ctl > .adm-input {
+  width: 100px;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld.is-mid .arpx-ctl > .adm-input,
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld.is-mid .arpx-ctl > .arpx-row {
+  width: min(375px, 100%);
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-fld.is-supplier .arpx-ctl > .adm-input {
+  width: min(437px, 100%);
+}
+/* a select beside an amount (GST paid on the cost) shares the row */
+#site .adm-frame[data-adm-style="aronium"] .arpx-row > select.adm-input {
+  flex: 1 1 0;
+  width: auto;
+}
+.arpx-fld.is-dim > span:first-child {
+  color: #8a8a8a;
+}
+.arpx-desc {
+  height: 100px;
+  resize: vertical;
+}
+.arpx-unit {
+  flex: none;
+  font-size: 15px;
+}
+.arpx-bad {
+  color: #ff8a80;
+}
+/* the blue text links: Generate barcode, Reset to default */
+.arpx-link {
+  justify-self: start;
+  margin-top: -8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1ba1e2;
+  font: inherit;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.arpx-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.arpx-link:disabled {
+  color: #5f7f8f;
+  cursor: default;
+}
+.arpx-toggles {
+  display: grid;
+  gap: 28px;
+  padding: 10px 0;
+}
+.arpx-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Add tax to product, Browse, Clear: Aronium's flat grey buttons */
+.arpx-btn {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  background: #484848;
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+.arpx-btn.is-big {
+  width: 150px;
+  border: 1px solid #555;
+  background: none;
+}
+.arpx-btn:hover:not(:disabled) {
+  background: #555d66;
+}
+.arpx-btn:disabled {
+  color: #8a8a8a;
+  cursor: default;
+}
+.arpx-q {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: help;
+}
+.arpx-taxes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arpx-taxes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  max-width: 375px;
+  padding: 6px 8px;
+  background: #3d3d3d;
+  font-size: 15px;
+}
+.arpx-taxes small {
+  color: #a9a9a9;
+}
+#site .adm-frame[data-adm-style="aronium"] .arpx-row > .arpx-amt {
+  flex: none;
+  width: 125px;
+}
+/* Comments: the entry row (Add, Delete) and the list under it */
+#site .adm-frame[data-adm-style="aronium"] .arpx-row > .arpx-comment {
+  flex: none;
+  width: min(375px, 100%);
+}
+.arpx-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.arpx-tool:hover:not(:disabled) {
+  background: #484e55;
+}
+.arpx-tool:disabled {
+  color: #8a8a8a;
+  cursor: default;
+}
+.arpx-list {
+  min-height: 240px;
+  border: 1px solid #474a46;
+}
+.arpx-color {
+  padding-left: 30px !important;
+  background-image: linear-gradient(#333, #333), linear-gradient(#777, #777) !important;
+  background-repeat: no-repeat !important;
+  background-size: 12px 12px, 14px 14px !important;
+  background-position: 9px 50%, 8px 50% !important;
+}
+.arpx-photos {
+  display: grid;
+  gap: 10px;
+}
+.arpx-optphotos {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #474a46;
+}
+.arpx-optphotos > b {
+  font-weight: 400;
+  font-size: 17px;
+}
+/* Options: one row each, scrolls sideways on a phone */
+.arpx-opts {
+  display: grid;
+  gap: 4px;
+  overflow-x: auto;
+}
+.arpx-opt {
+  display: grid;
+  grid-template-columns: 130px 80px 70px 70px 90px 120px 70px 70px 48px 28px;
+  align-items: center;
+  gap: 4px;
+  min-width: 800px;
+}
+.arpx-opt.is-head {
+  color: #a9a9a9;
+  font-size: 12px;
+}
+.arpx-opt.is-gone {
+  display: block;
+  color: #a9a9a9;
+  font-size: 14px;
+}
+.arpx-opt .art-switch span:empty {
+  display: none;
+}
+.arpx-stock {
+  text-align: right;
+  font-size: 14px;
+}
+.arpx-x {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.arpx-x:hover:not(:disabled) {
+  background: #c62828;
+}
+.arpx-x:disabled {
+  color: #666;
+  cursor: default;
+}
+.arpx-spec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 28px;
+  gap: 4px;
+}
+/* Babajee's own parts (boxes, bundle, stock history) in the panel's colours */
+.arpx-embed {
+  color: #fff;
+}
+.arpx-embed .ape-fields,
+.arpx-embed section {
+  background: none;
+  color: inherit;
+}
+.arpx-stocklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 375px;
+}
+.arpx-stocklist li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #474a46;
+  font-size: 15px;
+}
+.arpx-subs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #474a46;
+}
+.arpx-subs legend {
+  padding: 0 4px;
+  color: #a9a9a9;
+  font-size: 13px;
+}
+.arpx-tick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+.arpx-tick input {
+  accent-color: #1ba1e2;
+}
+.arpx-kws {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 3px;
+  border: 1px solid #595e57;
+}
+.arpx-kw {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 2px 1px 8px;
+  background: #1ba1e2;
+  font-size: 14px;
+}
+.arpx-kw button {
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.arpx-kws input {
+  flex: 1;
+  min-width: 140px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+.arpx-serp {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  background: #2b2b2b;
+  font-size: 14px;
+}
+.arpx-serp small {
+  color: #a9a9a9;
+}
+.arpx-serp b {
+  color: #8ab4f8;
+  font-weight: 400;
+  font-size: 17px;
+}
+.arpx-serp span {
+  color: #cfcfcf;
+}
+.arpx-tax {
+  display: grid;
+  gap: 12px;
+  min-width: min(420px, 86vw);
+}
+@media (max-width: 640px) {
+  .arpx-full {
+    display: none;
+  }
+  .arpx-head {
+    gap: 4px;
+  }
+  .arpx-tabs button {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+}

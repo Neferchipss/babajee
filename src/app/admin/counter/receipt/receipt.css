@@ -1,0 +1,199 @@
+/* A counter sale's till receipt: the roll (or page) on a grey desk on screen,
+   only the receipt when printed. Plain black on white, whatever the theme. */
+.rcp {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow: auto;
+  background: #d9d9d9;
+  color: #000;
+  font-family: "Consolas", "Courier New", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  padding-bottom: 40px;
+}
+.rcp a {
+  color: inherit;
+}
+.rcp-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 16px;
+  background: #252525;
+  color: #fff;
+  font: 14px "Segoe UI", system-ui, sans-serif;
+}
+.rcp-back {
+  text-decoration: none;
+}
+.rcp-gap {
+  flex: 1;
+}
+.rcp-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 7px 14px;
+  border: 1px solid #595e57;
+  font: 14px "Segoe UI", system-ui, sans-serif;
+}
+.rcp-btn.is-pri {
+  background: #1ba1e2;
+  border-color: #1ba1e2;
+}
+.rcp-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.rcp-note {
+  width: min(420px, calc(100% - 32px));
+  margin: 14px auto 0;
+  padding: 10px 14px;
+  background: #fff8e6;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+.rcp-paper {
+  max-width: calc(100% - 24px);
+  margin: 18px auto 0;
+  padding: 4mm 3mm 6mm;
+  background: #fff;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+}
+.rcp.is-58mm .rcp-paper {
+  font-size: 10.5px;
+}
+.rcp.is-A4 .rcp-paper {
+  padding: 14mm;
+  font-size: 13px;
+}
+.rcp-head {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 1px;
+}
+.rcp-shop {
+  font-size: 1.35em;
+}
+.rcp-pre {
+  white-space: pre-line;
+}
+.rcp-line {
+  margin-top: 3px;
+}
+.rcp-title {
+  margin: 6px 0 4px;
+  padding: 3px 0;
+  border-block: 1px dashed #000;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.rcp dl {
+  margin: 0;
+}
+.rcp-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 8px;
+}
+.rcp-meta dd {
+  margin: 0;
+  text-align: right;
+}
+.rcp-items,
+.rcp-gst {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+}
+.rcp-items th,
+.rcp-gst th {
+  border-bottom: 1px dashed #000;
+  font-weight: 700;
+  text-align: right;
+  padding: 2px 0;
+}
+.rcp-items td,
+.rcp-gst td {
+  padding: 2px 0;
+  text-align: right;
+  vertical-align: top;
+}
+.rcp-items th:first-child,
+.rcp-items td:first-child,
+.rcp-gst th:first-child,
+.rcp-gst td:first-child {
+  text-align: left;
+}
+.rcp-items td:first-child {
+  padding-right: 6px;
+}
+.rcp-items td:nth-child(2) {
+  white-space: nowrap;
+  padding-right: 6px;
+}
+.rcp-sum,
+.rcp-pay {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1px 8px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #000;
+}
+.rcp-pay > div {
+  display: contents;
+}
+.rcp-sum dd,
+.rcp-pay dd {
+  margin: 0;
+  text-align: right;
+}
+.rcp-total {
+  font-size: 1.3em;
+  font-weight: 700;
+}
+.rcp-small {
+  margin: 3px 0 0;
+  font-size: 0.9em;
+}
+.rcp-foot {
+  margin: 8px 0 0;
+  padding-top: 5px;
+  border-top: 1px dashed #000;
+  text-align: center;
+}
+
+@media print {
+  /* everything but the receipt (and the other print layers, which are only
+     there while they print: their own rules hide the rest then) */
+  body > *:not(.rcp):not(.prt):not(.prs-print) {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .rcp {
+    position: static;
+    overflow: visible;
+    background: #fff;
+    padding: 0;
+  }
+  .rcp-bar,
+  .rcp-note {
+    display: none !important;
+  }
+  .rcp-paper {
+    width: auto !important;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}

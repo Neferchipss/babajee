@@ -12,18 +12,18 @@ import { customerAccount, customerDetail, customerSaved, errText, getCustomer, s
 import { deviceOf, loginEvents, type LoginEvent } from "@/lib/logins";
 import SupportHistory from "@/components/admin/SupportHistory";
 import { ageOf, dobLabel } from "@/lib/age";
+import { useAdminStyle } from "@/lib/admin-style";
+import AroniumCustomerView from "@/components/admin/shells/AroniumCustomerView";
+import CustomerCredit from "@/components/admin/counter/CustomerCredit";
 
 // One customer: what they have spent, their orders, saved addresses and the
 // staff's private notes about them.
 export default function CustomerViewPage() {
-  return (
-    <Suspense>
-      <CustomerView />
-    </Suspense>
-  );
+  const style = useAdminStyle();
+  return <Suspense>{style === "aronium" ? <AroniumCustomerView /> : <CustomerViewOriginal />}</Suspense>;
 }
 
-function CustomerView() {
+function CustomerViewOriginal() {
   const id = useSearchParams().get("id") ?? "";
   const { user } = useAuth();
   const [c, setC] = useState<Customer | null | undefined>(undefined);
@@ -207,6 +207,7 @@ function CustomerView() {
             </p>
           </section>
           <AccountCard id={c.id} />
+          <CustomerCredit id={c.id} />
           <section className="adm-card">
             <h2>Contact</h2>
             <p className="adm-small" style={{ margin: 0 }}>

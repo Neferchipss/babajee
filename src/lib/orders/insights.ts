@@ -1,4 +1,7 @@
+import { toNumber } from "../currency";
 import { getDeliveryRules } from "./stock";
+import type { TillReportKind } from "../counter";
+import { isTill, runTill } from "../counter-report";
 import { db } from "./core";
 
 export type HomeCounts = Record<"requests" | "unpaid" | "to_pack" | "to_ship" | "in_transit" | "out_of_stock" | "low_stock" | "unpriced", number>;
@@ -153,7 +156,7 @@ export async function geo(from: string, to: string): Promise<{ cities: GeoCity[]
 }
 
 // ---------------------------------------------------------------- admin: customers
-export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst" | DeliveryKind | InsightKind;
+export type ReportKind = "products" | "customers" | "stock" | "finance" | "gst" | "channels" | DeliveryKind | InsightKind | TillReportKind;
 // the reports from 0068 (admin_insights)
 export type InsightKind = "product_funnel" | "exit_pages" | "worst_sellers" | "returns" | "return_reasons" | "new_customers" | "marketing" | "refunds";
 export const INSIGHTS: string[] = ["product_funnel", "exit_pages", "worst_sellers", "returns", "return_reasons", "new_customers", "marketing", "refunds"];
@@ -164,6 +167,9 @@ export type DeliveryKind = "couriers" | "places" | "late";
 // shipments recorded on each order.
 export async function report(kind: ReportKind, from: string, to: string): Promise<ReportRow[]> {
   if (kind === "couriers" || kind === "places" || kind === "late") return deliveryReport(kind, from, to);
+  if (kind === "channels") return channelReport(from, to);
+  // the till's reports (0086), with Reporting's channel and cashier filter
+  if (isTill(kind)) return runTill(kind, from, to);
   if (INSIGHTS.includes(kind)) {
     const { data, error } = await (await db()).rpc("admin_insights", { p_kind: kind, p_from: from, p_to: to });
     if (error) throw error;
@@ -172,6 +178,46 @@ export async function report(kind: ReportKind, from: string, to: string): Promis
   const { data, error } = await (await db()).rpc("admin_report", { p_kind: kind, p_from: from, p_to: to });
   if (error) throw error;
   return (data ?? []) as ReportRow[];
+}
+
+// Sales by where they were made: online (the website, and orders the shop
+// takes for delivery) or at the counter till (0085). Counted as sales are
+// everywhere: paid or further, not cancelled, not test orders; refunds come
+// off. Before 0085 everything is online.
+export async function channelReport(from: string, to: string): Promise<ReportRow[]> {
+  const pick = (cols: string) =>
+    db().then((d) =>
+      d
+        .from("orders")
+        .select(cols)
+        .gte("created_at", `${from}T00:00:00+05:30`)
+        .lte("created_at", `${to}T23:59:59.999+05:30`)
+        .eq("is_test", false)
+        .not("status", "in", "(pending,cancelled)")
+        .limit(20000),
+    );
+  let res = await pick("channel, total, order_refunds(amount), order_items(quantity)");
+  if (res.error) res = await pick("total, order_refunds(amount), order_items(quantity)");
+  if (res.error) throw res.error;
+  const by = new Map<string, { orders: number; items: number; gross: number; refunds: number }>();
+  for (const o of (res.data ?? []) as unknown as { channel?: string; total: unknown; order_refunds?: { amount: unknown }[]; order_items?: { quantity: number }[] }[]) {
+    const k = o.channel === "counter" ? "Counter (till)" : "Online";
+    const r = by.get(k) ?? { orders: 0, items: 0, gross: 0, refunds: 0 };
+    r.orders += 1;
+    r.items += (o.order_items ?? []).reduce((n, i) => n + i.quantity, 0);
+    r.gross += toNumber(o.total);
+    r.refunds += (o.order_refunds ?? []).reduce((n, f) => n + toNumber(f.amount), 0);
+    by.set(k, r);
+  }
+  return [...by.entries()].map(([channel, r]) => ({
+    channel,
+    orders: r.orders,
+    items: r.items,
+    gross: Math.round(r.gross * 100) / 100,
+    refunds: Math.round(r.refunds * 100) / 100,
+    net: Math.round((r.gross - r.refunds) * 100) / 100,
+    avg: r.orders ? Math.round((r.gross / r.orders) * 100) / 100 : 0,
+  }));
 }
 
 // ---------------------------------------------------------------- requests (0022)

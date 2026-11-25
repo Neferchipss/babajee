@@ -17,17 +17,24 @@ import { Confirm } from "@/components/admin/order/Confirm";
 import { Roadmap, STEP_DO, STEP_LABEL, StepForm } from "@/components/admin/order/Steps";
 import { OrderProfit } from "@/components/admin/order/OrderProfit";
 import { BuyerGstin } from "@/components/admin/order/BuyerGstin";
+import AroniumOrderDoc from "@/components/admin/shells/AroniumOrderDoc";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // One order: what to do next at the top, then the items, the money, the
 // timeline (with staff comments), and the customer on the side.
 export default function OrderViewPage() {
   return (
     <Suspense>
-      <OrderView />
+      <OrderByStyle />
     </Suspense>
   );
 }
-function OrderView() {
+
+// the Aronium-style design shows the order as Aronium's document editor
+function OrderByStyle() {
+  return useAdminStyle() === "aronium" ? <AroniumOrderDoc /> : <OrderViewOriginal />;
+}
+function OrderViewOriginal() {
   const id = useSearchParams().get("id") ?? "";
   const { user } = useAuth();
   const [o, setO] = useState<Order | null | undefined>(undefined);
@@ -238,6 +245,11 @@ function OrderView() {
               <StatusPill status={o.status} />
               {refunds.amount > 0 && o.status !== "refunded" && <span className="adm-pill off">Partly refunded</span>}
               {o.is_test && <span className="adm-pill off">Test</span>}
+              {o.channel === "counter" && (
+                <Link className="adm-pill" href={`/admin/counter/receipt?id=${o.id}&back=${encodeURIComponent(`/admin/orders/view?id=${o.id}`)}`} title="Sold at the counter: print its till receipt">
+                  Counter sale · receipt
+                </Link>
+              )}
               {o.status === "shipped" && o.delivery_failed_at && <span className="adm-pill warn">Delivery failed</span>}
             </h1>
             <p className="ov-next">{next}</p>

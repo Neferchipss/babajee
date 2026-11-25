@@ -15,6 +15,8 @@ import { round2 as r2 } from "@/lib/currency";
 // or "Save as PDF" in the print dialog to download. Opened from an order
 // (/admin/orders/print?ids=<id>&doc=invoice) or from ticked orders in the list.
 // The pages sit on their own layer over the admin, so only they print.
+// &embed=1 is the document alone, without this page's own bar: the Aronium
+// design shows it inside its print preview and prints it from there.
 export default function PrintPage() {
   return (
     <Suspense>
@@ -39,6 +41,8 @@ function Print() {
   const sp = useSearchParams();
   const ids = (sp.get("ids") ?? "").split(",").filter(Boolean);
   const doc: "invoice" | "cn" = sp.get("doc") === "cn" ? "cn" : "invoice";
+  const copy = sp.get("copy") === "duplicate";
+  const embed = sp.get("embed") === "1";
   const key = `${doc}:${ids.join(",")}`;
   const [data, setData] = useState<{ key: string; orders: Order[]; shop: StoreSettings; notes: CreditNoteRow[] } | null>(null);
   const [err, setErr] = useState("");
@@ -70,8 +74,8 @@ function Print() {
   const what = doc === "cn" ? "credit note" : "invoice";
 
   return createPortal(
-    <div className="prt" style={{ ["--prt-zoom" as string]: zoom }}>
-      <div className="prt-bar">
+    <div className={`prt ${embed ? "is-embed" : ""}`} style={embed ? undefined : { ["--prt-zoom" as string]: zoom }}>
+      <div className="prt-bar" hidden={embed}>
         <Link href={ids.length === 1 ? `/admin/orders/view?id=${ids[0]}` : "/admin/orders"} className="prt-back">
           ← Back
         </Link>
@@ -105,22 +109,26 @@ function Print() {
               const o = ready.orders.find((x) => x.id === n.order_id);
               return o ? <CreditNotePage key={n.id} n={n} o={o} shop={ready.shop} /> : null;
             })
-          : printable.map((o) => <InvoicePage key={o.id} o={o} shop={ready.shop} />))}
+          : printable.map((o) => <InvoicePage key={o.id} o={o} shop={ready.shop} copy={copy} />))}
     </div>,
     document.body,
   );
 }
 
+// parts of an address line, empty ones left out (no stray commas)
+const joined = (...parts: (string | null | undefined)[]) => parts.map((x) => (x ?? "").trim()).filter(Boolean).join(", ");
+const cityLine = (city?: string | null, state?: string | null, pin?: string | null) => [joined(city, state), (pin ?? "").trim()].filter(Boolean).join(" ");
+
 function Address({ o }: { o: Order }) {
+  const street = joined(o.address_line1, o.address_line2);
+  const city = cityLine(o.address_city, o.address_state, o.address_pincode);
   return (
     <>
       <b>{o.contact_name}</b>
-      <div>{[o.address_line1, o.address_line2].filter(Boolean).join(", ")}</div>
+      {street && <div>{street}</div>}
       {o.address_landmark && <div>{o.address_landmark}</div>}
-      <div>
-        {o.address_city}, {o.address_state} {o.address_pincode}
-      </div>
-      <div>{o.contact_phone}</div>
+      {city && <div>{city}</div>}
+      {o.contact_phone && <div>{o.contact_phone}</div>}
     </>
   );
 }
@@ -128,14 +136,26 @@ function Address({ o }: { o: Order }) {
 // the billing address when the order has its own (0066), else the delivery one
 function BillTo({ o }: { o: Order }) {
   if (!o.billing_line1) return <Address o={o} />;
+  const street = joined(o.billing_line1, o.billing_line2);
+  const city = cityLine(o.billing_city, o.billing_state, o.billing_pincode);
   return (
     <>
       <b>{o.billing_name || o.contact_name}</b>
-      <div>{[o.billing_line1, o.billing_line2].filter(Boolean).join(", ")}</div>
-      <div>
-        {o.billing_city}, {o.billing_state} {o.billing_pincode}
-      </div>
-      <div>{o.contact_phone}</div>
+      {street && <div>{street}</div>}
+      {city && <div>{city}</div>}
+      {o.contact_phone && <div>{o.contact_phone}</div>}
+    </>
+  );
+}
+
+// a sale at the counter has no delivery address: the buyer's name (or
+// Walk-in customer), their phone if given, and the state it was sold in
+function CounterBuyer({ o, state }: { o: Order; state: string }) {
+  return (
+    <>
+      <b>{o.contact_name || o.billing_name || "Walk-in customer"}</b>
+      {o.contact_phone && <div>{o.contact_phone}</div>}
+      {state && <div>{state}</div>}
     </>
   );
 }
@@ -144,7 +164,8 @@ function BillTo({ o }: { o: Order }) {
 // box: seller and invoice details, buyer, items with HSN and tax per line, a
 // tax summary per bracket, totals, declaration and signatory), so it can go
 // to an accountant or into a file as it is.
-function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
+// copy: a reprint (?copy=duplicate, from the till's sales history) says so
+function InvoicePage({ o, shop, copy }: { o: Order; shop: StoreSettings; copy?: boolean }) {
   const inv = invoiceOf(o, shop.store_state);
   const intra = inv.split === "intra";
   // a Cess column only when the invoice carries cess (0060)
@@ -159,7 +180,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
       {o.is_test && <div className="prt-test">Test order</div>}
       <div className="inv-title">
         <h2>{shop.gstin ? "Tax invoice" : "Invoice"}</h2>
-        <span>ORIGINAL FOR RECIPIENT</span>
+        <span>{copy ? "DUPLICATE" : "ORIGINAL FOR RECIPIENT"}</span>
       </div>
 
       <div className="inv-box">
@@ -210,7 +231,7 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
         <div className="inv-row inv-parties">
           <div>
             <span className="prt-label">Billed to (receiver)</span>
-            <BillTo o={o} />
+            {o.channel === "counter" ? <CounterBuyer o={o} state={o.address_state || shop.store_state} /> : <BillTo o={o} />}
             {o.contact_email && <div>{o.contact_email}</div>}
             {o.buyer_gstin && (
               <div>
@@ -218,10 +239,18 @@ function InvoicePage({ o, shop }: { o: Order; shop: StoreSettings }) {
               </div>
             )}
           </div>
-          <div>
-            <span className="prt-label">Shipped to (consignee)</span>
-            <Address o={o} />
-          </div>
+          {o.channel === "counter" ? (
+            <div>
+              <span className="prt-label">Sold at the counter</span>
+              <b>{shop.store_name || "Babajee"}</b>
+              {shop.store_state && <div>{shop.store_state}</div>}
+            </div>
+          ) : (
+            <div>
+              <span className="prt-label">Shipped to (consignee)</span>
+              <Address o={o} />
+            </div>
+          )}
         </div>
 
         <table className="inv-items">
@@ -449,7 +478,7 @@ function CreditNotePage({ n, o, shop }: { n: CreditNoteRow; o: Order; shop: Stor
         <div className="inv-row inv-parties">
           <div>
             <span className="prt-label">Issued to</span>
-            <Address o={o} />
+            {o.channel === "counter" ? <CounterBuyer o={o} state={o.address_state || shop.store_state} /> : <Address o={o} />}
             {o.buyer_gstin && (
               <div>
                 <b>GSTIN</b> {o.buyer_gstin}

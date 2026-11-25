@@ -7,6 +7,9 @@ import { CompareOff, Delta, Funnel, LineChart, money, SortTh, useSort, when } fr
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
 import { errText, geo, traffic, trafficInsights, type GeoCity, type Traffic, type TrafficGroup, type TrafficInsights as Insights } from "@/lib/orders-db";
 import TrafficInsights from "@/components/admin/TrafficInsights";
+import ArAnalyticsScreen from "@/components/admin/shells/AroniumAnalytics";
+import { ArPeriod } from "@/components/admin/shells/aronium-d-kit";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Leaflet needs the browser
 const CustomerMap = dynamic(() => import("@/components/admin/CustomerMap"), { ssr: false });
@@ -33,6 +36,16 @@ const pageName = (p: string) => (p === "/" ? "Home" : p === "/shop" ? "Shop" : p
 const devName = (d: string) => (d === "mobile" ? "Phone" : d === "unknown" ? "Unknown" : d[0].toUpperCase() + d.slice(1));
 
 export default function TrafficPage() {
+  return useAdminStyle() === "aronium" ? (
+    <ArAnalyticsScreen kind="traffic">
+      <TrafficPageOriginal ar />
+    </ArAnalyticsScreen>
+  ) : (
+    <TrafficPageOriginal />
+  );
+}
+
+function TrafficPageOriginal({ ar = false }: { ar?: boolean }) {
   const [range, setRange] = useRange();
   const [cur, setCur] = useState<Traffic | null>(null);
   const [prev, setPrev] = useState<Traffic | null>(null);
@@ -69,9 +82,9 @@ export default function TrafficPage() {
     <CompareOff.Provider value={range.id === "all"}>
     <div className="anx">
       <h1 className="sr-only">Traffic</h1>
-      <AnalyticsTabs on="traffic" />
+      {!ar && <AnalyticsTabs on="traffic" />}
       <div className="anx-bar">
-        <RangePicker value={range} onChange={(r) => (setErr(""), setRange(r))} />
+        {ar ? <ArPeriod value={range} onChange={(r) => (setErr(""), setRange(r))} /> : <RangePicker value={range} onChange={(r) => (setErr(""), setRange(r))} />}
         {a && range.id !== "all" && <span className="adm-muted adm-small">vs the {a.daily.length > 1 ? `${a.daily.length} days` : "day"} before</span>}
       </div>
       {err && <p className="adm-err">{err}</p>}

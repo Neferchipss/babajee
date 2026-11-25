@@ -172,14 +172,15 @@ export function SubcategoryManager({
 // its name, shown before anything is saved: untick what's wrong, then save.
 // Makes the groups and tags that aren't there yet and adds the ticked tags to
 // each product (tags it already has stay).
-export function StarterFill({
+// what Fill from product names will do, and the save, shared by both
+// designs' fill windows (StarterFill here, Aronium's in its Product groups)
+export function useStarterFill({
   api,
   categoryId,
   categorySlug,
   list,
   products,
   onDone,
-  onCancel,
 }: {
   api: Api;
   categoryId: string;
@@ -187,7 +188,6 @@ export function StarterFill({
   list: List;
   products: AdminProduct[];
   onDone: () => void;
-  onCancel: () => void;
 }) {
   const key = (g: string, t: string) => `${g}|${t}`;
   const named = new Map(list.tags.map((t) => [t.name.toLowerCase(), t]));
@@ -238,6 +238,27 @@ export function StarterFill({
     }
   }
 
+  return { key, rows, picked, flip, toMake, tagged, save, busy, err };
+}
+
+export function StarterFill({
+  api,
+  categoryId,
+  categorySlug,
+  list,
+  products,
+  onDone,
+  onCancel,
+}: {
+  api: Api;
+  categoryId: string;
+  categorySlug: string;
+  list: List;
+  products: AdminProduct[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const { key, rows, picked, flip, toMake, tagged, save, busy, err } = useStarterFill({ api, categoryId, categorySlug, list, products, onDone });
   return (
     <div className="sub-fill">
       <p className="ape-hint">

@@ -6,14 +6,20 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { adminApi } from "@/lib/admin-api";
 import type { AdminCategory } from "@/lib/admin-data";
 import { listCollections, type Collection } from "@/lib/collections";
-import { DESIGNS, deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
+import { deleteRow, getLook, listRows, reorder, saveLook, saveRow, SECTION_KINDS, type HomeSection, type Look, type SectionKind } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
+import AroniumStorefront from "@/components/admin/shells/AroniumStorefront";
+import ColourEditor from "@/components/admin/colours/ColourEditor";
+import { useAdminStyle } from "@/lib/admin-style";
 
-// Storefront > Design and homepage: which design the shop shows (each can be
-// opened first to look at), the line along the top, and the homepage's
-// sections in order (0073).
+// Storefront > Colours and homepage: the shop's colours (0087, ColourEditor),
+// the line along the top, and the homepage's sections in order (0073).
 export default function StorefrontPage() {
+  return useAdminStyle() === "aronium" ? <AroniumStorefront /> : <StorefrontPageOriginal />;
+}
+
+function StorefrontPageOriginal() {
   const [look, setLook] = useState<Look | null>(null);
   const [sections, setSections] = useState<HomeSection[] | null>(null);
   const [cats, setCats] = useState<AdminCategory[]>([]);
@@ -22,27 +28,17 @@ export default function StorefrontPage() {
   const [line, setLine] = useState({ announcement: "", announcement_link: "" });
 
   useEffect(() => {
-    getLook().then((l) => {
-      setLook(l);
-      setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
-    });
+    getLook().then(
+      (l) => {
+        setLook(l);
+        setLine({ announcement: l.announcement, announcement_link: l.announcement_link });
+      },
+      (e) => setErr(errText(e)),
+    );
     listRows("home_sections").then(setSections, (e) => setErr(errText(e)));
     adminApi().listCategories().then(setCats, () => {});
     listCollections().then(setCols, () => {});
   }, []);
-
-  async function pick(design: Look["design"]) {
-    if (!look) return;
-    const before = look;
-    setLook({ ...look, design });
-    try {
-      await saveLook({ design });
-      toast(`The shop now shows ${DESIGNS.find((d) => d.id === design)?.name}`);
-    } catch (e) {
-      setLook(before);
-      toastError(errText(e));
-    }
-  }
 
   async function saveLine(e: React.FormEvent) {
     e.preventDefault();
@@ -123,35 +119,15 @@ export default function StorefrontPage() {
   return (
     <div className="sfm">
       <header className="adm-pagehead">
-        <h1>Design and homepage</h1>
-        <p>Pick how the shop looks, then arrange what its homepage shows. Open any design first to look around before switching.</p>
+        <h1>Colours and homepage</h1>
+        <p>Set the shop&apos;s colours, the line along its top, and what its homepage shows.</p>
       </header>
       {err && <p className="adm-err">{err}</p>}
 
-      <section className="sfm-designs" aria-label="Designs">
-        {DESIGNS.map((d) => (
-          <article key={d.id} className={`adm-card sfm-design ${look?.design === d.id ? "is-on" : ""}`} data-design={d.id}>
-            <div className="sfm-swatch" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <h2>
-              {d.name}
-              {look?.design === d.id && <span className="adm-pill">On the shop</span>}
-            </h2>
-            <p className="adm-muted adm-small">{d.about}</p>
-            <div className="adm-actions">
-              <a className="adm-btn" href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/?design=${d.id}`} target="_blank" rel="noreferrer">
-                Look at it
-              </a>
-              <button type="button" className="adm-btn pri" disabled={!look || look.design === d.id} onClick={() => pick(d.id)}>
-                Use this
-              </button>
-            </div>
-          </article>
-        ))}
+      <section className="adm-card sfm-colours">
+        <h2>Colours</h2>
+        <p className="adm-muted adm-small">How the shop looks, light and dark. Pick a preset, change any part, look at it in the preview, then Save.</p>
+        <ColourEditor />
       </section>
 
       <form className="adm-card sfm-line" onSubmit={saveLine}>

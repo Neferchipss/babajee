@@ -8,11 +8,13 @@ import { isAdminDemo } from "@/lib/admin-api";
 import { errText } from "@/lib/orders-db";
 import { can, ROLES, roleLabel, setStaff, useStaff, type StaffMember, type StaffRole } from "@/lib/staff";
 import { getSupabase } from "@/lib/supabase";
+import AroniumUsers from "@/components/admin/shells/AroniumUsers";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // The team: who can open this admin and what each one's role lets them do
 // (0072), from owner down to front-end UI. Owners change anyone; admins add
 // and change the three roles under them.
-export default function TeamPage() {
+function TeamPageOriginal() {
   const { me } = useStaff();
   const [team, setTeam] = useState<StaffMember[] | null>(null);
   const [err, setErr] = useState("");
@@ -201,4 +203,10 @@ export default function TeamPage() {
 
     </div>
   );
+}
+
+// The Aronium-style design shows Aronium's Users & security screen instead.
+export default function TeamPage() {
+  const style = useAdminStyle();
+  return style === "aronium" ? <AroniumUsers /> : <TeamPageOriginal />;
 }

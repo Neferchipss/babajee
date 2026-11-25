@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listCollections } from "@/lib/collections";
-import { bestSellerSlugs, blocks, inline, listRows, liveBanners, type Banner, type Design, type HomeSection } from "@/lib/content";
+import { bestSellerSlugs, blocks, inline, listRows, liveBanners, type Banner, type HomeSection } from "@/lib/content";
 import { formatPrice } from "@/lib/currency";
 import CategoryIcon from "@/components/CategoryIcon";
 import type { HomeProduct } from "@/lib/catalog-db";
 import "./designs.css";
 import "./shop-home.css";
+
+// the old storefront designs this home was drawn in (now unused: the
+// homepage is always the painted walk-in)
+type Design = "current" | "shopfront" | "haveli" | "chai" | "courtyard";
 
 // The shop's home for every design but Current (Admin > Storefront, 0073):
 // rotating banners, the sections the admin arranged (categories, best

@@ -12,6 +12,8 @@
      --bb-scrim  what dims the page behind a sheet */
 
 :root {
+  /* the top bars' colour: the page's unless the shop palette sets one */
+  --bb-bar: var(--bb-bg);
   --bb-fg: 255 255 255;
   --bb-bg: 12 10 28;
   --bb-sheet: #120e2c;
@@ -95,8 +97,9 @@ html[data-theme="baba-poster"] #site[data-scope="shop"] {
 /* in the light, a soft glow behind each product on its white plate, as if
    it stood in a little light of its own */
 html[data-theme="baba-poster"][data-mode="light"] #site[data-scope="shop"] :is(.pa, .ps-stage, .ps-photos) {
-  /* flat light grey behind product photos, like the reference */
-  background: #f0f2f5;
+  /* flat light grey behind product photos, like the reference (the shop
+     palette's product photo backdrop) */
+  background: var(--color-plate);
 }
 
 

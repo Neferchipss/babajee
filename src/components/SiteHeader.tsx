@@ -6,7 +6,7 @@ import Link from "next/link";
 import SceneLink, { isScenePath } from "@/components/SceneLink";
 import { usePathname } from "next/navigation";
 import { TO_STREET } from "@/components/scene-note";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { cartCount, useCart } from "@/lib/cart";
 import { JarIcon, SearchIcon, UserIcon } from "./icons";
 import DeliverTo from "./address/DeliverTo";
@@ -25,18 +25,9 @@ const NAV = [
 
 // The markup is the same in every theme; the theme CSS decides where things
 // sit and whether the tools show as text or as icons.
-// the shop design on <html data-design> (src/lib/shop-design.ts): a designed
-// homepage is a full shop home, so it wears the shop's bar
-function watchDesign(cb: () => void) {
-  const m = new MutationObserver(cb);
-  m.observe(document.documentElement, { attributes: true, attributeFilter: ["data-design"] });
-  return () => m.disconnect();
-}
-const designNow = () => !!document.documentElement.dataset.design;
 
 export default function SiteHeader() {
   const pathname = usePathname().replace(/\/$/, "") || "/";
-  const designed = useSyncExternalStore(watchDesign, designNow, () => false);
   const [open, setOpen] = useState(false);
   const count = cartCount(useCart());
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -70,12 +61,21 @@ export default function SiteHeader() {
         <div className="lb-search">
           <AdminSearch />
         </div>
+        {/* the documentation, opened at the article for this page */}
+        {pathname.startsWith("/admin/help") ? null : (
+          <Link href={`/admin/help?from=${encodeURIComponent(pathname)}`} className="lb-help" aria-label="Documentation: how to use this admin" title="Documentation">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M7.8 7.8a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.6M10 14.4h.01" />
+            </svg>
+          </Link>
+        )}
         <ProfileMenu cart={false} />
       </header>
     );
   }
   if (pathname === "/" || (!shelves && !tools)) {
-    const cart = pathname !== "/" || designed;
+    const cart = pathname !== "/";
     return (
       <header className={cart ? "lb lb--where" : "lb"}>
         <SceneLink
@@ -84,7 +84,7 @@ export default function SiteHeader() {
           className="lb-logo"
           onClick={(e) => {
             // already here: walk back out to the street rather than reload the page
-            if (pathname !== "/" || designed) return;
+            if (pathname !== "/") return;
             e.preventDefault();
             window.dispatchEvent(new Event(TO_STREET));
           }}

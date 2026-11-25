@@ -7,6 +7,9 @@ import { AnalyticsTabs, RangePicker, rangeLabel, useRange } from "@/components/a
 import { addDays, dayLabel, daysBetween } from "@/lib/dates";
 import { itc, unpaidBills, type ItcMonth, type UnpaidBill } from "@/lib/stock-in/db";
 import { analytics, errText, failedDeliveries, profit, salesByAge, salesByCategory, savedProducts, type AgeSales, type Analytics, type CategorySales, type Profit, type SavedProduct } from "@/lib/orders-db";
+import ArAnalyticsScreen from "@/components/admin/shells/AroniumAnalytics";
+import { ArPeriod } from "@/components/admin/shells/aronium-d-kit";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // The stats page. One date range drives every card, and each number is
 // compared with the period just before it (the same number of days).
@@ -16,6 +19,16 @@ const pct = (n: number) => `${n.toFixed(1)}%`;
 const shortMoney = (n: number) => (n >= 1e5 ? `₹${(n / 1e5).toFixed(n >= 1e6 ? 0 : 1)}L` : n >= 1e3 ? `₹${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : `₹${n}`);
 
 export default function AnalyticsPage() {
+  return useAdminStyle() === "aronium" ? (
+    <ArAnalyticsScreen kind="overview">
+      <AnalyticsPageOriginal ar />
+    </ArAnalyticsScreen>
+  ) : (
+    <AnalyticsPageOriginal />
+  );
+}
+
+function AnalyticsPageOriginal({ ar = false }: { ar?: boolean }) {
   const [range, setRange] = useRange();
   const [cur, setCur] = useState<Analytics | null>(null);
   const [prev, setPrev] = useState<Analytics | null>(null);
@@ -101,9 +114,9 @@ export default function AnalyticsPage() {
     <CompareOff.Provider value={range.id === "all"}>
     <div className="anx">
       <h1 className="sr-only">Analytics</h1>
-      <AnalyticsTabs on="overview" />
+      {!ar && <AnalyticsTabs on="overview" />}
       <div className="anx-bar">
-        <RangePicker value={range} onChange={(r) => (setErr(""), setRange(r))} />
+        {ar ? <ArPeriod value={range} onChange={(r) => (setErr(""), setRange(r))} /> : <RangePicker value={range} onChange={(r) => (setErr(""), setRange(r))} />}
         {days.length > 0 && range.id !== "all" && <span className="adm-muted adm-small">vs the {days.length > 1 ? `${days.length} days` : "day"} before</span>}
       </div>
       {err && <p className="adm-err">{err}</p>}

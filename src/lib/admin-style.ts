@@ -3,38 +3,27 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { getSupabase } from "./supabase";
 
-// The admin's design, picked by each person (Settings > Admin design), kept
-// in this browser. Each is its own layout (frame, menu, page style), drawn
+// The admin's design, picked by each person (Admin theme), kept in this
+// browser: Aronium-style (the default, for anyone who hasn't picked) or
+// Legacy (id "current", the admin as it was).
+// Shopify-style, Ease and Studio were removed on 24 Nov 2026; a saved pick of
+// one of them now falls back to Legacy. Each is its own layout (frame, menu, page style), drawn
 // by its own shell in components/admin/shells; every page works in all.
-export type AdminStyle = "current" | "shopify" | "ease" | "studio";
+export type AdminStyle = "current" | "aronium";
 export const ADMIN_STYLES: { id: AdminStyle; name: string; based: string; about: string; points: string[] }[] = [
   {
+    id: "aronium",
+    name: "Aronium-style",
+    based: "Based on Aronium's back office · the default",
+    about: "Charcoal and square, like a counter till's back office: a title bar reading Management • page, one flat menu down the left with the open section in solid blue, the section's pages as tabs, and dense grid tables with a blue line under the headers.",
+    points: ["Flat menu: every section one click away", "Section pages as tabs across the top", "Dense grid tables, square buttons and fields", "Dark charcoal with one blue accent"],
+  },
+  {
     id: "current",
-    name: "Current",
-    based: "As it is today",
+    name: "Legacy",
+    based: "The admin as it was",
     about: "The admin as it is: the shop's own header, the section tree down the left, in the shop's colours, light or dark.",
     points: ["Section tree with every page and its count", "Follows the shop's light and dark mode", "Nothing new to learn"],
-  },
-  {
-    id: "shopify",
-    name: "Shopify-style",
-    based: "Based on Shopify's admin",
-    about: "A dark bar across the top with search, a grey menu down the left that opens the section you're in, and the page in white cards on a soft grey background, centred.",
-    points: ["Top bar with search and your account", "Left menu: sections, the open one shows its pages", "White cards, quiet grey page, dark main buttons", "Menu slides in from the side on a phone"],
-  },
-  {
-    id: "ease",
-    name: "Ease",
-    based: "Built for ease of use",
-    about: "Big, plain and task-first: large section tabs across the top, the open section's pages as big buttons, one column, large text, and on a phone a tab bar at the bottom like an app. The home starts with today's jobs.",
-    points: ["Home opens on today's jobs: pack, ship, reply, restock", "Large tabs and buttons, large text, strong contrast", "One column, nothing crowded", "Bottom tab bar on a phone"],
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    based: "For people who work in it all day",
-    about: "A slim icon rail, a panel with the section's pages, a breadcrumb bar, and a command search (Ctrl K) to jump to any page or find any order, product or customer by typing. Compact, fast, keyboard-first.",
-    points: ["Ctrl K: jump anywhere by typing", "Icon rail + pages panel (folds away for more room)", "Breadcrumbs: always know where you are", "Compact tables, more on screen"],
   },
 ];
 const KEY = "bj-adm-style";
@@ -48,9 +37,9 @@ function read(): AdminStyle {
   if (ok(asked)) return asked;
   try {
     const s = localStorage.getItem(KEY);
-    return ok(s) ? s : "current";
+    return ok(s) ? s : "aronium";
   } catch {
-    return "current";
+    return "aronium";
   }
 }
 function subscribe(cb: () => void) {
@@ -63,7 +52,7 @@ function subscribe(cb: () => void) {
 }
 
 export function useAdminStyle(): AdminStyle {
-  return useSyncExternalStore(subscribe, read, () => "current");
+  return useSyncExternalStore(subscribe, read, () => "aronium");
 }
 
 function keep(s: AdminStyle) {

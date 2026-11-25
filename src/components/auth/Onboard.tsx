@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ageOf, readDob } from "@/lib/age";
 import { useAuth } from "@/lib/auth";
 import { MIN_AGE } from "@/lib/config";
@@ -12,11 +12,19 @@ import Logo from "@/components/Logo";
 import NotConnected from "./NotConnected";
 import "./onboard.css";
 
+// the hero art, one picked at random each time this opens: read on the client
+// only (the server's HTML has none, so hydration agrees), re-rolled on close
+const ARTS = ["beach", "garden"] as const;
+const roll = () => ARTS[Math.floor(Math.random() * ARTS.length)];
+let artPick: (typeof ARTS)[number] | null = null;
+const artNow = () => (artPick ??= roll());
+const never = () => () => {};
+
 // One way in for everyone (0058): type your email, enter the code we send
 // (that verifies the email), and a new customer adds name, mobile and date of
 // birth on one short screen. Customers who set a password before can still use
 // it. Wide screens get a brand panel beside the form (art comes later: the
-// dashed boxes are placeholders); phones get a short banner and a button that
+// hero art is one of the shop's two, at random); phones get a short banner and a button that
 // sits at the bottom of the screen.
 type Step = "email" | "code" | "password" | "details";
 const RESEND_AFTER = 30;
@@ -26,6 +34,8 @@ const codeOk = (c: string) => /^\d{6}$/.test(c);
 // success instead of moving to another page
 export default function Onboard({ embedded = false, onDone, onClose }: { embedded?: boolean; onDone?: () => void; onClose?: () => void } = {}) {
   const router = useRouter();
+  const art = useSyncExternalStore(never, artNow, () => null);
+  useEffect(() => () => void (artPick = null), []);
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const { status, profile, refreshProfile } = useAuth();
@@ -149,7 +159,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
   );
 
   return (
-    <div className={`onb is-${step}${embedded ? " is-modal" : ""}`}>
+    <div className={`onb is-${step}${embedded ? " is-modal" : ""}`} data-art={art ?? undefined}>
       {embedded && (
         <button type="button" className="onb-close" onClick={onClose} aria-label="Close">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -157,8 +167,7 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
           </svg>
         </button>
       )}
-      {/* phones, first step: full-width art up top (a placeholder for now, with
-          the logo on it), and Skip to carry on without logging in */}
+      {/* phones, first step: full-width art up top with the logo on it, and Skip to carry on without logging in */}
       <header className="onb-hero">
         <button type="button" className="onb-skip" onClick={leave}>
           Skip
@@ -167,7 +176,6 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
           <span className="onb-hero-logo">
             <Logo priority />
           </span>
-          <span className="onb-hero-tag">Hero art</span>
         </div>
       </header>
       {/* phones, later steps: a title bar with a round back button */}
@@ -180,14 +188,12 @@ export default function Onboard({ embedded = false, onDone, onClose }: { embedde
         <b>{TITLES[step]}</b>
       </div>
 
-      {/* the brand side: art comes later, the dashed box marks its place */}
+      {/* the brand side: the logo, the hero art, the pitch */}
       <aside className="onb-brand" aria-hidden="true">
         <span className="onb-brand-logo">
           <Logo />
         </span>
-        <div className="onb-art">
-          <span>Hero art</span>
-        </div>
+        <div className="onb-art" />
         <div className="onb-pitch">
           <h2>Everything for the session, at your door.</h2>
           <ul>

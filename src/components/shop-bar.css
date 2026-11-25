@@ -7,8 +7,9 @@
   width: 100%;
   padding: env(safe-area-inset-top) 0 0;
   /* the same solid bar as on wide screens */
-  background: rgb(var(--bb-bg));
-  color: var(--color-paper, #f4efff);
+  background: rgb(var(--bb-bar));
+  /* words on the bar: the palette's pick for its colour (shop-colours.ts) */
+  color: var(--bb-on-bar, var(--color-paper, #f4efff));
 }
 
 /* where to, and the profile button */
@@ -515,7 +516,7 @@
     width: 44px;
     padding: 0;
     border: 0;
-    background: rgb(var(--bb-bg));
+    background: rgb(var(--bb-bar));
     color: var(--color-paper, #f4efff);
     cursor: pointer;
   }
@@ -548,9 +549,9 @@
   padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   /* the shelf bar's top row */
   min-height: calc(58px + env(safe-area-inset-top));
-  background: rgb(var(--bb-bg));
+  background: rgb(var(--bb-bar));
   border-bottom: 1px solid var(--color-line, #2d2860);
-  color: var(--color-paper, #f4efff);
+  color: var(--bb-on-bar, var(--color-paper, #f4efff));
 }
 .lb-logo {
   display: block;
@@ -638,4 +639,9 @@
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: 0.01em;
+}
+
+/* the search box keeps the page's own colours wherever the bar is coloured */
+.sb-search {
+  color: var(--color-paper, #f4efff);
 }

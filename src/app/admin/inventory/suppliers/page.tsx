@@ -5,9 +5,15 @@ import { useCallback, useEffect, useState } from "react";
 import Suppliers from "@/components/admin/stock/Suppliers";
 import { errText } from "@/lib/orders-db";
 import { listSuppliers, type Supplier } from "@/lib/stock-in/db";
+import AroniumSuppliers from "@/components/admin/shells/AroniumSuppliers";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Inventory › Suppliers: add, edit, deactivate. Bills pick from this list.
 export default function SuppliersPage() {
+  return useAdminStyle() === "aronium" ? <AroniumSuppliers /> : <SuppliersOriginal />;
+}
+
+function SuppliersOriginal() {
   const [list, setList] = useState<Supplier[] | null>(null);
   const [err, setErr] = useState("");
   const load = useCallback(() => listSuppliers().then(setList, (e) => (setErr(errText(e)), setList([]))), []);

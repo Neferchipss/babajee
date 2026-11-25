@@ -37,6 +37,8 @@ export const can = (role: StaffRole | null, area: Area) => !!role && CAN[area].i
 // which area an admin page belongs to (the longest matching path wins)
 const PAGES: [string, Area][] = [
   ["/admin/orders", "money"],
+  // the counter till: the staff who take orders (0085)
+  ["/admin/counter", "money"],
   ["/admin/customers", "money"],
   ["/admin/analytics", "money"],
   ["/admin/inventory", "catalog"],
@@ -49,6 +51,14 @@ const PAGES: [string, Area][] = [
   ["/admin/settings/design", "staff"],
   ["/admin/settings/activity", "money"],
   ["/admin/settings", "settings_view"],
+  // the Aronium-style design's own screens (components/admin/shells)
+  ["/admin/price-lists", "catalog"],
+  ["/admin/promotions", "catalog"],
+  ["/admin/tax-rates", "catalog"],
+  ["/admin/payment-types", "settings_view"],
+  // the guide to the admin: everyone on the staff
+  ["/admin/help", "staff"],
+  ["/admin/countries", "settings_view"],
   ["/admin", "staff"],
 ];
 function areaOf(path: string): Area {

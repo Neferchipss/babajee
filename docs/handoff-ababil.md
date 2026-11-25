@@ -4,7 +4,9 @@ For the Claude session working on this project. Everything on `ababil` is merged
 
 ## Status
 
-- **All migrations up to 0083 are applied live.**
+- **All migrations up to 0087 are applied live.**
+  - 0081–0083 and 0084 (admin designs: Legacy and Aronium-style only) and 0085 (counter sales: the till at /admin/counter, cash drawer, orders.channel) on 24 Nov 2026.
+  - 0086 (till part two: refunds, sales on account, voids, cashier, till reports) and 0087 (site_look.colours, the shop palette) later on 24 Nov 2026; colours stay null (Legacy) until someone saves.
 - **The sub-category fill has been run on live data:**
   - 21 groups and 70 new sub-categories, across 8 types (papers, trays, storage, bongs, bong accessories, grinders, pipes, ashtrays);
   - 268 products tagged.
@@ -114,6 +116,13 @@ All of these ran on the live database without changing anything, except the two 
 - Role check run against the database, in a rolled-back transaction: every page's reads and writes match its role.
 - Fixed: page access ignores `#`/`?`. Before this, Profit and GST showed for every role.
 - Shop buttons, fields and links take their colours from the design tokens, with one `.link` class.
+- Homepage is always the painted walk-in (scrub scene), whatever storefront design is picked; HomeSwitch removed.
+- Login window: hero art (beach or garden) picked at random on each opening, replacing the placeholders.
+- Login window: redesigned as logo over the full artwork on the left and the form card on the right, 960 × 440, no pitch text.
+- Login window: art runs to the window's left, top and bottom edges, pinned bottom-left, its right edge lined up with the form card.
+- Login window: the art showing around the form card is blurred; the logo has no black tile behind it.
+- Login on phones: art fills the whole header edge to edge, logo straight on it.
+- Shop colours built: Storefront › Colours replaces the designs (11 parts, light and dark, presets Legacy/Haveli/Chai corner/Courtyard, live preview); 0087 applied to live. Spec and plan in `docs/superpowers/`.
 
 ## Not done
 

@@ -6,57 +6,19 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { LogContactForm, MarkPaidForm } from "@/components/admin/PaymentForms";
 import { toast, toastError } from "@/components/admin/Toaster";
 import { Dialog, money, SortTh, StatusPill, useSort, when } from "@/components/admin/ui";
-import { isoDay } from "@/lib/dates";
-import { download, itemsCsv, ordersCsv } from "@/lib/orders-csv";
-import { STATUSES, type OrderStatus } from "@/lib/order-status";
+import { STATUSES } from "@/lib/order-status";
 import { useAuth } from "@/lib/auth";
 import { contactsFor, errText, getSettings, listOrders, updateOrder, type Order, type OrderContact } from "@/lib/orders-db";
+import { BULK, ExportForm, openRequest, TABS, telOf, waiting, waOf, type Step } from "@/components/admin/order/list";
+import AroniumOrders from "@/components/admin/shells/AroniumOrders";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // The order list: one tab per kind of work (unpaid, to pack, to ship, ...),
 // a search box, bulk "mark as" for ticked orders, and export to a spreadsheet.
-const openRequest = (o: Order) => (o.order_requests ?? []).find((r) => r.status === "open");
-// Each tab: its title, what it's for in a line, and the one step that moves
-// an order on from it (a button on every row; "ship" opens the order's
-// courier form, since it needs a tracking number).
-type Step = { label: string; to: OrderStatus | "ship" | "open"; done: string };
-const TABS: { id: string; label: string; note: string; step?: Step; match: (o: Order) => boolean }[] = [
-  { id: "all", label: "All orders", note: "Every order, newest first. Tap one to see it all and act on it.", match: () => true },
-  { id: "pending", label: "Payment pending", note: "Not paid yet. Contact each customer to take payment, then mark it paid. Unpaid orders cancel themselves after the hours set in Settings.", step: { label: "Mark paid", to: "paid", done: "marked as paid" }, match: (o) => o.status === "pending" },
-  { id: "paid", label: "To pack", note: "Paid and ready to pack. Pack them, then mark them packed.", step: { label: "Packed", to: "packed", done: "marked as packed" }, match: (o) => o.status === "paid" },
-  { id: "packed", label: "Ready to dispatch", note: "Packed and waiting for the courier. Ship each with its courier and tracking number.", step: { label: "Ship…", to: "ship", done: "" }, match: (o) => o.status === "packed" },
-  { id: "shipped", label: "On the way", note: "With the courier. Mark each delivered when it arrives.", step: { label: "Delivered", to: "delivered", done: "marked as delivered" }, match: (o) => o.status === "shipped" },
-  { id: "requests", label: "Customer requests", note: "Customers asking to cancel or return. Open one to accept and refund, or decline with a reply.", step: { label: "Review", to: "open", done: "" }, match: (o) => !!openRequest(o) },
-  { id: "problems", label: "Delivery problems", note: "Orders the courier couldn't deliver. Open one to send it again, or take it back in.", step: { label: "Sort it out", to: "open", done: "" }, match: (o) => o.status === "shipped" && !!o.delivery_failed_at },
-  { id: "delivered", label: "Delivered", note: "Done. Customers can ask for a return from here, within the return window.", match: (o) => o.status === "delivered" },
-  { id: "closed", label: "Cancelled & refunded", note: "Orders that were cancelled or refunded in full.", match: (o) => o.status === "cancelled" || o.status === "refunded" },
-];
-
-// what a ticked group can be moved to, given the tab they are in (marking
-// paid is one order at a time: each needs how it was paid, 0056)
-const BULK: Partial<Record<string, OrderStatus>> = { paid: "packed", shipped: "delivered" };
-
-// an unpaid order's age and the time left before it cancels itself (0055)
-const H = 3600 * 1000;
-function waiting(o: Order, hold: number) {
-  const age = Date.now() - new Date(o.created_at).getTime();
-  const ago = age < H ? `${Math.max(1, Math.round(age / 60000))} min ago` : age < 48 * H ? `${Math.round(age / H)} h ago` : `${Math.round(age / (24 * H))} days ago`;
-  if (!hold) return { text: `Placed ${ago}`, urgent: false };
-  const left = hold * H - age;
-  const l = left <= 0 ? "due to cancel" : left < H ? `${Math.max(1, Math.round(left / 60000))} min left` : left < 48 * H ? `${Math.round(left / H)} h left` : `${Math.round(left / (24 * H))} days left`;
-  return { text: `${ago} · ${l}`, urgent: left < 6 * H };
-}
-const telOf = (phone: string) => phone.replace(/[^\d+]/g, "");
-const waOf = (phone: string) => {
-  const d = phone.replace(/\D/g, "");
-  return d.length === 10 ? `91${d}` : d;
-};
-
+// The Aronium-style design shows it as Aronium's Documents screen instead.
 export default function OrdersPage() {
-  return (
-    <Suspense>
-      <Orders />
-    </Suspense>
-  );
+  const style = useAdminStyle();
+  return <Suspense>{style === "aronium" ? <AroniumOrders /> : <Orders />}</Suspense>;
 }
 
 function Orders() {
@@ -299,6 +261,7 @@ function Orders() {
                         {o.order_number}
                       </Link>
                       {o.is_test && <span className="adm-muted adm-small"> · test</span>}
+                      {o.channel === "counter" && <span className="adm-muted adm-small"> · counter</span>}
                     </td>
                     <td className="adm-muted c-date">
                       {when(o.created_at)}
@@ -375,56 +338,3 @@ function Orders() {
   );
 }
 
-function ExportForm({ shown, picked, tab, searching, onClose }: { shown: Order[]; picked: Order[]; tab: string; searching: boolean; onClose: () => void }) {
-  const [which, setWhich] = useState<"shown" | "picked">(picked.length ? "picked" : "shown");
-  const [rows, setRows] = useState<"orders" | "items">("orders");
-  const list = which === "picked" ? picked : shown;
-  const items = list.reduce((n, o) => n + (o.order_items?.length ?? 0), 0);
-  return (
-    <form
-      method="dialog"
-      onSubmit={(e) => {
-        e.preventDefault();
-        download(`babajee-${rows === "items" ? "order-items" : "orders"}-${isoDay(0)}.csv`, rows === "items" ? itemsCsv(list) : ordersCsv(list));
-        toast(`Exported ${list.length} order${list.length === 1 ? "" : "s"}`);
-        onClose();
-      }}
-    >
-      <h2>Export orders</h2>
-      <fieldset className="adm-fieldset">
-        <legend>Which orders</legend>
-        <label className="adm-check">
-          <input type="radio" name="which" checked={which === "shown"} onChange={() => setWhich("shown")} />
-          {tab === "All" && !searching ? "All" : "The"} {shown.length} order{shown.length === 1 ? "" : "s"} {tab === "All" ? "" : `in ${tab}`}
-          {searching ? " matching the search" : ""}
-        </label>
-        {picked.length > 0 && (
-          <label className="adm-check">
-            <input type="radio" name="which" checked={which === "picked"} onChange={() => setWhich("picked")} />
-            The {picked.length} ticked
-          </label>
-        )}
-      </fieldset>
-      <fieldset className="adm-fieldset">
-        <legend>Rows</legend>
-        <label className="adm-check">
-          <input type="radio" name="rows" checked={rows === "orders"} onChange={() => setRows("orders")} />
-          One row per order: customer, address, money, refunds
-        </label>
-        <label className="adm-check">
-          <input type="radio" name="rows" checked={rows === "items"} onChange={() => setRows("items")} />
-          One row per item ({items}): for packing or counting stock
-        </label>
-      </fieldset>
-      <p className="adm-muted adm-small" style={{ margin: 0 }}>
-        A CSV file that opens in Excel or Google Sheets. Dates are India time.
-      </p>
-      <div className="adm-actions" style={{ justifyContent: "flex-end" }}>
-        <button type="button" className="adm-btn" onClick={onClose}>
-          Back
-        </button>
-        <button className="adm-btn pri">Download</button>
-      </div>
-    </form>
-  );
-}

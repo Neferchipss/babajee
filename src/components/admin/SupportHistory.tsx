@@ -10,7 +10,7 @@ import { addCustomerNote, errText, requestsFor, setNoteStatus, type CustomerNote
 // staff logged (a call, a WhatsApp, an email), private notes, the customer's
 // cancellation and return requests with the shop's replies, and failed
 // deliveries. A contact can need a follow-up; open ones count on Home.
-const CHANNELS: [SupportChannel, string][] = [
+export const CHANNELS: [SupportChannel, string][] = [
   ["whatsapp", "WhatsApp"],
   ["call", "Call"],
   ["email", "Email"],
@@ -20,7 +20,7 @@ const CHANNELS: [SupportChannel, string][] = [
 ];
 const channelName = (c: SupportChannel) => CHANNELS.find(([k]) => k === c)?.[1] ?? "";
 
-type Item = { key: string; at: string; head: string; body?: string; order?: Order; note?: CustomerNote; tone?: "open" | "bad" };
+export type SupportItem = { key: string; at: string; head: string; body?: string; order?: Order; note?: CustomerNote; tone?: "open" | "bad" };
 
 export default function SupportHistory({ customerId, userId, notes, orders, onChange }: { customerId: string; userId: string | undefined; notes: CustomerNote[]; orders: Order[]; onChange: () => Promise<unknown> }) {
   const [kind, setKind] = useState<"contact" | "note">("contact");
@@ -29,52 +29,7 @@ export default function SupportHistory({ customerId, userId, notes, orders, onCh
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
-  const [requests, setRequests] = useState<(OrderRequest & { order_id: string })[]>([]);
-
-  const orderIds = orders.map((o) => o.id).join(",");
-  useEffect(() => {
-    let live = true;
-    requestsFor(orderIds ? orderIds.split(",") : []).then((r) => live && setRequests(r), () => {});
-    return () => {
-      live = false;
-    };
-  }, [orderIds]);
-
-  const items = useMemo<Item[]>(() => {
-    const byId = new Map(orders.map((o) => [o.id, o]));
-    const out: Item[] = notes.map((n) => ({
-      key: `n-${n.id}`,
-      at: n.created_at,
-      head: n.kind === "contact" ? `${channelName(n.channel) || "Contact"}${n.status === "open" ? " · needs a follow-up" : n.status === "resolved" ? " · done" : ""}` : "Note",
-      body: n.body,
-      order: n.order_id ? byId.get(n.order_id) : undefined,
-      note: n,
-      tone: n.status === "open" ? "open" : undefined,
-    }));
-    for (const r of requests) {
-      const o = byId.get(r.order_id);
-      out.push({
-        key: `r-${r.id}`,
-        at: r.created_at,
-        head: `Asked to ${r.kind === "cancel" ? "cancel" : "return items"} · ${r.status === "open" ? "waiting for you" : r.status}`,
-        body: [r.reason && `“${r.reason}”`, r.reply && `Your reply: ${r.reply}`].filter(Boolean).join("\n") || undefined,
-        order: o,
-        tone: r.status === "open" ? "open" : undefined,
-      });
-    }
-    for (const o of orders) {
-      if ((o.delivery_attempts ?? 0) > 0)
-        out.push({
-          key: `f-${o.id}`,
-          at: o.delivery_failed_at ?? o.created_at,
-          head: `Delivery failed${(o.delivery_attempts ?? 0) > 1 ? ` ${o.delivery_attempts} times` : ""}`,
-          body: o.delivery_failed_reason || undefined,
-          order: o,
-          tone: "bad",
-        });
-    }
-    return out.sort((a, b) => b.at.localeCompare(a.at));
-  }, [notes, requests, orders]);
+  const items = useSupportItems(notes, orders);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -189,4 +144,56 @@ export default function SupportHistory({ customerId, userId, notes, orders, onCh
       )}
     </section>
   );
+}
+
+// the customer's support history, newest first: notes and logged contacts,
+// their cancel and return requests, failed deliveries
+export function useSupportItems(notes: CustomerNote[], orders: Order[]) {
+  const [requests, setRequests] = useState<(OrderRequest & { order_id: string })[]>([]);
+  const orderIds = orders.map((o) => o.id).join(",");
+  useEffect(() => {
+    let live = true;
+    requestsFor(orderIds ? orderIds.split(",") : []).then((r) => live && setRequests(r), () => {});
+    return () => {
+      live = false;
+    };
+  }, [orderIds]);
+
+  const items = useMemo<SupportItem[]>(() => {
+    const byId = new Map(orders.map((o) => [o.id, o]));
+    const out: SupportItem[] = notes.map((n) => ({
+      key: `n-${n.id}`,
+      at: n.created_at,
+      head: n.kind === "contact" ? `${channelName(n.channel) || "Contact"}${n.status === "open" ? " · needs a follow-up" : n.status === "resolved" ? " · done" : ""}` : "Note",
+      body: n.body,
+      order: n.order_id ? byId.get(n.order_id) : undefined,
+      note: n,
+      tone: n.status === "open" ? "open" : undefined,
+    }));
+    for (const r of requests) {
+      const o = byId.get(r.order_id);
+      out.push({
+        key: `r-${r.id}`,
+        at: r.created_at,
+        head: `Asked to ${r.kind === "cancel" ? "cancel" : "return items"} · ${r.status === "open" ? "waiting for you" : r.status}`,
+        body: [r.reason && `“${r.reason}”`, r.reply && `Your reply: ${r.reply}`].filter(Boolean).join("\n") || undefined,
+        order: o,
+        tone: r.status === "open" ? "open" : undefined,
+      });
+    }
+    for (const o of orders) {
+      if ((o.delivery_attempts ?? 0) > 0)
+        out.push({
+          key: `f-${o.id}`,
+          at: o.delivery_failed_at ?? o.created_at,
+          head: `Delivery failed${(o.delivery_attempts ?? 0) > 1 ? ` ${o.delivery_attempts} times` : ""}`,
+          body: o.delivery_failed_reason || undefined,
+          order: o,
+          tone: "bad",
+        });
+    }
+    return out.sort((a, b) => b.at.localeCompare(a.at));
+  }, [notes, requests, orders]);
+
+  return items;
 }

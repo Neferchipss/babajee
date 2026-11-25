@@ -5,6 +5,8 @@ import { toast, toastError } from "@/components/admin/Toaster";
 import { deleteRow, listRows, reorder, saveRow, uploadBannerImage, type Banner, type Tone } from "@/lib/content";
 import { errText } from "@/lib/orders-db";
 import "@/components/admin/storefront.css";
+import AroniumBanners from "@/components/admin/shells/AroniumBanners";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Storefront > Banners: the homepage's rotating banners (0073). Each has a
 // picture (or a plain colour), a heading, a line, a button and where it goes,
@@ -19,6 +21,10 @@ const TONES: [Tone, string][] = [
 const local = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 
 export default function BannersPage() {
+  return useAdminStyle() === "aronium" ? <AroniumBanners /> : <BannersPageOriginal />;
+}
+
+function BannersPageOriginal() {
   const [list, setList] = useState<Banner[] | null>(null);
   const [err, setErr] = useState("");
   const load = () => listRows("site_banners").then(setList, (e) => setErr(errText(e)));

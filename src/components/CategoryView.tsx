@@ -17,6 +17,7 @@ import { track } from "@/lib/track";
 import ProductCard, { type CardProduct } from "./ProductCard";
 import CategoryCard from "./CategoryCard";
 import SoldOutRow, { isSoldOut } from "./SoldOutRow";
+import { buildFacets } from "@/lib/shelf-facets";
 import ShelfFilter, { ActiveFilters, applyFilters, filterCount, NO_FILTERS, sortProducts, type Filters, type Sort } from "./ShelfFilter";
 import ProductSheet from "./ProductSheet";
 import ProductDesk from "./ProductDesk";
@@ -174,18 +175,16 @@ export default function CategoryView({ category, products: snapshot, categories:
       live = false;
     };
   }, [category.slug, noTags]);
-  const tagList = noTags ? [] : (liveTags ?? initialTags).filter((t) => products.some((p) => p.tags?.includes(t.slug)));
+  const tagList = noTags ? [] : (liveTags ?? initialTags);
   const [chosen, setChosen] = useState<string[]>(tag ? [tag] : []);
-  const tagRows = [...new Set(tagList.map((t) => t.group))].map((g) => ({ group: g, tags: tagList.filter((t) => t.group === g) }));
-  // the products matching every row's choice but `skip`'s (for that row's counts)
-  const matching = (skip?: string) =>
-    products.filter((p) =>
-      tagRows.every((r) => {
-        if (r.group === skip) return true;
-        const on = r.tags.filter((t) => chosen.includes(t.slug));
-        return !on.length || on.some((t) => p.tags?.includes(t.slug));
-      }),
-    );
+  // the tag rows (Size, Paper…) live in Sort & filter (shelf-facets.ts)
+  const facetsBuilt = buildFacets(tagList, products, chosen);
+  const facets = {
+    rows: facetsBuilt.rows,
+    count: facetsBuilt.count,
+    onToggle: (slug: string) => setChosen((c) => (c.includes(slug) ? c.filter((x) => x !== slug) : [...c, slug])),
+    onClear: () => setChosen([]),
+  };
   const tagName = new Map(tagList.map((t) => [t.slug, t.name]));
   const searching = category.slug === "search";
   useEffect(() => {
@@ -195,7 +194,7 @@ export default function CategoryView({ category, products: snapshot, categories:
 
   const q = query.trim().toLowerCase();
   const words = q.split(/\s+/).filter(Boolean);
-  const inSub = chosen.length ? matching() : products;
+  const inSub = facetsBuilt.matching;
   const searched = words.length
     ? inSub.filter((p) => words.every((w) => `${p.name} ${p.group ?? ""} ${(p.tags ?? []).map((t) => tagName.get(t) ?? "").join(" ")}`.toLowerCase().includes(w)))
     : inSub;
@@ -213,7 +212,7 @@ export default function CategoryView({ category, products: snapshot, categories:
   const soldOut = picked.filter(isSoldOut);
   const filtered = soldOut.length ? picked.filter((p) => !isSoldOut(p)) : picked;
   const narrowed = q !== "" || filterCount(filters) > 0;
-  const sortFilter = { products: searched, sort, onSort: setSort, filters, onFilters: setFilters };
+  const sortFilter = { products: searched, sort, onSort: setSort, filters, onFilters: setFilters, facets };
   // Featured on the all-products shelf lists it category by category, under
   // a heading for each; a category's own shelf is one run of cards (the
   // brand is on each card)
@@ -344,31 +343,7 @@ export default function CategoryView({ category, products: snapshot, categories:
             {category.slug === "all" ? null : <h2 className="cp-head-name">{category.name}</h2>}
             {category.tagline ? <p className="cp-head-line">{category.tagline}</p> : null}
           </header>
-          {tagRows.map((r, i) => {
-            const base = matching(r.group);
-            return (
-              <div key={r.group || "-"} className="cp-subs" role="group" aria-label={r.group ? `${category.name}: ${r.group}` : `Filter ${category.name}`}>
-                {r.group && <span className="cp-subs-name">{r.group}</span>}
-                {i === 0 && (
-                  <button type="button" aria-pressed={!chosen.length} onClick={() => setChosen([])}>
-                    All
-                    <span>{products.length}</span>
-                  </button>
-                )}
-                {r.tags.map((t) => {
-                  const on = chosen.includes(t.slug);
-                  const n = base.filter((p) => p.tags?.includes(t.slug)).length;
-                  return (
-                    <button key={t.slug} type="button" aria-pressed={on} disabled={!on && n === 0} onClick={() => setChosen(on ? chosen.filter((x) => x !== t.slug) : [...chosen, t.slug])}>
-                      {t.name}
-                      <span>{n}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-          <ActiveFilters filters={filters} onFilters={setFilters} sort={sort} onSort={setSort} />
+          <ActiveFilters filters={filters} onFilters={setFilters} sort={sort} onSort={setSort} facets={facets} />
           <div className="cp-toolbar" data-open={finding || q !== ""}>
             <label className="cp-search">
               <span className="sr-only">Search {category.name}</span>

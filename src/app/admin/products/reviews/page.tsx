@@ -7,6 +7,8 @@ import { when } from "@/components/admin/ui";
 import Stars from "@/components/Stars";
 import { errText } from "@/lib/orders-db";
 import { adminReviews, deleteReview, setReviewStatus, type AdminReview, type ReviewStatus } from "@/lib/reviews";
+import AroniumReviews from "@/components/admin/shells/AroniumReviews";
+import { useAdminStyle } from "@/lib/admin-style";
 
 // Reviews from customers who bought the product. A new or edited review
 // waits here until the shop approves it; approved ones show on the product,
@@ -18,6 +20,10 @@ const TABS: { id: ReviewStatus; label: string; empty: string }[] = [
 ];
 
 export default function ReviewsPage() {
+  return useAdminStyle() === "aronium" ? <AroniumReviews /> : <ReviewsPageOriginal />;
+}
+
+function ReviewsPageOriginal() {
   const [rows, setRows] = useState<AdminReview[] | null>(null);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<ReviewStatus>("pending");

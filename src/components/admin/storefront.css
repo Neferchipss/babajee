@@ -3,16 +3,6 @@
 
 .sfm { display: grid; gap: 16px; }
 .sfm h2 { margin: 0; font-size: 1.05rem; }
-.sfm-designs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
-.sfm-design { display: grid; gap: 8px; align-content: start; }
-.sfm-design.is-on { outline: 2px solid var(--adm-gold); }
-.sfm-design h2 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.sfm-swatch { display: flex; height: 54px; border-radius: 10px; overflow: hidden; border: 1px solid var(--adm-line); }
-.sfm-swatch span { flex: 1; }
-.sfm-swatch span:nth-child(1) { background: var(--d-bg); flex: 2; }
-.sfm-swatch span:nth-child(2) { background: var(--d-accent); }
-.sfm-swatch span:nth-child(3) { background: var(--d-accent-2); }
-.sfm-swatch span:nth-child(4) { background: var(--d-accent-3); }
 .sfm-line { display: grid; gap: 8px; max-width: 640px; }
 .sfm-line .adm-btn { justify-self: start; }
 .sfm-sections { display: grid; gap: 10px; }

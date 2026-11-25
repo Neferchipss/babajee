@@ -1,0 +1,449 @@
+/* Printed sheets in Aronium's format (Sheet.tsx) and Aronium's print preview
+   (ArPrintPreview.tsx). The sheet is plain black on white in Arial whatever
+   the admin's theme: a bold upper-case title, a details block, a table whose
+   header row is boxed, a boxed totals row. On screen each page sits on a dark
+   desk with a thin gold edge, as in Aronium. Sizes match lib/print-sheet.ts. */
+
+.prs-page {
+  position: relative;
+  box-sizing: border-box;
+  width: 794px;
+  height: 1123px;
+  padding: 42px 45px 0;
+  margin: 0 auto 18px;
+  background: #fff;
+  color: #000;
+  border: 1px solid #f3b600;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+  overflow: hidden;
+  text-align: left;
+  letter-spacing: 0;
+}
+/* a wide sheet, sideways */
+.prs-page.is-land {
+  width: 1123px;
+  height: 794px;
+}
+.prs-page * {
+  box-sizing: border-box;
+}
+.prs-top h1 {
+  margin: 4px 0 10px;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 22px;
+  letter-spacing: 0.02em !important;
+  color: #000;
+  text-transform: none;
+}
+.prs-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+.prs-meta dl {
+  margin: 0;
+}
+.prs-meta dl > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  min-height: 17px;
+}
+.prs-meta dt {
+  color: #000;
+}
+.prs-meta dd {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.prs-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.prs-table th,
+.prs-table td {
+  padding: 2px 4px 3px;
+  vertical-align: top;
+  /* words wrap whole; only a cell word longer than its column breaks */
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+  color: #000;
+  background: none;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: pre-line;
+}
+.prs-table thead th {
+  overflow-wrap: normal;
+  border: 1px solid #000;
+  border-bottom-width: 2px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: center;
+}
+.prs-table .is-r {
+  text-align: right;
+}
+.prs-table .is-c {
+  text-align: center;
+}
+.prs-table tbody td {
+  border-bottom: 1px solid #e2e2e2;
+}
+.prs-table .prs-group td {
+  padding-top: 5px;
+  border-bottom: 1px solid #000;
+  font-weight: 700;
+}
+.prs-table .prs-none td {
+  padding: 8px 4px;
+  color: #555;
+  text-align: center;
+}
+.prs-table tfoot td {
+  padding-top: 3px;
+  font-weight: 700;
+  border: 0;
+}
+.prs-table tfoot td.is-boxed {
+  border: 1px solid #000;
+}
+.prs-tail {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.prs-box {
+  justify-self: end;
+  min-width: 300px;
+  border: 1px solid #000;
+  padding: 4px 8px 6px;
+}
+.prs-box h2 {
+  margin: 0 0 4px;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  color: #000;
+}
+.prs-box dl {
+  margin: 0;
+}
+.prs-box dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 17px;
+}
+.prs-box dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.prs-box .is-strong {
+  margin-top: 2px;
+  padding-top: 3px;
+  border-top: 1px solid #000;
+  font-weight: 700;
+  font-size: 12px;
+}
+.prs-note {
+  margin: 0;
+  white-space: pre-line;
+}
+.prs-foot {
+  position: absolute;
+  left: 45px;
+  right: 45px;
+  bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  color: #555;
+  font-size: 9.5px;
+}
+.prs-stamp {
+  position: absolute;
+  top: 30px;
+  right: 45px;
+  padding: 2px 10px;
+  border: 1.5px solid #b3261e;
+  color: #b3261e;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+/* ---- the preview: bar, desk, zoom ---- */
+.prs-view {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
+  background: #252525;
+}
+.prs-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 26px;
+  padding: 2px 6px;
+  background: #f0f0f0;
+  color: #000;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+}
+.prs-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  background: none;
+  color: #000;
+  font: inherit;
+  cursor: pointer;
+}
+.prs-bar button:hover:not(:disabled) {
+  border-color: #9bc4e6;
+  background: #e1eef9;
+}
+.prs-bar button:disabled {
+  color: #9a9a9a;
+  cursor: default;
+}
+.prs-bar svg,
+.prs-zoom svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.prs-bar svg {
+  color: #2b5fa5;
+}
+.prs-save {
+  position: relative;
+}
+.prs-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 150px;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid #b5b5b5;
+  box-shadow: 2px 2px 6px rgb(0 0 0 / 0.25);
+}
+.prs-menu button {
+  justify-content: flex-start;
+  height: 26px;
+  padding: 0 10px;
+}
+.prs-pages {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid #c8c8c8;
+}
+.prs-pages button {
+  color: #2b5fa5;
+  font-size: 11px;
+}
+.prs-pages input {
+  width: 38px;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid #a8a8a8;
+  background: #fff;
+  color: #000;
+  font: inherit;
+  text-align: right;
+}
+.prs-pages span {
+  padding: 0 4px;
+}
+.prs-stage {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 0 0;
+  background: #252525;
+}
+.prs-desk {
+  padding: 0 20px;
+}
+.prs-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #252525;
+}
+.prs-msg {
+  margin: 40px auto;
+  max-width: 560px;
+  color: #ddd;
+  text-align: center;
+}
+.prs-msg.is-bad {
+  color: #ff8a80;
+}
+.prs-zoom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  background: #252525;
+  border-top: 1px solid #333;
+  color: #fff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+}
+.prs-zoom button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.prs-zoom button:hover {
+  background: #484e55;
+}
+.prs-zoom input {
+  width: 190px;
+  accent-color: #1ba1e2;
+}
+
+/* the preview over a screen (an order, a bill) */
+.prs-layer .prs-view {
+  height: auto;
+  min-height: 0;
+}
+.prs-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* width and height: the window's, set by ArPrintPreview (the Aronium design
+     is drawn zoomed) */
+  width: 100vw;
+  height: 100dvh;
+  z-index: 2500;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #252525;
+}
+.prs-layer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 8px 0 16px;
+  background: #333;
+  color: #fff;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 300;
+}
+.prs-layer-head b {
+  margin-left: 6px;
+  font-weight: 400;
+}
+.prs-layer-head button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+}
+.prs-layer-head button:hover {
+  background: #484e55;
+}
+
+/* phones: the zoom slider narrower, the page bar wraps */
+@media (max-width: 700px) {
+  .prs-bar {
+    flex-wrap: wrap;
+  }
+  .prs-zoom input {
+    width: 80px;
+  }
+}
+
+/* ---- printing: only the sheets, one per page, nothing of the admin ---- */
+.prs-print {
+  display: none;
+}
+/* (the A4 page size is set by printSheets only while it prints, so this file
+   never changes the paper of anything else, like the till's receipt) */
+@media print {
+  html.prs-printing,
+  html.prs-printing body {
+    background: #fff !important;
+    zoom: 1 !important;
+  }
+  html.prs-printing body > *:not(.prs-print) {
+    display: none !important;
+  }
+  html.prs-printing .prs-print {
+    display: block;
+  }
+  html.prs-printing .prs-print .prs-page {
+    width: 210mm;
+    height: 296.5mm;
+    margin: 0;
+    border: 0;
+    break-after: page;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html.prs-printing .prs-print .prs-page.is-land {
+    page: land;
+    width: 297mm;
+    height: 209.5mm;
+  }
+  html.prs-printing .prs-print .prs-page:last-child {
+    break-after: auto;
+  }
+}
+
+/* a report open in its tab under Reporting's tab strip: its height is set
+   to what's left of the window (ArPrintPreview's fill) */
+.prs-view.ars-rep-view {
+  flex: none;
+  margin: 6px -6px 0;
+}
+
+/* Legacy reports: Print beside Download CSV */
+.rpt-acts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: none;
+}

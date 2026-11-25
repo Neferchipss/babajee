@@ -10,6 +10,8 @@ import { dayLabel } from "@/lib/dates";
 import { errText } from "@/lib/orders-db";
 import { getReceipt, voidReceipt, type Receipt } from "@/lib/stock-in/db";
 import "@/components/admin/stock/stockin.css";
+import AroniumPurchaseBill from "@/components/admin/shells/AroniumPurchaseBill";
+import { useAdminStyle } from "@/lib/admin-style";
 
 const money = (n: number) => formatPrice(n, { paise: true });
 
@@ -17,12 +19,17 @@ const money = (n: number) => formatPrice(n, { paise: true });
 export default function BillPage() {
   return (
     <Suspense>
-      <Bill />
+      <BillByStyle />
     </Suspense>
   );
 }
 
-function Bill() {
+// the Aronium-style design shows the bill as Aronium's Purchase document
+function BillByStyle() {
+  return useAdminStyle() === "aronium" ? <AroniumPurchaseBill /> : <BillOriginal />;
+}
+
+function BillOriginal() {
   const id = useSearchParams().get("id") ?? "";
   const [r, setR] = useState<Receipt | null | undefined>(undefined);
   const [err, setErr] = useState("");

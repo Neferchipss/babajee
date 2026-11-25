@@ -2,12 +2,14 @@
 
 import { useSyncExternalStore } from "react";
 import { MODE_KEY } from "./mode-boot";
+import { cachedBar, setThemeColour } from "./shop-colours-apply";
 
-// Light or dark. "system" (the default) follows the phone or computer, and
+// Light or dark. Light is the default for everyone who hasn't chosen;
+// "system" (chosen in the profile menu) follows the phone or computer, and
 // keeps following it if it changes (sunset, say). The choice is kept in this
 // browser; <html data-mode> carries what is showing, set before the first
 // paint by the layout's boot script, so a page never flashes the wrong one.
-// (The Daydream look was removed: a saved "daydream" goes back to system.)
+// (The Daydream look was removed: a saved "daydream" goes back to light.)
 export type ModePref = "system" | "light" | "dark";
 const EVENT = "bj-mode-change";
 // the browser's own bars, matched to the page
@@ -18,11 +20,11 @@ const prefersLight = () => window.matchMedia("(prefers-color-scheme: light)").ma
 function readPref(): ModePref {
   try {
     const p = localStorage.getItem(MODE_KEY);
-    if (p === "light" || p === "dark") return p;
+    if (p === "light" || p === "dark" || p === "system") return p;
     // "earthy" was folded into dark
     if (p === "earthy") return "dark";
   } catch {}
-  return "system";
+  return "light";
 }
 
 function applyMode() {
@@ -32,13 +34,14 @@ function applyMode() {
   root.dataset.mode = mode;
   delete root.dataset.look;
   root.dataset.modePref = pref;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", BAR[mode]);
+  // the shop palette's header colour, when one is set (shop-colours-apply.ts)
+  const bar = location.pathname.includes("/admin") ? null : cachedBar(mode);
+  setThemeColour(bar ?? BAR[mode]);
 }
 
 export function setModePref(pref: ModePref) {
   try {
-    if (pref === "system") localStorage.removeItem(MODE_KEY);
-    else localStorage.setItem(MODE_KEY, pref);
+    localStorage.setItem(MODE_KEY, pref);
   } catch {}
   applyMode();
   window.dispatchEvent(new Event(EVENT));
@@ -59,4 +62,4 @@ function subscribe(cb: () => void) {
   window.addEventListener(EVENT, cb);
   return () => window.removeEventListener(EVENT, cb);
 }
-export const useModePref = () => useSyncExternalStore(subscribe, readPref, () => "system" as ModePref);
+export const useModePref = () => useSyncExternalStore(subscribe, readPref, () => "light" as ModePref);
