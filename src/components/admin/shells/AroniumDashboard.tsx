@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import FitText from "./FitText";
 import { analytics, listOrders, salesByCategory, type Analytics, type CategorySales, type Order } from "@/lib/orders-db";
 import { isoDay } from "@/lib/dates";
 
@@ -110,10 +111,10 @@ export default function AroniumDashboard() {
         </section>
         <section className="ard-card ard-total">
           <h2>Total Sales</h2>
-          <b className="ard-big">{short(yearTotal)}</b>
+          <FitText className="ard-big">{short(yearTotal)}</FitText>
           <p>Top performing month:</p>
           <strong className="ard-month">{best >= 0 ? MONTHS[best].toUpperCase() : "---"}</strong>
-          <strong className="ard-amt">{amount(best >= 0 ? months[best] : 0)}</strong>
+          <FitText className="ard-amt">{amount(best >= 0 ? months[best] : 0)}</FitText>
         </section>
       </div>
 
@@ -183,7 +184,7 @@ export default function AroniumDashboard() {
         </section>
         <section className="ard-card ard-amount">
           <h2>Total Sales (Amount)</h2>
-          <b className="ard-huge">{short(range?.gross ?? 0)}</b>
+          <FitText className="ard-huge">{short(range?.gross ?? 0)}</FitText>
         </section>
       </div>
 

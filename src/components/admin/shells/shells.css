@@ -744,8 +744,8 @@ html[data-adm-shell="aronium"] .sx-announce {
   font-weight: 700;
   line-height: 1.1;
   margin: 10px 0 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* FitText shrinks it to fit the card */
+  white-space: nowrap;
 }
 .ard-month,
 .ard-amt {
