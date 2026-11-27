@@ -190,7 +190,7 @@ export function VariantCodes({ product, categorySlug, onSave }: { product: Admin
   return (
     <section className="ape-fields ape-codes">
       <div className="ape-codes-head">
-        <h3>Codes and was-price</h3>
+        <h3>Codes and MRP</h3>
         {empty.length > 0 && (
           <button
             type="button"
@@ -249,7 +249,7 @@ export function CodeRow({ variant: v, many, hint, onSave }: { variant: AdminVari
         <span className={`ape-money ${below ? "is-below" : ""}`}>
           <i>₹</i>
           <input
-            aria-label={`${v.label} compare-at price`}
+            aria-label={`${v.label} MRP`}
             inputMode="decimal"
             value={was}
             placeholder="None"

@@ -19,6 +19,11 @@ test("headers: usual names, any order", () => {
   assert.deepEqual(m, { name: 0, price: 1, stock: 2, option: 3, category: 4, hsn: 5, gst_rate: 6, purchase: 7 });
 });
 
+test("headers: MRP beside a selling price is the MRP", () => {
+  assert.deepEqual(mapHeaders(["Product", "Selling price", "MRP"]), { name: 0, price: 1, compare_at: 2 });
+  assert.deepEqual(mapHeaders(["Product", "Was price"]), { name: 0, compare_at: 1 });
+});
+
 test("money: rupee signs and commas", () => {
   assert.equal(money("₹1,299.00"), 1299);
   assert.equal(money("Rs. 45"), 45);
@@ -89,7 +94,7 @@ test("problems are named by row and nothing is guessed", () => {
   assert.match(at(8), /No product has SKU NOPE-1/);
   assert.match(at(9), /add its category/);
   assert.match(at(10), /doesn't count stock/);
-  assert.match(at(11), /was price should be above/);
+  assert.match(at(11), /MRP should be above/);
   assert.match(at(13), /earlier row/);
   assert.equal(p.newProducts.length, 1); // X1
 });

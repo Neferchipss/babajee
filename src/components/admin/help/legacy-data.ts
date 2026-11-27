@@ -266,7 +266,7 @@ export const LEGACY: LChapter[] = [
               ["Draft · Active · Archived", "Draft is being prepared and not on the shop; Active is on the shop; Archived is retired but kept for its orders."],
               ["Basics", "Name, description, brand."],
               ["Photos", "Drop photos in; drag to reorder. With options, each option can have its own."],
-              ["Price and codes / Options", "Price, was-price (**Was (₹)**), SKU, barcode, weight, and with several options each one's own; **Undo** after a change."],
+              ["Price and codes / Options", "Price, MRP (**MRP (₹)**), SKU, barcode, weight, and with several options each one's own; **Undo** after a change."],
               ["Stock", "The count per option; **Add or adjust in Inventory** changes it."],
               ["Specifications", "Rows like Material: Aluminium."],
               ["Ready for the shop?", "What's still missing before it can go on the shop."],
@@ -719,7 +719,7 @@ export const LEGACY: LChapter[] = [
         id: "t-offer",
         title: "Put a product on offer",
         lead: "An offer is the old price shown crossed out beside the new one.",
-        blocks: [{ steps: ["Open the product's page.", "Type the old price in **Was (₹)** and the new one in the price.", "Clear **Was (₹)** to end the offer."] }],
+        blocks: [{ steps: ["Open the product's page.", "Type the MRP in **MRP (₹)** and the price you sell at in the price.", "Clear **MRP (₹)** to end the offer."] }],
       },
       {
         id: "t-prices",

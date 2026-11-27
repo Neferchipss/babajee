@@ -414,7 +414,7 @@ export const GUIDE: Chapter[] = [
             fig: { caption: "Add tax to product: HSN code first", panel: { title: "Product tax", fields: [{ label: "HSN code#1", value: "96140000" }, { label: "GST slab#2", kind: "select", value: "18%" }, { label: "Cess (%)", value: "" }], saveN: 3 } },
           },
           { t: "**Stock control**: **Reorder point** (warn when stock reaches it; empty uses the shop's level). **Image & color**: the product's picture. **Comments**: Aronium's kitchen-ticket comments, not used here." },
-          { t: "**Options**: each size or colour with its own name, code, barcode, cost, price and was-price, and whether it is on sale; **New option** adds one. **Photos** adds and orders pictures (one group per option). **Boxes & bundles** sets box sizes and combo packs." },
+          { t: "**Options**: each size or colour with its own name, code, barcode, cost, price and MRP, and whether it is on sale; **New option** adds one. **Photos** adds and orders pictures (one group per option). **Boxes & bundles** sets box sizes and combo packs." },
           { t: "**Sub-categories & tags**, **Shop page** (Brand, Product type, Specifications, Videos, search keywords) and **Stock history** (every change to its stock)." },
           { t: "**‹ ›** at the top step to the previous or next product (Alt + ← / →). They are blocked while there are unsaved changes: Save or Cancel first." },
         ],

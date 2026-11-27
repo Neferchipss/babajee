@@ -40,7 +40,7 @@ export const FIELD_LABELS: Record<ImportField, string> = {
   category: "Category",
   option: "Option",
   price: "Selling price",
-  compare_at: "Was price",
+  compare_at: "MRP",
   stock: "Stock count",
   sku: "SKU",
   barcode: "Barcode",
@@ -57,8 +57,8 @@ const ALIASES: Record<ImportField, string[]> = {
   name: ["name", "product", "product name", "item", "item name", "title", "product title"],
   category: ["category", "category name", "type", "collection", "department"],
   option: ["option", "variant", "variant name", "size", "colour", "color", "flavour", "flavor", "option name", "option value"],
-  price: ["price", "selling price", "sale price", "mrp", "rate", "sp", "retail price"],
-  compare_at: ["compare at", "compare at price", "was", "was price", "old price", "original price"],
+  price: ["price", "selling price", "sale price", "rate", "sp", "retail price"],
+  compare_at: ["mrp", "m.r.p", "m.r.p.", "compare at", "compare at price", "was", "was price", "old price", "original price"],
   stock: ["stock", "qty", "quantity", "stock qty", "in stock", "inventory", "count", "closing stock"],
   sku: ["sku", "code", "item code", "product code", "variant sku"],
   barcode: ["barcode", "ean", "upc", "gtin"],
@@ -93,6 +93,12 @@ export function mapHeaders(header: string[]): Partial<Record<ImportField, number
       }
     }
   });
+  // a sheet with an MRP column and no selling price sells at MRP: that
+  // column is the price, not a higher price struck through
+  if (out.price === undefined && out.compare_at !== undefined && ["mrp", "m r p"].includes(norm(header[out.compare_at]))) {
+    out.price = out.compare_at;
+    delete out.compare_at;
+  }
   return out;
 }
 
@@ -229,7 +235,7 @@ export function planImport(rows: string[][], products: ExistingProduct[], catego
     const stock = nums.stock ?? null;
     const purchase = nums.purchase ?? null;
     if (variantBits.compare_at != null && variantBits.price != null && variantBits.compare_at <= variantBits.price) {
-      plan.problems.push({ row: at, message: "The was price should be above the selling price." });
+      plan.problems.push({ row: at, message: "The MRP should be above the selling price." });
       continue;
     }
 
@@ -376,4 +382,4 @@ export function planSummary(p: ImportPlan): string {
 }
 
 // a sheet to start from, with every column the import reads
-export const TEMPLATE_HEADER = ["Product", "Category", "Option", "Selling price", "Was price", "Stock", "SKU", "Barcode", "Brand", "HSN", "GST %", "Buying price", "Weight (g)", "Search keywords", "Description"];
+export const TEMPLATE_HEADER = ["Product", "Category", "Option", "Selling price", "MRP", "Stock", "SKU", "Barcode", "Brand", "HSN", "GST %", "Buying price", "Weight (g)", "Search keywords", "Description"];

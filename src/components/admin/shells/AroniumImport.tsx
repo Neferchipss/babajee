@@ -150,7 +150,7 @@ export default function AroniumImport() {
               </button>
             </div>
             <ArInfo>
-              Usual column names: Product (or Item name), Category, Option (or Size, Colour), Selling price (or MRP), Was price, Stock (or Qty), SKU, Barcode, Brand, HSN, GST %, Buying price (or Cost), Weight (g), Tags, Description. A row is matched by its SKU first, then by name and option.
+              Usual column names: Product (or Item name), Category, Option (or Size, Colour), Selling price, MRP (or Was price), Stock (or Qty), SKU, Barcode, Brand, HSN, GST %, Buying price (or Cost), Weight (g), Tags, Description. A row is matched by its SKU first, then by name and option.
             </ArInfo>
           </li>
           <li className={plan ? "" : "is-wait"}>

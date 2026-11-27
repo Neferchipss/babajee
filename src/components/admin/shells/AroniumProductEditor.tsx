@@ -341,7 +341,7 @@ function Body({ product, categories, api, onClose, nav, catalogue, tab, setTab, 
       const p = num(o.price);
       const c = num(o.compare_at);
       if (p != null && !(p >= 0)) return `${o.label}: the sale price isn't a number.`;
-      if (c != null && p != null && c <= p) return `${o.label}: the was-price should be above the sale price.`;
+      if (c != null && p != null && c <= p) return `${o.label}: the MRP should be above the sale price.`;
       if (o.buy && !(Number(o.buy) >= 0)) return `${o.label}: the cost isn't a number.`;
       if (o.weight_g && !(Number(o.weight_g) > 0)) return `${o.label}: the weight should be in grams.`;
     }
@@ -662,7 +662,7 @@ function Body({ product, categories, api, onClose, nav, catalogue, tab, setTab, 
             <div className="arpx-opt is-head" role="row">
               <span>Option</span>
               <span>Sale price</span>
-              <span>Was</span>
+              <span>MRP</span>
               <span>Cost</span>
               <span>Code</span>
               <span>Barcode</span>
@@ -688,7 +688,7 @@ function Body({ product, categories, api, onClose, nav, catalogue, tab, setTab, 
                 <div key={o.key} className="arpx-opt" role="row">
                   <input className="adm-input" aria-label="Option name" placeholder="e.g. Red, 14 inch" value={o.label} maxLength={80} onChange={(e) => setOpt(o.key, { label: e.target.value })} />
                   <input className="adm-input is-num" aria-label={`${o.label} sale price`} inputMode="decimal" placeholder="0" value={o.price} onChange={(e) => setOpt(o.key, { price: digits(e.target.value) })} />
-                  <input className="adm-input is-num" aria-label={`${o.label} was-price`} inputMode="decimal" placeholder="—" value={o.compare_at} onChange={(e) => setOpt(o.key, { compare_at: digits(e.target.value) })} />
+                  <input className="adm-input is-num" aria-label={`${o.label} MRP`} inputMode="decimal" placeholder="—" value={o.compare_at} onChange={(e) => setOpt(o.key, { compare_at: digits(e.target.value) })} />
                   <input className="adm-input is-num" aria-label={`${o.label} cost`} inputMode="decimal" placeholder="—" value={o.buy} onChange={(e) => setOpt(o.key, { buy: digits(e.target.value) })} />
                   <input className="adm-input" aria-label={`${o.label} code`} value={o.sku} maxLength={60} onChange={(e) => setOpt(o.key, { sku: e.target.value })} />
                   <input className="adm-input" aria-label={`${o.label} barcode`} value={o.barcode} maxLength={60} onChange={(e) => setOpt(o.key, { barcode: e.target.value })} />

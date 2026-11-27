@@ -88,7 +88,7 @@ function ImportOriginal() {
           Download a template
         </button>
         <p className="adm-muted adm-small" style={{ margin: 0 }}>
-          Columns can be in any order and use the usual names: Product (or Item name), Category, Option (or Size, Colour), Selling price (or MRP), Was price, Stock (or Qty), SKU,
+          Columns can be in any order and use the usual names: Product (or Item name), Category, Option (or Size, Colour), Selling price, MRP (or Was price), Stock (or Qty), SKU,
           Barcode, Brand, HSN, GST %, Buying price (or Cost), Weight (g), Tags, Description. A row is matched by its SKU first, then by name and option.
         </p>
       </section>

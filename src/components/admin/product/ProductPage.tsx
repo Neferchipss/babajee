@@ -2,7 +2,7 @@
 
 // The full product page (UI redesign, stage 2): one page to add and edit a
 // product, laid out the way it is filled in.
-//   main column  Basics · Photos · Options (one row each: price, was-price,
+//   main column  Basics · Photos · Options (one row each: price, MRP,
 //                SKU, barcode, weight, sold; box rows under each) · Stock ·
 //                Specifications · Bundle · Videos
 //   right column Status and what it still needs · Organise (Type, then that
@@ -184,7 +184,7 @@ function Editor({ api, product, categories, shop, onReload }: { api: Api; produc
       const p = num(o.price);
       const c = num(o.compare_at);
       if (p != null && !(p >= 0)) return `${o.label}: the price isn't a number.`;
-      if (c != null && p != null && c <= p) return `${o.label}: the was-price should be above the price.`;
+      if (c != null && p != null && c <= p) return `${o.label}: the MRP should be above the price.`;
       if (o.weight_g && !(Number(o.weight_g) > 0)) return `${o.label}: the weight should be in grams.`;
     }
     if (d.hsn && !/^(\d{4}|\d{6}|\d{8})$/.test(d.hsn)) return "An HSN code is 4, 6 or 8 digits.";
@@ -352,7 +352,7 @@ function Editor({ api, product, categories, shop, onReload }: { api: Api; produc
               <div className="prd-opt prd-opt-head" aria-hidden="true">
                 {many && <span>Option</span>}
                 <span>Price (₹{shop.inclusive ? ", incl. GST" : ", excl. GST"})</span>
-                <span>Was (₹)</span>
+                <span>MRP (₹)</span>
                 <span>SKU</span>
                 <span>Barcode</span>
                 <span>Weight (g)</span>
@@ -378,7 +378,7 @@ function Editor({ api, product, categories, shop, onReload }: { api: Api; produc
                     <div className="prd-opt">
                       {many && <input className="adm-input" aria-label="Option name" placeholder="e.g. Red, 14 inch" value={o.label} maxLength={80} onChange={(e) => setOpt(o.key, { label: e.target.value })} />}
                       <input className="adm-input" aria-label={`${o.label} price`} inputMode="decimal" placeholder="0" value={o.price} onChange={(e) => setOpt(o.key, { price: e.target.value.replace(/[^\d.]/g, "") })} />
-                      <input className="adm-input" aria-label={`${o.label} was-price`} inputMode="decimal" placeholder="—" value={o.compare_at} onChange={(e) => setOpt(o.key, { compare_at: e.target.value.replace(/[^\d.]/g, "") })} />
+                      <input className="adm-input" aria-label={`${o.label} MRP`} inputMode="decimal" placeholder="—" value={o.compare_at} onChange={(e) => setOpt(o.key, { compare_at: e.target.value.replace(/[^\d.]/g, "") })} />
                       <input className="adm-input" aria-label={`${o.label} SKU`} value={o.sku} maxLength={60} onChange={(e) => setOpt(o.key, { sku: e.target.value })} />
                       <input className="adm-input" aria-label={`${o.label} barcode`} value={o.barcode} maxLength={60} onChange={(e) => setOpt(o.key, { barcode: e.target.value })} />
                       <input className="adm-input" aria-label={`${o.label} weight in grams`} inputMode="decimal" value={o.weight_g} onChange={(e) => setOpt(o.key, { weight_g: e.target.value.replace(/[^\d.]/g, "") })} />

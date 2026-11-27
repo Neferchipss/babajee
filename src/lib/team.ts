@@ -73,7 +73,7 @@ const FIELD: Record<string, string> = {
   is_visible: "shown",
   stock_qty: "stock",
   track_stock: "counting stock",
-  compare_at: "was price",
+  compare_at: "MRP",
   sort_order: "position",
   category_id: "category",
   gst_rate: "GST",
