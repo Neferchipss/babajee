@@ -9,7 +9,7 @@ import Logo from "./Logo";
 import { clearShopNote, peekShopNote, SHOP_NOTE_EVENT, TO_STREET } from "./scene-note";
 import front from "@/assets/shop/front-day.webp";
 import frontTall from "@/assets/shop/front-daydream-tall.webp";
-import frontDusk from "@/assets/shop/front-dusk.webp";
+import frontDusk from "@/assets/shop/front-night.webp";
 import frontDuskTall from "@/assets/shop/front-dusk-tall.webp";
 import { PANO_SPOTS } from "./pano-spots";
 import "./shop-scene.css";
@@ -32,7 +32,7 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 // the walk from the shopfront to the counter (3.5s): a wide one, and a tall
 // one for phones; each ends on the panorama's first view for its shape
 // Two looks of the same shop: day (bright screenprint, in light mode) and
-// dusk (shady teal and purple, in dark mode). Each has its shopfront (wide and
+// night (midnight sky, lit windows, in dark mode). Each has its shopfront (wide and
 // tall), its walk-ins and its panorama; the shelves sit in the same places.
 type Look = "day" | "dusk";
 const ART = {

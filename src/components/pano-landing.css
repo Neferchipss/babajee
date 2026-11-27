@@ -367,5 +367,5 @@ body:has(.pano:not([data-inside])) :is(.hdr, .lb) {
 
 /* dark mode: the shopfront's backing (seen for a moment before its picture) is night, not paper */
 html[data-mode="dark"] .pano-front {
-  background: #1d1f22;
+  background: #0e192d;
 }
