@@ -1,0 +1,375 @@
+/* The shop's home (HomeShelf.tsx). The rest of the shop is one grid of
+   cards; this page breaks it: a bento of tiles, an arcade of arches,
+   products standing up out of their tiles, headings trailing a dashed
+   rule, rows that bleed off the screen's edge. */
+.hh {
+  --hh-tint: color-mix(in srgb, var(--bb-hot, #d3ab70) 14%, rgb(var(--bb-bg)));
+  --hh-tile: rgb(var(--bb-fg) / 0.035);
+  --hh-line: rgb(var(--bb-fg) / 0.2);
+  display: grid;
+  /* one column the shelf's width: Safari otherwise sizes it from the
+     banners' 3:1 shape (and they came out 1500px wide) */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 34px;
+  min-width: 0;
+}
+
+/* headings: the title, then a dashed rule to the edge */
+.hh-sec {
+  min-width: 0;
+}
+.hh-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.hh-head h2 {
+  flex: none;
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hh-head::after {
+  content: "";
+  flex: 1;
+  border-top: 1.5px dashed var(--hh-line);
+}
+
+/* a category's products, cut out */
+.hh-cut {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  margin-top: -38px;
+  pointer-events: none;
+}
+.hh-cut--icon {
+  margin-top: 0;
+  padding: 22px 0 6px;
+  color: var(--bb-hot, #d3ab70);
+}
+.hh-cut img {
+  width: 74%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.22));
+}
+.hh-cut[data-n="2"] img {
+  width: 66%;
+}
+.hh-cut[data-n="2"] img + img {
+  width: 54%;
+  margin-left: -26%;
+}
+.hh-cut[data-n="3"] img {
+  width: 40%;
+}
+.hh-cut[data-n="3"] img + img {
+  margin-left: -6%;
+}
+
+/* rows of cards: the shelf's own cards (.cp-grid keeps their look), in one
+   swipeable line */
+html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+  display: grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(140px, 38vw, 200px);
+  gap: 12px;
+  margin: 0 calc(-1 * var(--hh-bleed, 16px));
+  padding: 4px var(--hh-bleed, 16px) 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--hh-bleed, 16px);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row::-webkit-scrollbar {
+  display: none;
+}
+html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row > .pc {
+  scroll-snap-align: start;
+  content-visibility: visible;
+}
+/* in a row the swipe moves the row: a card's own photos hold still on
+   their first (the product sheet still has them all) */
+html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row .pc-slides {
+  overflow: hidden;
+  touch-action: pan-x pan-y;
+}
+html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row .pc-dots {
+  display: none;
+}
+
+/* deals: the price in a green pill that sits proud of the card */
+html[data-theme] #site[data-scope="shop"] .hh-sec[data-variant="deals"] .pc-deal {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #2f7d32;
+  box-shadow: 2px 2px 0 #1b4d1e;
+  color: #fff;
+}
+html[data-theme] #site[data-scope="shop"] .hh-sec[data-variant="deals"] .pc-off {
+  color: #3a9a3e;
+}
+
+/* See all: a full-width button under the row */
+.hh-seeall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  margin-top: 6px;
+  border: 1px solid rgb(var(--bb-fg) / 0.1);
+  border-radius: 12px;
+  background: var(--hh-tile);
+  color: inherit;
+  font-size: 0.98rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.hh-seeall:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .hh-seeall:hover {
+    border-color: var(--bb-hot, #d3ab70);
+  }
+}
+
+@media (min-width: 901px) {
+  .hh {
+    gap: 48px;
+  }
+  .hh-head h2 {
+    font-size: 1.7rem;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    --hh-bleed: 0px;
+    scrollbar-width: thin;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    grid-auto-columns: 200px;
+    gap: 16px;
+  }
+  .hh-seeall {
+    width: min(360px, 100%);
+    margin-inline: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hh-hero-in,
+  .hh-cat-in {
+    transition: none;
+  }
+}
+
+/* The band: a dark strip, edge to edge on phones. A tall tile holds the top
+   pick; beside it the categories, cream tiles in two rows, swiped sideways.
+   Dark in both looks, so it reads as the page's one big moment. */
+.hh-band {
+  /* the header bar's colour, so the band reads as the header running on */
+  --band-bg: rgb(var(--bb-bar));
+  --band-tile: #ece6dc;
+  --band-ink: #1b1915;
+  /* three columns fill the width between the gutters exactly (the top pick
+     and two of categories), the same margin on both sides; the rest wait
+     off to the right, a swipe away */
+  --band-tw: calc((100vw - 2 * var(--hh-bleed, 16px) - 2 * 10px) / 3);
+  --band-th: clamp(138px, 38vw, 196px);
+  margin: 0 calc(-1 * var(--hh-bleed, 16px));
+  padding: 0 0 16px;
+  overflow: hidden;
+  border-radius: 0 0 22px 22px;
+  background: var(--band-bg);
+}
+/* the hero artwork: a cut-out on transparency, open in its top-left sky,
+   on the band's dark */
+.hh-art {
+  aspect-ratio: 16 / 9;
+  background: url("../../assets/art/hero-beach-sm.webp") center bottom / cover no-repeat;
+}
+@media (min-width: 700px) {
+  .hh-art {
+    background-image: url("../../assets/art/hero-beach.webp");
+  }
+}
+.hh-band-grid {
+  display: grid;
+  grid-auto-flow: column dense;
+  grid-template-rows: repeat(2, var(--band-th));
+  grid-auto-columns: var(--band-tw);
+  gap: 10px;
+  margin: 0;
+  /* breathing room between the artwork and the tiles */
+  padding: 12px var(--hh-bleed, 16px) 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--hh-bleed, 16px);
+  /* a swipe always comes to rest on a column, the margins even */
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  list-style: none;
+}
+.hh-band-grid::-webkit-scrollbar {
+  display: none;
+}
+.hh-band-grid > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+.hh-hero {
+  grid-row: span 2;
+}
+.hh-hero-in,
+.hh-cat-in {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--band-tile);
+  color: var(--band-ink);
+  text-align: center;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.hh-hero-in:active,
+.hh-cat-in:active {
+  transform: scale(0.97);
+}
+
+/* the top pick: a kicker, the price pill, the product, its name */
+.hh-hero-in {
+  gap: 10px;
+  padding: 16px 10px 16px;
+}
+.hh-hero-kick {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.hh-pill {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1.5px solid var(--band-ink);
+  border-radius: 999px;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.hh-pill s {
+  padding: 5px 8px 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0.7;
+}
+.hh-pill b {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--band-ink);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.hh-hero-img {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 0.25));
+}
+.hh-hero-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* a category: name on top, products cut out, the ribbon */
+.hh-cat-in {
+  padding-top: 10px;
+}
+.hh-cat-name {
+  display: -webkit-box;
+  min-height: 2.3em;
+  padding: 0 8px;
+  overflow: hidden;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.15;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.hh-cat-in .hh-cut {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  align-items: flex-end;
+}
+.hh-cat-in .hh-cut img {
+  max-height: 100%;
+}
+.hh-cat-in .hh-cut--icon {
+  align-items: center;
+  padding: 0;
+  color: var(--bb-hot, #d3ab70);
+}
+.hh-ribbon {
+  align-self: stretch;
+  padding: 6px 4px;
+  background: var(--bb-hot, #d3ab70);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) {
+  .hh-hero-in:hover,
+  .hh-cat-in:hover {
+    outline: 2px solid var(--bb-hot, #d3ab70);
+    outline-offset: -2px;
+  }
+}
+@media (min-width: 901px) {
+  .hh-band {
+    --hh-bleed: 0px;
+    --band-tw: 190px;
+    --band-th: 210px;
+    margin: 0;
+    border-radius: 22px;
+  }
+  .hh-band-grid {
+    padding: 12px 16px 0;
+    scrollbar-width: thin;
+  }
+  .hh-art {
+    aspect-ratio: auto;
+    height: 340px;
+    background-size: contain;
+    background-position: right bottom;
+  }
+}
+
+/* the home: the header runs straight into the band, no hairline between */
+html[data-theme] #site[data-scope="shop"] .cp:has(.hh) :is(.cp-hero, .sb, .sb nav) {
+  border-bottom: 0;
+  box-shadow: none;
+}
+/* and tucks a pixel under it, so no sliver of page shows at the seam */
+html[data-theme] #site[data-scope="shop"] .hh-band {
+  margin-top: -2px;
+}

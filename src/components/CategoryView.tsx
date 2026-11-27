@@ -21,6 +21,7 @@ import { buildFacets } from "@/lib/shelf-facets";
 import ShelfFilter, { ActiveFilters, applyFilters, filterCount, NO_FILTERS, sortProducts, type Filters, type Sort } from "./ShelfFilter";
 import ProductSheet from "./ProductSheet";
 import ProductDesk from "./ProductDesk";
+import HomeShelf from "./home/HomeShelf";
 import { shelfArrived } from "@/lib/shelf-switch";
 import type { ShopTag } from "@/lib/catalog-db";
 import { buzz } from "@/lib/buzz";
@@ -268,6 +269,28 @@ export default function CategoryView({ category, products: snapshot, categories:
     setTabTitle(tabTitle ?? shelfTitle.current);
   }, [tabTitle, open, category.name]);
 
+  // a product's card: a tap opens it over the shelf, + puts a one-option
+  // product straight in the jar
+  const card = (p: CardProduct) => (
+    <ProductCard
+      key={p.href}
+      product={p}
+      onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
+      onAdd={
+        p.slug && p.variants?.length === 1
+          ? (from) => {
+              const v = p.variants![0];
+              addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
+              tossIntoJar(from);
+              buzz([10, 40, 10]);
+            }
+          : undefined
+      }
+    />
+  );
+  // the all-products shelf, not searched or filtered, is the shop's home
+  const home = category.slug === "all" && !narrowed;
+
   // this shelf is on screen: the one it replaced stops dimming
   useEffect(() => shelfArrived(), [category.slug]);
 
@@ -360,7 +383,9 @@ export default function CategoryView({ category, products: snapshot, categories:
             <ShelfFilter {...sortFilter} className="cp-sort" label />
           </div>
 
-          {order && !catalog ? null : shown.length === 0 && !soldOut.length ? (
+          {home ? (
+            <HomeShelf products={[...shown, ...soldOut]} categories={categories} card={card} onOpen={openSheet} />
+          ) : order && !catalog ? null : shown.length === 0 && !soldOut.length ? (
             <p className="cp-empty">
               {q ? (
                 <>No product matches &ldquo;{query}&rdquo;. Try a shorter word, or clear the search.</>
@@ -381,28 +406,12 @@ export default function CategoryView({ category, products: snapshot, categories:
                     <span>{g.all.length}</span>
                   </li>
                 ),
-                ...g.items.map((p) => (
-                  <ProductCard
-                    key={p.href}
-                    product={p}
-                    onOpen={p.slug && p.variants ? () => openSheet(p.slug!) : undefined}
-                    onAdd={
-                      p.slug && p.variants?.length === 1
-                        ? (from) => {
-                            const v = p.variants![0];
-                            addToCart({ slug: p.slug!, href: p.href, name: p.name, tone: p.tone, variant: v.label, price: v.price, unit: p.unit });
-                            tossIntoJar(from);
-                            buzz([10, 40, 10]);
-                          }
-                        : undefined
-                    }
-                  />
-                )),
+                ...g.items.map(card),
               ])}
               {!allDrawn && <li ref={more} className="cp-more" aria-hidden="true" />}
             </ul>
           )}
-          <SoldOutRow products={soldOut} onOpen={openSheet} />
+          {!home && <SoldOutRow products={soldOut} onOpen={openSheet} />}
 
           <ul className="cp-values" aria-label="What we stand for">
             {VALUES.map(({ Icon, label }) => (
