@@ -9,7 +9,7 @@ import { cartCount, LANDED_EVENT, useCart } from "@/lib/cart";
 import { setModePref, useModePref, type ModePref } from "@/lib/mode";
 import { JarIcon, UserIcon } from "./icons";
 import SceneLink from "./SceneLink";
-import { enterShop, TO_STREET } from "./scene-note";
+import { enterShop } from "./scene-note";
 import "./shop-bar.css";
 import "./profile-panel.css";
 import { useFocusTrap } from "@/lib/use-focus-trap";
@@ -27,9 +27,6 @@ const JAR = "M7 4h10M8 4v3l-2 3v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9l-2-3V4M6 11h
 const HEART = "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z";
 
 const LIST: { href: string; label: string; d: string }[] = [
-  // the painted shop to walk around, and the plain list of every product
-  { href: "/", label: "Explore the shop", d: "M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" },
-  { href: "/shop", label: "Shop products", d: "M4 6h16M4 12h16M4 18h10" },
   { href: "/about", label: "About Babajee", d: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01" },
   { href: "/faq/", label: "Help and support", d: "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z" },
   { href: "/contact", label: "Contact us", d: "M4 6h16v12H4zM4 7l8 6 8-6" },
@@ -208,15 +205,8 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
     if (href.split("#")[0] === path) shut();
   };
 
-  const goHome = (e: React.MouseEvent) => {
-    // home is the shopfront; already on it (maybe inside the shop): walk back out
-    if (path !== "/") return;
-    e.preventDefault();
-    window.dispatchEvent(new Event(TO_STREET));
-    shut();
-  };
   const tile = (href: string, label: ReactNode, d: string, extra?: ReactNode) => (
-    <Link href={href} className="pp-tile" onClick={href === "/" ? goHome : go(href)}>
+    <Link href={href} className="pp-tile" onClick={go(href)}>
       <I d={d} />
       <span>{label}</span>
       {extra}
@@ -259,7 +249,8 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
 
         <div className="pp-body">
           <div className="pp-tiles">
-            {tile("/", <>Home</>, "M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5")}
+            {/* home is the shop's home: the All page */}
+            {tile("/shop", <>Home</>, "M3 11l9-8 9 8M5 9.5V20h5v-6h4v6h5V9.5")}
             {tile("/cart", <>Your<br />cart</>, JAR, count > 0 ? <b className="pp-tile-n">{count > 99 ? "99+" : count}</b> : undefined)}
             {tile("/orders", <>Your<br />orders</>, BOX)}
           </div>
@@ -267,6 +258,19 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
           <ModeSwitch />
 
           <nav className="pp-list" aria-label="Pages">
+            {/* the painted shop to walk around, first; the 3D shop loads only
+                when it is about to be opened, and opens straight inside */}
+            <SceneLink
+              href="/"
+              className="pp-row"
+              onClick={() => {
+                enterShop();
+                go("/")();
+              }}
+            >
+              <I d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" />
+              <span>Explore the shop</span>
+            </SceneLink>
             <Link href="/cart#saved-title" className="pp-row" onClick={go("/cart#saved-title")}>
               <I d={HEART} />
               <span>Your wishlist</span>
@@ -287,25 +291,12 @@ function ProfilePanel({ onClosed }: { onClosed: () => void }) {
                 <span>Admin</span>
               </Link>
             )}
-            {LIST.map((r) => {
-              // the 3D shop loads only when it is about to be opened
-              const L = r.href === "/" ? SceneLink : Link;
-              return (
-                <L
-                  key={r.href}
-                  href={r.href}
-                  className="pp-row"
-                  onClick={() => {
-                    // Explore: straight into the shop, not out front
-                    if (r.href === "/") enterShop();
-                    go(r.href)();
-                  }}
-                >
-                  <I d={r.d} />
-                  <span>{r.label}</span>
-                </L>
-              );
-            })}
+            {LIST.map((r) => (
+              <Link key={r.href} href={r.href} className="pp-row" onClick={go(r.href)}>
+                <I d={r.d} />
+                <span>{r.label}</span>
+              </Link>
+            ))}
           </nav>
 
           {signedIn && (
