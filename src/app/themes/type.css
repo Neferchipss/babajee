@@ -27,3 +27,48 @@ html[data-theme^="baba"] #site[data-scope="shop"] {
 #site .cp-body {
   font-family: var(--font-body-face), system-ui, sans-serif;
 }
+
+/* The shop's big headings are the text colour in the shop's own face, on
+   every screen. One desktop browser showed them green and in another font
+   (something outside the site restyling headings); naming both here, with
+   the page's weight, keeps them as the phone shows them. */
+html[data-theme^="baba"] #site[data-scope="shop"] :is(.ccard .ccard-name, .hh-head h2, .cp-title, .hh-intro-h) {
+  color: var(--color-paper) !important;
+  font-family: var(--font-body-face), system-ui, sans-serif !important;
+}
+/* the headlines on the home's coloured panels take the panel's own ink (it
+   is the same in light and dark), in the shop's face */
+html[data-theme^="baba"] #site[data-scope="shop"] :is(.hh-poster-h, .hh-promo-h, .hh-bt-h) {
+  color: inherit !important;
+  font-family: var(--font-body-face), system-ui, sans-serif !important;
+}
+/* and the poster's lines keep their own size and alignment */
+html[data-theme^="baba"] #site[data-scope="shop"] :is(.hh-poster-h, .hh-poster-p, .hh-intro-h, .hh-intro-p) {
+  text-align: left !important;
+}
+
+/* the home's pill buttons keep their own look the same way */
+html[data-theme^="baba"] #site[data-scope="shop"] .hh .hh-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: auto !important;
+  padding: 14px 22px !important;
+  border-radius: 999px !important;
+  font-family: var(--font-body-face), system-ui, sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+html[data-theme^="baba"] #site[data-scope="shop"] .hh .hh-btn--lt {
+  background: #fff !important;
+  color: #14120c !important;
+}
+html[data-theme^="baba"] #site[data-scope="shop"] .hh .hh-btn--dk {
+  background: #14120c !important;
+  color: #fff !important;
+}
+html[data-theme^="baba"] #site[data-scope="shop"] .hh .hh-bt-pick-add {
+  margin-top: 16px !important;
+}

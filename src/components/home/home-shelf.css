@@ -373,3 +373,821 @@ html[data-theme] #site[data-scope="shop"] .cp:has(.hh) :is(.cp-hero, .sb, .sb na
 html[data-theme] #site[data-scope="shop"] .hh-band {
   margin-top: -2px;
 }
+
+/* ------------------------------------------------------------ wide screens */
+/* Phones swipe; a mouse gets round arrows at the strip's ends. The band's
+   open sky (left of the artwork) carries the shop's line, and every strip
+   shows whole columns, never a card cut at the edge. */
+.hh-scroll {
+  position: relative;
+  min-width: 0;
+}
+.hh-intro,
+.hh-arrow {
+  display: none;
+}
+.hh-arrow[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 901px) {
+  .hh {
+    container-type: inline-size;
+  }
+  .hh-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .hh-art {
+    height: clamp(230px, 24vw, 360px);
+    aspect-ratio: 16 / 9;
+    background-size: cover;
+    background-position: center bottom;
+  }
+  .hh-intro {
+    display: grid;
+    gap: 12px;
+    align-content: center;
+    padding: 28px 8px 28px 40px;
+    color: var(--color-paper);
+  }
+  .hh-intro-kick {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .hh-intro-h {
+    display: block;
+    text-align: left;
+    max-width: 15ch;
+    margin: 0;
+    font-size: clamp(1.7rem, 2.7vw, 2.9rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+  .hh-intro-p {
+    display: block;
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.8;
+  }
+
+  /* the tiles: whole columns across the band */
+  .hh-band {
+    --bn: 4;
+    --band-th: 200px;
+    --band-tw: calc((100% - (var(--bn) - 1) * 12px) / var(--bn));
+  }
+  /* the gutters as margins, not padding: a strip scrolls under its own
+     padding, and the next column would peek in at the edge */
+  .hh-band-grid {
+    gap: 12px;
+    margin: 0 16px;
+    padding: 4px 0 0;
+    scroll-padding-inline: 0;
+  }
+
+  /* the rows: whole cards across the page */
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    --rn: 4;
+    grid-auto-columns: calc((100% - (var(--rn) - 1) * 16px) / var(--rn));
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
+    scrollbar-width: none;
+  }
+}
+/* the band holds its tiles inside its own padding, so the share of 100% is
+   taken from the strip's content box */
+@container (min-width: 761px) {
+  .hh-band {
+    --bn: 6;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    --rn: 5;
+  }
+}
+@container (min-width: 1000px) {
+  .hh-band {
+    --bn: 7;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    --rn: 6;
+  }
+}
+@container (min-width: 1300px) {
+  .hh-band {
+    --bn: 8;
+  }
+  html[data-theme] #site[data-scope="shop"] .cp-grid.hh-row {
+    --rn: 7;
+  }
+}
+/* a narrow desktop: the line would be squeezed beside the art, so the art
+   takes the band alone */
+@container (max-width: 760px) {
+  .hh-intro {
+    display: none;
+  }
+  .hh-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hh-art {
+    width: 100%;
+    height: clamp(200px, 42cqi, 300px);
+    aspect-ratio: auto;
+  }
+}
+
+@media (min-width: 901px) and (hover: hover) {
+  .hh-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgb(0 0 0 / 0.08);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+    color: #14120c;
+    cursor: pointer;
+    translate: 0 -50%;
+    transition: transform 0.15s ease;
+  }
+  .hh-arrow:hover {
+    transform: scale(1.08);
+  }
+  .hh-arrow:active {
+    transform: scale(0.95);
+  }
+  /* on the band: just inside its edges */
+  .hh-band .hh-arrow[data-dir="back"] {
+    left: 6px;
+  }
+  .hh-band .hh-arrow[data-dir="next"] {
+    right: 6px;
+  }
+  /* on a row: astride the edge, level with the photos */
+  .hh-sec .hh-arrow {
+    top: 38%;
+  }
+  .hh-sec .hh-arrow[data-dir="back"] {
+    left: -20px;
+  }
+  .hh-sec .hh-arrow[data-dir="next"] {
+    right: -20px;
+  }
+}
+
+/* the home's own yellow and black. In the light the yellow is the header
+   bar's; in the dark the bar goes dark, so the yellow is the shop's accent,
+   and the black tiles lift off the black page with an outline */
+.hh {
+  --hh-yel: rgb(var(--bb-bar));
+  --hh-ink: #14120c;
+}
+html[data-mode="dark"] .hh {
+  --hh-yel: var(--bb-maroon, #ffd400);
+  --hh-ink: #1b1914;
+}
+html[data-mode="dark"] .hh :is(.hh-bt-pick, .hh-bt-cat[data-tone="ink"], .hh-promo[data-tone="dark"], .hh-rc--more .hh-disc) {
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+html[data-mode="dark"] .hh .hh-chip {
+  border-color: var(--color-line);
+}
+
+/* ------------------------------------------------------- the desktop home */
+/* From 1024px (where the shelf gets its sidebar) the home is its own page:
+   no sidebar (the home lays out every category itself), the products the
+   full width, and in place of the phone's band a poster beside two product
+   spotlights, a rail of round category tiles, and two category promos
+   after the best sellers. */
+.hh-desk {
+  display: none;
+}
+@media (min-width: 1024px) {
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp:has(.hh) .cp-side {
+    display: none !important;
+  }
+  /* the solid patch behind the logo is there for the sidebar's list to
+     slide under; with no list it ends with the bar, so the page scrolls
+     under one straight edge */
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp:has(.hh) .cp-hero::before {
+    top: 0;
+    bottom: 0;
+    height: auto;
+  }
+  html[data-theme="baba-poster"] #site[data-scope="shop"] .cp:has(.hh) .cp-main {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 24px;
+    /* level with the logo's left edge, as the bar's right edge is */
+    margin-left: 16px;
+  }
+  .hh {
+    gap: 44px;
+  }
+  .hh-band {
+    display: none;
+  }
+  .hh-desk {
+    display: block;
+  }
+
+  .hh-kick {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .hh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+  }
+  .hh-btn:active {
+    transform: scale(0.97);
+  }
+  .hh-btn--dk {
+    background: var(--hh-ink);
+    color: #fff;
+  }
+  .hh-btn--lt {
+    border: 1.5px solid #14120c;
+    background: #fff;
+    color: #14120c;
+  }
+
+  /* the poster and its spotlights */
+  .hh-poster-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 29cqi, 400px);
+    gap: 20px;
+    height: clamp(380px, 32cqi, 440px);
+  }
+  .hh-poster {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    padding: 48px;
+    overflow: hidden;
+    border-radius: 26px;
+    /* the art on the right; the bar's colour fades over its left side so
+       the line always reads */
+    background:
+      linear-gradient(90deg, var(--hh-yel) 34%, transparent 58%),
+      url("../../assets/art/hero-beach.webp") right bottom / auto 100% no-repeat,
+      var(--hh-yel);
+    color: #14120c;
+  }
+  .hh-poster-h {
+    display: block;
+    text-align: left;
+    max-width: 11ch;
+    margin: 0;
+    font-size: clamp(2.4rem, 3.6cqi, 3.3rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .hh-poster-p {
+    display: block;
+    text-align: left;
+    max-width: 24ch;
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  .hh-poster-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .hh-spots {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+    min-height: 0;
+  }
+  .hh-spot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+    padding: 20px 24px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: #ece6dc;
+    color: #14120c;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+  }
+  .hh-spot:active {
+    transform: scale(0.98);
+  }
+  .hh-spot[data-tone="hot"] {
+    background: var(--bb-hot, #d71920);
+    color: #fff;
+  }
+  .hh-spot-words {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    min-width: 0;
+  }
+  .hh-spot-name {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .hh-spot-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--hh-ink);
+    color: #fff;
+    font-family: var(--font-mono-face), ui-monospace, monospace;
+    font-weight: 700;
+  }
+  .hh-spot[data-tone="hot"] .hh-spot-pill {
+    background: #fff;
+    color: var(--bb-hot, #d71920);
+  }
+  .hh-spot-img {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 12px rgb(0 0 0 / 0.3));
+  }
+
+  /* the rail: round category tiles in one line */
+  .hh-rail {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    gap: 22px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hh-rc {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .hh-disc {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 1;
+    margin-bottom: 6px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #ece6dc;
+    transition: transform 0.15s ease;
+  }
+  .hh-rc:hover .hh-disc {
+    transform: scale(1.05);
+  }
+  .hh-disc .hh-cut {
+    margin: 0;
+    align-items: center;
+  }
+  .hh-disc .hh-cut img {
+    width: 62%;
+  }
+  .hh-disc .hh-cut[data-n="2"] img {
+    width: 56%;
+  }
+  .hh-disc .hh-cut[data-n="2"] img + img {
+    width: 46%;
+    margin-left: -20%;
+  }
+  .hh-disc .hh-cut--icon {
+    padding: 0;
+    color: var(--bb-hot, #d71920);
+  }
+  .hh-rc-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  .hh-rc-meta {
+    color: var(--bb-hot, #d71920);
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+  .hh-rc--more .hh-disc {
+    background: var(--hh-ink);
+    color: var(--hh-yel);
+    font-size: 1.6rem;
+    font-weight: 900;
+  }
+
+  /* the promos: two categories as big panels */
+  .hh-promos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .hh-promo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    height: 240px;
+    padding: 30px 34px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: var(--hh-yel);
+    color: #14120c;
+    text-decoration: none;
+  }
+  .hh-promo[data-tone="dark"] {
+    background: var(--hh-ink);
+    color: #fff;
+  }
+  .hh-promo-h {
+    position: relative;
+    z-index: 1;
+    max-width: 13ch;
+    font-size: clamp(1.7rem, 2.3cqi, 2.2rem);
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+  .hh-promo .hh-btn {
+    position: relative;
+    z-index: 1;
+  }
+  .hh-promo .hh-cut {
+    position: absolute;
+    right: 10px;
+    bottom: -10px;
+    width: 46%;
+    margin: 0;
+    transition: transform 0.25s ease;
+  }
+  .hh-promo .hh-cut img {
+    width: 70%;
+  }
+  .hh-promo:hover .hh-cut {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  .hh-promo .hh-cut--icon {
+    color: currentColor;
+  }
+}
+/* a narrower desktop: the rail stays one line, its names smaller; the art
+   fades further in, so the line has room */
+@container (max-width: 1100px) {
+  .hh-rail {
+    column-gap: 10px;
+  }
+  .hh-rc-name {
+    font-size: 0.78rem;
+  }
+  .hh-rc-meta {
+    font-size: 0.68rem;
+  }
+  .hh-rc--more .hh-disc {
+    font-size: 1.2rem;
+  }
+  .hh-poster {
+    background:
+      linear-gradient(90deg, var(--hh-yel) 46%, transparent 72%),
+      url("../../assets/art/hero-beach.webp") right bottom / auto 100% no-repeat,
+      var(--hh-yel);
+  }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .hh-btn,
+  .hh-spot,
+  .hh-disc,
+  .hh-promo .hh-cut {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------- the bento */
+@media (min-width: 1024px) {
+  .hh-bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: 210px;
+    gap: 16px;
+  }
+  .hh-bt {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 22px 24px;
+    overflow: hidden;
+    border-radius: 24px;
+    background: #ece6dc;
+    color: #14120c;
+    text-decoration: none;
+  }
+  a.hh-bt {
+    transition: transform 0.15s ease;
+  }
+  a.hh-bt:hover {
+    transform: translateY(-3px);
+  }
+  a.hh-bt:active {
+    transform: scale(0.98);
+  }
+
+  /* the artwork: the line up in its open sky, top left, clear of the
+     picture */
+  .hh-bt-art {
+    grid-column: span 7;
+    grid-row: span 2;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 34px 38px;
+    /* the art at the tile's full height, from the bottom right: its sky is
+       never cropped away, and a wider tile just gets more yellow to the left */
+    background: var(--hh-yel) url("../../assets/art/hero-beach.webp") right bottom / auto 100% no-repeat;
+  }
+  .hh-bt-art .hh-kick {
+    opacity: 1;
+  }
+  .hh-bt-h {
+    display: block;
+    /* narrow enough to stay in the sky, left of the leaping fish */
+    max-width: 8.5ch;
+    font-size: clamp(2rem, 3cqi, 3.1rem);
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    text-align: left;
+  }
+
+
+  /* the top pick: black, the product glowing on the right */
+  .hh-bt-pick {
+    grid-column: span 5;
+    grid-row: span 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* the words and the button centred down the left, whatever their height */
+    grid-template-rows: 1fr auto auto 1fr;
+    column-gap: 10px;
+    padding: 24px 30px;
+    background: var(--hh-ink);
+    color: #fff;
+  }
+  .hh-bt-pick-words {
+    grid-column: 1;
+    grid-row: 2;
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .hh-bt-pick-words .hh-kick {
+    color: var(--hh-yel);
+    opacity: 1;
+  }
+  .hh-bt-pick-name {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: clamp(1.5rem, 2.1cqi, 2rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .hh-bt-pick-pill {
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--hh-yel);
+    color: #14120c;
+    font-family: var(--font-mono-face), ui-monospace, monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .hh-bt-pick-add {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    margin-top: 16px;
+    border: 0;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .hh-bt-pick-img {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+  }
+  .hh-bt-pick-img img {
+    width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(0 16px 30px rgb(255 212 0 / 0.22));
+    transition: transform 0.25s ease;
+  }
+  .hh-bt-pick:hover .hh-bt-pick-img img {
+    transform: scale(1.04) rotate(-2deg);
+  }
+
+  /* the category tiles */
+  .hh-bt-cat[data-span="3"] {
+    grid-column: span 3;
+  }
+  .hh-bt-cat[data-span="4"] {
+    grid-column: span 4;
+  }
+  .hh-bt-cat[data-span="6"] {
+    grid-column: span 6;
+  }
+  .hh-bt-words {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+  }
+  .hh-bt-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .hh-bt-meta {
+    color: var(--bb-hot, #d71920);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .hh-bt-cat .hh-cut {
+    flex: 1;
+    min-height: 0;
+    margin: 6px 0 0;
+    align-items: center;
+  }
+  .hh-bt-cat .hh-cut img {
+    width: auto;
+    max-width: 60%;
+    max-height: 100%;
+  }
+  .hh-bt-cat .hh-cut[data-n="2"] img + img {
+    max-width: 50%;
+    margin-left: -12%;
+  }
+  .hh-bt-cat .hh-cut--icon svg {
+    width: 64px;
+    height: 64px;
+  }
+  .hh-bt-cat[data-tone="hot"] {
+    background: var(--bb-hot, #d71920);
+    color: #fff;
+  }
+  .hh-bt-cat[data-tone="hot"] .hh-bt-meta {
+    color: var(--hh-yel);
+  }
+  .hh-bt-cat[data-tone="hot"] .hh-cut--icon {
+    color: #fff;
+  }
+  .hh-bt-cat[data-tone="bar"] {
+    background: var(--hh-yel);
+  }
+  .hh-bt-cat[data-tone="ink"] {
+    background: var(--hh-ink);
+    color: #fff;
+  }
+  .hh-bt-cat[data-tone="ink"] .hh-bt-meta,
+  .hh-bt-cat[data-tone="ink"] .hh-cut--icon {
+    color: var(--hh-yel);
+  }
+  /* the wide tile: words and button on the left, the products big beside */
+  .hh-bt-cat[data-wide] {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+  .hh-bt-cat[data-wide] .hh-bt-name {
+    font-size: 1.9rem;
+  }
+  .hh-bt-cat[data-wide] .hh-btn {
+    margin-top: 14px;
+  }
+  .hh-bt-cat[data-wide] .hh-cut {
+    height: 100%;
+    margin: 0;
+  }
+  .hh-bt-cat[data-wide] .hh-cut img {
+    max-width: 66%;
+  }
+
+  /* the rest of the categories, as chips */
+  .hh-chips {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -20px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hh-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1.5px solid rgb(20 18 12 / 0.1);
+    border-radius: 999px;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+  }
+  .hh-chip:hover {
+    border-color: var(--bb-hot, #d71920);
+  }
+  .hh-chip svg {
+    color: var(--bb-hot, #d71920);
+  }
+  .hh-chip em {
+    color: var(--color-muted);
+    font-style: normal;
+    font-weight: 500;
+  }
+}
+/* a narrower desktop: shorter tiles, the line smaller */
+@container (max-width: 1100px) {
+  /* the art tile is squarer here: the picture shrinks to the bottom right
+     and the line runs across the sky above it */
+  .hh-bt-art {
+    background-size: auto 70%;
+  }
+  .hh-bt-h {
+    max-width: none;
+    font-size: 1.9rem;
+  }
+  .hh-bt-art .hh-btn {
+    margin-top: auto;
+  }
+  .hh-bento {
+    grid-auto-rows: 180px;
+  }
+  .hh-bt-name {
+    font-size: 1.1rem;
+  }
+  .hh-bt-cat[data-wide] .hh-bt-name {
+    font-size: 1.5rem;
+  }
+  .hh-bt-pick-pill {
+    font-size: 1rem;
+  }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  a.hh-bt,
+  .hh-bt-pick-img img,
+  .hh-chip {
+    transition: none;
+  }
+}
+/* the widest screens: the art tile is wider than the art, so the art's own
+   left edge would show; it fades into the yellow instead */
+@container (min-width: 1500px) {
+  .hh-bt-art {
+    background:
+      linear-gradient(90deg, var(--hh-yel) 19%, transparent 32%),
+      url("../../assets/art/hero-beach.webp") right bottom / auto 100% no-repeat,
+      var(--hh-yel);
+  }
+}
