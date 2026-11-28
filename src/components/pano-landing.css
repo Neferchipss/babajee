@@ -156,22 +156,24 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 0 60%;
+  /* the shop sits on the right of the picture: keep it, and its pavement */
+  object-position: 30% 70%;
 }
+/* wide screens: the logo, line and buttons on the plain wall left of the shop */
 .pano-front-copy {
   position: absolute;
   top: 0;
-  right: clamp(24px, 6vw, 110px);
+  left: clamp(24px, 5vw, 96px);
   bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: min(30rem, 42vw);
+  width: min(26rem, 30vw);
   text-align: center;
 }
 .pano-front-logo {
-  width: min(28rem, 48vw);
+  width: min(24rem, 29vw);
   filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.25));
 }
 .pano-front-tag {
@@ -179,8 +181,9 @@
   margin-top: 18px;
   padding: 6px 12px;
   border-radius: 10px;
-  background: rgb(250 246 236 / 0.85);
-  color: #181916;
+  /* the shopfront is a night street in both looks: light words on a dark wash */
+  background: rgb(18 16 22 / 0.55);
+  color: #efe9dc;
   font-size: clamp(0.95rem, 1.3vw, 1.15rem);
   font-weight: 600;
   line-height: 1.4;
@@ -272,6 +275,9 @@
     margin: 8px 0 0;
     padding: 0;
     background: none;
+    /* the tall shopfront is the same night street: light words */
+    color: #efe9dc;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.6);
     font-size: clamp(0.8rem, 1.9svh, 0.92rem);
     line-height: 1.35;
     text-wrap: balance;
@@ -368,4 +374,139 @@ body:has(.pano:not([data-inside])) :is(.hdr, .lb) {
 /* dark mode: the shopfront's backing (seen for a moment before its picture) is night, not paper */
 html[data-mode="dark"] .pano-front {
   background: #0e192d;
+}
+
+/* ---------------------------------------------- out front: painted on the wall
+   No box: a shade fades in from the left, and the place, the logo, the line
+   (as the page's headline) and the two buttons stand on the wall beside the
+   shop. Phones: the logo and line above the shop, the buttons stacked across
+   the bottom. */
+.pano-front-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgb(14 12 18 / 0.78) 0%, rgb(14 12 18 / 0.45) 30%, transparent 52%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.pano-front[data-walking] .pano-front-shade {
+  opacity: 0;
+}
+.pano-front-copy {
+  z-index: 2;
+  left: clamp(32px, 6vw, 110px);
+  width: min(30rem, 34vw);
+  align-items: flex-start;
+  gap: 22px;
+  text-align: left;
+}
+.pano-front-kick {
+  color: #b9c9b2;
+  font-family: var(--font-mono-face), ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.pano-front-logo {
+  width: 100%;
+  filter: none;
+}
+.pano-front-tag {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: #efe9dc;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.pano-front-actions {
+  justify-content: flex-start;
+  margin: 0;
+}
+.pano-btn {
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 24px;
+  border: 1.5px solid rgb(239 233 220 / 0.55);
+  border-radius: 999px;
+  background: rgb(20 18 25 / 0.35);
+  color: #efe9dc;
+  font-weight: 700;
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+}
+.pano-btn--go {
+  border-color: #ffd400;
+  background: #ffd400;
+  color: #14120c;
+}
+.pano-btn:hover,
+.pano-btn:focus-visible {
+  transform: translateY(-2px);
+  background: #fffdf7;
+  color: #14120c;
+}
+.pano-btn--go:hover,
+.pano-btn--go:focus-visible {
+  background: #ffe14d;
+}
+@media (max-aspect-ratio: 4/5) {
+  .pano-front-shade {
+    background: linear-gradient(180deg, rgb(14 12 18 / 0.7) 0%, transparent 30%, transparent 62%, rgb(14 12 18 / 0.85) 100%);
+  }
+  .pano-front-copy {
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+  .pano-front-logo {
+    width: min(17rem, 70vw, 24svh);
+  }
+  .pano-front-tag,
+  html[data-mode="dark"] .pano-front-tag {
+    color: #efe9dc;
+    font-size: clamp(1.1rem, 2.4svh, 1.3rem);
+    text-shadow: none;
+  }
+  .pano-front-actions {
+    left: 20px;
+    right: 20px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .pano-btn {
+    width: 100%;
+    padding: 14px 10px;
+  }
+  .pano-front[data-walking] .pano-front-kick {
+    opacity: 0;
+  }
+}
+/* phones: the place and logo stay up top; the line drops to the street,
+   just above the two buttons */
+@media (max-aspect-ratio: 4/5) {
+  .pano-front-copy {
+    /* the whole screen, not the wide screens' column on the left */
+    left: 0;
+    right: 0;
+    width: auto;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+  .pano-front-tag {
+    max-width: 24ch;
+    margin-top: auto;
+  }
+}
+/* phones: the logo big, centred in the open wall above the shop */
+@media (max-aspect-ratio: 4/5) {
+  .pano-front-copy {
+    padding-top: calc(7svh + env(safe-area-inset-top));
+  }
+  .pano-front-logo {
+    width: min(21rem, 82vw, 37svh);
+  }
 }

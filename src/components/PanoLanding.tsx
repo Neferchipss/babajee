@@ -7,10 +7,10 @@ import pano from "@/assets/shop/pano-day.webp";
 import panoDusk from "@/assets/shop/pano-night.webp";
 import Logo from "./Logo";
 import { clearShopNote, peekShopNote, SHOP_NOTE_EVENT, TO_STREET } from "./scene-note";
-import front from "@/assets/shop/front-day.webp";
-import frontTall from "@/assets/shop/front-daydream-tall.webp";
-import frontDusk from "@/assets/shop/front-night.webp";
-import frontDuskTall from "@/assets/shop/front-dusk-tall.webp";
+// one shopfront for both looks (the pitch film's, restyled): the shop on the
+// right, the wall on the left clear for the logo and buttons
+import front from "@/assets/shop/front-door.webp";
+import frontTall from "@/assets/shop/front-door-tall.webp";
 import { PANO_SPOTS } from "./pano-spots";
 import "./shop-scene.css";
 import "./pano-landing.css";
@@ -37,7 +37,7 @@ const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 type Look = "day" | "dusk";
 const ART = {
   day: { pano: pano.src, front: front.src, frontTall: frontTall.src, walk: `${BASE}/walkin/walkin.mp4`, walkTall: `${BASE}/walkin/walkin-tall.mp4`, back: `${BASE}/walkin/walkin-rev.mp4`, backTall: `${BASE}/walkin/walkin-tall-rev.mp4` },
-  dusk: { pano: panoDusk.src, front: frontDusk.src, frontTall: frontDuskTall.src, walk: `${BASE}/walkin/walkin-dusk.mp4`, walkTall: `${BASE}/walkin/walkin-dusk-tall.mp4`, back: `${BASE}/walkin/walkin-dusk-rev.mp4`, backTall: `${BASE}/walkin/walkin-dusk-tall-rev.mp4` },
+  dusk: { pano: panoDusk.src, front: front.src, frontTall: frontTall.src, walk: `${BASE}/walkin/walkin-dusk.mp4`, walkTall: `${BASE}/walkin/walkin-dusk-tall.mp4`, back: `${BASE}/walkin/walkin-dusk-rev.mp4`, backTall: `${BASE}/walkin/walkin-dusk-tall-rev.mp4` },
 } as const;
 const lookNow = (): Look => {
   const h = document.documentElement;
@@ -702,12 +702,16 @@ export default function PanoLanding({ categories, shelves = {} }: { categories: 
             preload={warm ? "auto" : "none"}
             aria-hidden="true"
           />
+          {/* a soft shade from the left (from the top and bottom on phones), so
+              the words read on the street without a box round them */}
+          <div className="pano-front-shade" aria-hidden="true" />
           <div className="pano-front-copy">
+            <span className="pano-front-kick">Andheri West · Mumbai</span>
             <Logo priority className="pano-front-logo" />
             <p className="pano-front-tag">Papers, trays, glass and everything that goes with them.</p>
             <div className="pano-front-actions">
               <button type="button" className="pano-btn pano-btn--go" onClick={explore} tabIndex={inside || walking ? -1 : 0}>
-                Explore the shop
+                Step inside <span aria-hidden="true">→</span>
               </button>
               <Link href="/shop" className="pano-btn" tabIndex={inside ? -1 : 0}>
                 Shop products
